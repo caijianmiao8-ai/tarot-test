@@ -196,9 +196,14 @@ def generate_device_fingerprint(request):
 
 @app.route("/draw_card", methods=["POST"])
 def draw_card():
-    user = get_current_user()  # 你现有获取用户信息的函数
+    user = get_current_user()  # 获取当前用户
     today = datetime.date.today()
     guest_id = generate_device_fingerprint(request) if user["is_guest"] else None
+
+    card_data = {}
+    direction = ""
+    today_insight = ""
+    guidance = ""
 
     # ---------------- 查询今日抽牌记录 ----------------
     conn = get_db()
@@ -221,55 +226,30 @@ def draw_card():
         conn.close()
 
     if record:
-        # 已有记录，直接返回
-        card_data = record[0]  # 如果存的是字典或 JSON，请按存储方式调整
-        direction = record[1]
-        today_insight = record[2] or "今日运势解读暂未生成"
-        guidance = record[3] or "运势指引暂未生成"
+        # 已有记录
+        card_data = record[0] or {}
+        direction = record[1] or ""
+        today_insight = record[2] or ""
+        guidance = record[3] or ""
     else:
-        # ---------------- 调用抽牌逻辑 ----------------
-        card_data, direction = draw_random_card()  # 你现有抽牌逻辑
-        today_insight = ""
-        guidance = ""
-
-        # ---------------- 调用 Dify API 生成结果 ----------------
+        # ---------------- 生成新牌 ----------------
+        card_data, direction = draw_random_card()  # 你现有的抽牌逻辑
+        # ---------------- 调用 Dify API ----------------
         try:
-            api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
-            headers = {
-                "Authorization": f"Bearer {DIFY_API_KEY}",
-                "Content-Type": "application/json"
-            }
-
-            payload = {
-                "inputs": {
-                    "card_name": str(card_data.get("name", "")),
-                    "direction": str(direction)
-                },
-                "response_mode": "blocking",
-                "user": str(user["id"] if not user["is_guest"] else guest_id)
-            }
-
-            resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            output_str = data.get("data", {}).get("outputs", {}).get("text", "")
-
-            import json
-            try:
-                json_start = output_str.find("```json")
-                json_end = output_str.find("```", json_start + 1)
-                if json_start != -1 and json_end != -1:
-                    json_text = output_str[json_start + len("```json"):json_end].strip()
-                    json_data = json.loads(json_text)
-                    today_insight = json_data.get("today_insight", "")
-                    guidance = json_data.get("guidance", "")
-            except Exception as e:
-                print("解析 Dify LLM 输出出错:", e)
-
+            response = requests.post(
+                "DIFY_API_URL",
+                json={"card": card_data},
+                timeout=10
+            )
+            response.raise_for_status()
+            json_text = response.text
+            json_data = json.loads(json_text)
+            today_insight = json_data.get("today_insight", "")
+            guidance = json_data.get("guidance", "")
         except Exception as e:
             print("调用 Dify LLM 出错:", e)
 
-        # ---------------- 保存结果到数据库 ----------------
+        # ---------------- 保存到数据库 ----------------
         conn = get_db()
         try:
             with conn.cursor() as cursor:
@@ -289,6 +269,16 @@ def draw_card():
         finally:
             conn.close()
 
+    # ---------------- 缓存到 session ----------------
+    if user["is_guest"]:
+        session['last_card'] = {
+            "card": card_data,
+            "direction": direction,
+            "today_insight": today_insight,
+            "guidance": guidance,
+            "date": str(today)
+        }
+
     # ---------------- 渲染模板 ----------------
     return render_template(
         "result.html",
@@ -298,6 +288,7 @@ def draw_card():
         today_insight=today_insight,
         guidance=guidance
     )
+
 
 
 
