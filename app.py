@@ -308,11 +308,11 @@ def result():
 
         payload = {
             "inputs": {
-                "card_name": card_data["name"],
-                "direction": direction
+                "card_name": str(card_data["name"]),
+                "direction": str(direction)
             },
             "response_mode": "default",
-            "user": session.get('user_id', 'guest')
+            "user": str(session.get('user_id', 'guest'))
         }
 
         resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
