@@ -84,6 +84,41 @@ def index():
             conn.close()
     return render_template("index.html", has_drawn=has_drawn)
 
+@app.route("/stats")
+@login_required
+def stats():
+    user = g.user
+    total_readings = 0
+    recent_readings = []
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # 获取总抽牌次数
+            cursor.execute("SELECT COUNT(*) FROM readings WHERE user_id=%s", (user['id'],))
+            total_readings = cursor.fetchone()['count'] or 0
+
+            # 获取最近 10 条抽牌记录
+            cursor.execute("""
+                SELECT r.date, c.name AS card_name, r.direction
+                FROM readings r
+                JOIN tarot_cards c ON r.card_id = c.id
+                WHERE r.user_id = %s
+                ORDER BY r.date DESC
+                LIMIT 10
+            """, (user['id'],))
+            recent_readings = cursor.fetchall()
+    finally:
+        conn.close()
+
+    return render_template(
+        "stats.html",
+        user=user,
+        total_readings=total_readings,
+        recent_readings=recent_readings
+    )
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
