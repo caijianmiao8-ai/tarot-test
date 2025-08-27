@@ -291,32 +291,43 @@ def result():
     today_insight = "今日运势解读暂未生成"
     guidance = "运势指引暂未生成"
     try:
-        workflow_url = f"http://ai-bot-new.dalongyun.com/v1/workflows/run"
-        headers = {"Authorization": f"Bearer {DIFY_API_KEY}", "Content-Type": "application/json"}
-        payload = {"input": {"card_name": card_data["name"], "direction": direction}}
-        resp = requests.post(workflow_url, headers=headers, json=payload, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        output_str = data.get("output", "")
-        if output_str:
-            import re
-            insight_match = re.search(r"今日运势解读[:：]\s*(.*?)(?:\n|$)", output_str)
-            guidance_match = re.search(r"运势指引[:：]\s*(.*?)(?:\n|$)", output_str)
-            if insight_match:
-                today_insight = insight_match.group(1).strip()
-            if guidance_match:
-                guidance = guidance_match.group(1).strip()
-    except Exception as e:
-        print("调用 Dify Workflow 出错:", e)
+    api_url = "http://ai-bot-new.dalongyun.com/v1/workflows/run"
+    headers = {
+        "Authorization": f"Bearer {DIFY_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    return render_template(
-        "result.html",
-        today_date=today.strftime("%Y-%m-%d"),
-        card=card_data,
-        direction=direction,
-        today_insight=today_insight,
-        guidance=guidance
-    )
+    payload = {
+        "inputs": {
+            "card_name": card_data["name"],
+            "direction": direction
+        },
+        "response_mode": "default",  # 或 streaming
+        "user": session.get('user_id', 'guest')
+    }
+
+    resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+
+    # 输出解析
+    output_str = ""
+    if isinstance(data.get("output"), dict):
+        output_str = data["output"].get("text", "")
+    elif isinstance(data.get("output"), str):
+        output_str = data["output"]
+
+    if output_str:
+        import re
+        insight_match = re.search(r"今日运势解读[:：]?\s*(.*?)(?:\n|$)", output_str)
+        guidance_match = re.search(r"运势指引[:：]?\s*(.*?)(?:\n|$)", output_str)
+        if insight_match:
+            today_insight = insight_match.group(1).strip()
+        if guidance_match:
+            guidance = guidance_match.group(1).strip()
+    except Exception as e:
+        print("调用 Dify LLM 出错:", e)
+
 
 @app.route("/clear")
 @login_required
