@@ -312,7 +312,7 @@ def result():
                 "card_name": str(card_data.get("name", "")),
                 "direction": str(direction)
             },
-            "response_mode": "blocking",  # 或 streaming
+            "response_mode": "blocking",   # blocking 模式
             "user": str(user_id)
         }
 
@@ -322,24 +322,21 @@ def result():
         resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-
         print("DEBUG: response:", data)
 
-        # ---------------- 解析返回结果 ----------------
-        output_str = ""
-        if isinstance(data.get("output"), dict):
-            output_str = data["output"].get("text", "")
-        elif isinstance(data.get("output"), str):
-            output_str = data["output"]
-
-        if output_str:
-            import re
-            insight_match = re.search(r"今日运势解读[:：]?\s*(.*?)(?:\n|$)", output_str)
-            guidance_match = re.search(r"运势指引[:：]?\s*(.*?)(?:\n|$)", output_str)
-            if insight_match:
-                today_insight = insight_match.group(1).strip()
-            if guidance_match:
-                guidance = guidance_match.group(1).strip()
+        # ---------------- 解析 JSON 输出 ----------------
+        output_str = data.get("data", {}).get("outputs", {}).get("text", "")
+        try:
+            # 找到 ```json ... ``` 块
+            json_start = output_str.find("```json")
+            json_end = output_str.find("```", json_start + 1)
+            if json_start != -1 and json_end != -1:
+                json_text = output_str[json_start + len("```json"):json_end].strip()
+                json_data = json.loads(json_text)
+                today_insight = json_data.get("today_insight", today_insight)
+                guidance = json_data.get("guidance", guidance)
+        except Exception as e:
+            print("解析 Dify LLM 输出出错:", e)
 
     except requests.exceptions.HTTPError as e:
         print("调用 Dify LLM 出错:", e, e.response.text)
