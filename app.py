@@ -244,6 +244,8 @@ def draw_card():
 def result():
     user = g.user
     today = datetime.date.today()
+
+    # 获取抽牌记录
     if not user["is_guest"]:
         conn = get_db()
         try:
@@ -255,6 +257,7 @@ def result():
                     WHERE r.user_id=%s AND r.date=%s
                 """, (user["id"], today))
                 reading = cursor.fetchone()
+
                 if not reading:
                     cursor.execute("""
                         SELECT r.*, c.name, c.image, c.guidance, c.meaning_up, c.meaning_rev
@@ -265,8 +268,10 @@ def result():
                     reading = cursor.fetchone()
         finally:
             conn.close()
+
         if not reading:
             return redirect(url_for("index"))
+
         card_data = {
             "name": reading["name"],
             "image": reading["image"],
@@ -279,6 +284,7 @@ def result():
         last_card = session.get('last_card')
         if not last_card or last_card.get("date") != str(today):
             return redirect(url_for("index"))
+
         card_data = {
             "name": last_card["name"],
             "image": last_card.get("image"),
@@ -288,21 +294,24 @@ def result():
         }
         direction = last_card["direction"]
 
+    # 默认提示
     today_insight = "今日运势解读暂未生成"
     guidance = "运势指引暂未生成"
+
+    # 调用 Dify LLM API
     try:
         api_url = "http://ai-bot-new.dalongyun.com/v1/workflows/run"
         headers = {
             "Authorization": f"Bearer {DIFY_API_KEY}",
             "Content-Type": "application/json"
         }
-    
+
         payload = {
             "inputs": {
                 "card_name": card_data["name"],
                 "direction": direction
             },
-            "response_mode": "default",  # 或 streaming
+            "response_mode": "default",
             "user": session.get('user_id', 'guest')
         }
 
@@ -310,7 +319,7 @@ def result():
         resp.raise_for_status()
         data = resp.json()
 
-    # 输出解析
+        # 输出解析
         output_str = ""
         if isinstance(data.get("output"), dict):
             output_str = data["output"].get("text", "")
@@ -325,8 +334,19 @@ def result():
                 today_insight = insight_match.group(1).strip()
             if guidance_match:
                 guidance = guidance_match.group(1).strip()
-        except Exception as e:
-            print("调用 Dify LLM 出错:", e)
+
+    except Exception as e:
+        print("调用 Dify LLM 出错:", e)
+
+    return render_template(
+        "result.html",
+        today_date=today.strftime("%Y-%m-%d"),
+        card=card_data,
+        direction=direction,
+        today_insight=today_insight,
+        guidance=guidance
+    )
+
 
 
 @app.route("/clear")
