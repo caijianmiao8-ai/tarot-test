@@ -230,4 +230,39 @@
     </script>
 </body>
 
+{% if is_guest and can_export %}
+<div class="export-section">
+    <p>作为访客，您的解读仅在本次浏览期间有效</p>
+    <div class="export-buttons">
+        <a href="{{ url_for('export_reading') }}" class="btn btn-secondary">
+            <i class="icon-download"></i> 下载解读
+        </a>
+        <button onclick="copyToClipboard()" class="btn btn-secondary">
+            <i class="icon-copy"></i> 复制到剪贴板
+        </button>
+    </div>
+</div>
+
+<script>
+function copyToClipboard() {
+    const content = `塔罗每日指引 - {{ today_date }}
+    
+抽到的牌：{{ card.name }}（{{ direction }}）
+
+今日洞察：
+{{ today_insight }}
+
+指引建议：
+{{ guidance }}`;
+    
+    navigator.clipboard.writeText(content).then(() => {
+        alert('解读内容已复制到剪贴板');
+    }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动选择文本复制');
+    });
+}
+</script>
+{% endif %}
+
 </html>

@@ -164,4 +164,29 @@
         }
     </script>
 </body>
+
+{% if is_guest and show_guest_tip %}
+<div class="guest-welcome">
+    <h3>欢迎，神秘的访客 ✨</h3>
+    <div class="guest-info">
+        <p>作为访客，您可以：</p>
+        <ul>
+            <li>每日抽取一张塔罗牌</li>
+            <li>获得 AI 生成的专属解读</li>
+            <li>导出保存今日的指引</li>
+        </ul>
+        {% if is_incognito_hint %}
+        <div class="incognito-warning">
+            <i class="icon-info"></i>
+            <p>提示：您可能正在使用无痕浏览模式。关闭浏览器后，您的抽牌记录将会消失。</p>
+        </div>
+        {% endif %}
+        <p class="register-prompt">
+            想要保存历史记录并查看统计？
+            <a href="{{ url_for('register') }}">立即注册</a>
+        </p>
+    </div>
+</div>
+{% endif %}
+
 </html>
