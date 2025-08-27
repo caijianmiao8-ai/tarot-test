@@ -9,6 +9,7 @@ import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+import json
 
 # ---------------- 环境变量 ----------------
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
