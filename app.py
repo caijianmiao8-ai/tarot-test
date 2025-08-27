@@ -188,70 +188,117 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-@app.route("/draw", methods=["POST"])
+def generate_device_fingerprint(request):
+    """生成访客设备指纹"""
+    ua = request.headers.get('User-Agent', '')
+    lang = request.headers.get('Accept-Language', '')
+    return hashlib.md5(f"{ua}_{lang}".encode()).hexdigest()
+
+@app.route("/draw_card", methods=["POST"])
 def draw_card():
-    user = g.user
+    user = get_current_user()  # 你现有获取用户信息的函数
     today = datetime.date.today()
-    direction = random.choice(["正位", "逆位"])
+    guest_id = generate_device_fingerprint(request) if user["is_guest"] else None
 
-    # ---------------- 今日已抽牌，直接跳转 ----------------
-    if not user["is_guest"]:
-        conn = get_db()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT 1 FROM readings WHERE user_id=%s AND date=%s LIMIT 1",
-                    (user["id"], today)
-                )
-                if cursor.fetchone():
-                    return redirect(url_for("result"))
-        finally:
-            conn.close()
-    else:
-        last_card = session.get('last_card')
-        if last_card and last_card.get("date") == str(today):
-            return redirect(url_for("result"))
-
-    # ---------------- 抽牌 ----------------
+    # ---------------- 查询今日抽牌记录 ----------------
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM tarot_cards ORDER BY RANDOM() LIMIT 1")
-            card = cursor.fetchone()
-            if not card:
-                cursor.execute("SELECT * FROM cards ORDER BY RANDOM() LIMIT 1")
-                card = cursor.fetchone()
-            if not card:
-                return "错误：数据库中没有塔罗牌数据"
-
-            # ---------------- 登录用户插入记录（同时创建缓存列） ----------------
-            if not user["is_guest"]:
-                cursor.execute(
-                    """
-                    INSERT INTO readings 
-                        (user_id, date, card_id, direction, today_insight, guidance)
-                    VALUES (%s, %s, %s, %s, '', '')
-                    """,
-                    (user["id"], today, card["id"], direction)
-                )
-                conn.commit()
+            if user["is_guest"]:
+                cursor.execute("""
+                    SELECT card, direction, today_insight, guidance
+                    FROM readings
+                    WHERE guest_id=%s AND date=%s
+                """, (guest_id, today))
+            else:
+                cursor.execute("""
+                    SELECT card, direction, today_insight, guidance
+                    FROM readings
+                    WHERE user_id=%s AND date=%s
+                """, (user["id"], today))
+            record = cursor.fetchone()
     finally:
         conn.close()
 
-    # ---------------- 游客用户缓存 ----------------
-    session['last_card'] = {
-        "name": card["name"],
-        "image": card.get("image"),
-        "guidance": card.get("guidance"),
-        "meaning_up": card.get("meaning_up"),
-        "meaning_rev": card.get("meaning_rev"),
-        "direction": direction,
-        "date": str(today),
-        "today_insight": "",   # 默认空，/result 会调用 Dify LLM 生成
-        "guidance": ""
-    }
+    if record:
+        # 已有记录，直接返回
+        card_data = record[0]  # 如果存的是字典或 JSON，请按存储方式调整
+        direction = record[1]
+        today_insight = record[2] or "今日运势解读暂未生成"
+        guidance = record[3] or "运势指引暂未生成"
+    else:
+        # ---------------- 调用抽牌逻辑 ----------------
+        card_data, direction = draw_random_card()  # 你现有抽牌逻辑
+        today_insight = ""
+        guidance = ""
 
-    return redirect(url_for("result"))
+        # ---------------- 调用 Dify API 生成结果 ----------------
+        try:
+            api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
+            headers = {
+                "Authorization": f"Bearer {DIFY_API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "inputs": {
+                    "card_name": str(card_data.get("name", "")),
+                    "direction": str(direction)
+                },
+                "response_mode": "blocking",
+                "user": str(user["id"] if not user["is_guest"] else guest_id)
+            }
+
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            output_str = data.get("data", {}).get("outputs", {}).get("text", "")
+
+            import json
+            try:
+                json_start = output_str.find("```json")
+                json_end = output_str.find("```", json_start + 1)
+                if json_start != -1 and json_end != -1:
+                    json_text = output_str[json_start + len("```json"):json_end].strip()
+                    json_data = json.loads(json_text)
+                    today_insight = json_data.get("today_insight", "")
+                    guidance = json_data.get("guidance", "")
+            except Exception as e:
+                print("解析 Dify LLM 输出出错:", e)
+
+        except Exception as e:
+            print("调用 Dify LLM 出错:", e)
+
+        # ---------------- 保存结果到数据库 ----------------
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO readings (user_id, guest_id, date, card, direction, today_insight, guidance)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    None if user["is_guest"] else user["id"],
+                    guest_id,
+                    today,
+                    card_data,
+                    direction,
+                    today_insight,
+                    guidance
+                ))
+                conn.commit()
+        finally:
+            conn.close()
+
+    # ---------------- 渲染模板 ----------------
+    return render_template(
+        "result.html",
+        today_date=today.strftime("%Y-%m-%d"),
+        card=card_data,
+        direction=direction,
+        today_insight=today_insight,
+        guidance=guidance
+    )
+
 
 
 @app.route("/result")
@@ -259,8 +306,8 @@ def result():
     user = g.user
     today = datetime.date.today()
 
-    # ---------------- 获取抽牌记录 ----------------
     if not user["is_guest"]:
+        # ---------------- 登录用户从数据库读取 ----------------
         conn = get_db()
         try:
             with conn.cursor() as cursor:
@@ -271,15 +318,6 @@ def result():
                     WHERE r.user_id=%s AND r.date=%s
                 """, (user["id"], today))
                 reading = cursor.fetchone()
-
-                if not reading:
-                    cursor.execute("""
-                        SELECT r.*, c.name, c.image, c.guidance as db_guidance, c.meaning_up, c.meaning_rev
-                        FROM readings r
-                        JOIN cards c ON r.card_id=c.id
-                        WHERE r.user_id=%s AND r.date=%s
-                    """, (user["id"], today))
-                    reading = cursor.fetchone()
         finally:
             conn.close()
 
@@ -293,27 +331,31 @@ def result():
             "meaning_rev": reading["meaning_rev"]
         }
         direction = reading["direction"]
-
-        # ---------------- 从数据库读取缓存 ----------------
         today_insight = reading.get("today_insight") or "今日运势解读暂未生成"
         guidance = reading.get("guidance") or "运势指引暂未生成"
 
     else:
-        last_card = session.get('last_card')
-        if not last_card or last_card.get("date") != str(today):
+        # ---------------- 访客从数据库读取 ----------------
+        guest_id = generate_device_fingerprint(request)
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT card, direction, today_insight, guidance
+                    FROM readings
+                    WHERE guest_id=%s AND date=%s
+                """, (guest_id, today))
+                record = cursor.fetchone()
+        finally:
+            conn.close()
+
+        if not record:
             return redirect(url_for("index"))
 
-        card_data = {
-            "name": last_card["name"],
-            "image": last_card.get("image"),
-            "meaning_up": last_card.get("meaning_up"),
-            "meaning_rev": last_card.get("meaning_rev")
-        }
-        direction = last_card["direction"]
-
-        # ---------------- 从 session 读取缓存 ----------------
-        today_insight = last_card.get('today_insight', "今日运势解读暂未生成")
-        guidance = last_card.get('guidance', "运势指引暂未生成")
+        card_data = record[0]  # 如果是 JSON 或字典，请按你的存储方式调整
+        direction = record[1]
+        today_insight = record[2] or "今日运势解读暂未生成"
+        guidance = record[3] or "运势指引暂未生成"
 
     # ---------------- 调用 Dify LLM（仅当缓存不存在时） ----------------
     if not today_insight or today_insight.startswith("今日运势解读暂未生成"):
@@ -324,7 +366,7 @@ def result():
                 "Content-Type": "application/json"
             }
 
-            user_id = session.get('user_id') or 'guest'
+            user_id = session.get('user_id') or guest_id
             payload = {
                 "inputs": {
                     "card_name": str(card_data.get("name", "")),
@@ -337,7 +379,6 @@ def result():
             resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-
             output_str = data.get("data", {}).get("outputs", {}).get("text", "")
 
             import json
@@ -354,23 +395,24 @@ def result():
                 print("解析 Dify LLM 输出出错:", e)
 
             # ---------------- 缓存结果 ----------------
-            if user["is_guest"]:
-                last_card = session.get('last_card', {})
-                last_card['today_insight'] = today_insight
-                last_card['guidance'] = guidance
-                session['last_card'] = last_card
-            else:
-                conn = get_db()
-                try:
-                    with conn.cursor() as cursor:
+            conn = get_db()
+            try:
+                with conn.cursor() as cursor:
+                    if user["is_guest"]:
+                        cursor.execute("""
+                            UPDATE readings
+                            SET today_insight=%s, guidance=%s
+                            WHERE guest_id=%s AND date=%s
+                        """, (today_insight, guidance, guest_id, today))
+                    else:
                         cursor.execute("""
                             UPDATE readings
                             SET today_insight=%s, guidance=%s
                             WHERE user_id=%s AND date=%s
                         """, (today_insight, guidance, user["id"], today))
-                        conn.commit()
-                finally:
-                    conn.close()
+                    conn.commit()
+            finally:
+                conn.close()
 
         except requests.exceptions.HTTPError as e:
             print("调用 Dify LLM 出错:", e, e.response.text)
@@ -386,6 +428,7 @@ def result():
         today_insight=today_insight,
         guidance=guidance
     )
+
 
 
 
