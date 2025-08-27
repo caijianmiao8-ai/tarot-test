@@ -309,7 +309,53 @@ def result():
         user_id = session.get('user_id') or 'guest'
         payload = {
             "inputs": {
-                "card_name":_
+                "card_name": str(card_data.get("name", "")),
+                "direction": str(direction)
+            },
+            "response_mode": "default",  # 或 streaming
+            "user": str(user_id)
+        }
+
+        # --- 调试输出 ---
+        print("DEBUG: payload:", payload)
+
+        resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+
+        print("DEBUG: response:", data)
+
+        # ---------------- 解析返回结果 ----------------
+        output_str = ""
+        if isinstance(data.get("output"), dict):
+            output_str = data["output"].get("text", "")
+        elif isinstance(data.get("output"), str):
+            output_str = data["output"]
+
+        if output_str:
+            import re
+            insight_match = re.search(r"今日运势解读[:：]?\s*(.*?)(?:\n|$)", output_str)
+            guidance_match = re.search(r"运势指引[:：]?\s*(.*?)(?:\n|$)", output_str)
+            if insight_match:
+                today_insight = insight_match.group(1).strip()
+            if guidance_match:
+                guidance = guidance_match.group(1).strip()
+
+    except requests.exceptions.HTTPError as e:
+        print("调用 Dify LLM 出错:", e, e.response.text)
+    except Exception as e:
+        print("调用 Dify LLM 出错:", e)
+
+    # ---------------- 渲染模板 ----------------
+    return render_template(
+        "result.html",
+        today_date=today.strftime("%Y-%m-%d"),
+        card=card_data,
+        direction=direction,
+        today_insight=today_insight,
+        guidance=guidance
+    )
+
 
 
 
