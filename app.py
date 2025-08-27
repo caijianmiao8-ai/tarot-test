@@ -194,6 +194,7 @@ def draw_card():
     today = datetime.date.today()
     direction = random.choice(["正位", "逆位"])
 
+    # ---------------- 今日已抽牌，直接跳转 ----------------
     if not user["is_guest"]:
         conn = get_db()
         try:
@@ -211,6 +212,7 @@ def draw_card():
         if last_card and last_card.get("date") == str(today):
             return redirect(url_for("result"))
 
+    # ---------------- 抽牌 ----------------
     conn = get_db()
     try:
         with conn.cursor() as cursor:
@@ -221,15 +223,22 @@ def draw_card():
                 card = cursor.fetchone()
             if not card:
                 return "错误：数据库中没有塔罗牌数据"
+
+            # ---------------- 登录用户插入记录（同时创建缓存列） ----------------
             if not user["is_guest"]:
                 cursor.execute(
-                    "INSERT INTO readings (user_id, date, card_id, direction) VALUES (%s, %s, %s, %s)",
+                    """
+                    INSERT INTO readings 
+                        (user_id, date, card_id, direction, today_insight, guidance)
+                    VALUES (%s, %s, %s, %s, '', '')
+                    """,
                     (user["id"], today, card["id"], direction)
                 )
                 conn.commit()
     finally:
         conn.close()
 
+    # ---------------- 游客用户缓存 ----------------
     session['last_card'] = {
         "name": card["name"],
         "image": card.get("image"),
@@ -237,9 +246,13 @@ def draw_card():
         "meaning_up": card.get("meaning_up"),
         "meaning_rev": card.get("meaning_rev"),
         "direction": direction,
-        "date": str(today)
+        "date": str(today),
+        "today_insight": "",   # 默认空，/result 会调用 Dify LLM 生成
+        "guidance": ""
     }
+
     return redirect(url_for("result"))
+
 
 @app.route("/result")
 def result():
@@ -252,7 +265,7 @@ def result():
         try:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT r.*, c.name, c.image, c.guidance, c.meaning_up, c.meaning_rev
+                    SELECT r.*, c.name, c.image, c.guidance as db_guidance, c.meaning_up, c.meaning_rev
                     FROM readings r
                     JOIN tarot_cards c ON r.card_id=c.id
                     WHERE r.user_id=%s AND r.date=%s
@@ -261,7 +274,7 @@ def result():
 
                 if not reading:
                     cursor.execute("""
-                        SELECT r.*, c.name, c.image, c.guidance, c.meaning_up, c.meaning_rev
+                        SELECT r.*, c.name, c.image, c.guidance as db_guidance, c.meaning_up, c.meaning_rev
                         FROM readings r
                         JOIN cards c ON r.card_id=c.id
                         WHERE r.user_id=%s AND r.date=%s
@@ -281,7 +294,7 @@ def result():
         }
         direction = reading["direction"]
 
-        # ---------------- 从数据库读取缓存的 LLM 输出 ----------------
+        # ---------------- 从数据库读取缓存 ----------------
         today_insight = reading.get("today_insight") or "今日运势解读暂未生成"
         guidance = reading.get("guidance") or "运势指引暂未生成"
 
@@ -303,7 +316,7 @@ def result():
         guidance = last_card.get('guidance', "运势指引暂未生成")
 
     # ---------------- 调用 Dify LLM（仅当缓存不存在时） ----------------
-    if not today_insight or not guidance or today_insight.startswith("今日运势解读暂未生成"):
+    if not today_insight or today_insight.startswith("今日运势解读暂未生成"):
         try:
             api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
             headers = {
@@ -317,19 +330,17 @@ def result():
                     "card_name": str(card_data.get("name", "")),
                     "direction": str(direction)
                 },
-                "response_mode": "blocking",   # blocking 模式
+                "response_mode": "blocking",
                 "user": str(user_id)
             }
-
-            print("DEBUG: payload:", payload)
 
             resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            print("DEBUG: response:", data)
 
             output_str = data.get("data", {}).get("outputs", {}).get("text", "")
 
+            import json
             # ---------------- 解析 JSON 输出 ----------------
             try:
                 json_start = output_str.find("```json")
