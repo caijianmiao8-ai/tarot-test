@@ -276,11 +276,15 @@ def result():
         card_data = {
             "name": reading["name"],
             "image": reading["image"],
-            "guidance": reading["guidance"],
             "meaning_up": reading["meaning_up"],
             "meaning_rev": reading["meaning_rev"]
         }
         direction = reading["direction"]
+
+        # ---------------- 从数据库读取缓存的 LLM 输出 ----------------
+        today_insight = reading.get("today_insight") or "今日运势解读暂未生成"
+        guidance = reading.get("guidance") or "运势指引暂未生成"
+
     else:
         last_card = session.get('last_card')
         if not last_card or last_card.get("date") != str(today):
@@ -289,60 +293,78 @@ def result():
         card_data = {
             "name": last_card["name"],
             "image": last_card.get("image"),
-            "guidance": last_card.get("guidance"),
             "meaning_up": last_card.get("meaning_up"),
             "meaning_rev": last_card.get("meaning_rev")
         }
         direction = last_card["direction"]
 
-    # ---------------- 默认提示 ----------------
-    today_insight = "今日运势解读暂未生成"
-    guidance = "运势指引暂未生成"
+        # ---------------- 从 session 读取缓存 ----------------
+        today_insight = last_card.get('today_insight', "今日运势解读暂未生成")
+        guidance = last_card.get('guidance', "运势指引暂未生成")
 
-    # ---------------- 调用 Dify LLM ----------------
-    try:
-        api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
-        headers = {
-            "Authorization": f"Bearer {DIFY_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        user_id = session.get('user_id') or 'guest'
-        payload = {
-            "inputs": {
-                "card_name": str(card_data.get("name", "")),
-                "direction": str(direction)
-            },
-            "response_mode": "blocking",   # blocking 模式
-            "user": str(user_id)
-        }
-
-        # --- 调试输出 ---
-        print("DEBUG: payload:", payload)
-
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        print("DEBUG: response:", data)
-
-        # ---------------- 解析 JSON 输出 ----------------
-        output_str = data.get("data", {}).get("outputs", {}).get("text", "")
+    # ---------------- 调用 Dify LLM（仅当缓存不存在时） ----------------
+    if not today_insight or not guidance or today_insight.startswith("今日运势解读暂未生成"):
         try:
-            # 找到 ```json ... ``` 块
-            json_start = output_str.find("```json")
-            json_end = output_str.find("```", json_start + 1)
-            if json_start != -1 and json_end != -1:
-                json_text = output_str[json_start + len("```json"):json_end].strip()
-                json_data = json.loads(json_text)
-                today_insight = json_data.get("today_insight", today_insight)
-                guidance = json_data.get("guidance", guidance)
-        except Exception as e:
-            print("解析 Dify LLM 输出出错:", e)
+            api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
+            headers = {
+                "Authorization": f"Bearer {DIFY_API_KEY}",
+                "Content-Type": "application/json"
+            }
 
-    except requests.exceptions.HTTPError as e:
-        print("调用 Dify LLM 出错:", e, e.response.text)
-    except Exception as e:
-        print("调用 Dify LLM 出错:", e)
+            user_id = session.get('user_id') or 'guest'
+            payload = {
+                "inputs": {
+                    "card_name": str(card_data.get("name", "")),
+                    "direction": str(direction)
+                },
+                "response_mode": "blocking",   # blocking 模式
+                "user": str(user_id)
+            }
+
+            print("DEBUG: payload:", payload)
+
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            print("DEBUG: response:", data)
+
+            output_str = data.get("data", {}).get("outputs", {}).get("text", "")
+
+            # ---------------- 解析 JSON 输出 ----------------
+            try:
+                json_start = output_str.find("```json")
+                json_end = output_str.find("```", json_start + 1)
+                if json_start != -1 and json_end != -1:
+                    json_text = output_str[json_start + len("```json"):json_end].strip()
+                    json_data = json.loads(json_text)
+                    today_insight = json_data.get("today_insight", today_insight)
+                    guidance = json_data.get("guidance", guidance)
+            except Exception as e:
+                print("解析 Dify LLM 输出出错:", e)
+
+            # ---------------- 缓存结果 ----------------
+            if user["is_guest"]:
+                last_card = session.get('last_card', {})
+                last_card['today_insight'] = today_insight
+                last_card['guidance'] = guidance
+                session['last_card'] = last_card
+            else:
+                conn = get_db()
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            UPDATE readings
+                            SET today_insight=%s, guidance=%s
+                            WHERE user_id=%s AND date=%s
+                        """, (today_insight, guidance, user["id"], today))
+                        conn.commit()
+                finally:
+                    conn.close()
+
+        except requests.exceptions.HTTPError as e:
+            print("调用 Dify LLM 出错:", e, e.response.text)
+        except Exception as e:
+            print("调用 Dify LLM 出错:", e)
 
     # ---------------- 渲染模板 ----------------
     return render_template(
@@ -353,7 +375,6 @@ def result():
         today_insight=today_insight,
         guidance=guidance
     )
-
 
 
 
