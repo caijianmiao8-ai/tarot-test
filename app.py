@@ -312,7 +312,7 @@ def result():
                 "card_name": str(card_data.get("name", "")),
                 "direction": str(direction)
             },
-            "response_mode": "default",  # 或 streaming
+            "response_mode": "blocking",  # 或 streaming
             "user": str(user_id)
         }
 
