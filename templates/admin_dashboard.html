@@ -1,0 +1,237 @@
+<!-- admin_dashboard.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>塔罗牌应用 - 管理仪表板</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #4a5568; margin-bottom: 5px; }
+        .stat-label { color: #718096; font-size: 0.9em; }
+        .users-table { width: 100%; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .users-table th, .users-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .users-table th { background: #f7fafc; font-weight: 600; }
+        .user-id { font-family: monospace; font-size: 0.9em; }
+        .nav { margin-bottom: 30px; }
+        .nav a { margin-right: 20px; color: #3182ce; text-decoration: none; }
+        .nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 塔罗牌应用管理仪表板</h1>
+        
+        <div class="nav">
+            <a href="/">返回应用</a>
+            <a href="/admin">仪表板</a>
+            <a href="/admin/users">用户管理</a>
+            <a href="/debug/user?force=true">调试信息</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_users }}</div>
+                <div class="stat-label">总用户数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_readings }}</div>
+                <div class="stat-label">总抽牌记录</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.new_today }}</div>
+                <div class="stat-label">今日新用户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.readings_today }}</div>
+                <div class="stat-label">今日抽牌</div>
+            </div>
+        </div>
+
+        <h2>最近活跃用户</h2>
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>用户ID</th>
+                    <th>设备指纹</th>
+                    <th>首次访问</th>
+                    <th>最后访问</th>
+                    <th>访问次数</th>
+                    <th>抽牌时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reading in readings %}
+                <tr>
+                    <td>{{ reading.date.strftime('%Y-%m-%d') if reading.date }}</td>
+                    <td>{{ reading.card_name or '未知卡牌' }}</td>
+                    <td>{{ reading.direction }}</td>
+                    <td>{{ reading.timestamp.strftime('%H:%M:%S') if reading.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; color: #718096;">
+            该用户还没有抽牌记录
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>牌记录</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in stats.recent_users %}
+                <tr>
+                    <td class="user-id">{{ user.id[:8] }}...</td>
+                    <td>{{ user.device_id[:12] }}...</td>
+                    <td>{{ user.first_visit.strftime('%Y-%m-%d %H:%M') if user.first_visit }}</td>
+                    <td>{{ user.last_visit.strftime('%Y-%m-%d %H:%M') if user.last_visit }}</td>
+                    <td>{{ user.visit_count }}</td>
+                    <td>{{ user.total_readings }}</td>
+                    <td><a href="/admin/user/{{ user.id }}">查看详情</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+            <h3>快速测试工具</h3>
+            <p>
+                <a href="/test/create-user?force=true" style="margin-right: 15px;">🆕 创建新用户测试</a>
+                <a href="/test/reset-user?force=true" style="margin-right: 15px;">🔄 重置当前用户</a>
+                <a href="/api/user-stats">📊 用户API测试</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+
+<!-- admin_users.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>用户管理</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .users-table { width: 100%; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .users-table th, .users-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .users-table th { background: #f7fafc; font-weight: 600; }
+        .user-id { font-family: monospace; font-size: 0.85em; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 20px; color: #3182ce; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 用户管理</h1>
+        
+        <div class="nav">
+            <a href="/admin">返回仪表板</a>
+        </div>
+
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>用户ID</th>
+                    <th>设备指纹</th>
+                    <th>首次访问</th>
+                    <th>最后访问</th>
+                    <th>访问次数</th>
+                    <th>抽牌记录</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="user-id">{{ user.id }}</td>
+                    <td style="font-size: 0.9em;">{{ user.device_id }}</td>
+                    <td>{{ user.first_visit.strftime('%Y-%m-%d %H:%M') if user.first_visit }}</td>
+                    <td>{{ user.last_visit.strftime('%Y-%m-%d %H:%M') if user.last_visit }}</td>
+                    <td>{{ user.visit_count }}</td>
+                    <td>{{ user.total_readings }}</td>
+                    <td><a href="/admin/user/{{ user.id }}">查看详情</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
+<!-- admin_user_detail.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>用户详情 - {{ user.id[:8] }}...</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .user-info { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .info-item { padding: 10px; background: #f7fafc; border-radius: 4px; }
+        .info-label { font-weight: 600; color: #4a5568; font-size: 0.9em; }
+        .info-value { color: #2d3748; margin-top: 5px; }
+        .readings-table { width: 100%; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .readings-table th, .readings-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .readings-table th { background: #f7fafc; font-weight: 600; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; color: #3182ce; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👤 用户详情</h1>
+        
+        <div class="nav">
+            <a href="/admin">仪表板</a>
+            <a href="/admin/users">用户列表</a>
+        </div>
+
+        <div class="user-info">
+            <h2>基本信息</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">用户ID</div>
+                    <div class="info-value" style="font-family: monospace; font-size: 0.9em;">{{ user.id }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">设备指纹</div>
+                    <div class="info-value" style="font-family: monospace; font-size: 0.9em;">{{ user.device_id }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">首次访问</div>
+                    <div class="info-value">{{ user.first_visit.strftime('%Y-%m-%d %H:%M:%S') if user.first_visit }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">最后访问</div>
+                    <div class="info-value">{{ user.last_visit.strftime('%Y-%m-%d %H:%M:%S') if user.last_visit }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">总访问次数</div>
+                    <div class="info-value">{{ user.visit_count }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">抽牌记录数</div>
+                    <div class="info-value">{{ readings|length }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if readings %}
+        <h2>抽牌历史</h2>
+        <table class="readings-table">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>卡牌</th>
+                    <th>方向</th>
+                    <th>抽

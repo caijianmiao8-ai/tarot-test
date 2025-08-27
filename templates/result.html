@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日塔罗运势 - 结果</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #8e6c88;
+            --secondary-color: #d1bfa7;
+            --accent-color: #6d4c67;
+            --light-color: #f8f4e9;
+            --dark-color: #333333;
+            --success-color: #5cb85c;
+            --warning-color: #f0ad4e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
+            color: var(--dark-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .tarot-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tarot-container::before {
+            content: "";
+            position: absolute;
+            top: -10px; left: -10px; right: -10px; bottom: -10px;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            z-index: -1;
+            border-radius: 25px;
+        }
+
+        .header { margin-bottom: 20px; position: relative; }
+        .header h1 { font-size: 2.8rem; font-weight: 700; color: var(--accent-color); margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); }
+        .date-display { font-size: 1.2rem; color: var(--accent-color); margin-bottom: 30px; padding: 8px 20px; background: rgba(142, 108, 136, 0.1); border-radius: 50px; display: inline-block; }
+
+        .result-card { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-bottom: 40px; align-items: center; }
+        .card-visual {
+            width: 220px;
+            height: 350px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #c0a58d 100%);
+            border-radius: 15px;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .direction-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--direction-color);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-image {
+            width: 90%;
+            height: 90%;
+            background-color: #f8f4e9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .card-image img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .card-image i { font-size: 5rem; color: rgba(109, 76, 103, 0.3); }
+
+        .card-info { flex: 1; min-width: 300px; text-align: left; padding: 20px; background: rgba(255, 255, 255, 0.6); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        .card-name { font-size: 2.2rem; color: var(--accent-color); margin-bottom: 15px; font-weight: 700; text-align: center; }
+
+        .interpretation-title { font-size: 1.4rem; color: var(--primary-color); margin: 20px 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--secondary-color); font-weight: 600; }
+        .interpretation-content { font-size: 1.1rem; line-height: 1.7; color: var(--dark-color); padding: 10px; }
+
+        .action-buttons { display: flex; justify-content: center; gap: 20px; margin-top: 30px; flex-wrap: wrap; }
+        .btn-tarot {
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white; padding: 12px 30px; border: none; border-radius: 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(142, 108, 136, 0.3);
+        }
+        .btn-tarot:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(142, 108, 136, 0.4); }
+        .btn-tarot i { margin-right: 8px; }
+        .btn-tarot.secondary { background: linear-gradient(135deg, var(--secondary-color) 0%, #c0a58d 100%); }
+
+        .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--secondary-color), transparent); margin: 30px 0; }
+
+        .meaning-explanation { text-align: left; margin-bottom: 30px; background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .meaning-title { font-size: 1.5rem; color: var(--accent-color); text-align: center; margin-bottom: 20px; font-weight: 600; }
+        .meaning-content { font-size: 1.05rem; line-height: 1.7; color: #555; }
+
+        .footer { text-align: center; margin-top: 30px; color: var(--accent-color); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .tarot-container { padding: 20px; }
+            .header h1 { font-size: 2.2rem; }
+            .card-name { font-size: 1.8rem; }
+            .card-visual { width: 180px; height: 280px; }
+            .btn-tarot { padding: 10px 25px; font-size: 1rem; width: 100%; margin-bottom: 10px; }
+            .action-buttons { flex-direction: column; gap: 10px; }
+            .card-info { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="tarot-container">
+        <div class="header">
+            <h1><i class="fas fa-stars"></i> 今日塔罗运势 <i class="fas fa-stars"></i></h1>
+            <div class="date-display">
+                <i class="fas fa-calendar"></i> {{ today_date }}
+            </div>
+        </div>
+
+        <div class="result-card">
+            <div class="card-visual">
+                <div class="direction-badge" style="--direction-color: {{ 'var(--success-color)' if direction == '正位' else 'var(--warning-color)' }}">
+                    {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
+                </div>
+                <div class="card-image">
+                    {% if card.image %}
+                    <img src="{{ card.image }}" alt="{{ card.name }}">
+                    {% else %}
+                    <i class="fas fa-question"></i>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-info">
+                <div class="card-name">{{ card.name }}</div>
+
+                <div class="interpretation-title">
+                    <i class="fas fa-compass"></i> 今日运势解读
+                </div>
+                <div class="interpretation-content">
+                    {{ today_insight }}
+                </div>
+
+                <div class="interpretation-title">
+                    <i class="fas fa-hands-helping"></i> 运势指引
+                </div>
+                <div class="interpretation-content">
+                    {{ guidance }}
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="meaning-explanation">
+            <div class="meaning-title">
+                <i class="fas fa-book-open"></i> {{ card.name }} 的深层含义
+            </div>
+            <div class="meaning-content">
+                <p><strong>正位含义：</strong> {{ card.meaning_up }}</p>
+                <p><strong>逆位含义：</strong> {{ card.meaning_rev }}</p>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{{ url_for('index') }}" class="btn-tarot secondary">
+                <i class="fas fa-home"></i> 返回首页
+            </a>
+            <a href="{{ url_for('clear_cache') }}" class="btn-tarot secondary">
+                <i class="fas fa-trash-alt"></i> 清除记录
+            </a>
+            <button class="btn-tarot" onclick="shareResult()">
+                <i class="fas fa-share-alt"></i> 分享结果
+            </button>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 塔罗运势 | 宇宙能量，智慧指引</p>
+        </div>
+    </div>
+
+    <script>
+        function shareResult() {
+            const shareText = `我的每日塔罗抽牌结果：${document.querySelector('.card-name').textContent}（{{ direction }}）\n今日运势：{{ today_insight }}\n运势指引：{{ guidance }}\n`;
+            if (navigator.share) {
+                navigator.share({ title: '我的每日塔罗运势', text: shareText, url: window.location.href })
+                    .then(() => console.log('分享成功'))
+                    .catch((error) => console.log('分享失败', error));
+            } else {
+                navigator.clipboard.writeText(shareText + window.location.href)
+                    .then(() => { alert('运势已复制到剪贴板，您可以粘贴分享'); })
+                    .catch(err => { console.error('复制失败:', err); alert('浏览器不支持分享，请手动复制'); });
+            }
+        }
+
+        const cardVisual = document.querySelector('.card-visual');
+        setTimeout(() => { cardVisual.style.transform = 'rotateY(360deg)'; }, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的塔罗统计</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #8e6c88;
+            --secondary-color: #d1bfa7;
+            --accent-color: #6d4c67;
+            --light-color: #f8f4e9;
+            --dark-color: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
+            color: var(--dark-color);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .stats-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-container::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            z-index: -1;
+            border-radius: 25px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+            opacity: 0.8;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card i {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+            opacity: 0.8;
+        }
+
+        .recent-section {
+            margin-top: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .readings-list {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .reading-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .reading-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .reading-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .reading-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .reading-date {
+            background: var(--secondary-color);
+            color: var(--accent-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .card-name {
+            font-weight: 600;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+
+        .direction-badge {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .direction-badge.reverse {
+            background: linear-gradient(135deg, #f0ad4e, #d58512);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--dark-color);
+            opacity: 0.6;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn-tarot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(142, 108, 136, 0.3);
+        }
+
+        .btn-tarot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(142, 108, 136, 0.4);
+        }
+
+        .btn-tarot i {
+            margin-right: 8px;
+        }
+
+        .btn-tarot.secondary {
+            background: linear-gradient(135deg, var(--secondary-color), #c0a58d);
+        }
+
+        @media (max-width: 768px) {
+            .stats-container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .reading-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .reading-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-tarot {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stats-container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> 我的塔罗统计</h1>
+            <p>探索您的占卜历程和能量轨迹</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-calendar-day"></i>
+                <div class="stat-number">{{ total_readings }}</div>
+                <div class="stat-label">累计抽牌次数</div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-number">{{ user.visit_count if user else 1 }}</div>
+                <div class="stat-label">访问次数</div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-user-clock"></i>
+                <div class="stat-number">
+                    {% if user and user.first_visit %}
+                        {{ ((user.last_visit - user.first_visit).days + 1) if user.last_visit and user.first_visit else 1 }}
+                    {% else %}
+                        1
+                    {% endif %}
+                </div>
+                <div class="stat-label">使用天数</div>
+            </div>
+        </div>
+
+        <div class="recent-section">
+            <h2 class="section-title">
+                <i class="fas fa-history"></i> 最近的占卜记录
+            </h2>
+
+            <div class="readings-list">
+                {% if recent_readings %}
+                    {% for reading in recent_readings %}
+                    <div class="reading-item">
+                        <div class="reading-info">
+                            <div class="reading-date">{{ reading.date.strftime('%m-%d') if reading.date else '未知' }}</div>
+                            <div class="card-name">{{ reading.card_name or '未知卡牌' }}</div>
+                        </div>
+                        <div class="direction-badge {% if reading.direction == '逆位' %}reverse{% endif %}">
+                            {{ reading.direction or '正位' }}
+                            <i class="fas {% if reading.direction == '逆位' %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>还没有占卜记录</h3>
+                        <p>开始您的第一次塔罗占卜吧</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{{ url_for('index') }}" class="btn-tarot">
+                <i class="fas fa-home"></i> 返回首页
+            </a>
+            {% if total_readings == 0 %}
+            <a href="{{ url_for('index') }}" class="btn-tarot secondary">
+                <i class="fas fa-star"></i> 开始占卜
+            </a>
+            {% else %}
+            <a href="{{ url_for('result') }}" class="btn-tarot secondary">
+                <i class="fas fa-eye"></i> 查看今日运势
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-4">
+            <p style="color: var(--accent-color); font-size: 0.9rem;">
+                <i class="fas fa-shield-alt"></i> 您的数据已安全保存，可在不同设备间同步
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 简单的数据动画效果
+        document.addEventListener('DOMContentLoaded', function() {
+            const statNumbers = document.querySelectorAll('.stat-number');
+            
+            statNumbers.forEach(function(element) {
+                const finalNumber = parseInt(element.textContent);
+                let currentNumber = 0;
+                const increment = Math.ceil(finalNumber / 20);
+                
+                const timer = setInterval(function() {
+                    currentNumber += increment;
+                    if (currentNumber >= finalNumber) {
+                        currentNumber = finalNumber;
+                        clearInterval(timer);
+                    }
+                    element.textContent = currentNumber;
+                }, 50);
+            });
+        });
+    </script>
+</body>
+</html>
