@@ -291,7 +291,7 @@ def result():
     today_insight = "今日运势解读暂未生成"
     guidance = "运势指引暂未生成"
     try:
-        workflow_url = f"http://ai-bot-new.dalongyun.com/v1/workflows/{WORKFLOW_ID}/run"
+        workflow_url = f"http://ai-bot-new.dalongyun.com/v1/workflows/run"
         headers = {"Authorization": f"Bearer {DIFY_API_KEY}", "Content-Type": "application/json"}
         payload = {"input": {"card_name": card_data["name"], "direction": direction}}
         resp = requests.post(workflow_url, headers=headers, json=payload, timeout=10)
