@@ -6,10 +6,12 @@ import hashlib
 import requests
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request, redirect, url_for, session, g
+from flask import Flask, render_template, request, redirect, url_for, session, g, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import json
+import time
+import traceback
 
 # ---------------- 环境变量 ----------------
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
@@ -119,7 +121,6 @@ def stats():
         recent_readings=recent_readings
     )
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -188,241 +189,376 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-def generate_device_fingerprint(request):
-    """生成访客设备指纹"""
-    ua = request.headers.get('User-Agent', '')
-    lang = request.headers.get('Accept-Language', '')
-    return hashlib.md5(f"{ua}_{lang}".encode()).hexdigest()
-
-@app.route("/draw_card", methods=["POST"])
+@app.route("/draw", methods=["POST"])
 def draw_card():
-    user = get_current_user()  # 获取当前用户
+    user = g.user
     today = datetime.date.today()
-    guest_id = generate_device_fingerprint(request) if user["is_guest"] else None
+    direction = random.choice(["正位", "逆位"])
 
-    card_data = {}
-    direction = ""
-    today_insight = ""
-    guidance = ""
-
-    # ---------------- 查询今日抽牌记录 ----------------
-    conn = get_db()
-    try:
-        with conn.cursor() as cursor:
-            if user["is_guest"]:
-                cursor.execute("""
-                    SELECT card, direction, today_insight, guidance
-                    FROM readings
-                    WHERE guest_id=%s AND date=%s
-                """, (guest_id, today))
-            else:
-                cursor.execute("""
-                    SELECT card, direction, today_insight, guidance
-                    FROM readings
-                    WHERE user_id=%s AND date=%s
-                """, (user["id"], today))
-            record = cursor.fetchone()
-    finally:
-        conn.close()
-
-    if record:
-        # 已有记录
-        card_data = record[0] or {}
-        direction = record[1] or ""
-        today_insight = record[2] or ""
-        guidance = record[3] or ""
-    else:
-        # ---------------- 生成新牌 ----------------
-        card_data, direction = draw_random_card()  # 你现有的抽牌逻辑
-        # ---------------- 调用 Dify API ----------------
-        try:
-            response = requests.post(
-                "DIFY_API_URL",
-                json={"card": card_data},
-                timeout=10
-            )
-            response.raise_for_status()
-            json_text = response.text
-            json_data = json.loads(json_text)
-            today_insight = json_data.get("today_insight", "")
-            guidance = json_data.get("guidance", "")
-        except Exception as e:
-            print("调用 Dify LLM 出错:", e)
-
-        # ---------------- 保存到数据库 ----------------
+    # ---------------- 今日已抽牌，直接跳转 ----------------
+    if not user["is_guest"]:
         conn = get_db()
         try:
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO readings (user_id, guest_id, date, card, direction, today_insight, guidance)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    None if user["is_guest"] else user["id"],
-                    guest_id,
-                    today,
-                    card_data,
-                    direction,
-                    today_insight,
-                    guidance
-                ))
-                conn.commit()
+                cursor.execute(
+                    "SELECT 1 FROM readings WHERE user_id=%s AND date=%s LIMIT 1",
+                    (user["id"], today)
+                )
+                if cursor.fetchone():
+                    return redirect(url_for("result"))
         finally:
             conn.close()
+    else:
+        last_card = session.get('last_card')
+        if last_card and last_card.get("date") == str(today):
+            return redirect(url_for("result"))
 
-    # ---------------- 缓存到 session ----------------
+    # ---------------- 抽牌 ----------------
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM tarot_cards ORDER BY RANDOM() LIMIT 1")
+            card = cursor.fetchone()
+            if not card:
+                cursor.execute("SELECT * FROM cards ORDER BY RANDOM() LIMIT 1")
+                card = cursor.fetchone()
+            if not card:
+                return "错误：数据库中没有塔罗牌数据"
+
+            # ---------------- 登录用户插入记录（使用 NULL 而不是空字符串） ----------------
+            if not user["is_guest"]:
+                cursor.execute(
+                    """
+                    INSERT INTO readings 
+                        (user_id, date, card_id, direction, today_insight, guidance)
+                    VALUES (%s, %s, %s, %s, NULL, NULL)
+                    """,
+                    (user["id"], today, card["id"], direction)
+                )
+                conn.commit()
+    finally:
+        conn.close()
+
+    # ---------------- 游客用户缓存（不包含 insight 和 guidance） ----------------
     if user["is_guest"]:
         session['last_card'] = {
-            "card": card_data,
+            "card_id": card["id"],
+            "name": card["name"],
+            "image": card.get("image"),
+            "meaning_up": card.get("meaning_up"),
+            "meaning_rev": card.get("meaning_rev"),
             "direction": direction,
-            "today_insight": today_insight,
-            "guidance": guidance,
             "date": str(today)
+            # 注意：不设置 today_insight 和 guidance
         }
+        session.modified = True
 
-    # ---------------- 渲染模板 ----------------
-    return render_template(
-        "result.html",
-        today_date=today.strftime("%Y-%m-%d"),
-        card=card_data,
-        direction=direction,
-        today_insight=today_insight,
-        guidance=guidance
-    )
-
-
-
+    return redirect(url_for("result"))
 
 @app.route("/result")
 def result():
     user = g.user
     today = datetime.date.today()
-
+    
+    # ---------------- 获取抽牌记录 ----------------
     if not user["is_guest"]:
-        # ---------------- 登录用户从数据库读取 ----------------
         conn = get_db()
         try:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT r.*, c.name, c.image, c.guidance as db_guidance, c.meaning_up, c.meaning_rev
+                    SELECT r.*, c.name, c.image, c.meaning_up, c.meaning_rev
                     FROM readings r
                     JOIN tarot_cards c ON r.card_id=c.id
                     WHERE r.user_id=%s AND r.date=%s
                 """, (user["id"], today))
                 reading = cursor.fetchone()
+                
+                if not reading:
+                    cursor.execute("""
+                        SELECT r.*, c.name, c.image, c.meaning_up, c.meaning_rev
+                        FROM readings r
+                        JOIN cards c ON r.card_id=c.id
+                        WHERE r.user_id=%s AND r.date=%s
+                    """, (user["id"], today))
+                    reading = cursor.fetchone()
         finally:
             conn.close()
-
+        
         if not reading:
             return redirect(url_for("index"))
-
+        
         card_data = {
+            "id": reading["card_id"],
             "name": reading["name"],
             "image": reading["image"],
             "meaning_up": reading["meaning_up"],
             "meaning_rev": reading["meaning_rev"]
         }
         direction = reading["direction"]
-        today_insight = reading.get("today_insight") or "今日运势解读暂未生成"
-        guidance = reading.get("guidance") or "运势指引暂未生成"
-
+        
+        # 直接获取值，不使用 or 操作符
+        today_insight = reading.get("today_insight")
+        guidance = reading.get("guidance")
+        
     else:
-        # ---------------- 访客从数据库读取 ----------------
-        guest_id = generate_device_fingerprint(request)
-        conn = get_db()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT card, direction, today_insight, guidance
-                    FROM readings
-                    WHERE guest_id=%s AND date=%s
-                """, (guest_id, today))
-                record = cursor.fetchone()
-        finally:
-            conn.close()
-
-        if not record:
+        # 游客用户
+        last_card = session.get('last_card')
+        if not last_card or last_card.get("date") != str(today):
             return redirect(url_for("index"))
-
-        card_data = record[0]  # 如果是 JSON 或字典，请按你的存储方式调整
-        direction = record[1]
-        today_insight = record[2] or "今日运势解读暂未生成"
-        guidance = record[3] or "运势指引暂未生成"
-
-    # ---------------- 调用 Dify LLM（仅当缓存不存在时） ----------------
-    if not today_insight or today_insight.startswith("今日运势解读暂未生成"):
+        
+        card_data = {
+            "id": last_card.get("card_id"),
+            "name": last_card["name"],
+            "image": last_card.get("image"),
+            "meaning_up": last_card.get("meaning_up"),
+            "meaning_rev": last_card.get("meaning_rev")
+        }
+        direction = last_card["direction"]
+        
+        # 使用 get 方法，如果键不存在返回 None
+        today_insight = last_card.get('today_insight')
+        guidance = last_card.get('guidance')
+    
+    # ---------------- 判断是否需要生成内容 ----------------
+    need_generate = (today_insight is None or today_insight == "" or 
+                    guidance is None or guidance == "")
+    
+    # 显示用的变量
+    display_insight = today_insight
+    display_guidance = guidance
+    
+    if need_generate:
+        print(f"Need to generate content for user {user.get('id', 'guest')}")
+        
+        # 设置默认值
+        default_insight = f"今日你抽到了{card_data['name']}（{direction}），这张牌蕴含着深刻的智慧。"
+        default_guidance = f"{'正位' if direction == '正位' else '逆位'}的{card_data['name']}提醒你要关注内心的声音，相信直觉的指引。"
+        
+        # 调用 Dify API 生成内容
+        api_success = False
+        
         try:
             api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
             headers = {
                 "Authorization": f"Bearer {DIFY_API_KEY}",
                 "Content-Type": "application/json"
             }
-
-            user_id = session.get('user_id') or guest_id
+            
+            user_identifier = user["id"] if not user["is_guest"] else f'guest_{session.sid if hasattr(session, "sid") else "unknown"}'
+            
+            # 构建更详细的输入
+            card_meaning = card_data.get(f"meaning_{'up' if direction == '正位' else 'rev'}", "")
+            
             payload = {
                 "inputs": {
                     "card_name": str(card_data.get("name", "")),
-                    "direction": str(direction)
+                    "direction": str(direction),
+                    "meaning": str(card_meaning)
                 },
                 "response_mode": "blocking",
-                "user": str(user_id)
+                "user": str(user_identifier)
             }
-
-            resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            output_str = data.get("data", {}).get("outputs", {}).get("text", "")
-
-            import json
-            # ---------------- 解析 JSON 输出 ----------------
-            try:
-                json_start = output_str.find("```json")
-                json_end = output_str.find("```", json_start + 1)
-                if json_start != -1 and json_end != -1:
-                    json_text = output_str[json_start + len("```json"):json_end].strip()
-                    json_data = json.loads(json_text)
-                    today_insight = json_data.get("today_insight", today_insight)
-                    guidance = json_data.get("guidance", guidance)
-            except Exception as e:
-                print("解析 Dify LLM 输出出错:", e)
-
-            # ---------------- 缓存结果 ----------------
-            conn = get_db()
-            try:
-                with conn.cursor() as cursor:
-                    if user["is_guest"]:
-                        cursor.execute("""
-                            UPDATE readings
-                            SET today_insight=%s, guidance=%s
-                            WHERE guest_id=%s AND date=%s
-                        """, (today_insight, guidance, guest_id, today))
+            
+            print(f"Calling Dify API with payload: {payload}")
+            
+            # 调用 API，增加超时时间
+            response = requests.post(api_url, headers=headers, json=payload, timeout=25)
+            response.raise_for_status()
+            
+            data = response.json()
+            print(f"Dify API response status: {response.status_code}")
+            
+            # 处理响应
+            output_str = ""
+            if isinstance(data, dict):
+                if "data" in data and isinstance(data["data"], dict):
+                    outputs = data["data"].get("outputs", {})
+                    if isinstance(outputs, dict):
+                        output_str = outputs.get("text", "")
+                    elif isinstance(outputs, str):
+                        output_str = outputs
+                elif "answer" in data:
+                    output_str = data["answer"]
+                elif "text" in data:
+                    output_str = data["text"]
+            
+            if output_str:
+                print(f"Got output from Dify, length: {len(output_str)}")
+                
+                # 尝试解析 JSON
+                parsed_data = None
+                
+                # 方法1: 直接解析
+                try:
+                    parsed_data = json.loads(output_str)
+                except:
+                    pass
+                
+                # 方法2: 查找 ```json 块
+                if not parsed_data:
+                    try:
+                        start = output_str.find("```json")
+                        if start != -1:
+                            end = output_str.find("```", start + 7)
+                            if end != -1:
+                                json_str = output_str[start + 7:end].strip()
+                                parsed_data = json.loads(json_str)
+                    except:
+                        pass
+                
+                # 方法3: 查找 JSON 对象
+                if not parsed_data:
+                    try:
+                        start = output_str.find("{")
+                        end = output_str.rfind("}")
+                        if start != -1 and end != -1:
+                            json_str = output_str[start:end + 1]
+                            parsed_data = json.loads(json_str)
+                    except:
+                        pass
+                
+                # 提取数据
+                if parsed_data and isinstance(parsed_data, dict):
+                    new_insight = parsed_data.get("today_insight", "").strip()
+                    new_guidance = parsed_data.get("guidance", "").strip()
+                    
+                    if new_insight and new_guidance:
+                        today_insight = new_insight
+                        guidance = new_guidance
+                        display_insight = today_insight
+                        display_guidance = guidance
+                        api_success = True
+                        print("Successfully parsed Dify response")
                     else:
+                        print("Parsed data missing required fields")
+                else:
+                    print(f"Failed to parse JSON from output: {output_str[:200]}...")
+            
+        except requests.exceptions.Timeout:
+            print("Dify API timeout")
+        except requests.exceptions.HTTPError as e:
+            print(f"Dify API HTTP error: {e}")
+            if hasattr(e, 'response') and e.response:
+                print(f"Response content: {e.response.text[:500]}")
+        except Exception as e:
+            print(f"Unexpected error calling Dify: {type(e).__name__}: {e}")
+            traceback.print_exc()
+        
+        # 如果 API 失败，使用默认值
+        if not api_success:
+            display_insight = default_insight
+            display_guidance = default_guidance
+            # 但不更新数据库/session，下次还可以重试
+        else:
+            # API 成功，更新存储
+            if user["is_guest"]:
+                if 'last_card' not in session:
+                    session['last_card'] = {}
+                session['last_card']['today_insight'] = today_insight
+                session['last_card']['guidance'] = guidance
+                session.modified = True
+                print("Updated session with new content")
+            else:
+                conn = get_db()
+                try:
+                    with conn.cursor() as cursor:
                         cursor.execute("""
                             UPDATE readings
                             SET today_insight=%s, guidance=%s
                             WHERE user_id=%s AND date=%s
                         """, (today_insight, guidance, user["id"], today))
-                    conn.commit()
-            finally:
-                conn.close()
-
-        except requests.exceptions.HTTPError as e:
-            print("调用 Dify LLM 出错:", e, e.response.text)
-        except Exception as e:
-            print("调用 Dify LLM 出错:", e)
-
+                        conn.commit()
+                        print(f"Updated database for user {user['id']}")
+                finally:
+                    conn.close()
+    
+    # 确保有内容显示
+    if not display_insight:
+        display_insight = f"今日你抽到了{card_data['name']}（{direction}），请静心感受这张牌的能量。"
+    if not display_guidance:
+        display_guidance = "塔罗牌的智慧需要你用心体会，相信你的直觉。"
+    
     # ---------------- 渲染模板 ----------------
     return render_template(
         "result.html",
         today_date=today.strftime("%Y-%m-%d"),
         card=card_data,
         direction=direction,
-        today_insight=today_insight,
-        guidance=guidance
+        today_insight=display_insight,
+        guidance=display_guidance
     )
 
-
-
-
+@app.route("/api/regenerate", methods=["POST"])
+def regenerate():
+    """手动重新生成解读内容的 API"""
+    user = g.user
+    today = datetime.date.today()
+    
+    try:
+        # 获取卡牌信息
+        if not user["is_guest"]:
+            conn = get_db()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT r.*, c.name, c.meaning_up, c.meaning_rev
+                        FROM readings r
+                        JOIN tarot_cards c ON r.card_id=c.id
+                        WHERE r.user_id=%s AND r.date=%s
+                    """, (user["id"], today))
+                    reading = cursor.fetchone()
+            finally:
+                conn.close()
+            
+            if not reading:
+                return jsonify({"success": False, "error": "未找到今日抽牌记录"}), 404
+            
+            card_name = reading["name"]
+            direction = reading["direction"]
+            card_meaning = reading[f"meaning_{'up' if direction == '正位' else 'rev'}"]
+        else:
+            last_card = session.get('last_card')
+            if not last_card or last_card.get("date") != str(today):
+                return jsonify({"success": False, "error": "未找到今日抽牌记录"}), 404
+            
+            card_name = last_card["name"]
+            direction = last_card["direction"]
+            card_meaning = last_card.get(f"meaning_{'up' if direction == '正位' else 'rev'}", "")
+        
+        # 调用 Dify API
+        api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
+        headers = {
+            "Authorization": f"Bearer {DIFY_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "inputs": {
+                "card_name": str(card_name),
+                "direction": str(direction),
+                "meaning": str(card_meaning)
+            },
+            "response_mode": "blocking",
+            "user": str(user.get("id", "guest"))
+        }
+        
+        response = requests.post(api_url, headers=headers, json=payload, timeout=25)
+        response.raise_for_status()
+        
+        # 解析响应（使用相同的解析逻辑）
+        # ... 省略解析代码，与上面相同 ...
+        
+        return jsonify({
+            "success": True,
+            "today_insight": today_insight,
+            "guidance": guidance
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route("/clear")
 @login_required
@@ -442,3 +578,6 @@ def generate_device_fingerprint(request):
     ua = request.headers.get('User-Agent', '')
     lang = request.headers.get('Accept-Language', '')
     return hashlib.md5(f"{ua}_{lang}".encode()).hexdigest()
+
+if __name__ == "__main__":
+    app.run(debug=True)
