@@ -539,7 +539,7 @@
                             <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" 
                                  src="{{ card.image }}" 
                                  alt="{{ card.name }}"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 style="width:100%; height:100%; object-fit:contain;">
                             <div style="display:none; width:100%; height:100%; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1)); display: flex; align-items: center; justify-content: center;">
                                 <div style="text-align: center;">
                                     <i class="fas fa-image" style="font-size: 3rem; color: var(--primary-color); opacity: 0.5;"></i>
