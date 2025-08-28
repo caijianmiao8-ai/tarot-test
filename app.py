@@ -12,6 +12,7 @@ from functools import wraps
 import json
 import time
 import traceback
+from datetime import datetime, timezone, timedelta
 
 # ---------------- 环境变量 ----------------
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
@@ -51,6 +52,11 @@ def get_current_user():
     finally:
         conn.close()
 
+def get_local_date():
+   """获取北京时间的当前日期"""
+   beijing_tz = timezone(timedelta(hours=8))
+   return datetime.now(beijing_tz).date()
+   
 @app.before_request
 def before_request():
     """确保会话初始化和用户加载"""
@@ -350,9 +356,9 @@ def draw_card():
 @app.route("/result")
 def result():
     user = g.user
-    today = datetime.date.today()
+    today = get_local_date()  # 使用你的时区函数，确保日期本地化
     
-    # 获取抽牌记录
+    # ---------------- 获取抽牌记录 ----------------
     if not user["is_guest"]:
         # 登录用户从数据库获取
         conn = get_db()
@@ -365,7 +371,7 @@ def result():
                     WHERE r.user_id=%s AND r.date=%s
                 """, (user["id"], today))
                 reading = cursor.fetchone()
-                
+
                 if not reading:
                     cursor.execute("""
                         SELECT r.*, c.name, c.image, c.meaning_up, c.meaning_rev
@@ -384,7 +390,7 @@ def result():
         card_data = {
             "id": reading["card_id"],
             "name": reading["name"],
-            "image": reading["image"],
+            "image": reading["image"],  # 图片路径，例如 /static/images/tarot/00_fool.jpg
             "meaning_up": reading["meaning_up"],
             "meaning_rev": reading["meaning_rev"]
         }
@@ -393,22 +399,17 @@ def result():
         guidance = reading.get("guidance")
         
     else:
-        # 访客从 session 获取
+        # 访客用户从 session 获取
         last_card = session.get('last_card', {})
-        
+
         if not last_card:
             flash("请先抽取塔罗牌", "info")
             return redirect(url_for("index"))
-        
-        # 检查是否是今天的牌
+
         if last_card.get("date") != str(today):
-            # 显示过期提示
-            return render_template(
-                "expired_reading.html",
-                last_card=last_card,
-                today=today.strftime("%Y-%m-%d")
-            )
-        
+            flash("昨日的塔罗指引已过期，请重新抽牌", "info")
+            return redirect(url_for("index"))
+
         card_data = {
             "id": last_card.get("card_id"),
             "name": last_card["name"],
@@ -420,34 +421,32 @@ def result():
         today_insight = last_card.get('today_insight')
         guidance = last_card.get('guidance')
     
-    # 判断是否需要生成内容
-    need_generate = (today_insight is None or today_insight == "" or 
-                    guidance is None or guidance == "")
-    
-    # 显示用的变量
+    # ---------------- 判断是否需要生成内容 ----------------
+    need_generate = (not today_insight or today_insight.strip() == "" or
+                     not guidance or guidance.strip() == "")
+
     display_insight = today_insight
     display_guidance = guidance
-    
+
     if need_generate:
         print(f"Generating content for user {user.get('id', 'guest_' + user.get('session_id', 'unknown'))}")
-        
-        # 设置默认值
+
+        # 默认文案
         default_insight = f"今日你抽到了{card_data['name']}（{direction}），这张牌正在向你传递宇宙的信息。"
         default_guidance = f"{'正位' if direction == '正位' else '逆位'}的{card_data['name']}提醒你，要相信内心的声音，保持开放的心态。"
-        
-        # 调用 Dify API
+
         api_success = False
-        
+
         try:
             api_url = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
             headers = {
                 "Authorization": f"Bearer {DIFY_API_KEY}",
                 "Content-Type": "application/json"
             }
-            
+
             user_identifier = user["id"] if not user["is_guest"] else f'guest_{user.get("session_id", "unknown")}'
             card_meaning = card_data.get(f"meaning_{'up' if direction == '正位' else 'rev'}", "")
-            
+
             payload = {
                 "inputs": {
                     "card_name": str(card_data.get("name", "")),
@@ -457,16 +456,15 @@ def result():
                 "response_mode": "blocking",
                 "user": str(user_identifier)
             }
-            
+
             print(f"Calling Dify API for card: {card_data['name']}, direction: {direction}")
-            
+
             response = requests.post(api_url, headers=headers, json=payload, timeout=25)
             response.raise_for_status()
-            
+
             data = response.json()
-            
-            # 解析响应
             output_str = ""
+
             if isinstance(data, dict):
                 if "data" in data and isinstance(data["data"], dict):
                     outputs = data["data"].get("outputs", {})
@@ -478,53 +476,42 @@ def result():
                     output_str = data["answer"]
                 elif "text" in data:
                     output_str = data["text"]
-            
-            if output_str:
-                # 尝试解析 JSON
-                parsed_data = None
-                
-                # 方法1: 直接解析
+
+            # 尝试解析 JSON
+            parsed_data = None
+            try:
+                parsed_data = json.loads(output_str)
+            except:
                 try:
-                    parsed_data = json.loads(output_str)
+                    start = output_str.find("```json")
+                    if start != -1:
+                        end = output_str.find("```", start + 7)
+                        if end != -1:
+                            json_str = output_str[start + 7:end].strip()
+                            parsed_data = json.loads(json_str)
                 except:
                     pass
-                
-                # 方法2: 查找 ```json 块
-                if not parsed_data:
-                    try:
-                        start = output_str.find("```json")
-                        if start != -1:
-                            end = output_str.find("```", start + 7)
-                            if end != -1:
-                                json_str = output_str[start + 7:end].strip()
-                                parsed_data = json.loads(json_str)
-                    except:
-                        pass
-                
-                # 方法3: 查找 JSON 对象
-                if not parsed_data:
-                    try:
-                        start = output_str.find("{")
-                        end = output_str.rfind("}")
-                        if start != -1 and end != -1:
-                            json_str = output_str[start:end + 1]
-                            parsed_data = json.loads(json_str)
-                    except:
-                        pass
-                
-                # 提取数据
-                if parsed_data and isinstance(parsed_data, dict):
-                    new_insight = parsed_data.get("today_insight", "").strip()
-                    new_guidance = parsed_data.get("guidance", "").strip()
-                    
-                    if new_insight and new_guidance:
-                        today_insight = new_insight
-                        guidance = new_guidance
-                        display_insight = today_insight
-                        display_guidance = guidance
-                        api_success = True
-                        print("Successfully generated content")
-            
+            if not parsed_data:
+                try:
+                    start = output_str.find("{")
+                    end = output_str.rfind("}")
+                    if start != -1 and end != -1:
+                        json_str = output_str[start:end + 1]
+                        parsed_data = json.loads(json_str)
+                except:
+                    pass
+
+            if parsed_data and isinstance(parsed_data, dict):
+                new_insight = parsed_data.get("today_insight", "").strip()
+                new_guidance = parsed_data.get("guidance", "").strip()
+                if new_insight and new_guidance:
+                    today_insight = new_insight
+                    guidance = new_guidance
+                    display_insight = today_insight
+                    display_guidance = guidance
+                    api_success = True
+                    print("Successfully generated content")
+
         except requests.exceptions.Timeout:
             print("Dify API timeout")
         except requests.exceptions.HTTPError as e:
@@ -532,7 +519,7 @@ def result():
         except Exception as e:
             print(f"Unexpected error calling Dify: {type(e).__name__}: {e}")
             traceback.print_exc()
-        
+
         # 使用默认值或生成的内容
         if not api_success:
             display_insight = default_insight
@@ -555,14 +542,14 @@ def result():
                         conn.commit()
                 finally:
                     conn.close()
-    
-    # 确保有内容
+
+    # ---------------- 确保渲染内容不为空 ----------------
     if not display_insight:
         display_insight = f"今日{card_data['name']}为你带来特别的启示。"
     if not display_guidance:
         display_guidance = "请静心感受这张牌的能量，让它指引你的方向。"
-    
-    # 渲染模板
+
+    # ---------------- 渲染模板 ----------------
     return render_template(
         "result.html",
         today_date=today.strftime("%Y-%m-%d"),
@@ -571,8 +558,10 @@ def result():
         today_insight=display_insight,
         guidance=display_guidance,
         is_guest=user["is_guest"],
-        can_export=True
+        can_export=True,
+        user=user  # 确保模板可以访问 user 对象
     )
+
 
 @app.route("/export_reading")
 def export_reading():
