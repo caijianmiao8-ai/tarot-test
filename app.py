@@ -1,6 +1,5 @@
 import os
 import random
-import datetime
 import uuid
 import hashlib
 import requests
