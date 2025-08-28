@@ -533,21 +533,15 @@
                     <div class="direction-badge" style="--direction-color: {{ 'var(--success-color)' if direction == '正位' else 'var(--warning-color)' }}">
                         {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
                     </div>
-
+                
                     <div class="tarot-image-wrapper">
                         {% if card.image %}
                             <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" 
                                  src="{{ card.image }}" 
-                                 alt="{{ card.name }}"
+                                 alt="{{ card.name }}" 
                                  style="width:100%; height:100%; object-fit:contain;">
-                            <div style="display:none; width:100%; height:100%; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1)); display: flex; align-items: center; justify-content: center;">
-                                <div style="text-align: center;">
-                                    <i class="fas fa-image" style="font-size: 3rem; color: var(--primary-color); opacity: 0.5;"></i>
-                                    <p style="margin-top: 10px; color: var(--primary-color);">{{ card.name }}</p>
-                                </div>
-                            </div>
                         {% else %}
-                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1)); display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1));">
                                 <div style="text-align: center;">
                                     <i class="fas fa-sparkles" style="font-size: 4rem; color: var(--primary-color); opacity: 0.5;"></i>
                                     <h3 style="margin-top: 20px; color: var(--accent-color); font-size: 1.5rem;">{{ card.name }}</h3>
