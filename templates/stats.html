@@ -252,17 +252,19 @@
             height: 100%;
             width: 5px;
             background: linear-gradient(180deg, var(--primary-color), var(--accent-color));
-            transition: width 0.3s ease;
+            transition: all 0.3s ease;
+            z-index: 0;
         }
 
         .reading-item:hover {
             transform: translateX(8px);
             box-shadow: 0 8px 20px rgba(142,108,136,0.15);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
         }
 
         .reading-item:hover::before {
-            width: 100%;
-            opacity: 0.05;
+            width: 8px;
+            filter: brightness(1.2);
         }
 
         .reading-item:last-child {
