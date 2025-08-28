@@ -1,59 +1,211 @@
-# database.py
-import sqlite3
-import json
+"""
+数据库管理模块
+支持 Vercel（每次新建连接）和传统部署（连接池）
+"""
+import psycopg2
+import psycopg2.extras
+from contextlib import contextmanager
+from config import Config
 
-def init_database():
-    # 连接数据库（不存在则创建）
-    conn = sqlite3.connect('tarot.db')
-    cursor = conn.cursor()
+class DatabaseManager:
+    """数据库管理器"""
     
-    # 创建抽牌记录表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS readings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL,
-        card_id INTEGER NOT NULL,
-        direction TEXT NOT NULL,
-        date TEXT NOT NULL
-    )
-    ''')
+    _pool = None
     
-    # 创建塔罗牌数据表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS tarot_cards (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        image TEXT,
-        meaning_up TEXT NOT NULL,
-        meaning_rev TEXT NOT NULL,
-        guidance TEXT NOT NULL
-    )
-    ''')
+    @classmethod
+    def init_pool(cls):
+        """初始化连接池（仅在非 Vercel 环境使用）"""
+        if not Config.IS_VERCEL and not cls._pool:
+            from psycopg2 import pool
+            db_config = Config.get_db_config()
+            cls._pool = pool.SimpleConnectionPool(
+                1,
+                db_config["pool_size"],
+                db_config["dsn"],
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
     
-    # 检查卡片数据是否已存在
-    cursor.execute("SELECT COUNT(*) FROM tarot_cards")
-    if cursor.fetchone()[0] == 0:
-        # 加载预置卡片数据
-        with open('data/tarot_cards.json', 'r', encoding='utf-8') as f:
-            cards = json.load(f)
-            
-        # 插入卡片数据
-        for card in cards:
-            cursor.execute('''
-            INSERT INTO tarot_cards (id, name, image, meaning_up, meaning_rev, guidance)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                card['id'],
-                card['name'],
-                card.get('image', ''),
-                card['meaning_up'],
-                card['meaning_rev'],
-                card['guidance']
-            ))
+    @classmethod
+    def get_connection(cls):
+        """获取数据库连接"""
+        if Config.IS_VERCEL:
+            # Vercel: 每次创建新连接
+            return psycopg2.connect(
+                Config.DATABASE_URL,
+                cursor_factory=psycopg2.extras.RealDictCursor,
+                sslmode="require"
+            )
+        else:
+            # 传统部署: 使用连接池
+            cls.init_pool()
+            return cls._pool.getconn()
     
-    conn.commit()
-    conn.close()
+    @classmethod
+    def return_connection(cls, conn):
+        """归还连接到连接池"""
+        if not Config.IS_VERCEL and cls._pool:
+            cls._pool.putconn(conn)
+        else:
+            conn.close()
+    
+    @classmethod
+    @contextmanager
+    def get_db(cls):
+        """上下文管理器，自动处理连接的获取和释放"""
+        conn = cls.get_connection()
+        try:
+            yield conn
+        finally:
+            cls.return_connection(conn)
 
-if __name__ == '__main__':
-    init_database()
-    print("数据库初始化完成！")
+
+# 数据访问层（Data Access Layer）
+class UserDAO:
+    """用户数据访问对象"""
+    
+    @staticmethod
+    def get_by_id(user_id):
+        """根据 ID 获取用户"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+                return cursor.fetchone()
+    
+    @staticmethod
+    def get_by_username(username):
+        """根据用户名获取用户"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+                return cursor.fetchone()
+    
+    @staticmethod
+    def create(user_data):
+        """创建新用户"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO users (id, username, password_hash, device_id,
+                                       first_visit, last_visit, visit_count, is_guest)
+                    VALUES (%(id)s, %(username)s, %(password_hash)s, %(device_id)s,
+                            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, FALSE)
+                    RETURNING *
+                """, user_data)
+                user = cursor.fetchone()
+                conn.commit()
+                return user
+    
+    @staticmethod
+    def update_visit(user_id):
+        """更新用户访问信息"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users 
+                    SET last_visit = CURRENT_TIMESTAMP, 
+                        visit_count = visit_count + 1 
+                    WHERE id = %s
+                """, (user_id,))
+                conn.commit()
+
+
+class ReadingDAO:
+    """占卜记录数据访问对象"""
+    
+    @staticmethod
+    def get_today_reading(user_id, date):
+        """获取今日占卜记录"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT r.*, c.name, c.image, c.meaning_up, c.meaning_rev
+                    FROM readings r
+                    JOIN tarot_cards c ON r.card_id = c.id
+                    WHERE r.user_id = %s AND r.date = %s
+                """, (user_id, date))
+                return cursor.fetchone()
+    
+    @staticmethod
+    def create(reading_data):
+        """创建占卜记录"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO readings 
+                        (user_id, date, card_id, direction, today_insight, guidance)
+                    VALUES (%(user_id)s, %(date)s, %(card_id)s, %(direction)s, NULL, NULL)
+                    RETURNING *
+                """, reading_data)
+                reading = cursor.fetchone()
+                conn.commit()
+                return reading
+    
+    @staticmethod
+    def update_insight(user_id, date, insight, guidance):
+        """更新占卜解读"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE readings
+                    SET today_insight = %s, guidance = %s
+                    WHERE user_id = %s AND date = %s
+                """, (insight, guidance, user_id, date))
+                conn.commit()
+    
+    @staticmethod
+    def get_recent(user_id, limit=10):
+        """获取最近的占卜记录"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT r.date, c.name as card_name, r.direction,
+                           r.today_insight, r.guidance
+                    FROM readings r
+                    JOIN tarot_cards c ON r.card_id = c.id
+                    WHERE r.user_id = %s
+                    ORDER BY r.date DESC
+                    LIMIT %s
+                """, (user_id, limit))
+                return cursor.fetchall()
+    
+    @staticmethod
+    def count_by_user(user_id):
+        """统计用户占卜次数"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT COUNT(*) as count FROM readings WHERE user_id = %s", 
+                    (user_id,)
+                )
+                return cursor.fetchone()['count']
+    
+    @staticmethod
+    def delete_today(user_id, date):
+        """删除今日记录（重新抽牌）"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM readings WHERE user_id = %s AND date = %s",
+                    (user_id, date)
+                )
+                conn.commit()
+
+
+class CardDAO:
+    """塔罗牌数据访问对象"""
+    
+    @staticmethod
+    def get_random():
+        """随机获取一张塔罗牌"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tarot_cards ORDER BY RANDOM() LIMIT 1")
+                return cursor.fetchone()
+    
+    @staticmethod
+    def get_by_id(card_id):
+        """根据 ID 获取塔罗牌"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tarot_cards WHERE id = %s", (card_id,))
+                return cursor.fetchone()
