@@ -27,7 +27,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",  # 生产环境使用 HTTPS
     SESSION_COOKIE_HTTPONLY=True,  # 防止 JS 访问
     SESSION_COOKIE_SAMESITE='Lax',  # CSRF 保护
-    PERMANENT_SESSION_LIFETIME=datetime.timedelta(hours=24),  # 会话持续时间
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),  # 会话持续时间
     SESSION_COOKIE_NAME='tarot_session',
 )
 
@@ -346,7 +346,7 @@ def draw_card():
             "meaning_rev": card.get("meaning_rev"),
             "direction": direction,
             "date": str(today),
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat()
         }
         session.modified = True
         flash(f"您抽到了{card['name']}（{direction}）", "success")
