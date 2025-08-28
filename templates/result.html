@@ -143,10 +143,15 @@
             position: relative;
             transform-style: preserve-3d;
             transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: center center;
         }
         
         .card-visual.flipped .card-inner {
             transform: rotateY(180deg);
+        }
+        
+        .card-visual.reversed.flipped .card-inner {
+            transform: rotateY(180deg) rotateZ(180deg);  /* ✅ 保持中心翻转 */
         }
         
         .card-front, .card-back {
