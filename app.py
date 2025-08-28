@@ -115,7 +115,7 @@ def detect_incognito_mode():
 # ---------------- 路由 ----------------
 @app.route("/")
 def index():
-    today = datetime.date.today()
+    today = get_local_date()
     user = g.user
     has_drawn = False
     can_draw = True
@@ -281,7 +281,7 @@ def logout():
 @app.route("/draw", methods=["POST"])
 def draw_card():
     user = g.user
-    today = datetime.date.today()
+    today = get_local_date()
     
     # 检查是否已经抽过牌
     if not user["is_guest"]:
@@ -566,7 +566,7 @@ def result():
 def export_reading():
     """导出今日解读（主要为访客设计）"""
     user = g.user
-    today = datetime.date.today()
+    today = get_local_date()
     
     if not user["is_guest"]:
         # 登录用户重定向到统计页面
@@ -618,7 +618,7 @@ def export_reading():
 def regenerate():
     """重新生成解读内容"""
     user = g.user
-    today = datetime.date.today()
+    today = get_local_date()
     
     try:
         # 获取卡牌信息
@@ -671,7 +671,7 @@ def regenerate():
 def clear_cache():
     """清除今日记录（仅限登录用户）"""
     user_id = session.get('user_id')
-    today = datetime.date.today()
+    today = get_local_date()
     
     conn = get_db()
     try:
