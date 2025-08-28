@@ -32,7 +32,6 @@
             padding: 20px;
         }
 
-        /* 用户栏 */
         .user-bar { 
             position: fixed; 
             top: 0; left: 0; right: 0; 
@@ -75,7 +74,7 @@
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
             position: relative;
-            overflow: visible; /* 修改 overflow 避免翻转裁剪 */
+            overflow: visible;
             animation: fadeIn 0.8s ease-out;
         }
 
@@ -97,17 +96,15 @@
         .header h1 { font-size: 2.5rem; font-weight: 700; color: var(--accent-color); margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
         .date-display { font-size: 1.1rem; color: var(--accent-color); margin-bottom: 30px; padding: 8px 20px; background: rgba(142,108,136,0.1); border-radius: 50px; display: inline-block; }
 
-        /* 卡牌结果容器 */
         .result-card {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 40px;
             margin-bottom: 40px;
-            align-items: flex-start; /* 修改 align-items 避免翻转下移 */
+            align-items: flex-start;
         }
         
-        /* 卡牌3D效果容器 */
         .card-visual {
             width: 280px;
             height: 420px;
@@ -119,29 +116,37 @@
 
         .card-inner {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0;
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
             transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-origin: center center;
-            transform: translateZ(0); /* GPU渲染，避免下移 */
         }
 
         .card-visual.flipped .card-inner {
-            transform: rotateY(180deg) translateZ(0);
+            transform: rotateY(180deg);
         }
 
         .card-visual.reversed.flipped .card-inner {
-            transform: rotateY(180deg) rotateZ(180deg) translateZ(0);
+            transform: rotateY(180deg) rotateZ(180deg);
         }
 
         .card-front, .card-back {
-            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
-            backface-visibility: hidden; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.2),0 0 0 1px rgba(255,255,255,0.1) inset;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2),0 0 0 1px rgba(255,255,255,0.1) inset;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
-        
+
         .card-front { background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); position: relative; }
         .card-back-pattern {
             position: absolute; width: 100%; height: 100%; opacity: 0.15;
@@ -156,46 +161,39 @@
         .mystical-symbol { font-size: 3rem; color: rgba(255,255,255,0.7); text-shadow: 0 0 20px rgba(255,255,255,0.5); }
         @keyframes rotate-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        .card-back { transform: rotateY(180deg); background: white; position: relative; }
-        .tarot-image-wrapper { width: 100%; height: 100%; position: relative; background: #f9f9f9; }
+        .card-back { transform: rotateY(180deg); background: white; position: relative; display: flex; justify-content: center; align-items: center; }
+        .tarot-image-wrapper { width: 100%; height: 100%; position: relative; background: #f9f9f9; display:flex; justify-content:center; align-items:center; }
         .tarot-image { width: 100%; height: 100%; object-fit: contain; padding: 5px; }
         .tarot-image.reversed { transform: rotate(180deg); }
 
+        /* 下面保留原来的所有样式 */
         .direction-badge { position: absolute; top: 15px; right: 15px; z-index: 10; background: white; color: var(--direction-color); padding: 6px 15px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 2px solid var(--direction-color); }
-
         .card-info { flex: 1; max-width: 500px; text-align: left; }
         .card-name { font-size: 2.5rem; color: var(--accent-color); margin-bottom: 25px; font-weight: 700; text-align: center; }
-
         .interpretation-section { background: rgba(255,255,255,0.7); border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: transform 0.3s ease; }
         .interpretation-section:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
         .interpretation-title { font-size: 1.3rem; color: var(--primary-color); margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
         .interpretation-content { font-size: 1.1rem; line-height: 1.8; color: var(--dark-color); }
-
         .export-section { background: rgba(142,108,136,0.1); border: 2px solid var(--primary-color); border-radius: 15px; padding: 20px; margin: 30px 0; text-align: center; }
         .export-section p { color: var(--accent-color); margin-bottom: 15px; font-weight: 500; }
         .export-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
         .btn-export { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: white; color: var(--primary-color); border: 2px solid var(--primary-color); border-radius: 25px; text-decoration: none; font-weight: 500; transition: all 0.3s ease; }
         .btn-export:hover { background: var(--primary-color); color: white; transform: translateY(-2px); }
-
         .action-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 30px; flex-wrap: wrap; }
         .btn-tarot { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); color: white; padding: 12px 30px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 8px 16px rgba(142,108,136,0.3); }
         .btn-tarot:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(142,108,136,0.4); color: white; }
         .btn-tarot.secondary { background: white; color: var(--primary-color); border: 2px solid var(--primary-color); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
         .btn-tarot.secondary:hover { background: var(--primary-color); color: white; }
-
         .divider { height: 2px; background: linear-gradient(90deg, transparent, var(--secondary-color), transparent); margin: 40px 0; }
         .meaning-explanation { text-align: left; margin-bottom: 30px; background: rgba(255,255,255,0.7); border-radius: 15px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .meaning-title { font-size: 1.5rem; color: var(--accent-color); text-align: center; margin-bottom: 25px; font-weight: 600; }
         .meaning-item { margin-bottom: 20px; padding: 15px; background: rgba(142,108,136,0.05); border-radius: 10px; border-left: 4px solid var(--primary-color); }
         .meaning-item strong { color: var(--primary-color); display: block; margin-bottom: 8px; }
-
         .copy-success { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--success-color); color: white; padding: 15px 30px; border-radius: 50px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s ease; z-index: 1000; }
         .copy-success.show { opacity: 1; }
-
         .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(142,108,136,0.2); color: var(--accent-color); font-size: 0.9rem; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(142,108,136,0.3); border-radius: 50%; border-top-color: var(--primary-color); animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
         @media (max-width: 768px) {
             .tarot-container { padding: 20px; margin-top: 70px; }
             .header h1 { font-size: 2rem; }
@@ -246,113 +244,67 @@
                         </div>
                     </div>
                     <div class="card-back">
-                        <div class="direction-badge" style="--direction-color: {{ 'var(--success-color)' if direction == '正位' else 'var(--warning-color)' }}">
-                            {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
-                        </div>
+                        <div class="direction-badge" style="--direction-color: {{ 'var(--success-color)' if direction == '正位' else 'var(--warning-color)' }}">{{ direction }}</div>
                         <div class="tarot-image-wrapper">
-                            {% if card.image %}
-                                <img class="tarot-image {% if direction=='逆位' %}reversed{% endif %}" src="{{ card.image }}" alt="{{ card.name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <div style="display:none; width:100%; height:100%; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1)); display:flex; align-items:center; justify-content:center;">
-                                    <div style="text-align:center;">
-                                        <i class="fas fa-image" style="font-size:3rem; color:var(--primary-color); opacity:0.5;"></i>
-                                        <p style="margin-top:10px; color:var(--primary-color);">{{ card.name }}</p>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1)); display:flex; align-items:center; justify-content:center;">
-                                    <div style="text-align:center;">
-                                        <i class="fas fa-sparkles" style="font-size:4rem; color:var(--primary-color); opacity:0.5;"></i>
-                                        <h3 style="margin-top:20px; color:var(--accent-color); font-size:1.5rem;">{{ card.name }}</h3>
-                                    </div>
-                                </div>
-                            {% endif %}
+                            <img src="{{ url_for('static', filename='tarot/' + card.image) }}" alt="{{ card.name }}" class="tarot-image {% if direction == '逆位' %}reversed{% endif %}">
                         </div>
                     </div>
                 </div>
             </div>
-
             <div class="card-info">
                 <div class="card-name">{{ card.name }}</div>
                 <div class="interpretation-section">
-                    <div class="interpretation-title"><i class="fas fa-compass"></i> 今日运势解读</div>
-                    <div class="interpretation-content">{% if today_insight %}{{ today_insight }}{% else %}<span class="loading"></span> 解读正在生成中...{% endif %}</div>
+                    <div class="interpretation-title"><i class="fas fa-arrow-up"></i> 正位意义</div>
+                    <div class="interpretation-content">{{ card.meaning_up }}</div>
                 </div>
                 <div class="interpretation-section">
-                    <div class="interpretation-title"><i class="fas fa-hands-helping"></i> 运势指引</div>
-                    <div class="interpretation-content">{% if guidance %}{{ guidance }}{% else %}<span class="loading"></span> 指引正在生成中...{% endif %}</div>
+                    <div class="interpretation-title"><i class="fas fa-arrow-down"></i> 逆位意义</div>
+                    <div class="interpretation-content">{{ card.meaning_rev }}</div>
+                </div>
+                <div class="interpretation-section">
+                    <div class="interpretation-title"><i class="fas fa-lightbulb"></i> 指引与建议</div>
+                    <div class="interpretation-content">{{ card.guidance }}</div>
                 </div>
             </div>
-        </div>
-
-        {% if user.is_guest %}
-        <div class="export-section">
-            <p><i class="fas fa-info-circle"></i> 作为访客，您的解读仅在本次浏览期间有效</p>
-            <div class="export-buttons">
-                <a href="{{ url_for('export_reading') }}" class="btn-export"><i class="fas fa-download"></i> 下载解读</a>
-                <button onclick="copyToClipboard()" class="btn-export"><i class="fas fa-copy"></i> 复制内容</button>
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="divider"></div>
-
-        <div class="meaning-explanation">
-            <div class="meaning-title"><i class="fas fa-book-open"></i> {{ card.name }} 的深层含义</div>
-            <div class="meaning-item"><strong><i class="fas fa-arrow-up"></i> 正位含义</strong>{{ card.meaning_up if card.meaning_up else "正位解释暂未提供" }}</div>
-            <div class="meaning-item"><strong><i class="fas fa-arrow-down"></i> 逆位含义</strong>{{ card.meaning_rev if card.meaning_rev else "逆位解释暂未提供" }}</div>
         </div>
 
         <div class="action-buttons">
-            <a href="{{ url_for('index') }}" class="btn-tarot secondary"><i class="fas fa-home"></i> 返回首页</a>
-            {% if not user.is_guest %}
-            <a href="{{ url_for('clear_cache') }}" class="btn-tarot secondary" onclick="return confirm('确定要清除今日记录吗？清除后可以重新抽牌。')"><i class="fas fa-redo"></i> 重新抽牌</a>
-            {% endif %}
-            <button class="btn-tarot" onclick="shareResult()"><i class="fas fa-share-alt"></i> 分享结果</button>
+            <a class="btn-tarot" href="{{ url_for('tarot') }}"><i class="fas fa-redo-alt"></i> 再抽一张</a>
+            <button class="btn-tarot secondary" onclick="copyResult()"><i class="fas fa-copy"></i> 复制结果</button>
         </div>
 
-        <div class="footer"><p>© 2025 塔罗运势 | 宇宙能量，智慧指引</p><small style="opacity:0.7;">每日凌晨重置，基于北京时间</small></div>
+        <div class="export-section">
+            <p>导出或分享你的今日塔罗</p>
+            <div class="export-buttons">
+                <a class="btn-export" href="#" onclick="exportAsImage()"><i class="fas fa-file-image"></i> 图片</a>
+                <a class="btn-export" href="#" onclick="exportAsPDF()"><i class="fas fa-file-pdf"></i> PDF</a>
+                <a class="btn-export" href="#" onclick="shareToWeChat()"><i class="fab fa-weixin"></i> 微信</a>
+                <a class="btn-export" href="#" onclick="shareToQQ()"><i class="fab fa-qq"></i> QQ</a>
+            </div>
+        </div>
     </div>
 
-    <div class="copy-success" id="copySuccess"><i class="fas fa-check-circle"></i> 复制成功！</div>
+    <div class="footer">© 2025 塔罗牌每日运势 | Powered by 若水</div>
+
+    <div class="copy-success" id="copySuccess">已复制到剪贴板！</div>
 
     <script>
+        // 卡牌自动翻转
         setTimeout(() => { document.getElementById('cardVisual').classList.add('flipped'); }, 800);
 
-        function copyToClipboard() {
-            const content = `塔罗每日指引 - {{ today_date }}
-━━━━━━━━━━━━━━━━━━━━━━━━
-抽到的牌：{{ card.name }}（{{ direction }}）
-
-【今日洞察】
-{{ today_insight if today_insight else '解读生成中...' }}
-
-【指引建议】
-{{ guidance if guidance else '指引生成中...' }}
-
-【牌面含义】
-正位：{{ card.meaning_up if card.meaning_up else '暂无' }}
-逆位：{{ card.meaning_rev if card.meaning_rev else '暂无' }}
-━━━━━━━━━━━━━━━━━━━━━━━━
-生成自：塔罗每日指引`;
-            navigator.clipboard.writeText(content).then(showCopySuccess).catch(() => {
-                const textarea = document.createElement('textarea'); textarea.value = content; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); showCopySuccess();
+        function copyResult() {
+            const text = `今日塔罗：${card.name}\n正位：${card.meaning_up}\n逆位：${card.meaning_rev}\n指引：${card.guidance}`;
+            navigator.clipboard.writeText(text).then(() => {
+                const success = document.getElementById('copySuccess');
+                success.classList.add('show');
+                setTimeout(() => success.classList.remove('show'), 2000);
             });
         }
 
-        function showCopySuccess() {
-            const successEl = document.getElementById('copySuccess');
-            successEl.classList.add('show');
-            setTimeout(() => { successEl.classList.remove('show'); }, 2000);
-        }
-
-        function shareResult() {
-            const shareData = { title: '我的每日塔罗运势', text: `我抽到了${document.querySelector('.card-name').textContent}（{{ direction }}）`, url: window.location.href };
-            if (navigator.share) { navigator.share(shareData).catch(error => { if(error.name!=='AbortError') copyToClipboard(); }); } else { copyToClipboard(); }
-        }
-
-        {% if not today_insight or not guidance %}
-        setTimeout(() => { location.reload(); }, 5000);
-        {% endif %}
+        function exportAsImage() { alert('导出为图片功能待实现'); }
+        function exportAsPDF() { alert('导出为PDF功能待实现'); }
+        function shareToWeChat() { alert('分享到微信功能待实现'); }
+        function shareToQQ() { alert('分享到QQ功能待实现'); }
     </script>
 </body>
 </html>
