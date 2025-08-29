@@ -146,6 +146,16 @@ class ChatDAO:
                 result = cursor.fetchone()
                 conn.commit()
                 return result['count'] if result else 1
+    @staticmethod
+    def get_session_by_id(session_id):
+        """根据ID获取会话"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM chat_sessions 
+                    WHERE id = %s
+                """, (session_id,))
+                return cursor.fetchone()
         
 # 数据访问层（Data Access Layer）
 class UserDAO:
