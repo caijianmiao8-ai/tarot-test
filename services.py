@@ -413,7 +413,7 @@ class FortuneService:
         elif overall_score >= 60:
             overall_label = "中吉"
         else:
-    overall_label = "小吉"
+            overall_label = "小吉"
 
         # 9. 构建完整的运势数据
         fortune_data = {
