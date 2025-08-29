@@ -93,7 +93,7 @@ def avatar_letter(user):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    today = get_local_date()
+    today = DateTimeService.get_beijing_date()
     user = g.user
     has_drawn = False
     can_draw = True
