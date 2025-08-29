@@ -112,10 +112,17 @@ def index():
         if has_drawn:
             fortune_data = guest_reading.get("fortune_data", {})  # 确保有默认值
 
-    return render_template("index.html",
-                           has_drawn=has_drawn,
-                           fortune_data=fortune_data,
-                           user=user)
+    # 将今天日期也传给模板，用于 fetch 构建 URL
+    today_str = today.strftime("%Y-%m-%d")
+
+    return render_template(
+        "index.html",
+        has_drawn=has_drawn,
+        fortune_data=fortune_data,
+        user=user,
+        today=today_str
+    )
+
 
 
 

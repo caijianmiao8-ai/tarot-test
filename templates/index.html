@@ -277,7 +277,7 @@
         });
 
         document.getElementById('refresh-fortune')?.addEventListener('click', ()=>{
-            fetch("{{ url_for('api_fortune') }}")
+            fetch("{{ url_for('api_fortune', date=today) }}")
                 .then(res=>res.json())
                 .then(data=>renderFortune(data))
                 .catch(err=>alert("运势刷新失败，请稍后再试"));
