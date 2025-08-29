@@ -51,8 +51,8 @@ class Config:
     
     # Dify 聊天专用 API（可选）
     DIFY_CHAT_API_KEY = os.environ.get('DIFY_CHAT_API_KEY', DIFY_API_KEY)
-    DIFY_CHAT_API_URL = os.environ.get('DIFY_CHAT_API_URL', DIFY_API_URL)
-        
+    DIFY_CHAT_API_URL = os.environ.get('DIFY_CHAT_API_URL', "http://ai-bot-new.dalongyun.com/v1/chat-messages")
+
     @classmethod
     def validate(cls):
         """验证必要配置"""
