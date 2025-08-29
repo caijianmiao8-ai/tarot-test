@@ -104,13 +104,24 @@ def index():
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            # 获取用户今日塔罗运势数据（原来写错成 get_today_fortune）
-            fortune_data = TarotService.get_today_reading(user['id'], today)
+            # 获取用户今日塔罗运势数据
+            reading = TarotService.get_today_reading(user['id'], today)
+            if reading:
+                # 检查是否有运势数据
+                if 'fortune_data' in reading and reading['fortune_data']:
+                    fortune_data = reading['fortune_data']
+                    # 检查并转换格式
+                    if 'dimension_advice' in fortune_data and 'dimensions' not in fortune_data:
+                        fortune_data = convert_fortune_format(fortune_data)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
         if has_drawn:
-            fortune_data = guest_reading.get("fortune_data", {})  # 确保有默认值
+            raw_fortune = guest_reading.get("fortune_data", {})
+            if raw_fortune and 'dimension_advice' in raw_fortune and 'dimensions' not in raw_fortune:
+                fortune_data = convert_fortune_format(raw_fortune)
+            else:
+                fortune_data = raw_fortune
 
     # 将今天日期也传给模板，用于 fetch 构建 URL
     today_str = today.strftime("%Y-%m-%d")
@@ -122,9 +133,6 @@ def index():
         user=user,
         today=today_str
     )
-
-
-
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -523,6 +531,11 @@ def get_fortune(date):
         print(f"Fortune API error: {e}")
         traceback.print_exc()
         return jsonify({"error": "计算运势时出错"}), 500
+
+    if fortune_data and 'dimension_advice' in fortune_data and 'dimensions' not in fortune_data:
+        fortune_data = convert_fortune_format(fortune_data)
+    
+    return jsonify(fortune_data)        
 
 @app.route("/api/fortune_preview")
 def fortune_preview():

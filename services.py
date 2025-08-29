@@ -12,7 +12,83 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 from database import UserDAO, ReadingDAO, CardDAO
 
-
+def convert_fortune_format(dify_data):
+    """将 Dify 格式转换为前端期望的格式"""
+    # 基础维度配置
+    dimension_configs = {
+        "事业运": {"icon": "fas fa-briefcase", "default_stars": 3},
+        "财富运": {"icon": "fas fa-coins", "default_stars": 3},
+        "爱情运": {"icon": "fas fa-heart", "default_stars": 3},
+        "健康运": {"icon": "fas fa-heartbeat", "default_stars": 3},
+        "贵人运": {"icon": "fas fa-hands-helping", "default_stars": 3}
+    }
+    
+    # 构建维度数组
+    dimensions = []
+    dimension_advice = dify_data.get("dimension_advice", {})
+    
+    for name, config in dimension_configs.items():
+        advice = dimension_advice.get(name, "")
+        
+        # 简单评分逻辑
+        if any(word in advice for word in ["顺利", "良好", "助力", "极佳"]):
+            stars = 4
+            level = "良好"
+        elif any(word in advice for word in ["稳步", "理性", "稳定"]):
+            stars = 3
+            level = "平稳"
+        else:
+            stars = 3
+            level = "一般"
+            
+        dimensions.append({
+            "name": name,
+            "icon": config["icon"],
+            "stars": stars,
+            "level": level
+        })
+    
+    # 计算总体评分
+    avg_stars = sum(d["stars"] for d in dimensions) / len(dimensions)
+    overall_score = int(avg_stars * 25)  # 转换为百分制
+    
+    if overall_score >= 80:
+        overall_label = "大吉"
+    elif overall_score >= 60:
+        overall_label = "中吉"
+    else:
+        overall_label = "小吉"
+    
+    # 提取幸运元素
+    lucky_elements = []
+    do_list = dify_data.get("do", [])
+    
+    # 从建议中提取
+    for item in do_list:
+        if "西北" in item:
+            lucky_elements.append({"name": "幸运方位", "icon": "fas fa-compass", "value": "西北"})
+        if "银色" in item:
+            lucky_elements.append({"name": "幸运颜色", "icon": "fas fa-palette", "value": "银色"})
+        if "亥时" in item:
+            lucky_elements.append({"name": "幸运时辰", "icon": "fas fa-clock", "value": "亥时"})
+        if "8" in item:
+            lucky_elements.append({"name": "幸运数字", "icon": "fas fa-hashtag", "value": "8"})
+    
+    # 默认幸运元素
+    if not lucky_elements:
+        lucky_elements = [
+            {"name": "幸运颜色", "icon": "fas fa-palette", "value": "蓝色"},
+            {"name": "幸运数字", "icon": "fas fa-hashtag", "value": "7"}
+        ]
+    
+    return {
+        "overall_score": overall_score,
+        "overall_label": overall_label,
+        "dimensions": dimensions,
+        "lucky_elements": lucky_elements,
+        "summary": dify_data.get("summary", "今日运势平稳，适合稳步前进。")
+    }
+    
 class DateTimeService:
     """时间服务"""
 
