@@ -91,32 +91,88 @@ def avatar_letter(user):
 
 # ===== 路由 =====
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    user_id = session.get("user_id")
-    today = DateTimeService.get_beijing_date()
+    today = get_local_date()
+    user = g.user
+    has_drawn = False
+    can_draw = True
+    last_card = None
+    reading = None
+    fortune = None
 
-    # 获取今日占卜
-    reading = TarotService.get_today_reading(user_id, today)
-    if not reading:
-        card, direction = TarotService.draw_card()
-        reading = TarotService.save_reading(user_id, today, card["id"], direction)
+    # 登录用户逻辑
+    if not user["is_guest"]:
+        # 检查今天是否已抽过牌
+        reading = TarotService.get_today_reading(user["id"], today)
+        if reading:
+            has_drawn = True
+            can_draw = False
+            last_card = reading
+            # 获取今日运势（若已有）
+            fortune = FortuneService.get_fortune(user["id"], today)
+        else:
+            has_drawn = False
+            can_draw = True
+
+        # POST 请求处理抽牌
+        if request.method == "POST" and can_draw:
+            card, direction = TarotService.draw_card()
+            reading = TarotService.save_reading(user["id"], today, card["id"], direction)
+            last_card = {
+                "card_id": card["id"],
+                "name": card["name"],
+                "image": card.get("image"),
+                "meaning_up": card.get("meaning_up"),
+                "meaning_rev": card.get("meaning_rev"),
+                "direction": direction,
+                "date": str(today)
+            }
+            has_drawn = True
+            can_draw = False
+
+            # 生成运势文案
+            fortune_data = FortuneService.calculate_fortune(
+                card["id"], card["name"], direction, today, user_id=user["id"]
+            )
+            fortune = FortuneService.generate_fortune_text(fortune_data)
+            FortuneService.save_fortune(user["id"], today, fortune)
+
     else:
-        card, direction = reading["card"], reading["direction"]
+        # 游客逻辑，存 session
+        last_card_session = SessionService.get_guest_reading(session, today)
+        if last_card_session:
+            has_drawn = True
+            can_draw = False
+            last_card = last_card_session
+        else:
+            has_drawn = False
+            can_draw = True
 
-    # 生成运势数据
-    fortune_data = FortuneService.calculate_fortune(
-        card_id=card["id"],
-        card_name=card["name"],
-        direction=direction,
-        date=today,
-        user_id=user_id
+        # POST 请求处理抽牌
+        if request.method == "POST" and can_draw:
+            card, direction = TarotService.draw_card()
+            SessionService.save_guest_reading(session, card, direction, today)
+            last_card = SessionService.get_guest_reading(session, today)
+            has_drawn = True
+            can_draw = False
+
+            # 生成运势文案（游客不写数据库）
+            fortune_data = FortuneService.calculate_fortune(
+                card["id"], card["name"], direction, today
+            )
+            fortune = FortuneService.generate_fortune_text(fortune_data)
+
+    return render_template(
+        "index.html",
+        has_drawn=has_drawn,
+        can_draw=can_draw,
+        last_card=last_card,
+        is_guest=user["is_guest"],
+        show_guest_tip=user["is_guest"] and not has_drawn,
+        fortune=fortune
     )
 
-    # 调用 Dify 生成文案（不用 workflow_id）
-    fortune_data = FortuneService.generate_fortune_text(fortune_data)
-
-    return render_template("index.html", reading=reading, fortune=fortune_data)
 
 
 
