@@ -353,8 +353,7 @@ def result():
         from config import Config
         fortune_result = FortuneService.generate_fortune_text(
             fortune_data,
-            dify_api_key=Config.DIFY_FORTUNE_API_KEY,
-            workflow_id=Config.DIFY_FORTUNE_WORKFLOW_ID
+            dify_api_key=Config.DIFY_FORTUNE_API_KEY
         )
         # 保存到数据库或 session
         if not user["is_guest"]:
@@ -561,8 +560,7 @@ def api_fortune():
         from config import Config
         fortune_result = FortuneService.generate_fortune_text(
             fortune_data,
-            dify_api_key=Config.DIFY_FORTUNE_API_KEY,
-            workflow_id=Config.DIFY_FORTUNE_WORKFLOW_ID
+            dify_api_key=Config.DIFY_FORTUNE_API_KEY
         )
 
         # 3. 保存到数据库或会话
