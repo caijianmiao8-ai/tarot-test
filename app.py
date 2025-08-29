@@ -9,7 +9,7 @@ import traceback
 
 # 导入配置和服务
 from config import Config
-from database import DatabaseManager
+from database import DatabaseManager, ChatDAO
 from services import (
     DateTimeService,
     UserService,
