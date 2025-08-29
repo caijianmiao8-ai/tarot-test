@@ -109,7 +109,16 @@ class UserDAO:
                     WHERE id = %s
                 """, (user_id,))
                 conn.commit()
-
+    @staticmethod
+    def get_session_by_id(session_id):
+        """根据ID获取会话"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM chat_sessions 
+                    WHERE id = %s
+                """, (session_id,))
+                return cursor.fetchone()
 
 class ReadingDAO:
     """占卜记录数据访问对象"""
