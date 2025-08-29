@@ -149,7 +149,112 @@ def index():
         today_card=today_card
     )
 
+# app.py 或 routes/chat.py
+@app.route("/chat")
+def chat_page():
+    """聊天页面"""
+    user = g.user
+    today = DateTimeService.get_beijing_date()
+    
+    # 检查是否已抽牌
+    if not user["is_guest"]:
+        reading = TarotService.get_today_reading(user["id"], today)
+    else:
+        reading = SessionService.get_guest_reading(session, today)
+    
+    if not reading:
+        flash("请先抽取今日塔罗牌", "info")
+        return redirect(url_for("index"))
+    
+    # 检查对话限制
+    can_chat, remaining = ChatService.can_start_chat(
+        user.get('id'), 
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    return render_template(
+        "chat.html",
+        user=user,
+        card_info=reading,
+        can_chat=can_chat,
+        remaining_chats=remaining
+    )
 
+@app.route("/api/chat/init", methods=["POST"])
+def init_chat():
+    """初始化聊天会话"""
+    user = g.user
+    today = DateTimeService.get_beijing_date()
+    
+    # 获取今日卡片信息
+    if not user["is_guest"]:
+        reading = TarotService.get_today_reading(user["id"], today)
+    else:
+        reading = SessionService.get_guest_reading(session, today)
+    
+    if not reading:
+        return jsonify({'error': '未找到今日塔罗记录'}), 404
+    
+    # 创建或获取会话
+    chat_session = ChatService.create_or_get_session(
+        user.get('id'),
+        session.get('session_id'),
+        reading,
+        today
+    )
+    
+    # 获取历史消息
+    messages = ChatDAO.get_session_messages(chat_session['id'])
+    
+    return jsonify({
+        'session_id': chat_session['id'],
+        'messages': [
+            {'role': msg['role'], 'content': msg['content']} 
+            for msg in reversed(messages)
+        ]
+    })
+
+@app.route("/api/chat/send", methods=["POST"])
+def send_chat_message():
+    """发送聊天消息"""
+    user = g.user
+    data = request.json
+    message = data.get('message', '').strip()
+    session_id = data.get('session_id')
+    
+    # 验证消息
+    if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
+        return jsonify({'error': '消息长度不合法'}), 400
+    
+    # 检查限制
+    can_chat, remaining = ChatService.can_start_chat(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    if not can_chat:
+        # 返回拟真的限制消息
+        limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
+        return jsonify({
+            'reply': limit_msg,
+            'limit_reached': True,
+            'remaining': 0
+        })
+    
+    try:
+        # 处理消息
+        ai_response = ChatService.process_message(session_id, message)
+        
+        return jsonify({
+            'reply': ai_response,
+            'remaining': remaining - 1
+        })
+        
+    except Exception as e:
+        print(f"Chat error: {e}")
+        return jsonify({'error': '处理消息时出错'}), 500
 
 @app.route("/login", methods=["GET", "POST"])
 def login():

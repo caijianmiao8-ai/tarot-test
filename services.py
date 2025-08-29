@@ -185,7 +185,101 @@ class TarotService:
             'recent_readings': recent_readings
         }
 
-
+class ChatService:
+    # 拟真的限制提示消息池
+    LIMIT_MESSAGES = [
+        "哎呀，我需要休息一下了，明天再来找我聊天吧～",
+        "时间不早了，我要去冥想充电了，明天见！",
+        "今天聊得很开心，但我的能量快用完了，明天再继续吧。",
+        "月亮告诉我该休息了，期待明天与你的对话。",
+        "塔罗牌需要时间恢复能量，我们明天再探索吧。"
+    ]
+    
+    @staticmethod
+    def can_start_chat(user_id, session_id, is_guest=False):
+        """检查是否可以开始聊天"""
+        today = DateTimeService.get_beijing_date()
+        limit = Config.CHAT_FEATURES['daily_limit_guest'] if is_guest else Config.CHAT_FEATURES['daily_limit_user']
+        usage = ChatDAO.get_daily_usage(user_id, session_id, today)
+        return usage < limit, limit - usage
+    
+    @staticmethod
+    def create_or_get_session(user_id, session_id, card_info, date):
+        """创建或获取聊天会话"""
+        # 先查找现有会话
+        existing = ChatDAO.get_session_by_date(user_id, session_id, date)
+        if existing:
+            return existing
+        
+        # 创建新会话
+        session_data = {
+            'user_id': user_id,
+            'session_id': session_id,
+            'card_id': card_info.get('card_id'),
+            'card_name': card_info.get('name'),
+            'card_direction': card_info.get('direction'),
+            'date': date
+        }
+        return ChatDAO.create_session(session_data)
+    
+    @staticmethod
+    def build_context(session_info, messages):
+        """构建 AI 对话上下文"""
+        context = {
+            'card_name': session_info['card_name'],
+            'card_direction': session_info['card_direction'],
+            'date': session_info['date'].strftime('%Y-%m-%d'),
+            'messages': []
+        }
+        
+        # 只保留最近的 N 条消息作为上下文
+        max_history = Config.CHAT_FEATURES['max_history_messages']
+        recent_messages = messages[:max_history] if messages else []
+        
+        # 倒序排列（从旧到新）
+        for msg in reversed(recent_messages):
+            context['messages'].append({
+                'role': msg['role'],
+                'content': msg['content']
+            })
+        
+        return context
+    
+    @staticmethod
+    def process_message(session_id, user_message):
+        """处理用户消息并返回 AI 回复"""
+        # 获取会话信息
+        session = ChatDAO.get_session_by_id(session_id)
+        if not session:
+            raise ValueError("会话不存在")
+        
+        # 保存用户消息
+        ChatDAO.save_message({
+            'session_id': session_id,
+            'role': 'user',
+            'content': user_message
+        })
+        
+        # 增加使用次数
+        today = DateTimeService.get_beijing_date()
+        ChatDAO.increment_usage(session['user_id'], session['session_id'], today)
+        
+        # 获取历史消息
+        messages = ChatDAO.get_session_messages(session_id)
+        
+        # 构建上下文并调用 AI
+        context = ChatService.build_context(session, messages)
+        ai_response = DifyService.chat_tarot(user_message, context)
+        
+        # 保存 AI 回复
+        ChatDAO.save_message({
+            'session_id': session_id,
+            'role': 'assistant',
+            'content': ai_response
+        })
+        
+        return ai_response
+        
 class DifyService:
     """Dify AI 服务"""
 
@@ -243,6 +337,63 @@ class DifyService:
             "today_insight": f"今日你抽到了{card_name}（{direction}），这张牌正在向你传递宇宙的信息。",
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
+
+    @staticmethod
+    def chat_tarot(user_message, context):
+        """塔罗相关的对话"""
+        # 构建系统提示
+        system_prompt = f"""你是一位专业的塔罗解读师。
+用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
+日期：{context['date']}
+
+你的任务：
+1. 基于用户抽到的塔罗牌，提供深入的解读和建议
+2. 结合用户的具体问题，给出个性化的指导
+3. 保持神秘而专业的语气，但要亲切友好
+4. 不要偏离塔罗主题太远
+5. 避免绝对性的预测，强调塔罗是指引而非命定
+
+历史对话：
+{json.dumps(context['messages'], ensure_ascii=False)}
+"""
+        
+        payload = {
+            "inputs": {
+                "system_prompt": system_prompt,
+                "user_message": user_message,
+                "card_name": context['card_name'],
+                "card_direction": context['card_direction']
+            },
+            "response_mode": "blocking",
+            "user": f"chat_user_{DateTimeService.get_beijing_date()}"
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_CHAT_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(
+                Config.DIFY_CHAT_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=Config.DIFY_TIMEOUT
+            )
+            response.raise_for_status()
+            
+            # 解析响应
+            data = response.json()
+            answer = DifyService._extract_answer(data)
+            
+            if answer:
+                return answer
+            else:
+                return "让我想想...这张牌对你的具体情况有特殊的启示。"
+                
+        except Exception as e:
+            print(f"Dify chat error: {e}")
+            return "星星暂时被云遮住了，请稍后再试。"
 
     @staticmethod
     def _extract_answer(data):

@@ -8,6 +8,19 @@ from datetime import timedelta
 class Config:
     """应用配置类"""
     
+        CHAT_FEATURES = {
+        'enabled': True,
+        'daily_limit_guest': 5,
+        'daily_limit_user': 10,
+        'max_message_length': 500,
+        'session_timeout_minutes': 30,
+        'max_history_messages': 10  # 传给AI的历史消息数
+    }
+    
+    # Dify 聊天专用 API（可选）
+    DIFY_CHAT_API_KEY = os.environ.get('DIFY_CHAT_API_KEY', DIFY_API_KEY)
+    DIFY_CHAT_API_URL = os.environ.get('DIFY_CHAT_API_URL', DIFY_API_URL)
+
     # Flask 配置
     SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)

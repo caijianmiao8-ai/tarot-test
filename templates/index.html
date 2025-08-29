@@ -918,7 +918,33 @@
                 <button class="btn-refresh" onclick="refreshFortune()">
                     <i class="fas fa-sync-alt" style="margin-right: 8px;"></i>刷新运势
                 </button>
+                {% if has_drawn %}
+                <a href="{{ url_for('chat_page') }}" class="btn-ai-chat">
+                    <i class="fas fa-comments" style="margin-right: 8px;"></i>AI 深度解读
+                </a>
+                {% endif %}
             </div>
+            <style>
+            .btn-ai-chat {
+                background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 24px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-block;
+                margin-left: 10px;
+            }
+
+            .btn-ai-chat:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(109,76,103,0.4);
+                color: white;
+            }
+            </style>
         </div>
 
         <!-- 功能特点 -->
