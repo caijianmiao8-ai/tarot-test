@@ -244,31 +244,34 @@
         function renderFortune(data){
             const overview = document.getElementById('fortune-overview');
             overview.style.display='block';
-            document.getElementById('overall-score').textContent = data.overall_score;
-            document.getElementById('score-label').textContent = data.overall_label;
-
+            document.getElementById('overall-score').textContent = data.overall_score || '-';
+            document.getElementById('score-label').textContent = data.overall_label || '';
+        
             const dimensionsContainer = document.getElementById('fortune-dimensions');
             dimensionsContainer.innerHTML='';
-            data.dimensions.forEach(dim=>{
-                const stars = Array.from({length:5},(_,i)=>i<dim.stars?'★':'☆').join('');
+            (data.dimensions || []).forEach(dim=>{
+                const stars = Array.from({length:5},(_,i)=>i<Math.round(dim.stars)?'★':'☆').join('');
                 const card = document.createElement('div');
                 card.className='dimension-card';
-                card.innerHTML = `<div><i class="${dim.icon}"></i></div><div>${dim.name}</div><div class="dimension-stars">${stars}</div><div>${dim.level}</div>`;
+                card.innerHTML = `<div>${dim.name}</div><div class="dimension-stars">${stars}</div><div>${dim.level}</div>`;
                 dimensionsContainer.appendChild(card);
             });
-
+        
             const luckyContainer = document.getElementById('lucky-elements');
             luckyContainer.innerHTML = '<div class="fortune-title">幸运元素</div><div class="lucky-grid"></div>';
             const grid = luckyContainer.querySelector('.lucky-grid');
-            data.lucky_elements.forEach(el=>{
+            const lucky = data.lucky_elements || {};
+            Object.keys(lucky).forEach(key=>{
+                const val = lucky[key];
                 const item = document.createElement('div');
                 item.className='lucky-item';
-                item.innerHTML = `<div><i class="${el.icon}"></i></div><div>${el.name}</div><div>${el.value}</div>`;
+                item.innerHTML = `<div>${key}</div><div>${val}</div>`;
                 grid.appendChild(item);
             });
 
-            document.getElementById('fortune-summary').textContent = data.summary;
+            document.getElementById('fortune-summary').textContent = (data.fortune_text && data.fortune_text.summary) || data.summary || '';
         }
+
 
         document.addEventListener('DOMContentLoaded', ()=>{
             {% if has_drawn %}

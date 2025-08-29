@@ -95,43 +95,43 @@ def avatar_letter(user):
 # ===== 路由 =====
 @app.route("/")
 def index():
-    """首页"""
     user = g.user
     today = DateTimeService.get_beijing_date()
     has_drawn = False
-    fortune_data = {}  # 默认空字典，防止模板报错
+    fortune_data = {}
 
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            # 获取用户今日塔罗运势数据
-            reading = TarotService.get_today_reading(user['id'], today)
-            if reading:
-                # 检查是否有运势数据
-                if 'fortune_data' in reading and reading['fortune_data']:
-                    fortune_data = reading['fortune_data']
-                    # 检查并转换格式
-                    if 'dimension_advice' in fortune_data and 'dimensions' not in fortune_data:
-                        fortune_data = convert_fortune_format(fortune_data)
+            # 改这里：先从数据库取运势，没有则重新算
+            fortune_data = FortuneService.get_fortune(user['id'], today)
+            if not fortune_data:
+                reading = TarotService.get_today_reading(user['id'], today)
+                if reading:
+                    fortune_data = FortuneService.calculate_fortune(
+                        reading['card_id'], reading['name'], reading['direction'], today, user['id']
+                    )
+                    fortune_data = FortuneService.generate_fortune_text(fortune_data)
+                    FortuneService.save_fortune(user['id'], today, fortune_data)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
         if has_drawn:
-            raw_fortune = guest_reading.get("fortune_data", {})
-            if raw_fortune and 'dimension_advice' in raw_fortune and 'dimensions' not in raw_fortune:
-                fortune_data = convert_fortune_format(raw_fortune)
-            else:
-                fortune_data = raw_fortune
-
-    # 将今天日期也传给模板，用于 fetch 构建 URL
-    today_str = today.strftime("%Y-%m-%d")
+            fortune_data = session.get('fortune_data', {}).get('data', {})
+            if not fortune_data and guest_reading:
+                fortune_data = FortuneService.calculate_fortune(
+                    guest_reading['card_id'], guest_reading['name'], guest_reading['direction'], today
+                )
+                fortune_data = FortuneService.generate_fortune_text(fortune_data)
+                session['fortune_data'] = {'date': str(today), 'data': fortune_data}
+                session.modified = True
 
     return render_template(
         "index.html",
         has_drawn=has_drawn,
         fortune_data=fortune_data,
         user=user,
-        today=today_str
+        today=today.strftime("%Y-%m-%d")
     )
 
 
