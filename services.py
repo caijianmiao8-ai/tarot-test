@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
-from database import UserDAO, ReadingDAO, CardDAO
+from database import UserDAO, ReadingDAO, CardDAO, ChatDAO
 
 def convert_fortune_format(dify_data):
     """将 Dify 格式转换为前端期望的格式"""
