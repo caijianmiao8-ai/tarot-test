@@ -428,17 +428,17 @@ class FortuneService:
             "direction": lucky_direction
         }
    
-   @staticmethod
-   def _check_special_events(card_name, special_effect, date):
-       """检查特殊事件和彩蛋"""
-       events = []
+    @staticmethod
+    def _check_special_events(card_name, special_effect, date):
+        """检查特殊事件和彩蛋"""
+        events = []
        
-       # 基础特殊效果
-       if special_effect:
-           events.append(special_effect)
+        # 基础特殊效果
+        if special_effect:
+            events.append(special_effect)
        
-       # 日期相关彩蛋
-       current_time = DateTimeService.get_beijing_datetime()
+        # 日期相关彩蛋
+        current_time = DateTimeService.get_beijing_datetime()
        
        # 情人节 + 恋人牌
        if date.month == 2 and date.day == 14 and card_name in ["恋人", "The Lovers"]:
@@ -582,8 +582,8 @@ class FortuneService:
 
    
 
-   @staticmethod
-   def _generate_default_text(fortune_data):
+    @staticmethod
+    def _generate_default_text(fortune_data):
        """生成默认的运势文案"""
        overall = fortune_data['overall_score']
        
@@ -652,14 +652,14 @@ class FortuneService:
            "dont": dont_list
        }
    
-   @staticmethod
-   def save_fortune(user_id, date, fortune_data):
+    @staticmethod
+    def save_fortune(user_id, date, fortune_data):
        """保存运势数据到数据库"""
        from database import ReadingDAO
        ReadingDAO.update_fortune(user_id, date, fortune_data)
    
-   @staticmethod
-   def get_fortune(user_id, date):
+    @staticmethod
+    def get_fortune(user_id, date):
        """获取已保存的运势数据"""
        from database import ReadingDAO
        result = ReadingDAO.get_fortune(user_id, date)
