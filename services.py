@@ -491,6 +491,7 @@ class FortuneService:
         # 修复：根据实际 Dify API 文档调整 payload 格式
         payload = {
             "inputs": {
+                "card_name": card_name,
                 "query": prompt  # 确保字段名称正确
             },
             "response_mode": "blocking",
