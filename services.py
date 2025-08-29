@@ -475,16 +475,24 @@ class FortuneService:
         return events
 
     @staticmethod
-    def _call_dify_fortune_api(prompt, api_key):
+    def _call_dify_fortune_api(prompt):
+        """调用运势专用的 Dify API"""
+        from config import Config
+        
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
             "Content-Type": "application/json",
         }
+    
+       # 修正：将 prompt 放入 inputs
         payload = {
-            "inputs": {},
-            "response_mode": "blocking",
-            "user": f"fortune_user_{DateTimeService.get_beijing_date()}",
+            "inputs": {
+                "query": prompt  # 这里是关键修改
+            },
+            "response_mode": "blocking",  # 或者 "streaming"
+            "user": f"fortune_{DateTimeService.get_beijing_date()}",
         }
+    
         try:
             resp = requests.post(
                 Config.DIFY_FORTUNE_API_URL,
@@ -494,6 +502,8 @@ class FortuneService:
             )
             resp.raise_for_status()
             data = resp.json()
+        
+            # 使用已有的解析方法
             text = DifyService._extract_answer(data)
             return DifyService._parse_json_response(text)
         except Exception as e:
@@ -501,90 +511,75 @@ class FortuneService:
             return None
 
     @staticmethod
-    def generate_fortune_text(fortune_data, dify_api_key=None, workflow_id=None):
+    def generate_fortune_text(fortune_data):
         """
         调用 Dify API 生成运势文案
-        参数：
-            fortune_data: 运势数据
-            dify_api_key: 运势专用 API key（若不传则默认用 Config.DIFY_FORTUNE_API_KEY）
-            workflow_id: 可选；你们当前用不到可不传
+        使用独立的运势 API
         """
-        # —— 1. 组装 prompt（保留你原有逻辑） ——
+        from config import Config
+    
+        # 检查运势 API 是否配置
+        if not Config.DIFY_FORTUNE_API_KEY:
+            print("Fortune API not configured, using default text")
+            fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
+            return fortune_data
+    
+        # 准备 prompt（保持原有逻辑）
         dimensions_text = [
             f"{dim['name']}：{dim['stars']}星（{dim['level']}）"
             for dim in fortune_data['dimensions']
         ]
-
+        
         special_messages = []
         for event in fortune_data.get('special_events', []):
             if event in FortuneService.SPECIAL_EVENT_MESSAGES:
                 special_messages.append(FortuneService.SPECIAL_EVENT_MESSAGES[event])
-
+        
         prompt = f"""
-塔罗牌：{fortune_data['card_name']}（{fortune_data['direction']}）
-综合运势评分：{fortune_data['overall_score']}/100
+    塔罗牌：{fortune_data['card_name']}（{fortune_data['direction']}）
+    综合运势评分：{fortune_data['overall_score']}/100
 
-运势指数：
-{chr(10).join(dimensions_text)}
+    运势指数：
+    {chr(10).join(dimensions_text)}
 
-幸运元素：
-- 幸运色：{fortune_data['lucky_elements']['color']}
-- 幸运数字：{fortune_data['lucky_elements']['number']}
-- 幸运时辰：{fortune_data['lucky_elements']['hour']}
-- 幸运方位：{fortune_data['lucky_elements']['direction']}
+    幸运元素：
+    - 幸运色：{fortune_data['lucky_elements']['color']}
+    - 幸运数字：{fortune_data['lucky_elements']['number']}
+    - 幸运时辰：{fortune_data['lucky_elements']['hour']}
+    - 幸运方位：{fortune_data['lucky_elements']['direction']}
 
-{('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
+    {('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
 
-请根据以上信息生成：
-1. 今日运势总评（50字以内）
-2. 各维度的具体建议（每个维度30字以内）
-3. 今日宜做的2件事
-4. 今日忌做的2件事
+    请根据以上信息生成：
+    1. 今日运势总评（50字以内）
+    2. 各维度的具体建议（每个维度30字以内）
+    3. 今日宜做的2件事
+    4. 今日忌做的2件事
 
-要求：
-- 结合塔罗牌含义和运势数据
-- 语言积极正面，即使运势较低也要给出建设性建议
-- 建议要具体可执行
+    要求：
+    - 结合塔罗牌含义和运势数据
+    - 语言积极正面，即使运势较低也要给出建设性建议
+    - 建议要具体可执行
 
-返回JSON格式。
-"""
-
-        # —— 2. 选择调用通道（优先运势专用 API Key；workflow_id 可选） ——
-        api_key = dify_api_key or Config.DIFY_FORTUNE_API_KEY
-        result = None
-        if api_key:
-            result = FortuneService._call_dify_fortune_api(prompt, api_key)
+    返回JSON格式。
+    """
+        
+        # 调用运势专用 API
+        result = FortuneService._call_dify_fortune_api(prompt)
+        
+        # 解析结果
+        if result and isinstance(result, dict):
+            # 检查是否有所需字段
+            if all(k in result for k in ["summary", "dimension_advice", "do", "dont"]):
+                fortune_data['fortune_text'] = result
+            else:
+                # API 返回了 JSON 但格式不符
+                print(f"Fortune API returned unexpected format: {result}")
+                fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
         else:
-            # fallback：走通用塔罗接口；这里不要再 import 自己本模块
-            # 注意：generate_reading 的返回结构与期望不同，下面会做兜底转换
-            result = DifyService.generate_reading(
-                fortune_data['card_name'],
-                fortune_data['direction'],
-                card_meaning=""  # 不把整段 prompt 塞进 "牌义"
-            )
-
-        # —— 3. 结果兜底与结构统一 ——
-        def _is_fortune_schema(obj):
-            return isinstance(obj, dict) and all(
-                k in obj for k in ("summary", "dimension_advice", "do", "dont")
-            )
-
-        if _is_fortune_schema(result):
-            fortune_data['fortune_text'] = result
-        elif isinstance(result, dict) and ("today_insight" in result or "guidance" in result):
-            # 将通用解读结构转为运势结构（最小可用）
-            fallback = FortuneService._generate_default_text(fortune_data)
-            fallback["summary"] = result.get("today_insight", fallback["summary"])
-            # 把 guidance 复用为每个维度的统一建议
-            guidance = result.get("guidance", "")
-            if guidance:
-                fallback["dimension_advice"] = {
-                    dim['name']: guidance for dim in fortune_data['dimensions']
-                }
-            fortune_data['fortune_text'] = fallback
-        else:
+            # API 调用失败，使用默认文案
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
-
+    
         return fortune_data
 
     @staticmethod
