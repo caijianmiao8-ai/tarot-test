@@ -130,7 +130,7 @@ class ChatDAO:
                 """, {'user_id': user_id, 'session_id': session_id, 'date': date})
                 result = cursor.fetchone()
                 return result['count'] if result else 0
-    
+
     @staticmethod
     def increment_usage(user_id, session_id, date):
         """增加使用次数"""
