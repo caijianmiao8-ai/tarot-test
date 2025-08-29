@@ -111,20 +111,20 @@ class TarotService:
 
 
 class DifyService:
-    """Dify AI 服务"""
+    """Dify AI 服务（改进版调试输出）"""
     
     @staticmethod
     def generate_reading(card_name, direction, card_meaning=""):
         """生成塔罗解读"""
         prompt = f"""
-        用户抽到了《{card_name}》这张牌，方向是{direction}。
-        
-        牌面意义：
-        - {"正位" if direction == "正位" else "逆位"}含义：{card_meaning}
-        
-        请根据这张牌和方向，为用户生成今日洞察和具体指引。
-        必须返回JSON格式，包含today_insight和guidance两个字段。
-        """
+用户抽到了《{card_name}》这张牌，方向是{direction}。
+
+牌面意义：
+- {"正位" if direction == "正位" else "逆位"}含义：{card_meaning}
+
+请根据这张牌和方向，为用户生成今日洞察和具体指引。
+必须返回JSON格式，包含today_insight和guidance两个字段。
+"""
         
         payload = {
             "inputs": {"query": prompt},
@@ -138,31 +138,52 @@ class DifyService:
         }
         
         try:
+            print("[DEBUG] Sending request to Dify API...")
+            print("[DEBUG] Payload:", payload)
+            
             response = requests.post(
                 Config.DIFY_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=Config.DIFY_TIMEOUT
             )
+            print("[DEBUG] HTTP Status:", response.status_code)
             response.raise_for_status()
             
-            # 解析响应
             data = response.json()
-            answer = DifyService._extract_answer(data)
+            print("[DEBUG] API Response JSON:", data)
             
+            answer = DifyService._extract_answer(data)
             if answer:
-                return DifyService._parse_json_response(answer)
+                parsed = DifyService._parse_json_response(answer)
+                if parsed:
+                    return parsed
+                else:
+                    print("[WARN] Failed to parse JSON from answer:", answer)
+            else:
+                print("[WARN] No answer extracted from API response.")
             
         except requests.exceptions.RequestException as e:
-            print(f"Dify API error: {e}")
+            print(f"[ERROR] Dify API request exception: {e}")
+            # 尝试打印响应内容
+            if 'response' in locals():
+                try:
+                    print("[DEBUG] Response content:", response.text)
+                except:
+                    pass
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(f"[ERROR] Unexpected exception: {e}")
+            # 尝试打印原始响应
+            if 'data' in locals():
+                print("[DEBUG] Raw API data:", data)
         
         # 返回默认值
+        print("[INFO] Returning default reading")
         return {
             "today_insight": f"今日你抽到了{card_name}（{direction}），这张牌正在向你传递宇宙的信息。",
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
+
     
     @staticmethod
     def _extract_answer(data):
