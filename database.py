@@ -143,15 +143,83 @@ class ReadingDAO:
                 return reading
     
     @staticmethod
-    def update_insight(user_id, date, insight, guidance):
-        """更新占卜解读"""
+    def update_insight(user_id, date, today_insight, guidance):
+        """更新今日洞察和指引"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE readings 
+                    SET today_insight = %s, guidance = %s 
+                    WHERE user_id = %s AND date = %s
+                """, (today_insight, guidance, user_id, date))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Update insight error: {e}")
+            traceback.print_exc()
+            return False
+    
+    @staticmethod
+    def update_fortune(user_id, date, fortune_data):
+        """更新运势数据"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                # 强制序列化为 JSON 字符串
+                cursor.execute("""
+                    UPDATE readings 
+                    SET fortune_data = %s,
+                        fortune_generated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND date = %s
+                """, (json.dumps(fortune_data, ensure_ascii=False), user_id, date))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Update fortune error: {e}")
+            traceback.print_exc()
+            return False
+    
+    @staticmethod
+    def get_fortune(user_id, date):
+        """获取运势数据"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT fortune_data, fortune_generated_at
+                    FROM readings
+                    WHERE user_id = %s AND date = %s
+                    AND fortune_data IS NOT NULL
+                """, (user_id, date))
+                result = cursor.fetchone()
+                if result and result['fortune_data']:
+                    # 判断类型，避免二次 json.loads 出错
+                    if isinstance(result['fortune_data'], str):
+                        fortune_parsed = json.loads(result['fortune_data'])
+                    elif isinstance(result['fortune_data'], dict):
+                        fortune_parsed = result['fortune_data']
+                    else:
+                        fortune_parsed = None
+                    return {
+                        'fortune_data': fortune_parsed,
+                        'generated_at': result.get('fortune_generated_at')
+                    }
+                return None
+        except Exception as e:
+            print(f"Get fortune error: {e}")
+            traceback.print_exc()
+            return None
+    
+    @staticmethod
+    def delete_today(user_id, date):
+        """删除今日记录（重新抽牌）"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    UPDATE readings
-                    SET today_insight = %s, guidance = %s
-                    WHERE user_id = %s AND date = %s
-                """, (insight, guidance, user_id, date))
+                cursor.execute(
+                    "DELETE FROM readings WHERE user_id = %s AND date = %s",
+                    (user_id, date)
+                )
                 conn.commit()
     
     @staticmethod
@@ -180,98 +248,7 @@ class ReadingDAO:
                     (user_id,)
                 )
                 return cursor.fetchone()['count']
-    
-    @staticmethod
-    def delete_today(user_id, date):
-        """删除今日记录（重新抽牌）"""
-        with DatabaseManager.get_db() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "DELETE FROM readings WHERE user_id = %s AND date = %s",
-                    (user_id, date)
-                )
-                conn.commit()
-    @staticmethod
-    def update_fortune(user_id, date, fortune_data):
-        """更新运势数据"""
-        with DatabaseManager.get_db() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    UPDATE readings
-                    SET fortune_data = %s,
-                        fortune_generated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = %s AND date = %s
-                """, (json.dumps(fortune_data), user_id, date))
-                conn.commit()
-    
-    @staticmethod
-    def get_fortune(user_id, date):
-        """获取运势数据"""
-        with DatabaseManager.get_db() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT fortune_data, fortune_generated_at
-                    FROM readings
-                    WHERE user_id = %s AND date = %s
-                    AND fortune_data IS NOT NULL
-                """, (user_id, date))
-                return cursor.fetchone()
-    @staticmethod
-    def update_fortune(user_id, date, fortune_data):
-        """更新运势数据"""
-        try:
-            with DatabaseManager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE readings 
-                    SET fortune_data = %s 
-                    WHERE user_id = %s AND date = %s
-                """, (json.dumps(fortune_data, ensure_ascii=False), user_id, date))
-                conn.commit()
-                return cursor.rowcount > 0
-        except Exception as e:
-            print(f"Update fortune error: {e}")
-            traceback.print_exc()
-            return False
-    
-    @staticmethod
-    def get_fortune(user_id, date):
-        """获取运势数据"""
-        try:
-            with DatabaseManager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT fortune_data FROM readings 
-                    WHERE user_id = %s AND date = %s
-                """, (user_id, date))
-                result = cursor.fetchone()
-                if result and result['fortune_data']:
-                    return {
-                        'fortune_data': json.loads(result['fortune_data'])
-                    }
-                return None
-        except Exception as e:
-            print(f"Get fortune error: {e}")
-            traceback.print_exc()
-            return None
-    
-    @staticmethod
-    def update_insight(user_id, date, today_insight, guidance):
-        """更新今日洞察和指引"""
-        try:
-            with DatabaseManager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE readings 
-                    SET today_insight = %s, guidance = %s 
-                    WHERE user_id = %s AND date = %s
-                """, (today_insight, guidance, user_id, date))
-                conn.commit()
-                return cursor.rowcount > 0
-        except Exception as e:
-            print(f"Update insight error: {e}")
-            traceback.print_exc()
-            return False
+
 
 class CardDAO:
     """塔罗牌数据访问对象"""

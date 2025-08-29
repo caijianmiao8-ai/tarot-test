@@ -604,121 +604,117 @@ class FortuneService:
 
 
     @staticmethod
-    def _call_dify_fortune_api(card_name, prompt):
-        """调用运势专用的 Dify API（带详细调试日志）"""
+    def _call_dify_fortune_api(fortune_data, prompt):
+        """
+        调用 Dify 运势专用 API，传递所有必填字段
+        fortune_data: dict, 包含 card_name, direction, overall_score 等
+        prompt: str, LLM 提示词
+        """
         from config import Config
         import json
         import requests
         import traceback
         from datetime import datetime
 
-        headers = {
-            "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
-            "Content-Type": "application/json",
-        }
-
+        # 构建 payload，保证必填字段都传
         payload = {
             "inputs": {
-                "card_name": card_name,  # 必须传入
-                "direction": "",          # 占位，API 需要
+                "card_name": fortune_data.get("card_name", "未知牌"),
+                "direction": fortune_data.get("direction", "正位"),
+                "overall_score": fortune_data.get("overall_score", 50),
+                "dimensions": [
+                    {
+                        "name": dim["name"],
+                        "stars": dim["stars"],
+                        "level": dim["level"]
+                    } for dim in fortune_data.get("dimensions", [])
+                ],
+                "lucky_color": fortune_data.get("lucky_elements", {}).get("color", ""),
+                "lucky_number": fortune_data.get("lucky_elements", {}).get("number", ""),
+                "lucky_hour": fortune_data.get("lucky_elements", {}).get("hour", ""),
+                "lucky_direction": fortune_data.get("lucky_elements", {}).get("direction", ""),
+                "special_messages": [
+                    FortuneService.SPECIAL_EVENT_MESSAGES.get(ev, "")
+                    for ev in fortune_data.get("special_events", [])
+                ],
                 "query": prompt
             },
             "response_mode": "blocking",
-            "user": f"fortune_{datetime.now().strftime('%Y-%m-%d')}",
+            "user": f"fortune_{datetime.now().strftime('%Y-%m-%d')}"
+        }
+
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
+            "Content-Type": "application/json"
         }
 
         try:
             print("\n=== Calling Dify Fortune API ===")
-            print(f"URL: {Config.DIFY_FORTUNE_API_URL}")
-            print("Headers:", json.dumps(headers, ensure_ascii=False, indent=2))
             print("Payload:", json.dumps(payload, ensure_ascii=False, indent=2))
 
             resp = requests.post(
                 Config.DIFY_FORTUNE_API_URL,
-                json=payload,
                 headers=headers,
-                timeout=Config.DIFY_TIMEOUT,
+                json=payload,
+                timeout=Config.DIFY_TIMEOUT
             )
-
-            print(f"[Dify] Response Status: {resp.status_code}")
-            print("[Dify] Response Text:", resp.text)
-
+            print(f"[Dify] Status: {resp.status_code}, Response: {resp.text}")
             resp.raise_for_status()
             data = resp.json()
 
-            # 使用 DifyService 的解析方法
             text = DifyService._extract_answer(data)
             if text:
                 parsed = DifyService._parse_json_response(text)
                 if parsed:
-                    print("[Dify] Parsed JSON Response:", json.dumps(parsed, ensure_ascii=False, indent=2))
+                    print("[Dify] Parsed JSON:", json.dumps(parsed, ensure_ascii=False, indent=2))
                     return parsed
 
-            print("[Dify] Failed to parse response, raw data:", json.dumps(data, ensure_ascii=False, indent=2))
+            print("[Dify] Failed to parse response, raw data:", json.dumps(data, ensure_ascii=False))
             return None
 
-        except requests.exceptions.HTTPError as e:
-            print("[Dify] HTTPError:", e)
-            if e.response is not None:
-                print("[Dify] HTTP Response Content:", e.response.text)
-            print("[Dify] Payload that caused error:", json.dumps(payload, ensure_ascii=False, indent=2))
-            return None
         except Exception as e:
-            print("[Dify] Exception occurred while calling Dify API:", e)
+            print("[Dify] Exception:", e)
             traceback.print_exc()
-            print("[Dify] Payload that caused exception:", json.dumps(payload, ensure_ascii=False, indent=2))
             return None
+
 
     @staticmethod
     def generate_fortune_text(fortune_data):
         """
-        调用 Dify API 生成运势文案（不改变 _call_dify_fortune_api 的静态方法签名）
-        返回修改过的 fortune_data（包含 fortune_text 字段）
+        调用 Dify API 生成运势文案
+        使用统一模板 {{变量}}
         """
-        from config import Config
         import json
 
-        # 检查运势 API 是否配置
-        if not Config.DIFY_FORTUNE_API_KEY:
-            print("Fortune API not configured, using default text")
-            fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
-            return fortune_data
-
-        # 必要字段校验
-        if 'card_name' not in fortune_data or 'direction' not in fortune_data:
-            print("generate_fortune_text: fortune_data 缺少 card_name 或 direction，使用默认文案")
-            fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
-            return fortune_data
-
-        # 准备 prompt
+        # 准备 prompt 模板
         try:
-            dimensions_text = [
-                f"{dim['name']}：{dim['stars']}星（{dim['level']}）"
-                for dim in fortune_data.get('dimensions', [])
-            ]
+            dimensions_text = "\n".join(
+                [f"{dim['name']}：{dim['stars']}星（{dim['level']}）" 
+                 for dim in fortune_data.get("dimensions", [])]
+            )
         except Exception:
-            dimensions_text = []
+            dimensions_text = ""
 
-        special_messages = []
-        for event in fortune_data.get('special_events', []):
-            if event in FortuneService.SPECIAL_EVENT_MESSAGES:
-                special_messages.append(FortuneService.SPECIAL_EVENT_MESSAGES[event])
+        special_messages_text = "\n".join(
+            [FortuneService.SPECIAL_EVENT_MESSAGES.get(ev, "") 
+             for ev in fortune_data.get("special_events", [])]
+        )
 
-        # 构建完整 prompt 模板
         prompt = f"""
-塔罗牌：{fortune_data.get('card_name', '')}（{fortune_data.get('direction', '')}）
-综合运势评分：{fortune_data.get('overall_score', '')}/100
+用户抽到塔罗牌：{{{{card_name}}}}（{{{{direction}}}}）
+综合运势评分：{{{{overall_score}}}}/100
 
 运势指数：
-{chr(10).join(dimensions_text)}
+{{{{dimensions}}}}
 
 幸运元素：
-- 幸运色：{fortune_data.get('lucky_elements', {}).get('color', '')}
-- 幸运数字：{fortune_data.get('lucky_elements', {}).get('number', '')}
-- 幸运时辰：{fortune_data.get('lucky_elements', {}).get('hour', '')}
-- 幸运方位：{fortune_data.get('lucky_elements', {}).get('direction', '')}
+- 幸运色：{{{{lucky_color}}}}
+- 幸运数字：{{{{lucky_number}}}}
+- 幸运时辰：{{{{lucky_hour}}}}
+- 幸运方位：{{{{lucky_direction}}}}
 
-{('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
+特殊提示：
+{{{{special_messages}}}}
 
 请根据以上信息生成：
 1. 今日运势总评（50字以内）
@@ -733,28 +729,26 @@ class FortuneService:
 
 返回 JSON 格式，字段：
 - summary: 今日运势总评
-- dimension_advice: 各维度建议（对象或键值对）
-- do: 今日宜做（数组，2项）
-- dont: 今日忌做（数组，2项）
+- dimension_advice: 各维度建议
+- do: 今日宜做
+- dont: 今日忌做
 """
 
-        # 调用运势专用 API
-        result = FortuneService._call_dify_fortune_api(fortune_data.get('card_name'), prompt)
+        # 调用 Dify API
+        result = FortuneService._call_dify_fortune_api(fortune_data, prompt)
 
-        # 解析结果并赋值
+        # 解析结果
         if result and isinstance(result, dict):
-            # 期望字段检查
             if all(k in result for k in ["summary", "dimension_advice", "do", "dont"]):
                 fortune_data['fortune_text'] = result
-                print("[FortuneService] Fortune API returned expected format.")
             else:
-                print(f"[FortuneService] Fortune API returned unexpected format: {json.dumps(result, ensure_ascii=False)}")
+                print("[FortuneService] Unexpected format, using default text.")
                 fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
         else:
-            print("[FortuneService] Fortune API call failed or returned unparsable data, using default text.")
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
 
         return fortune_data
+
 
     @staticmethod
     def _generate_default_text(fortune_data):
