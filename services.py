@@ -522,7 +522,7 @@ class FortuneService:
             return None
         
         except requests.exceptions.HTTPError as e:
-           print(f"Dify Fortune API HTTP error: {e}")
+            print(f"Dify Fortune API HTTP error: {e}")
             print(f"Response content: {e.response.text if e.response else 'No response'}")
             return None
         except Exception as e:
