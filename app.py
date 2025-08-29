@@ -99,14 +99,23 @@ def index():
     today = DateTimeService.get_beijing_date()
     has_drawn = False
     fortune_data = {}
-
+    today_card = None
+    
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            fortune_data = FortuneService.get_fortune(user['id'], today)
-            if not fortune_data:
-                reading = TarotService.get_today_reading(user['id'], today)
-                if reading:
+            # 获取完整的今日读取记录
+            reading = TarotService.get_today_reading(user['id'], today)
+            if reading:
+                today_card = {
+                    'name': reading['name'],
+                    'image': reading.get('image', ''),
+                    'direction': reading['direction']
+                }
+                
+                # 获取运势数据
+                fortune_data = FortuneService.get_fortune(user['id'], today)
+                if not fortune_data:
                     fortune_data = FortuneService.calculate_fortune(
                         reading['card_id'], reading['name'], reading['direction'], today, user['id']
                     )
@@ -116,6 +125,12 @@ def index():
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
         if has_drawn:
+            today_card = {
+                'name': guest_reading['name'],
+                'image': guest_reading.get('image', ''),
+                'direction': guest_reading['direction']
+            }
+            
             fortune_data = session.get('fortune_data', {}).get('data', {})
             if not fortune_data and guest_reading:
                 fortune_data = FortuneService.calculate_fortune(
@@ -124,13 +139,14 @@ def index():
                 fortune_data = FortuneService.generate_fortune_text(fortune_data)
                 session['fortune_data'] = {'date': str(today), 'data': fortune_data}
                 session.modified = True
-
+    
     return render_template(
         "index.html",
         has_drawn=has_drawn,
         fortune_data=fortune_data,
         user=user,
-        today=today.strftime("%Y-%m-%d")
+        today=today.strftime("%Y-%m-%d"),
+        today_card=today_card
     )
 
 
