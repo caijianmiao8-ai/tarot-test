@@ -359,7 +359,7 @@ class DifyService:
     2. 结合用户的具体问题，给出个性化的指导
     3. 保持神秘而专业的语气，但要亲切友好
     4. 不要偏离塔罗主题太远
-        5. 避免绝对性的预测，强调塔罗是指引而非命定
+    5. 避免绝对性的预测，强调塔罗是指引而非命定
 
     历史对话：
     {json.dumps(context['messages'], ensure_ascii=False)}
@@ -375,7 +375,7 @@ class DifyService:
             },
             "response_mode": "blocking",
             "user": f"chat_user_{DateTimeService.get_beijing_date()}"
-       }
+        }
     
         print(f"[Payload] Full payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
     
