@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>塔罗每日指引 - 增强版</title>
-    
+    <title>每日塔罗运势</title>
+
     <!-- 本地化 Bootstrap -->
     <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
     <!-- 本地化 Font Awesome -->
@@ -31,501 +31,256 @@
             padding: 20px;
         }
 
-        /* 运势概览卡片 */
-        .fortune-overview {
-            background: rgba(255,255,255,0.95);
-            border-radius: 20px;
-            padding: 25px;
-            margin: 20px 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 2px solid rgba(142,108,136,0.1);
-            animation: fadeInUp 0.8s ease-out;
-        }
+        /* 用户栏 */
+        .user-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 10px 20px; z-index: 100; }
+        .user-bar-content { max-width: 1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
+        .user-info { display:flex; align-items:center; gap:15px; }
+        .user-icon { width:36px; height:36px; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; }
+        .user-name { font-weight:600; color:var(--accent-color); }
+        .user-actions { display:flex; gap:15px; }
+        .user-actions a { color:var(--primary-color); text-decoration:none; font-size:0.95rem; padding:8px 16px; border-radius:20px; transition: all 0.3s; }
+        .user-actions a:hover { background: rgba(142,108,136,0.1); color: var(--accent-color); }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* Flash 消息 */
+        .flash-messages { position: fixed; top: 70px; right: 20px; z-index: 1000; max-width: 400px; }
+        .alert { padding: 15px 20px; margin-bottom: 10px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
+        .alert-success { background: #10b981; color: white; }
+        .alert-info { background: #3b82f6; color: white; }
+        .alert-error { background: #ef4444; color: white; }
+        .alert .close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; margin-left: 15px; opacity: 0.8; }
+        .alert .close:hover { opacity: 1; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .fortune-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+        /* 塔罗容器 */
+        .tarot-container { max-width:800px; width:100%; margin:80px auto 20px; padding:30px; background: rgba(255,255,255,0.9); border-radius:20px; box-shadow:0 15px 30px rgba(0,0,0,0.1); text-align:center; position:relative; overflow:hidden; }
+        .tarot-container::before { content:""; position:absolute; top:-10px; left:-10px; right:-10px; bottom:-10px; background: linear-gradient(45deg, var(--primary-color), var(--accent-color)); z-index:-1; border-radius:25px; }
+        .header h1 { font-size:2.8rem; color:var(--accent-color); margin-bottom:10px; text-shadow:2px 2px 4px rgba(0,0,0,0.1); }
+        .header p { font-size:1.2rem; color:var(--dark-color); max-width:600px; margin:0 auto; }
 
-        .fortune-title {
-            font-size: 1.5rem;
-            color: var(--accent-color);
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
+        .tarot-card { width:200px; height:320px; margin:0 auto 30px; background: linear-gradient(135deg, var(--secondary-color), #c0a58d); border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; position:relative; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.175,0.885,0.32,1.275); cursor:pointer; }
+        .tarot-card:hover { transform: translateY(-10px) rotate(5deg); }
+        .tarot-card i { font-size:4rem; color: rgba(109,76,103,0.3); }
+        .tarot-card::after { content:""; position:absolute; top:15px; left:15px; right:15px; bottom:15px; border:2px solid rgba(109,76,103,0.2); border-radius:10px; }
 
-        .overall-score {
-            font-size: 3rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin: 15px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
+        .action-section { margin:30px 0; }
+        .btn-tarot { display:inline-flex; align-items:center; justify-content:center; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color:white; padding:15px 35px; border:none; border-radius:50px; font-size:1.2rem; font-weight:600; cursor:pointer; text-decoration:none; transition: all 0.3s ease; box-shadow:0 10px 20px rgba(142,108,136,0.3); }
+        .btn-tarot:hover { transform: translateY(-3px); box-shadow:0 15px 25px rgba(142,108,136,0.4); }
+        .btn-tarot:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-tarot i { margin-right:10px; }
+        .info-text { font-size:1rem; color:var(--accent-color); margin-top:15px; }
 
-        .score-label {
-            font-size: 1rem;
-            color: var(--accent-color);
-            opacity: 0.8;
-        }
+        .features { display:flex; justify-content:space-around; flex-wrap:wrap; margin:40px 0; }
+        .feature { flex:0 0 30%; min-width:200px; margin:10px; padding:20px; background:rgba(255,255,255,0.7); border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.05); transition: transform 0.3s ease; cursor:pointer; text-decoration:none; color:inherit; }
+        .feature:hover { transform: translateY(-5px); }
+        .feature i { font-size:2.5rem; color:var(--primary-color); margin-bottom:15px; }
+        .feature h3 { font-size:1.3rem; color:var(--accent-color); margin-bottom:10px; }
+        .feature p { font-size:0.95rem; color:var(--dark-color); }
 
-        /* 运势维度网格 */
-        .fortune-dimensions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
+        .footer { text-align:center; margin-top:30px; color:var(--accent-color); font-size:0.9rem; }
 
-        .dimension-card {
-            background: rgba(142,108,136,0.05);
-            border: 1px solid rgba(142,108,136,0.2);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
+        .loading-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; }
+        .loading-content { text-align:center; color:white; padding:30px; background: rgba(109,76,103,0.9); border-radius:15px; max-width:400px; }
+        .spinner { width:50px; height:50px; border:5px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:white; animation:spin 1s linear infinite; margin:0 auto 20px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
 
-        .dimension-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(142,108,136,0.15);
-        }
+        /* 已抽牌 */
+        .already-drawn { background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; padding: 12px 25px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(142,108,136,0.3); }
+        .already-drawn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(142,108,136,0.4); color: white; }
 
-        .dimension-icon {
-            font-size: 1.8rem;
-            margin-bottom: 8px;
-            color: var(--primary-color);
-        }
+        /* 运势概览 */
+        .fortune-overview { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 25px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid rgba(142,108,136,0.1); display:none; }
+        .fortune-title { font-size: 1.5rem; color: var(--accent-color); margin-bottom: 10px; font-weight: 600; text-align:center; }
+        .overall-score { font-size: 3rem; font-weight: bold; color: var(--primary-color); margin: 15px 0; text-align:center; }
+        .dimension-card { background: rgba(142,108,136,0.05); border: 1px solid rgba(142,108,136,0.2); border-radius: 12px; padding: 15px; text-align: center; margin:10px; display:inline-block; width:130px; }
+        .dimension-stars { margin:5px 0; color:var(--star-color); }
+        .lucky-elements { margin-top:20px; }
+        .lucky-grid { display:flex; justify-content:space-around; flex-wrap:wrap; margin-top:10px; }
+        .lucky-item { background:rgba(255,255,255,0.7); border-radius:10px; padding:10px; width:100px; margin:5px; text-align:center; }
+        .fortune-summary { margin-top:15px; background: rgba(255,255,255,0.8); border-left:4px solid var(--primary-color); padding:10px; border-radius:8px; font-style:italic; }
 
-        .dimension-name {
-            font-size: 0.9rem;
-            color: var(--accent-color);
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .dimension-stars {
-            margin: 8px 0;
-        }
-
-        .star {
-            color: var(--star-color);
-            font-size: 1rem;
-            margin: 0 1px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-
-        .star.empty {
-            color: #ddd;
-        }
-
-        .dimension-level {
-            font-size: 0.8rem;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-weight: 500;
-        }
-
-        .level-大吉 { background: #10b981; color: white; }
-        .level-中吉 { background: #3b82f6; color: white; }
-        .level-小吉 { background: #f59e0b; color: white; }
-        .level-平 { background: #6b7280; color: white; }
-        .level-需谨慎 { background: #ef4444; color: white; }
-
-        /* 幸运元素 */
-        .lucky-elements {
-            background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1));
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .lucky-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .lucky-item {
-            text-align: center;
-            padding: 10px;
-            background: rgba(255,255,255,0.7);
-            border-radius: 10px;
-        }
-
-        .lucky-item-icon {
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        .lucky-item-label {
-            font-size: 0.8rem;
-            color: var(--accent-color);
-            margin-bottom: 3px;
-        }
-
-        .lucky-item-value {
-            font-weight: 600;
-            color: var(--dark-color);
-            font-size: 0.9rem;
-        }
-
-        /* 运势总结 */
-        .fortune-summary {
-            background: rgba(255,255,255,0.8);
-            border-left: 4px solid var(--primary-color);
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin: 20px 0;
-            font-style: italic;
-            line-height: 1.6;
-        }
-
-        /* 操作按钮 */
-        .fortune-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .btn-fortune {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            color: white;
-            border: none;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(142,108,136,0.3);
-        }
-
-        .btn-fortune:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(142,108,136,0.4);
-            color: white;
-        }
-
-        .btn-fortune.secondary {
-            background: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-        }
-
-        .btn-fortune.secondary:hover {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        /* 加载状态 */
-        .fortune-loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--accent-color);
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(142,108,136,0.3);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* 隐藏状态 */
-        .fortune-overview.hidden {
-            display: none;
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .fortune-dimensions {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-            
-            .lucky-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-            
-            .overall-score {
-                font-size: 2.5rem;
-            }
-            
-            .fortune-actions {
-                gap: 10px;
-            }
-            
-            .btn-fortune {
-                padding: 8px 16px;
-                font-size: 0.9rem;
-            }
+        @media (max-width:768px){
+            .tarot-container{padding:20px; margin-top:60px;}
+            .header h1{font-size:2.2rem;}
+            .tarot-card{width:180px;height:280px;}
+            .btn-tarot{padding:12px 25px;font-size:1.1rem;}
+            .feature{flex:0 0 100%;}
+            .flash-messages { right: 10px; left: 10px; max-width: none; }
+            .dimension-card{width:100px;margin:5px;}
+            .lucky-item{width:80px;margin:3px;}
         }
     </style>
 </head>
 <body>
-    <!-- 现有的用户栏和主要内容保持不变 -->
-    
-    <!-- 在塔罗容器后添加运势概览 -->
-    <div id="fortune-overview" class="fortune-overview hidden">
-        <!-- 加载状态 -->
-        <div id="fortune-loading" class="fortune-loading">
-            <div class="loading-spinner"></div>
-            <h4>正在解读您的运势指数...</h4>
-            <p>星辰正在为您排列最佳的能量组合</p>
-        </div>
-
-        <!-- 运势内容 -->
-        <div id="fortune-content" class="hidden">
-            <!-- 运势标题 -->
-            <div class="fortune-header">
-                <h3 class="fortune-title">
-                    <i class="fas fa-chart-line"></i> 今日运势指数
-                </h3>
-                <div class="overall-score" id="overall-score">88</div>
-                <div class="score-label">综合运势评分</div>
-            </div>
-
-            <!-- 运势维度 -->
-            <div class="fortune-dimensions" id="fortune-dimensions">
-                <!-- 动态生成维度卡片 -->
-            </div>
-
-            <!-- 幸运元素 -->
-            <div class="lucky-elements">
-                <h4 style="text-align: center; color: var(--accent-color); margin-bottom: 15px;">
-                    <i class="fas fa-star"></i> 今日幸运元素
-                </h4>
-                <div class="lucky-grid" id="lucky-grid">
-                    <!-- 动态生成幸运元素 -->
+    <!-- 用户栏 -->
+    <div class="user-bar">
+        <div class="user-bar-content">
+            <div class="user-info">
+                <div class="user-icon">
+                    {% if not user.is_guest %}{{ user.username[0]|upper }}{% else %}<i class="fas fa-user"></i>{% endif %}
                 </div>
+                <span class="user-name">{{ user.username if not user.is_guest else "神秘访客" }}</span>
             </div>
-
-            <!-- 运势总结 -->
-            <div class="fortune-summary" id="fortune-summary">
-                运势解读正在生成中...
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="fortune-actions">
-                <a href="/result" class="btn-fortune">
-                    <i class="fas fa-eye"></i> 查看详细解读
-                </a>
-                <button onclick="refreshFortune()" class="btn-fortune secondary">
-                    <i class="fas fa-sync-alt"></i> 刷新运势
-                </button>
+            <div class="user-actions">
+                {% if user.is_guest %}
+                    <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                    <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
+                {% else %}
+                    <a href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
+                {% endif %}
             </div>
         </div>
     </div>
 
+    <!-- Flash 消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- 塔罗抽牌 -->
+    <div class="tarot-container">
+        <div class="header">
+            <h1><i class="fas fa-star"></i> 每日塔罗运势 <i class="fas fa-star"></i></h1>
+            <p>探索宇宙的奥秘，揭示今日的指引</p>
+        </div>
+        <div class="tarot-card"><i class="fas fa-question"></i></div>
+
+        {% if user.is_guest and not has_drawn %}
+            <div class="guest-tip">
+                <i class="fas fa-info-circle"></i>
+                <span>作为访客，解读仅在本次浏览有效。<a href="{{ url_for('register') }}" style="color: var(--primary-color); text-decoration: underline;">注册账号</a>可保存历史记录。</span>
+            </div>
+        {% endif %}
+
+        <div class="action-section">
+            {% if has_drawn %}
+                <a href="{{ url_for('result') }}" class="already-drawn"><i class="fas fa-eye"></i> 查看今日塔罗解读</a>
+                <div class="info-text">您今天已经抽取过塔罗牌了</div>
+            {% else %}
+                <form id="draw-form" action="{{ url_for('draw_card') }}" method="post">
+                    <button type="submit" class="btn-tarot" id="draw-btn"><i class="fas fa-hand-sparkles"></i> 抽取今日塔罗牌</button>
+                </form>
+                <div class="info-text">点击按钮开始抽取今日塔罗牌</div>
+            {% endif %}
+        </div>
+
+        <!-- 运势概览 -->
+        <div id="fortune-overview" class="fortune-overview">
+            <div class="fortune-title">今日运势概览</div>
+            <div id="overall-score" class="overall-score"></div>
+            <div id="score-label" style="text-align:center;font-weight:bold;color:var(--accent-color);"></div>
+            <div id="fortune-dimensions" style="display:flex;justify-content:center;flex-wrap:wrap;"></div>
+            <div id="lucky-elements"></div>
+            <div id="fortune-summary" class="fortune-summary"></div>
+            <button id="refresh-fortune" class="btn-tarot" style="margin-top:15px;"><i class="fas fa-sync-alt"></i> 刷新运势</button>
+        </div>
+
+        <div class="features">
+            <div class="feature"><i class="fas fa-moon"></i><h3>每日指引</h3><p>每天抽取一张塔罗牌，获取专属今日的宇宙指引和能量提示</p></div>
+            <div class="feature"><i class="fas fa-book-open"></i><h3>深度解读</h3><p>AI 智能解读，为您提供个性化的塔罗牌深层含义</p></div>
+            <div class="feature" onclick="goHistory()"><i class="fas fa-history"></i><h3>历史记录</h3><p>{{ '查看您的抽卡记录和运势趋势' if not user.is_guest else '注册后可保存历史记录' }}</p></div>
+        </div>
+
+        <div class="footer">
+            © 2025 塔罗运势 | 宇宙能量，智慧指引<br>
+            <small style="opacity: 0.7;">每日凌晨重置，基于北京时间</small>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>正在连接宇宙能量</h3>
+            <p>塔罗牌正在揭示您的今日运势，请稍候...</p>
+        </div>
+    </div>
+
     <script>
-        // 运势数据管理
-        let fortuneData = null;
-        let isFortuneLoaded = false;
-
-        // 在用户抽卡后显示运势
-        function showFortuneAfterDraw() {
-            const fortuneOverview = document.getElementById('fortune-overview');
-            const fortuneLoading = document.getElementById('fortune-loading');
-            const fortuneContent = document.getElementById('fortune-content');
-            
-            // 显示运势区域
-            fortuneOverview.classList.remove('hidden');
-            fortuneLoading.classList.remove('hidden');
-            fortuneContent.classList.add('hidden');
-            
-            // 滚动到运势区域
-            fortuneOverview.scrollIntoView({ behavior: 'smooth' });
-            
-            // 加载运势数据
-            loadFortuneData();
-        }
-
-        // 加载运势数据
-        async function loadFortuneData() {
-            if (isFortuneLoaded) return;
-            
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const response = await fetch(`/api/fortune/${today}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                fortuneData = await response.json();
-                displayFortune(fortuneData);
-                isFortuneLoaded = true;
-                
-            } catch (error) {
-                console.error('运势加载失败:', error);
-                showFortuneError();
-            }
-        }
-
-        // 显示运势数据
-        function displayFortune(data) {
-            const fortuneLoading = document.getElementById('fortune-loading');
-            const fortuneContent = document.getElementById('fortune-content');
-            
-            // 隐藏加载状态
-            fortuneLoading.classList.add('hidden');
-            fortuneContent.classList.remove('hidden');
-            
-            // 更新总体评分
-            document.getElementById('overall-score').textContent = data.overall_score;
-            
-            // 渲染维度卡片
-            renderDimensions(data.dimensions);
-            
-            // 渲染幸运元素
-            renderLuckyElements(data.lucky_elements);
-            
-            // 显示运势总结
-            if (data.fortune_text && data.fortune_text.summary) {
-                document.getElementById('fortune-summary').textContent = data.fortune_text.summary;
-            }
-        }
-
-        // 渲染运势维度
-        function renderDimensions(dimensions) {
-            const container = document.getElementById('fortune-dimensions');
-            const icons = {
-                '事业运': 'fas fa-briefcase',
-                '财富运': 'fas fa-coins',
-                '爱情运': 'fas fa-heart',
-                '健康运': 'fas fa-heartbeat',
-                '贵人运': 'fas fa-users'
-            };
-            
-            container.innerHTML = dimensions.map(dim => `
-                <div class="dimension-card">
-                    <div class="dimension-icon">
-                        <i class="${icons[dim.name] || 'fas fa-star'}"></i>
-                    </div>
-                    <div class="dimension-name">${dim.name}</div>
-                    <div class="dimension-stars">
-                        ${generateStars(dim.stars)}
-                    </div>
-                    <div class="dimension-level level-${dim.level}">${dim.level}</div>
-                </div>
-            `).join('');
-        }
-
-        // 生成星星评级
-        function generateStars(rating) {
-            let stars = '';
-            const fullStars = Math.floor(rating);
-            const hasHalfStar = rating % 1 >= 0.5;
-            
-            // 满星
-            for (let i = 0; i < fullStars; i++) {
-                stars += '<i class="fas fa-star star"></i>';
-            }
-            
-            // 半星
-            if (hasHalfStar) {
-                stars += '<i class="fas fa-star-half-alt star"></i>';
-            }
-            
-            // 空星
-            const emptyStars = 5 - Math.ceil(rating);
-            for (let i = 0; i < emptyStars; i++) {
-                stars += '<i class="far fa-star star empty"></i>';
-            }
-            
-            return stars;
-        }
-
-        // 渲染幸运元素
-        function renderLuckyElements(lucky) {
-            const container = document.getElementById('lucky-grid');
-            
-            container.innerHTML = `
-                <div class="lucky-item">
-                    <div class="lucky-item-icon"><i class="fas fa-palette"></i></div>
-                    <div class="lucky-item-label">幸运色</div>
-                    <div class="lucky-item-value">${lucky.color}</div>
-                </div>
-                <div class="lucky-item">
-                    <div class="lucky-item-icon"><i class="fas fa-hashtag"></i></div>
-                    <div class="lucky-item-label">幸运数字</div>
-                    <div class="lucky-item-value">${lucky.number}</div>
-                </div>
-                <div class="lucky-item">
-                    <div class="lucky-item-icon"><i class="fas fa-clock"></i></div>
-                    <div class="lucky-item-label">幸运时辰</div>
-                    <div class="lucky-item-value">${lucky.hour}</div>
-                </div>
-                <div class="lucky-item">
-                    <div class="lucky-item-icon"><i class="fas fa-compass"></i></div>
-                    <div class="lucky-item-label">幸运方位</div>
-                    <div class="lucky-item-value">${lucky.direction}</div>
-                </div>
-            `;
-        }
-
-        // 显示运势错误
-        function showFortuneError() {
-            const fortuneLoading = document.getElementById('fortune-loading');
-            fortuneLoading.innerHTML = `
-                <div style="color: var(--accent-color);">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                    <h4>运势加载遇到问题</h4>
-                    <p>请稍后再试，或查看详细解读页面</p>
-                    <button onclick="loadFortuneData()" class="btn-fortune" style="margin-top: 15px;">
-                        <i class="fas fa-redo"></i> 重新加载
-                    </button>
-                </div>
-            `;
-        }
-
-        // 刷新运势
-        function refreshFortune() {
-            isFortuneLoaded = false;
-            showFortuneAfterDraw();
-        }
-
-        // 修改原有的抽牌表单提交逻辑
-        document.getElementById('draw-form')?.addEventListener('submit', function(e) {
+        // 抽牌表单 loading 动画
+        document.getElementById('draw-form')?.addEventListener('submit', function(e){
             e.preventDefault();
             const btn = document.getElementById('draw-btn');
             btn.disabled = true;
-            document.getElementById('loading-overlay').style.display = 'flex';
-            
-            const delay = 1000 + Math.random() * 1000;
-            setTimeout(() => {
-                this.submit();
-                // 如果是 AJAX 提交，在成功回调中调用 showFortuneAfterDraw()
-            }, delay);
+            document.getElementById('loading-overlay').style.display='flex';
+            setTimeout(() => this.submit(), 1000 + Math.random() * 1000);
         });
 
-        // 如果用户已经抽过牌，页面加载时自动显示运势
-        document.addEventListener('DOMContentLoaded', function() {
-            // 检查是否已经抽过牌（可以通过后端模板变量判断）
-            {% if has_drawn %}
-                setTimeout(showFortuneAfterDraw, 1000);
+        // 历史记录跳转
+        function goHistory(){
+            {% if user.is_guest %}
+                if(confirm("查看历史记录需要登录账号，是否前往登录？")) {
+                    window.location.href = "{{ url_for('login', next=url_for('stats')) }}";
+                }
+            {% else %}
+                window.location.href = "{{ url_for('stats') }}";
             {% endif %}
+        }
+
+        // Flash 自动隐藏
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.animation = 'slideOut 0.3s ease-in forwards';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+
+        const style = document.createElement('style');
+        style.textContent = '@keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }';
+        document.head.appendChild(style);
+
+        // 运势数据渲染
+        const fortuneData = {{ fortune_data|tojson | safe }};
+        function renderFortune(data){
+            const overview = document.getElementById('fortune-overview');
+            overview.style.display='block';
+            document.getElementById('overall-score').textContent = data.overall_score;
+            document.getElementById('score-label').textContent = data.overall_label;
+
+            const dimensionsContainer = document.getElementById('fortune-dimensions');
+            dimensionsContainer.innerHTML='';
+            data.dimensions.forEach(dim=>{
+                const stars = Array.from({length:5},(_,i)=>i<dim.stars?'★':'☆').join('');
+                const card = document.createElement('div');
+                card.className='dimension-card';
+                card.innerHTML = `<div><i class="${dim.icon}"></i></div><div>${dim.name}</div><div class="dimension-stars">${stars}</div><div>${dim.level}</div>`;
+                dimensionsContainer.appendChild(card);
+            });
+
+            const luckyContainer = document.getElementById('lucky-elements');
+            luckyContainer.innerHTML = '<div class="fortune-title">幸运元素</div><div class="lucky-grid"></div>';
+            const grid = luckyContainer.querySelector('.lucky-grid');
+            data.lucky_elements.forEach(el=>{
+                const item = document.createElement('div');
+                item.className='lucky-item';
+                item.innerHTML = `<div><i class="${el.icon}"></i></div><div>${el.name}</div><div>${el.value}</div>`;
+                grid.appendChild(item);
+            });
+
+            document.getElementById('fortune-summary').textContent = data.summary;
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            {% if has_drawn %}
+                renderFortune(fortuneData);
+            {% endif %}
+        });
+
+        document.getElementById('refresh-fortune')?.addEventListener('click', ()=>{
+            fetch("{{ url_for('api_fortune') }}")
+                .then(res=>res.json())
+                .then(data=>renderFortune(data))
+                .catch(err=>alert("运势刷新失败，请稍后再试"));
         });
     </script>
 </body>

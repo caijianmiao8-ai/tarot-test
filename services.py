@@ -127,7 +127,11 @@ class DifyService:
         """
 
         payload = {
-            "inputs": {"query": prompt},
+            "inputs": {
+        "card_name": card_name,      # 必填字段
+        "direction": direction,
+        "card_meaning": card_meaning
+        },
             "response_mode": "blocking",
             "user": f"tarot_user_{DateTimeService.get_beijing_date()}"
         }
