@@ -369,10 +369,10 @@ class DifyService:
         payload = {
             "inputs": {
                 "system_prompt": system_prompt,
-                "user_message": user_message,
                 "card_name": context['card_name'],
                 "card_direction": context['card_direction']
             },
+            "query": user_message,
             "response_mode": "blocking",
             "user": f"chat_user_{DateTimeService.get_beijing_date()}"
         }
