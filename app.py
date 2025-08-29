@@ -75,7 +75,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
+@app.route('/favicon.ico')
+def favicon():
+    """处理 favicon 请求"""
+    return '', 204  # 返回无内容响应
+    
 # ===== 模板上下文 =====
 
 @app.context_processor
@@ -91,6 +95,34 @@ def avatar_letter(user):
         return user["username"][0].upper()
     return "访"
 
+@app.errorhandler(404)
+def not_found(e):
+    """404 错误处理"""
+    # 如果是 API 请求，返回 JSON
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    
+    # 尝试渲染模板，如果失败则返回简单响应
+    try:
+        return render_template('404.html'), 404
+    except:
+        return '<h1>404 - Page Not Found</h1><a href="/">Go Home</a>', 404
+
+@app.errorhandler(500)
+def server_error(e):
+    """500 错误处理"""
+    # 记录错误
+    app.logger.error(f'Server Error: {e}')
+    
+    # 如果是 API 请求，返回 JSON
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    
+    # 尝试渲染模板，如果失败则返回简单响应
+    try:
+        return render_template('500.html'), 500
+    except:
+        return '<h1>500 - Server Error</h1><a href="/">Go Home</a>', 500
 
 # ===== 路由 =====
 @app.route("/")
