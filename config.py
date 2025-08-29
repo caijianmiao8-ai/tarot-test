@@ -16,10 +16,14 @@ class Config:
     DATABASE_URL = os.environ.get("DATABASE_URL")
     DB_POOL_SIZE = 1 if os.environ.get("VERCEL") else 5
     
-    # Dify API 配置
+    # Dify API 配置（基础运势解读）
     DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
-    DIFY_API_URL = "https://ai-bot-new.dalongyun.com/v1/workflows/run"
+    DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://ai-bot-new.dalongyun.com/v1/workflows/run")
     DIFY_TIMEOUT = 25  # 秒
+    
+    # 运势专用 API 配置（独立 key，可选独立 URL）
+    DIFY_FORTUNE_API_KEY = os.environ.get("DIFY_FORTUNE_API_KEY")
+    DIFY_FORTUNE_API_URL = os.environ.get("DIFY_FORTUNE_API_URL", DIFY_API_URL)
     
     # 时区配置
     TIMEZONE_OFFSET = 8  # UTC+8 北京时间
@@ -30,7 +34,7 @@ class Config:
     
     # 功能开关（便于测试新功能）
     FEATURES = {
-        "fortune_index": os.environ.get("ENABLE_FORTUNE_INDEX", "false").lower() == "true",
+        "fortune_index": os.environ.get("ENABLE_FORTUNE_INDEX", "true").lower() == "true",  # 默认开启
         "export_pdf": os.environ.get("ENABLE_EXPORT_PDF", "false").lower() == "true",
     }
     
@@ -41,6 +45,11 @@ class Config:
         
         # 必需的配置项
         required = ["DATABASE_URL", "DIFY_API_KEY"]
+        
+        # 如果启用了运势功能，只要求专用 API Key
+        if cls.FEATURES.get("fortune_index"):
+            required.append("DIFY_FORTUNE_API_KEY")
+        
         for key in required:
             if not getattr(cls, key):
                 errors.append(f"Missing required config: {key}")

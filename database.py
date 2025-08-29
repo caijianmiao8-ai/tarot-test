@@ -189,6 +189,31 @@ class ReadingDAO:
                     (user_id, date)
                 )
                 conn.commit()
+    @staticmethod
+    def update_fortune(user_id, date, fortune_data):
+        """更新运势数据"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE readings
+                    SET fortune_data = %s,
+                        fortune_generated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND date = %s
+                """, (json.dumps(fortune_data), user_id, date))
+                conn.commit()
+    
+    @staticmethod
+    def get_fortune(user_id, date):
+        """获取运势数据"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT fortune_data, fortune_generated_at
+                    FROM readings
+                    WHERE user_id = %s AND date = %s
+                    AND fortune_data IS NOT NULL
+                """, (user_id, date))
+                return cursor.fetchone()
 
 
 class CardDAO:
@@ -209,3 +234,18 @@ class CardDAO:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM tarot_cards WHERE id = %s", (card_id,))
                 return cursor.fetchone()
+                
+    @staticmethod
+    def get_by_id_with_energy(card_id):
+        """获取塔罗牌完整信息，包括能量值"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT *,
+                           energy_career, energy_wealth, energy_love,
+                           energy_health, energy_social, element,
+                           special_effect
+                    FROM tarot_cards 
+                    WHERE id = %s
+                """, (card_id,))
+                return cursor.fetchone()                

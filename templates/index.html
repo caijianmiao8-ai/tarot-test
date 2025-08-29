@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
 
     <style>
-        /* === 保留你原始 CSS === */
         :root {
             --primary-color: #8e6c88;
             --secondary-color: #d1bfa7;
@@ -19,6 +18,7 @@
             --light-color: #f8f4e9;
             --dark-color: #333333;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
@@ -29,46 +29,271 @@
             align-items: center;
             padding: 20px;
         }
-        .user-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 10px 20px; z-index: 100; }
-        .user-bar-content { max-width: 1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
-        .user-info { display:flex; align-items:center; gap:15px; }
-        .user-icon { width:36px; height:36px; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; }
-        .user-name { font-weight:600; color:var(--accent-color); }
-        .user-actions { display:flex; gap:15px; }
-        .user-actions a { color:var(--primary-color); text-decoration:none; font-size:0.95rem; padding:8px 16px; border-radius:20px; transition: all 0.3s; }
-        .user-actions a:hover { background: rgba(142,108,136,0.1); color: var(--accent-color); }
 
-        .tarot-container { max-width:800px; width:100%; margin:80px auto 20px; padding:30px; background: rgba(255,255,255,0.9); border-radius:20px; box-shadow:0 15px 30px rgba(0,0,0,0.1); text-align:center; position:relative; overflow:hidden; }
-        .tarot-container::before { content:""; position:absolute; top:-10px; left:-10px; right:-10px; bottom:-10px; background: linear-gradient(45deg, var(--primary-color), var(--accent-color)); z-index:-1; border-radius:25px; }
-        .header h1 { font-size:2.8rem; color:var(--accent-color); margin-bottom:10px; text-shadow:2px 2px 4px rgba(0,0,0,0.1); }
-        .header p { font-size:1.2rem; color:var(--dark-color); max-width:600px; margin:0 auto; }
-        .tarot-card { width:200px; height:320px; margin:0 auto 30px; background: linear-gradient(135deg, var(--secondary-color), #c0a58d); border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; position:relative; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.175,0.885,0.32,1.275); cursor:pointer; }
-        .tarot-card:hover { transform: translateY(-10px) rotate(5deg); }
-        .tarot-card i { font-size:4rem; color: rgba(109,76,103,0.3); }
-        .tarot-card::after { content:""; position:absolute; top:15px; left:15px; right:15px; bottom:15px; border:2px solid rgba(109,76,103,0.2); border-radius:10px; }
+        .user-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 10px 20px;
+            z-index: 100;
+        }
 
-        .action-section { margin:30px 0; }
-        .btn-tarot { display:inline-flex; align-items:center; justify-content:center; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color:white; padding:15px 35px; border:none; border-radius:50px; font-size:1.2rem; font-weight:600; cursor:pointer; text-decoration:none; transition: all 0.3s ease; box-shadow:0 10px 20px rgba(142,108,136,0.3); }
-        .btn-tarot:hover { transform: translateY(-3px); box-shadow:0 15px 25px rgba(142,108,136,0.4); }
-        .btn-tarot:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .btn-tarot i { margin-right:10px; }
-        .info-text { font-size:1rem; color:var(--accent-color); margin-top:15px; }
+        .user-bar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-        .features { display:flex; justify-content:space-around; flex-wrap:wrap; margin:40px 0; }
-        .feature { flex:0 0 30%; min-width:200px; margin:10px; padding:20px; background:rgba(255,255,255,0.7); border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.05); transition: transform 0.3s ease; cursor:pointer; text-decoration:none; color:inherit; }
-        .feature:hover { transform: translateY(-5px); }
-        .feature i { font-size:2.5rem; color:var(--primary-color); margin-bottom:15px; }
-        .feature h3 { font-size:1.3rem; color:var(--accent-color); margin-bottom:10px; }
-        .feature p { font-size:0.95rem; color:var(--dark-color); }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-        .footer { text-align:center; margin-top:30px; color:var(--accent-color); font-size:0.9rem; }
+        .user-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
 
-        .loading-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; }
-        .loading-content { text-align:center; color:white; padding:30px; background: rgba(109,76,103,0.9); border-radius:15px; max-width:400px; }
-        .spinner { width:50px; height:50px; border:5px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:white; animation:spin 1s linear infinite; margin:0 auto 20px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+        .user-name {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
 
-        /* 新增：访客提示样式 */
+        .user-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .user-actions a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .user-actions a:hover {
+            background: rgba(142,108,136,0.1);
+            color: var(--accent-color);
+        }
+
+        .tarot-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 80px auto 20px;
+            padding: 30px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tarot-container::before {
+            content:"";
+            position:absolute;
+            top:-10px;
+            left:-10px;
+            right:-10px;
+            bottom:-10px;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            z-index:-1;
+            border-radius:25px;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tarot-card {
+            width: 200px;
+            height: 320px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, var(--secondary-color), #c0a58d);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175,0.885,0.32,1.275);
+            cursor: pointer;
+        }
+
+        .tarot-card:hover {
+            transform: translateY(-10px) rotate(5deg);
+        }
+
+        .tarot-card i {
+            font-size: 4rem;
+            color: rgba(109,76,103,0.3);
+        }
+
+        .tarot-card::after {
+            content:"";
+            position:absolute;
+            top:15px;
+            left:15px;
+            right:15px;
+            bottom:15px;
+            border:2px solid rgba(109,76,103,0.2);
+            border-radius:10px;
+        }
+
+        .action-section {
+            margin: 30px 0;
+        }
+
+        .btn-tarot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 15px 35px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(142,108,136,0.3);
+        }
+
+        .btn-tarot:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(142,108,136,0.4);
+        }
+
+        .btn-tarot:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-tarot i {
+            margin-right: 10px;
+        }
+
+        .info-text {
+            font-size: 1rem;
+            color: var(--accent-color);
+            margin-top: 15px;
+        }
+
+        .features {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+
+        .feature {
+            flex: 0 0 30%;
+            min-width: 200px;
+            margin: 10px;
+            padding: 20px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .feature h3 {
+            font-size: 1.3rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            font-size: 0.95rem;
+            color: var(--dark-color);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--accent-color);
+            font-size: 0.9rem;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+            padding: 30px;
+            background: rgba(109,76,103,0.9);
+            border-radius: 15px;
+            max-width: 400px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         .guest-tip {
             background: rgba(142, 108, 136, 0.1);
             border: 1px solid var(--primary-color);
@@ -81,11 +306,11 @@
             align-items: center;
             gap: 10px;
         }
+
         .guest-tip i {
             font-size: 1.2rem;
         }
 
-        /* 新增：已抽牌提示 */
         .already-drawn {
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
@@ -98,13 +323,13 @@
             transition: all 0.3s ease;
             box-shadow: 0 5px 15px rgba(142,108,136,0.3);
         }
+
         .already-drawn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(142,108,136,0.4);
             color: white;
         }
 
-        /* Flash 消息样式 */
         .flash-messages {
             position: fixed;
             top: 70px;
@@ -112,6 +337,7 @@
             z-index: 1000;
             max-width: 400px;
         }
+
         .alert {
             padding: 15px 20px;
             margin-bottom: 10px;
@@ -122,9 +348,11 @@
             align-items: center;
             animation: slideIn 0.3s ease-out;
         }
+
         .alert-success { background: #10b981; color: white; }
         .alert-info { background: #3b82f6; color: white; }
         .alert-error { background: #ef4444; color: white; }
+
         .alert .close {
             background: none;
             border: none;
@@ -134,7 +362,9 @@
             margin-left: 15px;
             opacity: 0.8;
         }
+
         .alert .close:hover { opacity: 1; }
+
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -192,65 +422,10 @@
         {% endif %}
     {% endwith %}
 
+    <!-- 塔罗容器 -->
     <div class="tarot-container">
-        <div class="header">
-            <h1><i class="fas fa-star"></i> 每日塔罗运势 <i class="fas fa-star"></i></h1>
-            <p>探索宇宙的奥秘，揭示今日的指引</p>
-        </div>
-
-        <div class="tarot-card">
-            <i class="fas fa-question"></i>
-        </div>
-
-        <!-- 访客提示（如果需要） -->
-        {% if user.is_guest and not has_drawn %}
-            <div class="guest-tip">
-                <i class="fas fa-info-circle"></i>
-                <span>作为访客，您的解读仅在本次浏览期间有效。<a href="{{ url_for('register') }}" style="color: var(--primary-color); text-decoration: underline;">注册账号</a>可保存历史记录。</span>
-            </div>
-        {% endif %}
-
-        <div class="action-section">
-            {% if has_drawn %}
-                <!-- 已经抽牌，显示查看结果按钮 -->
-                <a href="{{ url_for('result') }}" class="already-drawn">
-                    <i class="fas fa-eye"></i> 查看今日塔罗解读
-                </a>
-                <div class="info-text">您今天已经抽取过塔罗牌了</div>
-            {% else %}
-                <!-- 未抽牌，显示抽牌按钮 -->
-                <form id="draw-form" action="{{ url_for('draw_card') }}" method="post">
-                    <button type="submit" class="btn-tarot" id="draw-btn">
-                        <i class="fas fa-hand-sparkles"></i> 抽取今日塔罗牌
-                    </button>
-                </form>
-                <div class="info-text">点击按钮开始抽取今日塔罗牌</div>
-            {% endif %}
-        </div>
-
-        <div class="features">
-            <div class="feature">
-                <i class="fas fa-moon"></i>
-                <h3>每日指引</h3>
-                <p>每天抽取一张塔罗牌，获取专属今日的宇宙指引和能量提示</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-book-open"></i>
-                <h3>深度解读</h3>
-                <p>AI 智能解读，为您提供个性化的塔罗牌深层含义</p>
-            </div>
-            <div class="feature" onclick="goHistory()">
-                <i class="fas fa-history"></i>
-                <h3>历史记录</h3>
-                <p>{{ '查看您的抽卡记录和运势趋势' if not user.is_guest else '注册后可保存历史记录' }}</p>
-            </div>
-        </div>
-
-        <div class="footer">
-            © 2025 塔罗运势 | 宇宙能量，智慧指引
-            <br>
-            <small style="opacity: 0.7;">每日凌晨重置，基于北京时间</small>
-        </div>
+        <!-- header, tarot-card, action-section 等 -->
+        {% include 'tarot_content.html' %}
     </div>
 
     <div id="loading-overlay" class="loading-overlay">
@@ -268,9 +443,7 @@
             const btn = document.getElementById('draw-btn');
             btn.disabled = true;
             document.getElementById('loading-overlay').style.display='flex';
-            
-            // 添加随机延迟，让体验更神秘
-            const delay = 1000 + Math.random() * 1000; // 1-2秒
+            const delay = 1000 + Math.random() * 1000;
             setTimeout(() => this.submit(), delay);
         });
 

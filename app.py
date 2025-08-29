@@ -97,14 +97,29 @@ def index():
     user = g.user
     today = DateTimeService.get_beijing_date()
     has_drawn = False
-    
+    fortune = None  # 新增：传给模板的今日运势
+
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
+        if has_drawn:
+            # 获取今日抽牌记录
+            reading = TarotService.get_today_reading(user['id'], today)
+            if reading:
+                # 调用 FortuneService 获取今日运势
+                fortune = TarotService.get_today_fortune(reading)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
-    
-    return render_template("index.html", has_drawn=has_drawn)
+        if guest_reading:
+            # 调用 FortuneService 获取今日运势
+            fortune = SessionService.get_guest_fortune(session, today)
+
+    return render_template(
+        "index.html",
+        has_drawn=has_drawn,
+        fortune=fortune
+    )
+
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -269,6 +284,35 @@ def result():
         else:
             SessionService.update_guest_insight(session, today_insight, guidance)
     
+    # ===== 新增：生成今日运势 =====
+    try:
+        from services import FortuneService
+        fortune_data = FortuneService.calculate_fortune(
+            card_id=card_data["id"],
+            card_name=card_data["name"],
+            direction=direction,
+            date=today,
+            user_id=None if user["is_guest"] else user.get("id")
+        )
+        from config import Config
+        fortune_result = FortuneService.generate_fortune_text(
+            fortune_data,
+            dify_api_key=Config.DIFY_FORTUNE_API_KEY,
+            workflow_id=Config.DIFY_FORTUNE_WORKFLOW_ID
+        )
+        # 保存到数据库或 session
+        if not user["is_guest"]:
+            FortuneService.save_fortune(user["id"], today, fortune_result)
+        else:
+            SessionService.update_guest_insight(
+                session,
+                insight=fortune_result.get("summary", ""),
+                guidance=fortune_result.get("dimension_advice", {})
+            )
+    except Exception as e:
+        print(f"Fortune generation error: {e}")
+        fortune_result = None
+    
     return render_template(
         "result.html",
         today_date=today.strftime("%Y-%m-%d"),
@@ -276,10 +320,12 @@ def result():
         direction=direction,
         today_insight=today_insight,
         guidance=guidance,
+        fortune=fortune_result,
         is_guest=user["is_guest"],
         can_export=True,
         user=user
     )
+
 
 
 @app.route("/stats")
@@ -417,6 +463,67 @@ def regenerate():
            "success": False,
            "error": str(e)
        }), 500
+
+@app.route("/api/fortune", methods=["GET"])
+def api_fortune():
+    """
+    当日运势解读接口
+    - 已抽牌的用户或访客可以直接获取当天运势
+    - 返回 JSON 格式的完整运势数据，包括文案
+    """
+    from services import FortuneService
+    today = DateTimeService.get_beijing_date()
+    user = g.user
+
+    # 获取今日抽牌记录
+    if not user["is_guest"]:
+        reading = TarotService.get_today_reading(user['id'], today)
+        if not reading:
+            return jsonify({"success": False, "error": "今日尚未抽牌"}), 404
+        card_id = reading["card_id"]
+        card_name = reading["name"]
+        direction = reading["direction"]
+    else:
+        reading = SessionService.get_guest_reading(session, today)
+        if not reading:
+            return jsonify({"success": False, "error": "今日尚未抽牌"}), 404
+        card_id = reading.get("card_id")
+        card_name = reading["name"]
+        direction = reading["direction"]
+
+    try:
+        # 1. 计算运势数据
+        fortune_data = FortuneService.calculate_fortune(
+            card_id=card_id,
+            card_name=card_name,
+            direction=direction,
+            date=today,
+            user_id=None if user["is_guest"] else user.get("id")
+        )
+
+        # 2. 调用 Dify 生成运势文案
+        from config import Config
+        fortune_result = FortuneService.generate_fortune_text(
+            fortune_data,
+            dify_api_key=Config.DIFY_FORTUNE_API_KEY,
+            workflow_id=Config.DIFY_FORTUNE_WORKFLOW_ID
+        )
+
+        # 3. 保存到数据库或会话
+        if not user["is_guest"]:
+            FortuneService.save_fortune(user["id"], today, fortune_result)
+        else:
+            SessionService.update_guest_insight(
+                session,
+                insight=fortune_result.get("summary", ""),
+                guidance=fortune_result.get("dimension_advice", {})
+            )
+
+        # 4. 返回 JSON
+        return jsonify({"success": True, "fortune": fortune_result})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ===== 错误处理 =====
