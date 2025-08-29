@@ -1,46 +1,53 @@
-<!-- templates/tarot_content.html -->
-
 <div class="header">
     <h1>今日塔罗运势</h1>
-    <p>揭示你今天的运势与指引。点击下面的卡牌抽取你的每日塔罗。</p>
+    <p>探索塔罗牌带给你的今日洞察与指引，感受内心的力量与宇宙的启示</p>
 </div>
 
-<!-- 塔罗卡牌显示区 -->
+<!-- 塔罗牌显示 -->
 <div class="tarot-card">
     {% if tarot_card %}
-        <img src="{{ url_for('static', filename='images/cards/' ~ tarot_card.image) }}" 
-             alt="{{ tarot_card.name }}" style="width:100%; height:100%; border-radius:15px;">
+        <img src="{{ url_for('static', filename='images/cards/' ~ tarot_card.image) }}"
+             alt="{{ tarot_card.name }}"
+             style="width:100%; height:100%; border-radius:15px; transform: {% if tarot_card.direction == '逆位' %}rotate(180deg){% endif %};">
     {% else %}
-        <i class="fas fa-question"></i>
+        <i class="fas fa-star"></i>
     {% endif %}
 </div>
 
+<!-- 操作按钮或提示 -->
 <div class="action-section">
-    {% if not user.is_guest %}
-        {% if not has_drawn %}
-            <form id="draw-form" method="POST" action="{{ url_for('draw_tarot') }}">
-                <button id="draw-btn" class="btn-tarot" type="submit">
-                    <i class="fas fa-hand-paper"></i> 抽牌
-                </button>
-            </form>
-        {% else %}
-            <div class="already-drawn">
-                <i class="fas fa-check-circle"></i> 今日已抽过牌
-            </div>
-        {% endif %}
+    {% if has_drawn %}
+        <a href="{{ url_for('result') }}" class="already-drawn">
+            <i class="fas fa-check"></i> 已抽取今日塔罗
+        </a>
     {% else %}
-        <div class="guest-tip">
-            <i class="fas fa-info-circle"></i>
-            访客无法抽牌，请先
-            <a href="{{ url_for('login') }}">登录</a> 或
-            <a href="{{ url_for('register') }}">注册</a>
-        </div>
+        <form id="draw-form" method="POST" action="{{ url_for('draw_card') }}">
+            <button type="submit" id="draw-btn" class="btn-tarot">
+                <i class="fas fa-hand-paper"></i> 抽取今日塔罗
+            </button>
+        </form>
     {% endif %}
 </div>
 
-{% if tarot_card %}
-    <div class="info-text">
-        <h3>{{ tarot_card.name }} {% if tarot_card.reversed %}(逆位){% endif %}</h3>
-        <p>{{ tarot_card.meaning_up if not tarot_card.reversed else tarot_card.meaning_rev }}</p>
+<!-- 今日洞察 -->
+{% if tarot_card and fortune %}
+    <div class="info-text" style="margin-top:20px; text-align:left;">
+        <h4>今日洞察：</h4>
+        <p>{{ fortune.summary if fortune.summary else "塔罗正在为你生成洞察..." }}</p>
+        {% if fortune.dimension_advice %}
+            <ul>
+                {% for key, val in fortune.dimension_advice.items() %}
+                    <li><strong>{{ key }}：</strong> {{ val }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+{% elif has_drawn %}
+    <div class="info-text" style="margin-top:20px;">
+        今日解读正在生成，请稍候刷新页面。
+    </div>
+{% else %}
+    <div class="guest-tip">
+        <i class="fas fa-info-circle"></i> 点击上方按钮抽取你的今日塔罗，获取专属洞察与指引。
     </div>
 {% endif %}

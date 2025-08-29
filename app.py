@@ -98,7 +98,7 @@ def index():
     today = DateTimeService.get_beijing_date()
     has_drawn = False
     fortune = None
-    tarot_card = None  # 新增
+    tarot_card = None
 
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
@@ -111,7 +111,7 @@ def index():
                     "image": reading["image"],
                     "meaning_up": reading["meaning_up"],
                     "meaning_rev": reading["meaning_rev"],
-                    "reversed": reading["direction"] != "正位"
+                    "direction": reading["direction"]
                 }
                 fortune = TarotService.get_today_fortune(reading)
     else:
@@ -124,7 +124,7 @@ def index():
                 "image": guest_reading.get("image"),
                 "meaning_up": guest_reading.get("meaning_up"),
                 "meaning_rev": guest_reading.get("meaning_rev"),
-                "reversed": guest_reading["direction"] != "正位"
+                "direction": guest_reading["direction"]
             }
             fortune = SessionService.get_guest_fortune(session, today)
 
@@ -132,7 +132,7 @@ def index():
         "index.html",
         has_drawn=has_drawn,
         fortune=fortune,
-        tarot_card=tarot_card  # ✅ 传给模板
+        tarot_card=tarot_card
     )
 
 
