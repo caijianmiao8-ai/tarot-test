@@ -479,62 +479,70 @@ class FortuneService:
         return events
 
     @staticmethod
-    def _call_dify_fortune_api(prompt):
-        """调用运势专用的 Dify API"""
+    def _call_dify_fortune_api(card_name, prompt):
+        """调用运势专用的 Dify API（带详细调试日志）"""
         from config import Config
-    
+        import json
+        import requests
+        import traceback
+        from datetime import datetime
+
         headers = {
             "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
             "Content-Type": "application/json",
         }
 
-        # 修复：根据实际 Dify API 文档调整 payload 格式
         payload = {
             "inputs": {
-                "card_name": card_name,
-                "query": prompt  # 确保字段名称正确
+                "card_name": card_name,  # 必须传入
+                "query": prompt
             },
             "response_mode": "blocking",
-            "user": f"fortune_{DateTimeService.get_beijing_date()}",
+            "user": f"fortune_{datetime.now().strftime('%Y-%m-%d')}",
         }
 
         try:
-            print(f"Calling Dify Fortune API with URL: {Config.DIFY_FORTUNE_API_URL}")
-            print(f"Payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
-        
+            print("\n=== Calling Dify Fortune API ===")
+            print(f"URL: {Config.DIFY_FORTUNE_API_URL}")
+            print("Headers:", json.dumps(headers, ensure_ascii=False, indent=2))
+            print("Payload:", json.dumps(payload, ensure_ascii=False, indent=2))
+
             resp = requests.post(
                 Config.DIFY_FORTUNE_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=Config.DIFY_TIMEOUT,
             )
-            
-            print(f"Dify Fortune API Response Status: {resp.status_code}")
-            print(f"Dify Fortune API Response: {resp.text}")
-        
+
+            print(f"Response Status: {resp.status_code}")
+            print("Response Text:", resp.text)
+
             resp.raise_for_status()
             data = resp.json()
-    
-            # 使用已有的解析方法
+
+            # 解析响应
             text = DifyService._extract_answer(data)
             if text:
                 parsed = DifyService._parse_json_response(text)
                 if parsed:
+                    print("Parsed JSON Response:", json.dumps(parsed, ensure_ascii=False, indent=2))
                     return parsed
-        
-            # 如果解析失败，返回原始响应以便调试
-            print(f"Failed to parse response, raw data: {data}")
+
+            print("Failed to parse response, raw data:", json.dumps(data, ensure_ascii=False, indent=2))
             return None
-        
+
         except requests.exceptions.HTTPError as e:
-            print(f"Dify Fortune API HTTP error: {e}")
-            print(f"Response content: {e.response.text if e.response else 'No response'}")
+            print("HTTPError:", e)
+            if e.response is not None:
+                print("HTTP Response Content:", e.response.text)
+            print("Payload that caused error:", json.dumps(payload, ensure_ascii=False, indent=2))
             return None
         except Exception as e:
-            print(f"Dify Fortune API error: {e}")
-            import traceback
+            print("Exception occurred while calling Dify API:", e)
             traceback.print_exc()
+            print("Payload that caused exception:", json.dumps(payload, ensure_ascii=False, indent=2))
             return None
+
 
     @staticmethod
     def generate_fortune_text(fortune_data):
