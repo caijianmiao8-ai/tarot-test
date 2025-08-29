@@ -8,7 +8,7 @@ from datetime import timedelta
 class Config:
     """应用配置类"""
     
-        CHAT_FEATURES = {
+    CHAT_FEATURES = {
         'enabled': True,
         'daily_limit_guest': 5,
         'daily_limit_user': 10,
