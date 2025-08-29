@@ -230,23 +230,31 @@ def init_chat():
         return jsonify({'error': '未找到今日塔罗记录'}), 404
     
     # 创建或获取会话
-    chat_session = ChatService.create_or_get_session(
-        user.get('id'),
-        session.get('session_id'),
-        reading,
-        today
-    )
-    
-    # 获取历史消息
-    messages = ChatDAO.get_session_messages(chat_session['id'])
-    
-    return jsonify({
-        'session_id': chat_session['id'],
-        'messages': [
-            {'role': msg['role'], 'content': msg['content']} 
-            for msg in reversed(messages)
-        ]
-    })
+    try:
+        chat_session = ChatService.create_or_get_session(
+            user.get('id'),
+            session.get('session_id'),
+            reading,
+            today
+        )
+        
+        if not chat_session:
+            # 如果获取失败，返回错误
+            return jsonify({'error': '无法创建会话'}), 500
+        
+        # 获取历史消息
+        messages = ChatDAO.get_session_messages(chat_session['id'])
+        
+        return jsonify({
+            'session_id': str(chat_session['id']),  # 确保是字符串
+            'messages': [
+                {'role': msg['role'], 'content': msg['content']} 
+                for msg in reversed(messages) if messages
+            ] if messages else []
+        })
+    except Exception as e:
+        print(f"Init chat error: {e}")
+        return jsonify({'error': '初始化失败'}), 500
 
 @app.route("/api/chat/send", methods=["POST"])
 def send_chat_message():

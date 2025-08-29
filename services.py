@@ -341,22 +341,31 @@ class DifyService:
     @staticmethod
     def chat_tarot(user_message, context):
         """塔罗相关的对话"""
+        print("\n=== Dify Chat Debug ===")
+        print(f"[Input] user_message: {user_message}")
+        print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
+        
+        # 检查配置
+        print(f"[Config] DIFY_CHAT_API_URL: {Config.DIFY_CHAT_API_URL}")
+        print(f"[Config] DIFY_CHAT_API_KEY: {Config.DIFY_CHAT_API_KEY[:10]}..." if Config.DIFY_CHAT_API_KEY else "[Config] DIFY_CHAT_API_KEY: None")
+    
         # 构建系统提示
         system_prompt = f"""你是一位专业的塔罗解读师。
-用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
-日期：{context['date']}
+    用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
+    日期：{context['date']}
 
-你的任务：
-1. 基于用户抽到的塔罗牌，提供深入的解读和建议
-2. 结合用户的具体问题，给出个性化的指导
-3. 保持神秘而专业的语气，但要亲切友好
-4. 不要偏离塔罗主题太远
-5. 避免绝对性的预测，强调塔罗是指引而非命定
+    你的任务：
+    1. 基于用户抽到的塔罗牌，提供深入的解读和建议
+    2. 结合用户的具体问题，给出个性化的指导
+    3. 保持神秘而专业的语气，但要亲切友好
+    4. 不要偏离塔罗主题太远
+        5. 避免绝对性的预测，强调塔罗是指引而非命定
 
-历史对话：
-{json.dumps(context['messages'], ensure_ascii=False)}
-"""
-        
+    历史对话：
+    {json.dumps(context['messages'], ensure_ascii=False)}
+    """
+    
+        # 构建 payload - 根据实际 Dify 配置调整
         payload = {
             "inputs": {
                 "system_prompt": system_prompt,
@@ -366,34 +375,65 @@ class DifyService:
             },
             "response_mode": "blocking",
             "user": f"chat_user_{DateTimeService.get_beijing_date()}"
-        }
-        
+       }
+    
+        print(f"[Payload] Full payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
+    
         headers = {
             "Authorization": f"Bearer {Config.DIFY_CHAT_API_KEY}",
             "Content-Type": "application/json"
         }
-        
+    
+       print(f"[Headers] {headers}")
+    
         try:
+            print(f"[Request] Sending POST to {Config.DIFY_CHAT_API_URL}")
             response = requests.post(
                 Config.DIFY_CHAT_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=Config.DIFY_TIMEOUT
             )
+        
+            print(f"[Response] Status Code: {response.status_code}")
+            print(f"[Response] Headers: {dict(response.headers)}")
+            print(f"[Response] Text: {response.text}")
+        
+            # 尝试解析 JSON 错误信息
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    print(f"[Error] JSON Response: {json.dumps(error_data, ensure_ascii=False, indent=2)}")
+                except:
+                    print("[Error] Could not parse error response as JSON")
+        
             response.raise_for_status()
-            
+        
             # 解析响应
             data = response.json()
-            answer = DifyService._extract_answer(data)
+            print(f"[Success] Response data: {json.dumps(data, ensure_ascii=False, indent=2)}")
             
+            answer = DifyService._extract_answer(data)
+            print(f"[Extract] Answer: {answer}")
+        
             if answer:
                 return answer
             else:
                 return "让我想想...这张牌对你的具体情况有特殊的启示。"
-                
+            
+        except requests.exceptions.RequestException as e:
+            print(f"[Error] Request Exception: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"[Error] Response Status: {e.response.status_code}")
+                print(f"[Error] Response Body: {e.response.text}")
+            return "让我重新感受一下塔罗牌的能量，请稍后再试。"
         except Exception as e:
-            print(f"Dify chat error: {e}")
+            print(f"[Error] Unexpected Exception: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return "星星暂时被云遮住了，请稍后再试。"
+        finally:
+            print("=== End Dify Chat Debug ===\n")
 
     @staticmethod
     def _extract_answer(data):
