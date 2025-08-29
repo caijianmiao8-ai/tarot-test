@@ -13,7 +13,8 @@ from services import (
     UserService,
     TarotService,
     DifyService,
-    SessionService
+    SessionService,
+    FortuneService
 )
 
 # 初始化 Flask 应用
