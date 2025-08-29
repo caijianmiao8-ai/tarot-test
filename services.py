@@ -621,7 +621,7 @@ class FortuneService:
             "inputs": {
                 "card_name": fortune_data.get("card_name", "未知牌"),
                 "direction": fortune_data.get("direction", "正位"),
-                "overall_score": fortune_data.get("overall_score", 50),
+                "overall_score": str(fortune_data.get("overall_score", 50)),
                 "dimensions": [
                     {
                         "name": dim["name"],
@@ -630,7 +630,7 @@ class FortuneService:
                     } for dim in fortune_data.get("dimensions", [])
                 ],
                 "lucky_color": fortune_data.get("lucky_elements", {}).get("color", ""),
-                "lucky_number": fortune_data.get("lucky_elements", {}).get("number", ""),
+                "lucky_number": str(fortune_data.get("lucky_elements", {}).get("number", "")),
                 "lucky_hour": fortune_data.get("lucky_elements", {}).get("hour", ""),
                 "lucky_direction": fortune_data.get("lucky_elements", {}).get("direction", ""),
                 "special_messages": [
