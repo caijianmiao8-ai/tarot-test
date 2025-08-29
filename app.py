@@ -103,7 +103,6 @@ def index():
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            # 改这里：先从数据库取运势，没有则重新算
             fortune_data = FortuneService.get_fortune(user['id'], today)
             if not fortune_data:
                 reading = TarotService.get_today_reading(user['id'], today)
@@ -133,6 +132,7 @@ def index():
         user=user,
         today=today.strftime("%Y-%m-%d")
     )
+
 
 
 @app.route("/login", methods=["GET", "POST"])

@@ -98,6 +98,20 @@
         .lucky-item { background:rgba(255,255,255,0.7); border-radius:10px; padding:10px; width:100px; margin:5px; text-align:center; }
         .fortune-summary { margin-top:15px; background: rgba(255,255,255,0.8); border-left:4px solid var(--primary-color); padding:10px; border-radius:8px; font-style:italic; }
 
+        /* AI 智能指引 */
+        .fortune-detail {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 2px solid rgba(142,108,136,0.1);
+            margin-top: 20px;
+            display:none;
+        }
+        .fortune-detail h5 { margin-bottom: 10px; }
+        .fortune-detail ul { padding-left: 20px; }
+        .fortune-detail p { margin: 5px 0; color: #333; }
+
         @media (max-width:768px){
             .tarot-container{padding:20px; margin-top:60px;}
             .header h1{font-size:2.2rem;}
@@ -184,69 +198,58 @@
             <button id="refresh-fortune" class="btn-tarot" style="margin-top:15px;"><i class="fas fa-sync-alt"></i> 刷新运势</button>
         </div>
 
-        <div class="features">
-            <div class="feature"><i class="fas fa-moon"></i><h3>每日指引</h3><p>每天抽取一张塔罗牌，获取专属今日的宇宙指引和能量提示</p></div>
-            <div class="feature"><i class="fas fa-book-open"></i><h3>深度解读</h3><p>AI 智能解读，为您提供个性化的塔罗牌深层含义</p></div>
-            <div class="feature" onclick="goHistory()"><i class="fas fa-history"></i><h3>历史记录</h3><p>{{ '查看您的抽卡记录和运势趋势' if not user.is_guest else '注册后可保存历史记录' }}</p></div>
+        <!-- AI 智能指引 -->
+        <div id="fortune-detail" class="fortune-detail">
+            <div class="fortune-title">AI 智能指引</div>
+            <div id="fortune-summary-detail" class="fortune-summary"></div>
+            <div id="dimension-advice" style="margin-top:15px;"></div>
+            <div style="display:flex;justify-content:space-around;margin-top:20px;flex-wrap:wrap;">
+                <div>
+                    <h5 style="color:#6d4c67;">今日宜做</h5>
+                    <ul id="fortune-do" style="text-align:left;"></ul>
+                </div>
+                <div>
+                    <h5 style="color:#6d4c67;">今日忌做</h5>
+                    <ul id="fortune-dont" style="text-align:left;"></ul>
+                </div>
+            </div>
         </div>
 
-        <div class="footer">
-            © 2025 塔罗运势 | 宇宙能量，智慧指引<br>
-            <small style="opacity: 0.7;">每日凌晨重置，基于北京时间</small>
+        <div class="features">
+            <div class="feature"><i class="fas fa-magic"></i><h3>精准解读</h3><p>结合 AI 与塔罗牌，提供全方位的每日运势解析。</p></div>
+            <div class="feature"><i class="fas fa-bullseye"></i><h3>多维分析</h3><p>事业、财富、爱情、健康等多维度助力你的决策。</p></div>
+            <div class="feature"><i class="fas fa-book"></i><h3>历史记录</h3><p>注册用户可保存并回顾每日运势解读。</p></div>
         </div>
+
+        <div class="footer">© 2025 塔罗运势助手 - 用塔罗探索宇宙奥秘</div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading-overlay">
         <div class="loading-content">
             <div class="spinner"></div>
-            <h3>正在连接宇宙能量</h3>
-            <p>塔罗牌正在揭示您的今日运势，请稍候...</p>
+            <p>正在生成您的专属运势...</p>
         </div>
     </div>
 
     <script>
-        // 抽牌表单 loading 动画
-        document.getElementById('draw-form')?.addEventListener('submit', function(e){
-            e.preventDefault();
-            const btn = document.getElementById('draw-btn');
-            btn.disabled = true;
-            document.getElementById('loading-overlay').style.display='flex';
-            setTimeout(() => this.submit(), 1000 + Math.random() * 1000);
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const fortuneData = {{ fortune_data|tojson }};
+            if (fortuneData && Object.keys(fortuneData).length > 0) {
+                renderFortune(fortuneData);
+            }
+
+            document.getElementById('refresh-fortune')?.addEventListener('click', ()=>{
+                location.reload();
+            });
         });
 
-        // 历史记录跳转
-        function goHistory(){
-            {% if user.is_guest %}
-                if(confirm("查看历史记录需要登录账号，是否前往登录？")) {
-                    window.location.href = "{{ url_for('login', next=url_for('stats')) }}";
-                }
-            {% else %}
-                window.location.href = "{{ url_for('stats') }}";
-            {% endif %}
-        }
-
-        // Flash 自动隐藏
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.style.animation = 'slideOut 0.3s ease-in forwards';
-                setTimeout(() => alert.remove(), 300);
-            });
-        }, 5000);
-
-        const style = document.createElement('style');
-        style.textContent = '@keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }';
-        document.head.appendChild(style);
-
-        // 运势数据渲染
-        const fortuneData = {{ fortune_data|tojson | safe }};
         function renderFortune(data){
             const overview = document.getElementById('fortune-overview');
             overview.style.display='block';
             document.getElementById('overall-score').textContent = data.overall_score || '-';
             document.getElementById('score-label').textContent = data.overall_label || '';
-        
+
             const dimensionsContainer = document.getElementById('fortune-dimensions');
             dimensionsContainer.innerHTML='';
             (data.dimensions || []).forEach(dim=>{
@@ -256,7 +259,7 @@
                 card.innerHTML = `<div>${dim.name}</div><div class="dimension-stars">${stars}</div><div>${dim.level}</div>`;
                 dimensionsContainer.appendChild(card);
             });
-        
+
             const luckyContainer = document.getElementById('lucky-elements');
             luckyContainer.innerHTML = '<div class="fortune-title">幸运元素</div><div class="lucky-grid"></div>';
             const grid = luckyContainer.querySelector('.lucky-grid');
@@ -270,21 +273,42 @@
             });
 
             document.getElementById('fortune-summary').textContent = (data.fortune_text && data.fortune_text.summary) || data.summary || '';
+
+            // 渲染 AI 指引
+            const detail = document.getElementById('fortune-detail');
+            detail.style.display = 'block';
+            const fortuneText = data.fortune_text || {};
+            document.getElementById('fortune-summary-detail').textContent = fortuneText.summary || '';
+
+            // 五维度建议
+            const adviceContainer = document.getElementById('dimension-advice');
+            adviceContainer.innerHTML = '';
+            if (fortuneText.dimension_advice) {
+                Object.entries(fortuneText.dimension_advice).forEach(([name, advice])=>{
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${name}：</strong>${advice}`;
+                    adviceContainer.appendChild(p);
+                });
+            }
+
+            // 宜做
+            const doList = document.getElementById('fortune-do');
+            doList.innerHTML = '';
+            (fortuneText.do || []).forEach(item=>{
+                const li = document.createElement('li');
+                li.textContent = item;
+                doList.appendChild(li);
+            });
+
+            // 忌做
+            const dontList = document.getElementById('fortune-dont');
+            dontList.innerHTML = '';
+            (fortuneText.dont || []).forEach(item=>{
+                const li = document.createElement('li');
+                li.textContent = item;
+                dontList.appendChild(li);
+            });
         }
-
-
-        document.addEventListener('DOMContentLoaded', ()=>{
-            {% if has_drawn %}
-                renderFortune(fortuneData);
-            {% endif %}
-        });
-
-        document.getElementById('refresh-fortune')?.addEventListener('click', ()=>{
-            fetch("{{ url_for('api_fortune', date=today) }}")
-                .then(res=>res.json())
-                .then(data=>renderFortune(data))
-                .catch(err=>alert("运势刷新失败，请稍后再试"));
-        });
     </script>
 </body>
 </html>
