@@ -104,8 +104,8 @@ def index():
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            # 获取用户今日塔罗运势数据
-            fortune_data = TarotService.get_today_fortune(user['id'], today)
+            # 获取用户今日塔罗运势数据（原来写错成 get_today_fortune）
+            fortune_data = TarotService.get_today_reading(user['id'], today)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
@@ -122,6 +122,7 @@ def index():
         user=user,
         today=today_str
     )
+
 
 
 
