@@ -477,7 +477,7 @@ class FortuneService:
             events.append("night_moon")
 
         return events
-        
+
     @staticmethod
     def _call_dify_fortune_api(card_name, prompt):
         """调用运势专用的 Dify API（带详细调试日志，返回已解析的 dict 或 None）"""
@@ -604,6 +604,72 @@ class FortuneService:
 
 
     @staticmethod
+    def _call_dify_fortune_api(card_name, prompt):
+        """调用运势专用的 Dify API（带详细调试日志）"""
+        from config import Config
+        import json
+        import requests
+        import traceback
+        from datetime import datetime
+
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "inputs": {
+                "card_name": card_name,  # 必须传入
+                "direction": "",          # 占位，API 需要
+                "query": prompt
+            },
+            "response_mode": "blocking",
+            "user": f"fortune_{datetime.now().strftime('%Y-%m-%d')}",
+        }
+
+        try:
+            print("\n=== Calling Dify Fortune API ===")
+            print(f"URL: {Config.DIFY_FORTUNE_API_URL}")
+            print("Headers:", json.dumps(headers, ensure_ascii=False, indent=2))
+            print("Payload:", json.dumps(payload, ensure_ascii=False, indent=2))
+
+            resp = requests.post(
+                Config.DIFY_FORTUNE_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=Config.DIFY_TIMEOUT,
+            )
+
+            print(f"[Dify] Response Status: {resp.status_code}")
+            print("[Dify] Response Text:", resp.text)
+
+            resp.raise_for_status()
+            data = resp.json()
+
+            # 使用 DifyService 的解析方法
+            text = DifyService._extract_answer(data)
+            if text:
+                parsed = DifyService._parse_json_response(text)
+                if parsed:
+                    print("[Dify] Parsed JSON Response:", json.dumps(parsed, ensure_ascii=False, indent=2))
+                    return parsed
+
+            print("[Dify] Failed to parse response, raw data:", json.dumps(data, ensure_ascii=False, indent=2))
+            return None
+
+        except requests.exceptions.HTTPError as e:
+            print("[Dify] HTTPError:", e)
+            if e.response is not None:
+                print("[Dify] HTTP Response Content:", e.response.text)
+            print("[Dify] Payload that caused error:", json.dumps(payload, ensure_ascii=False, indent=2))
+            return None
+        except Exception as e:
+            print("[Dify] Exception occurred while calling Dify API:", e)
+            traceback.print_exc()
+            print("[Dify] Payload that caused exception:", json.dumps(payload, ensure_ascii=False, indent=2))
+            return None
+
+    @staticmethod
     def generate_fortune_text(fortune_data):
         """
         调用 Dify API 生成运势文案（不改变 _call_dify_fortune_api 的静态方法签名）
@@ -624,7 +690,7 @@ class FortuneService:
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
             return fortune_data
 
-        # 准备 prompt（保持原有逻辑）
+        # 准备 prompt
         try:
             dimensions_text = [
                 f"{dim['name']}：{dim['stars']}星（{dim['level']}）"
@@ -638,40 +704,41 @@ class FortuneService:
             if event in FortuneService.SPECIAL_EVENT_MESSAGES:
                 special_messages.append(FortuneService.SPECIAL_EVENT_MESSAGES[event])
 
+        # 构建完整 prompt 模板
         prompt = f"""
-    塔罗牌：{fortune_data.get('card_name', '')}（{fortune_data.get('direction', '')}）
-    综合运势评分：{fortune_data.get('overall_score', '')}/100
+塔罗牌：{fortune_data.get('card_name', '')}（{fortune_data.get('direction', '')}）
+综合运势评分：{fortune_data.get('overall_score', '')}/100
 
-    运势指数：
-    {chr(10).join(dimensions_text)}
+运势指数：
+{chr(10).join(dimensions_text)}
 
-    幸运元素：
-    - 幸运色：{fortune_data.get('lucky_elements', {}).get('color', '')}
-    - 幸运数字：{fortune_data.get('lucky_elements', {}).get('number', '')}
-    - 幸运时辰：{fortune_data.get('lucky_elements', {}).get('hour', '')}
-    - 幸运方位：{fortune_data.get('lucky_elements', {}).get('direction', '')}
+幸运元素：
+- 幸运色：{fortune_data.get('lucky_elements', {}).get('color', '')}
+- 幸运数字：{fortune_data.get('lucky_elements', {}).get('number', '')}
+- 幸运时辰：{fortune_data.get('lucky_elements', {}).get('hour', '')}
+- 幸运方位：{fortune_data.get('lucky_elements', {}).get('direction', '')}
 
-    {('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
+{('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
 
-    请根据以上信息生成：
-    1. 今日运势总评（50字以内）
-    2. 各维度的具体建议（每个维度30字以内）
-    3. 今日宜做的2件事
-    4. 今日忌做的2件事
+请根据以上信息生成：
+1. 今日运势总评（50字以内）
+2. 各维度的具体建议（每个维度30字以内）
+3. 今日宜做的2件事
+4. 今日忌做的2件事
 
-    要求：
-    - 结合塔罗牌含义和运势数据
-    - 语言积极正面，即使运势较低也要给出建设性建议
-    - 建议要具体可执行
+要求：
+- 结合塔罗牌含义和运势数据
+- 语言积极正面，即使运势较低也要给出建设性建议
+- 建议要具体可执行
 
-    返回 JSON 格式，字段：
-    - summary: 今日运势总评
-    - dimension_advice: 各维度建议（对象或键值对）
-    - do: 今日宜做（数组，2项）
-    - dont: 今日忌做（数组，2项）
-    """
+返回 JSON 格式，字段：
+- summary: 今日运势总评
+- dimension_advice: 各维度建议（对象或键值对）
+- do: 今日宜做（数组，2项）
+- dont: 今日忌做（数组，2项）
+"""
 
-        # 调用运势专用 API：注意这里传入 card_name 和 prompt 两个参数
+        # 调用运势专用 API
         result = FortuneService._call_dify_fortune_api(fortune_data.get('card_name'), prompt)
 
         # 解析结果并赋值
@@ -679,23 +746,20 @@ class FortuneService:
             # 期望字段检查
             if all(k in result for k in ["summary", "dimension_advice", "do", "dont"]):
                 fortune_data['fortune_text'] = result
-                print("Fortune API returned expected format.")
+                print("[FortuneService] Fortune API returned expected format.")
             else:
-                # API 返回了 JSON 但格式不符，记录返回内容以便排查
-                print(f"Fortune API returned unexpected format: {json.dumps(result, ensure_ascii=False)}")
+                print(f"[FortuneService] Fortune API returned unexpected format: {json.dumps(result, ensure_ascii=False)}")
                 fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
         else:
-            # API 调用失败或解析失败，使用默认文案
-            print("Fortune API call failed or returned unparsable data, using default text.")
+            print("[FortuneService] Fortune API call failed or returned unparsable data, using default text.")
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
 
         return fortune_data
 
-
     @staticmethod
     def _generate_default_text(fortune_data):
         """生成默认的运势文案"""
-        overall = fortune_data['overall_score']
+        overall = fortune_data.get('overall_score', 50)
 
         if overall >= 80:
             summary = "今日运势极佳，万事皆宜，把握机会勇敢前行！"
@@ -716,44 +780,21 @@ class FortuneService:
 
         # 维度建议
         dimension_advice = {}
-        for dim in fortune_data['dimensions']:
-            if dim['name'] == "事业运":
-                if dim['stars'] >= 4:
-                    advice = "工作效率高，适合处理重要事务"
-                elif dim['stars'] >= 3:
-                    advice = "按部就班，保持专注即可"
-                else:
-                    advice = "避免重大决策，以观察为主"
-            elif dim['name'] == "财富运":
-                if dim['stars'] >= 4:
-                    advice = "财运亨通，投资理财好时机"
-                elif dim['stars'] >= 3:
-                    advice = "收支平衡，理性消费"
-                else:
-                    advice = "谨慎理财，避免大额支出"
-            elif dim['name'] == "爱情运":
-                if dim['stars'] >= 4:
-                    advice = "桃花朵朵，感情甜蜜"
-                elif dim['stars'] >= 3:
-                    advice = "感情稳定，细水长流"
-                else:
-                    advice = "多些理解，少些要求"
-            elif dim['name'] == "健康运":
-                if dim['stars'] >= 4:
-                    advice = "精力充沛，适合运动"
-                elif dim['stars'] >= 3:
-                    advice = "身体无恙，保持作息"
-                else:
-                    advice = "注意休息，避免劳累"
-            elif dim['name'] == "贵人运":
-                if dim['stars'] >= 4:
-                    advice = "贵人相助，把握机会"
-                elif dim['stars'] >= 3:
-                    advice = "人际和谐，维护关系"
-                else:
-                    advice = "低调行事，避免纷争"
-
-            dimension_advice[dim['name']] = advice
+        for dim in fortune_data.get('dimensions', []):
+            name = dim.get('name', '')
+            stars = dim.get('stars', 3)
+            advice = ""
+            if name == "事业运":
+                advice = "工作效率高，适合处理重要事务" if stars >= 4 else "按部就班，保持专注即可" if stars >= 3 else "避免重大决策，以观察为主"
+            elif name == "财富运":
+                advice = "财运亨通，投资理财好时机" if stars >= 4 else "收支平衡，理性消费" if stars >= 3 else "谨慎理财，避免大额支出"
+            elif name == "爱情运":
+                advice = "桃花朵朵，感情甜蜜" if stars >= 4 else "感情稳定，细水长流" if stars >= 3 else "多些理解，少些要求"
+            elif name == "健康运":
+                advice = "精力充沛，适合运动" if stars >= 4 else "身体无恙，保持作息" if stars >= 3 else "注意休息，避免劳累"
+            elif name == "贵人运":
+                advice = "贵人相助，把握机会" if stars >= 4 else "人际和谐，维护关系" if stars >= 3 else "低调行事，避免纷争"
+            dimension_advice[name] = advice
 
         return {
             "summary": summary,
