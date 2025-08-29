@@ -15,13 +15,13 @@ from database import UserDAO, ReadingDAO, CardDAO
 
 class DateTimeService:
     """时间服务"""
-    
+
     @staticmethod
     def get_beijing_date():
         """获取北京时间的日期"""
         beijing_tz = timezone(timedelta(hours=Config.TIMEZONE_OFFSET))
         return datetime.now(beijing_tz).date()
-    
+
     @staticmethod
     def get_beijing_datetime():
         """获取北京时间的日期时间"""
@@ -31,7 +31,7 @@ class DateTimeService:
 
 class UserService:
     """用户服务"""
-    
+
     @staticmethod
     def authenticate(username, password):
         """用户认证"""
@@ -40,14 +40,14 @@ class UserService:
             UserDAO.update_visit(user['id'])
             return user
         return None
-    
+
     @staticmethod
     def register(username, password, device_id):
         """用户注册"""
         # 检查用户名是否存在
         if UserDAO.get_by_username(username):
             return None, "用户名已被使用"
-        
+
         # 创建用户
         import uuid
         user_data = {
@@ -56,10 +56,10 @@ class UserService:
             'password_hash': generate_password_hash(password),
             'device_id': device_id
         }
-        
+
         user = UserDAO.create(user_data)
         return user, None
-    
+
     @staticmethod
     def generate_device_fingerprint(user_agent, accept_language):
         """生成设备指纹"""
@@ -69,20 +69,20 @@ class UserService:
 
 class TarotService:
     """塔罗牌服务"""
-    
+
     @staticmethod
     def has_drawn_today(user_id, date):
         """检查用户今天是否已经抽过牌"""
         reading = ReadingDAO.get_today_reading(user_id, date)
         return reading is not None
-    
+
     @staticmethod
     def draw_card():
         """抽取一张塔罗牌"""
         card = CardDAO.get_random()
         direction = random.choice(["正位", "逆位"])
         return card, direction
-    
+
     @staticmethod
     def save_reading(user_id, date, card_id, direction):
         """保存占卜记录"""
@@ -93,12 +93,12 @@ class TarotService:
             'direction': direction
         }
         return ReadingDAO.create(reading_data)
-    
+
     @staticmethod
     def get_today_reading(user_id, date):
         """获取今日占卜"""
         return ReadingDAO.get_today_reading(user_id, date)
-    
+
     @staticmethod
     def get_user_stats(user_id):
         """获取用户统计信息"""
@@ -112,7 +112,7 @@ class TarotService:
 
 class DifyService:
     """Dify AI 服务"""
-    
+
     @staticmethod
     def generate_reading(card_name, direction, card_meaning=""):
         """生成塔罗解读"""
@@ -125,18 +125,18 @@ class DifyService:
         请根据这张牌和方向，为用户生成今日洞察和具体指引。
         必须返回JSON格式，包含today_insight和guidance两个字段。
         """
-        
+
         payload = {
             "inputs": {"query": prompt},
             "response_mode": "blocking",
             "user": f"tarot_user_{DateTimeService.get_beijing_date()}"
         }
-        
+
         headers = {
             "Authorization": f"Bearer {Config.DIFY_API_KEY}",
             "Content-Type": "application/json"
         }
-        
+
         try:
             response = requests.post(
                 Config.DIFY_API_URL,
@@ -145,25 +145,25 @@ class DifyService:
                 timeout=Config.DIFY_TIMEOUT
             )
             response.raise_for_status()
-            
+
             # 解析响应
             data = response.json()
             answer = DifyService._extract_answer(data)
-            
+
             if answer:
                 return DifyService._parse_json_response(answer)
-            
+
         except requests.exceptions.RequestException as e:
             print(f"Dify API error: {e}")
         except Exception as e:
             print(f"Unexpected error: {e}")
-        
+
         # 返回默认值
         return {
             "today_insight": f"今日你抽到了{card_name}（{direction}），这张牌正在向你传递宇宙的信息。",
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
-    
+
     @staticmethod
     def _extract_answer(data):
         """从响应中提取答案"""
@@ -177,18 +177,18 @@ class DifyService:
             elif "answer" in data:
                 return data["answer"]
         return ""
-    
+
     @staticmethod
     def _parse_json_response(text):
         """解析 JSON 响应"""
         # 尝试多种解析方式
-        
+
         # 1. 直接解析
         try:
             return json.loads(text)
         except:
             pass
-        
+
         # 2. 查找 ```json 块
         try:
             start = text.find("```json")
@@ -199,7 +199,7 @@ class DifyService:
                     return json.loads(json_str)
         except:
             pass
-        
+
         # 3. 查找 JSON 对象
         try:
             start = text.find("{")
@@ -209,13 +209,13 @@ class DifyService:
                 return json.loads(json_str)
         except:
             pass
-        
+
         return None
 
 
 class SessionService:
     """会话服务（处理访客逻辑）"""
-    
+
     @staticmethod
     def save_guest_reading(session, card, direction, date):
         """保存访客占卜记录到会话"""
@@ -230,7 +230,7 @@ class SessionService:
             "timestamp": datetime.now().isoformat()
         }
         session.modified = True
-    
+
     @staticmethod
     def get_guest_reading(session, date):
         """获取访客占卜记录"""
@@ -238,7 +238,7 @@ class SessionService:
         if last_card and last_card.get("date") == str(date):
             return last_card
         return None
-    
+
     @staticmethod
     def update_guest_insight(session, insight, guidance):
         """更新访客解读"""
@@ -247,9 +247,10 @@ class SessionService:
             session['last_card']['guidance'] = guidance
             session.modified = True
 
+
 class FortuneService:
     """运势服务 - 完整实现"""
-    
+
     # 元素对应的幸运色
     ELEMENT_COLORS = {
         "火": ["红色", "橙色", "金色", "赤褐色"],
@@ -257,7 +258,7 @@ class FortuneService:
         "风": ["黄色", "白色", "浅蓝色", "淡紫色"],
         "土": ["绿色", "棕色", "深绿色", "土黄色"]
     }
-    
+
     # 特殊事件文案
     SPECIAL_EVENT_MESSAGES = {
         "transformation": "死神牌带来转变的力量，旧的结束意味着新的开始",
@@ -269,7 +270,7 @@ class FortuneService:
         "morning_sun": "晨光中抽到太阳牌，一整天都会充满活力",
         "night_moon": "夜晚与月亮牌相遇，聆听内心的声音"
     }
-    
+
     @staticmethod
     def calculate_fortune(card_id, card_name, direction, date, user_id=None):
         """
@@ -277,12 +278,12 @@ class FortuneService:
         返回：包含所有运势信息的字典
         """
         from database import CardDAO
-        
+
         # 1. 获取卡牌的能量数据
         card_data = CardDAO.get_by_id_with_energy(card_id)
         if not card_data:
             raise ValueError(f"Card not found: {card_id}")
-        
+
         # 2. 提取基础能量值
         base_energies = [
             card_data.get('energy_career', 50),
@@ -291,28 +292,28 @@ class FortuneService:
             card_data.get('energy_health', 50),
             card_data.get('energy_social', 50)
         ]
-        
+
         element = card_data.get('element', '土')
         special_effect = card_data.get('special_effect')
-        
+
         # 3. 计算修正后的分数
         scores = FortuneService._calculate_scores(
             base_energies, direction, date, user_id
         )
-        
+
         # 4. 转换为星级
         stars = FortuneService._scores_to_stars(scores)
-        
+
         # 5. 生成幸运元素
         lucky_elements = FortuneService._generate_lucky_elements(
             element, date, user_id
         )
-        
+
         # 6. 检查特殊事件
         special_events = FortuneService._check_special_events(
             card_name, special_effect, date
         )
-        
+
         # 7. 构建维度数据
         dimensions = []
         dimension_names = ["事业运", "财富运", "爱情运", "健康运", "贵人运"]
@@ -323,10 +324,10 @@ class FortuneService:
                 "stars": stars[i],
                 "level": FortuneService._get_level(stars[i])
             })
-        
+
         # 8. 计算总体分数
         overall_score = int(sum(scores) / len(scores))
-        
+
         # 9. 构建完整的运势数据
         fortune_data = {
             "card_id": card_id,
@@ -339,9 +340,9 @@ class FortuneService:
             "element": element,
             "generated_at": datetime.now().isoformat()
         }
-        
+
         return fortune_data
-    
+
     @staticmethod
     def _calculate_scores(base_energies, direction, date, user_id):
         """计算修正后的分数"""
@@ -349,13 +350,13 @@ class FortuneService:
         seed_str = f"{direction}{date}{user_id or 'guest'}"
         seed = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
         rng = random.Random(seed)
-        
+
         # 正逆位修正
         direction_modifier = 1.2 if direction == "正位" else 0.8
-        
+
         # 日期波动（5-15%）
         daily_flux = [0.95 + rng.random() * 0.2 for _ in range(5)]
-        
+
         # 计算最终分数
         scores = []
         for i, base in enumerate(base_energies):
@@ -363,36 +364,51 @@ class FortuneService:
             # 确保在 0-100 范围内
             score = max(0, min(100, int(score)))
             scores.append(score)
-        
+
         return scores
-    
+
     @staticmethod
     def _scores_to_stars(scores):
         """将分数转换为星级（0.5-5星）"""
         stars = []
         for score in scores:
-            if score >= 90: star = 5.0
-            elif score >= 80: star = 4.5
-            elif score >= 70: star = 4.0
-            elif score >= 60: star = 3.5
-            elif score >= 50: star = 3.0
-            elif score >= 40: star = 2.5
-            elif score >= 30: star = 2.0
-            elif score >= 20: star = 1.5
-            elif score >= 10: star = 1.0
-            else: star = 0.5
+            if score >= 90:
+                star = 5.0
+            elif score >= 80:
+                star = 4.5
+            elif score >= 70:
+                star = 4.0
+            elif score >= 60:
+                star = 3.5
+            elif score >= 50:
+                star = 3.0
+            elif score >= 40:
+                star = 2.5
+            elif score >= 30:
+                star = 2.0
+            elif score >= 20:
+                star = 1.5
+            elif score >= 10:
+                star = 1.0
+            else:
+                star = 0.5
             stars.append(star)
         return stars
-    
+
     @staticmethod
     def _get_level(stars):
         """根据星级返回运势等级"""
-        if stars >= 4.5: return "大吉"
-        elif stars >= 3.5: return "中吉"
-        elif stars >= 2.5: return "小吉"
-        elif stars >= 1.5: return "平"
-        else: return "需谨慎"
-    
+        if stars >= 4.5:
+            return "大吉"
+        elif stars >= 3.5:
+            return "中吉"
+        elif stars >= 2.5:
+            return "小吉"
+        elif stars >= 1.5:
+            return "平"
+        else:
+            return "需谨慎"
+
     @staticmethod
     def _generate_lucky_elements(element, date, user_id):
         """生成幸运元素"""
@@ -427,36 +443,36 @@ class FortuneService:
             "hour": lucky_hour,
             "direction": lucky_direction
         }
-   
+
     @staticmethod
     def _check_special_events(card_name, special_effect, date):
         """检查特殊事件和彩蛋"""
         events = []
-       
+
         # 基础特殊效果
         if special_effect:
             events.append(special_effect)
-       
+
         # 日期相关彩蛋
         current_time = DateTimeService.get_beijing_datetime()
-       
-       # 情人节 + 恋人牌
-       if date.month == 2 and date.day == 14 and card_name in ["恋人", "The Lovers"]:
-           events.append("valentine_lovers")
-       
-       # 月初 + 愚者
-       if date.day == 1 and card_name in ["愚者", "The Fool"]:
-           events.append("new_beginning")
-       
-       # 早晨 + 太阳
-       if current_time.hour < 9 and card_name in ["太阳", "The Sun"]:
-           events.append("morning_sun")
-       
-       # 夜晚 + 月亮
-       if current_time.hour > 21 and card_name in ["月亮", "The Moon"]:
-           events.append("night_moon")
-       
-       return events
+
+        # 情人节 + 恋人牌
+        if date.month == 2 and date.day == 14 and card_name in ["恋人", "The Lovers"]:
+            events.append("valentine_lovers")
+
+        # 月初 + 愚者
+        if date.day == 1 and card_name in ["愚者", "The Fool"]:
+            events.append("new_beginning")
+
+        # 早晨 + 太阳
+        if current_time.hour < 9 and card_name in ["太阳", "The Sun"]:
+            events.append("morning_sun")
+
+        # 夜晚 + 月亮
+        if current_time.hour > 21 and card_name in ["月亮", "The Moon"]:
+            events.append("night_moon")
+
+        return events
 
     @staticmethod
     def _call_dify_fortune_api(prompt, api_key, workflow_id=None):
@@ -490,7 +506,6 @@ class FortuneService:
             print(f"Dify Fortune API error: {e}")
             return None
 
-   
     @staticmethod
     def generate_fortune_text(fortune_data, dify_api_key=None, workflow_id=None):
         """
@@ -580,89 +595,87 @@ class FortuneService:
 
         return fortune_data
 
-   
-
     @staticmethod
     def _generate_default_text(fortune_data):
-       """生成默认的运势文案"""
-       overall = fortune_data['overall_score']
-       
-       if overall >= 80:
-           summary = "今日运势极佳，万事皆宜，把握机会勇敢前行！"
-           do_list = ["开展重要计划", "主动社交拓展人脉"]
-           dont_list = ["过度谨慎错失良机", "独享成功忘记感恩"]
-       elif overall >= 60:
-           summary = "今日运势良好，稳中有进，适合循序渐进。"
-           do_list = ["按计划推进事务", "保持积极心态"]
-           dont_list = ["冒险激进", "忽视细节"]
-       elif overall >= 40:
-           summary = "今日运势平稳，宜守不宜攻，专注当下。"
-           do_list = ["整理现有事务", "充电学习"]
-           dont_list = ["开启新项目", "重大决策"]
-       else:
-           summary = "今日宜静养生息，调整状态，为明天蓄力。"
-           do_list = ["休息放松", "反思总结"]
-           dont_list = ["强行推进", "情绪化决定"]
-       
-       # 维度建议
-       dimension_advice = {}
-       for dim in fortune_data['dimensions']:
-           if dim['name'] == "事业运":
-               if dim['stars'] >= 4:
-                   advice = "工作效率高，适合处理重要事务"
-               elif dim['stars'] >= 3:
-                   advice = "按部就班，保持专注即可"
-               else:
-                   advice = "避免重大决策，以观察为主"
-           elif dim['name'] == "财富运":
-               if dim['stars'] >= 4:
-                   advice = "财运亨通，投资理财好时机"
-               elif dim['stars'] >= 3:
-                   advice = "收支平衡，理性消费"
-               else:
-                   advice = "谨慎理财，避免大额支出"
-           elif dim['name'] == "爱情运":
-               if dim['stars'] >= 4:
-                   advice = "桃花朵朵，感情甜蜜"
-               elif dim['stars'] >= 3:
-                   advice = "感情稳定，细水长流"
-               else:
-                   advice = "多些理解，少些要求"
-           elif dim['name'] == "健康运":
-               if dim['stars'] >= 4:
-                   advice = "精力充沛，适合运动"
-               elif dim['stars'] >= 3:
-                   advice = "身体无恙，保持作息"
-               else:
-                   advice = "注意休息，避免劳累"
-           elif dim['name'] == "贵人运":
-               if dim['stars'] >= 4:
-                   advice = "贵人相助，把握机会"
-               elif dim['stars'] >= 3:
-                   advice = "人际和谐，维护关系"
-               else:
-                   advice = "低调行事，避免纷争"
-           
-           dimension_advice[dim['name']] = advice
-       
-       return {
-           "summary": summary,
-           "dimension_advice": dimension_advice,
-           "do": do_list,
-           "dont": dont_list
-       }
-   
+        """生成默认的运势文案"""
+        overall = fortune_data['overall_score']
+
+        if overall >= 80:
+            summary = "今日运势极佳，万事皆宜，把握机会勇敢前行！"
+            do_list = ["开展重要计划", "主动社交拓展人脉"]
+            dont_list = ["过度谨慎错失良机", "独享成功忘记感恩"]
+        elif overall >= 60:
+            summary = "今日运势良好，稳中有进，适合循序渐进。"
+            do_list = ["按计划推进事务", "保持积极心态"]
+            dont_list = ["冒险激进", "忽视细节"]
+        elif overall >= 40:
+            summary = "今日运势平稳，宜守不宜攻，专注当下。"
+            do_list = ["整理现有事务", "充电学习"]
+            dont_list = ["开启新项目", "重大决策"]
+        else:
+            summary = "今日宜静养生息，调整状态，为明天蓄力。"
+            do_list = ["休息放松", "反思总结"]
+            dont_list = ["强行推进", "情绪化决定"]
+
+        # 维度建议
+        dimension_advice = {}
+        for dim in fortune_data['dimensions']:
+            if dim['name'] == "事业运":
+                if dim['stars'] >= 4:
+                    advice = "工作效率高，适合处理重要事务"
+                elif dim['stars'] >= 3:
+                    advice = "按部就班，保持专注即可"
+                else:
+                    advice = "避免重大决策，以观察为主"
+            elif dim['name'] == "财富运":
+                if dim['stars'] >= 4:
+                    advice = "财运亨通，投资理财好时机"
+                elif dim['stars'] >= 3:
+                    advice = "收支平衡，理性消费"
+                else:
+                    advice = "谨慎理财，避免大额支出"
+            elif dim['name'] == "爱情运":
+                if dim['stars'] >= 4:
+                    advice = "桃花朵朵，感情甜蜜"
+                elif dim['stars'] >= 3:
+                    advice = "感情稳定，细水长流"
+                else:
+                    advice = "多些理解，少些要求"
+            elif dim['name'] == "健康运":
+                if dim['stars'] >= 4:
+                    advice = "精力充沛，适合运动"
+                elif dim['stars'] >= 3:
+                    advice = "身体无恙，保持作息"
+                else:
+                    advice = "注意休息，避免劳累"
+            elif dim['name'] == "贵人运":
+                if dim['stars'] >= 4:
+                    advice = "贵人相助，把握机会"
+                elif dim['stars'] >= 3:
+                    advice = "人际和谐，维护关系"
+                else:
+                    advice = "低调行事，避免纷争"
+
+            dimension_advice[dim['name']] = advice
+
+        return {
+            "summary": summary,
+            "dimension_advice": dimension_advice,
+            "do": do_list,
+            "dont": dont_list
+        }
+
     @staticmethod
     def save_fortune(user_id, date, fortune_data):
-       """保存运势数据到数据库"""
-       from database import ReadingDAO
-       ReadingDAO.update_fortune(user_id, date, fortune_data)
-   
+        """保存运势数据到数据库"""
+        from database import ReadingDAO
+        ReadingDAO.update_fortune(user_id, date, fortune_data)
+
     @staticmethod
     def get_fortune(user_id, date):
-       """获取已保存的运势数据"""
-       from database import ReadingDAO
-       result = ReadingDAO.get_fortune(user_id, date)
-       if result and result['fortune_data']:
-           return result['fortune_data']
-       return None 
+        """获取已保存的运势数据"""
+        from database import ReadingDAO
+        result = ReadingDAO.get_fortune(user_id, date)
+        if result and result['fortune_data']:
+            return result['fortune_data']
+        return None
