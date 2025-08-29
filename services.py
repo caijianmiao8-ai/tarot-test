@@ -384,7 +384,7 @@ class DifyService:
             "Content-Type": "application/json"
         }
     
-       print(f"[Headers] {headers}")
+        print(f"[Headers] {headers}")
     
         try:
             print(f"[Request] Sending POST to {Config.DIFY_CHAT_API_URL}")
