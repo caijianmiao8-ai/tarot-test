@@ -438,7 +438,7 @@ def regenerate():
         }), 500
 
 
-@app.route("/api/fortune/<date>")
+@app.route("/api/fortune/<date>", endpoint="api_fortune")
 def get_fortune(date):
     """获取运势数据 API"""
     if not Config.FEATURES.get("fortune_index"):
