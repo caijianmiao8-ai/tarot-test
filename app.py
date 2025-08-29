@@ -251,7 +251,7 @@ def result():
         today_insight = reading.get('today_insight')
         guidance = reading.get('guidance')
     
-    # 生成解读（如果还没有）
+    # 生成解读（如果还没有）- 这里是关键修复
     need_generate = (today_insight is None or today_insight == "" or 
                     guidance is None or guidance == "")
     
@@ -259,18 +259,25 @@ def result():
         # 获取牌面含义
         card_meaning = card_data.get(f"meaning_{'up' if direction == '正位' else 'rev'}", "")
         
-        # 调用 AI 生成
-        result = DifyService.generate_reading(card_data["name"], direction, card_meaning)
+        # 调用 AI 生成 - 确保这里会被执行
+        try:
+            result = DifyService.generate_reading(card_data["name"], direction, card_meaning)
+            
+            today_insight = result.get("today_insight", f"今日你抽到了{card_data['name']}（{direction}）")
+            guidance = result.get("guidance", "请静心感受这张牌的能量")
+            
+            # 保存解读
+            if not user["is_guest"]:
+                from database import ReadingDAO
+                ReadingDAO.update_insight(user["id"], today, today_insight, guidance)
+            else:
+                SessionService.update_guest_insight(session, today_insight, guidance)
         
-        today_insight = result.get("today_insight", f"今日你抽到了{card_data['name']}（{direction}）")
-        guidance = result.get("guidance", "请静心感受这张牌的能量")
-        
-        # 保存解读
-        if not user["is_guest"]:
-            from database import ReadingDAO
-            ReadingDAO.update_insight(user["id"], today, today_insight, guidance)
-        else:
-            SessionService.update_guest_insight(session, today_insight, guidance)
+        except Exception as e:
+            print(f"Generate reading error: {e}")
+            # 使用默认解读
+            today_insight = f"今日你抽到了{card_data['name']}（{direction}）"
+            guidance = "请静心感受这张牌的能量"
     
     return render_template(
         "result.html",
@@ -499,7 +506,7 @@ def get_fortune(date):
         print(f"Fortune API error: {e}")
         traceback.print_exc()
         return jsonify({"error": "计算运势时出错"}), 500
-        
+
 @app.route("/api/fortune_preview")
 def fortune_preview():
     """运势预览API - 返回简化的运势数据用于首页显示"""

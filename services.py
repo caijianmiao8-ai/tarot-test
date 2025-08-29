@@ -478,36 +478,57 @@ class FortuneService:
     def _call_dify_fortune_api(prompt):
         """调用运势专用的 Dify API"""
         from config import Config
-        
+    
         headers = {
             "Authorization": f"Bearer {Config.DIFY_FORTUNE_API_KEY}",
             "Content-Type": "application/json",
         }
-    
-       # 修正：将 prompt 放入 inputs
+
+        # 修复：根据实际 Dify API 文档调整 payload 格式
         payload = {
             "inputs": {
-                "query": prompt  # 这里是关键修改
+                "query": prompt  # 确保字段名称正确
             },
-            "response_mode": "blocking",  # 或者 "streaming"
+            "response_mode": "blocking",
             "user": f"fortune_{DateTimeService.get_beijing_date()}",
         }
-    
+
         try:
+            print(f"Calling Dify Fortune API with URL: {Config.DIFY_FORTUNE_API_URL}")
+            print(f"Payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
+        
             resp = requests.post(
                 Config.DIFY_FORTUNE_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=Config.DIFY_TIMEOUT,
             )
+            
+            print(f"Dify Fortune API Response Status: {resp.status_code}")
+            print(f"Dify Fortune API Response: {resp.text}")
+        
             resp.raise_for_status()
             data = resp.json()
-        
+    
             # 使用已有的解析方法
             text = DifyService._extract_answer(data)
-            return DifyService._parse_json_response(text)
+            if text:
+                parsed = DifyService._parse_json_response(text)
+                if parsed:
+                    return parsed
+        
+            # 如果解析失败，返回原始响应以便调试
+            print(f"Failed to parse response, raw data: {data}")
+            return None
+        
+        except requests.exceptions.HTTPError as e:
+           print(f"Dify Fortune API HTTP error: {e}")
+            print(f"Response content: {e.response.text if e.response else 'No response'}")
+            return None
         except Exception as e:
             print(f"Dify Fortune API error: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     @staticmethod

@@ -6,6 +6,8 @@ import psycopg2
 import psycopg2.extras
 from contextlib import contextmanager
 from config import Config
+import json
+import traceback
 
 class DatabaseManager:
     """数据库管理器"""
@@ -214,7 +216,62 @@ class ReadingDAO:
                     AND fortune_data IS NOT NULL
                 """, (user_id, date))
                 return cursor.fetchone()
-
+    @staticmethod
+    def update_fortune(user_id, date, fortune_data):
+        """更新运势数据"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE readings 
+                    SET fortune_data = %s 
+                    WHERE user_id = %s AND date = %s
+                """, (json.dumps(fortune_data, ensure_ascii=False), user_id, date))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Update fortune error: {e}")
+            traceback.print_exc()
+            return False
+    
+    @staticmethod
+    def get_fortune(user_id, date):
+        """获取运势数据"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT fortune_data FROM readings 
+                    WHERE user_id = %s AND date = %s
+                """, (user_id, date))
+                result = cursor.fetchone()
+                if result and result['fortune_data']:
+                    return {
+                        'fortune_data': json.loads(result['fortune_data'])
+                    }
+                return None
+        except Exception as e:
+            print(f"Get fortune error: {e}")
+            traceback.print_exc()
+            return None
+    
+    @staticmethod
+    def update_insight(user_id, date, today_insight, guidance):
+        """更新今日洞察和指引"""
+        try:
+            with DatabaseManager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE readings 
+                    SET today_insight = %s, guidance = %s 
+                    WHERE user_id = %s AND date = %s
+                """, (today_insight, guidance, user_id, date))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Update insight error: {e}")
+            traceback.print_exc()
+            return False
 
 class CardDAO:
     """塔罗牌数据访问对象"""
