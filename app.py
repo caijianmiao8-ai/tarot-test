@@ -93,21 +93,30 @@ def avatar_letter(user):
 
 
 # ===== 路由 =====
-
 @app.route("/")
 def index():
     """首页"""
     user = g.user
     today = DateTimeService.get_beijing_date()
     has_drawn = False
-    
+    fortune_data = {}  # 默认空字典，防止模板报错
+
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
+        if has_drawn:
+            # 获取用户今日塔罗运势数据
+            fortune_data = TarotService.get_today_fortune(user['id'], today)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
-    
-    return render_template("index.html", has_drawn=has_drawn)
+        if has_drawn:
+            fortune_data = guest_reading.get("fortune_data", {})  # 确保有默认值
+
+    return render_template("index.html",
+                           has_drawn=has_drawn,
+                           fortune_data=fortune_data,
+                           user=user)
+
 
 
 @app.route("/login", methods=["GET", "POST"])
