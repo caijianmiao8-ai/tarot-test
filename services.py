@@ -481,7 +481,7 @@ class FortuneService:
             "Content-Type": "application/json",
         }
         payload = {
-            "inputs": {"query": prompt},
+            "inputs": {},
             "response_mode": "blocking",
             "user": f"fortune_user_{DateTimeService.get_beijing_date()}",
         }
