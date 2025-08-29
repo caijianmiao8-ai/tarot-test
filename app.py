@@ -16,7 +16,8 @@ from services import (
     TarotService,
     DifyService,
     SessionService,
-    FortuneService
+    FortuneService,
+    ChatService
 )
 
 # 初始化 Flask 应用
@@ -79,7 +80,7 @@ def login_required(f):
 def favicon():
     """处理 favicon 请求"""
     return '', 204  # 返回无内容响应
-    
+
 # ===== 模板上下文 =====
 
 @app.context_processor
