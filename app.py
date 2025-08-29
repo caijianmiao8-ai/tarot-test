@@ -97,28 +97,44 @@ def index():
     user = g.user
     today = DateTimeService.get_beijing_date()
     has_drawn = False
-    fortune = None  # 新增：传给模板的今日运势
+    fortune = None
+    tarot_card = None  # 新增
 
     if not user["is_guest"]:
         has_drawn = TarotService.has_drawn_today(user['id'], today)
         if has_drawn:
-            # 获取今日抽牌记录
             reading = TarotService.get_today_reading(user['id'], today)
             if reading:
-                # 调用 FortuneService 获取今日运势
+                tarot_card = {
+                    "id": reading["card_id"],
+                    "name": reading["name"],
+                    "image": reading["image"],
+                    "meaning_up": reading["meaning_up"],
+                    "meaning_rev": reading["meaning_rev"],
+                    "reversed": reading["direction"] != "正位"
+                }
                 fortune = TarotService.get_today_fortune(reading)
     else:
         guest_reading = SessionService.get_guest_reading(session, today)
         has_drawn = guest_reading is not None
         if guest_reading:
-            # 调用 FortuneService 获取今日运势
+            tarot_card = {
+                "id": guest_reading.get("card_id"),
+                "name": guest_reading["name"],
+                "image": guest_reading.get("image"),
+                "meaning_up": guest_reading.get("meaning_up"),
+                "meaning_rev": guest_reading.get("meaning_rev"),
+                "reversed": guest_reading["direction"] != "正位"
+            }
             fortune = SessionService.get_guest_fortune(session, today)
 
     return render_template(
         "index.html",
         has_drawn=has_drawn,
-        fortune=fortune
+        fortune=fortune,
+        tarot_card=tarot_card  # ✅ 传给模板
     )
+
 
 
 
