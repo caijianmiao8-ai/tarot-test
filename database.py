@@ -60,88 +60,92 @@ class DatabaseManager:
         finally:
             cls.return_connection(conn)
 
-# database/chat_dao.py
 class ChatDAO:
     @staticmethod
     def create_session(session_data):
         """创建聊天会话"""
-        return DatabaseManager.execute_with_retry(
-            """
-            INSERT INTO chat_sessions 
-            (user_id, session_id, card_id, card_name, card_direction, date)
-            VALUES (%(user_id)s, %(session_id)s, %(card_id)s, %(card_name)s, 
-                    %(card_direction)s, %(date)s)
-            RETURNING *
-            """,
-            session_data
-        )
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO chat_sessions 
+                    (user_id, session_id, card_id, card_name, card_direction, date)
+                    VALUES (%(user_id)s, %(session_id)s, %(card_id)s, %(card_name)s, 
+                            %(card_direction)s, %(date)s)
+                    RETURNING *
+                """, session_data)
+                session = cursor.fetchone()
+                conn.commit()
+                return session
     
     @staticmethod
     def get_session_by_date(user_id, session_id, date):
         """获取指定日期的会话"""
-        return DatabaseManager.execute_with_retry(
-            """
-            SELECT * FROM chat_sessions 
-            WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
-            AND date = %(date)s
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            {'user_id': user_id, 'session_id': session_id, 'date': date}
-        )
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM chat_sessions 
+                    WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
+                    AND date = %(date)s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, {'user_id': user_id, 'session_id': session_id, 'date': date})
+                return cursor.fetchone()
     
     @staticmethod
     def save_message(message_data):
         """保存聊天消息"""
-        return DatabaseManager.execute_with_retry(
-            """
-            INSERT INTO chat_messages (session_id, role, content)
-            VALUES (%(session_id)s, %(role)s, %(content)s)
-            RETURNING *
-            """,
-            message_data
-        )
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO chat_messages (session_id, role, content)
+                    VALUES (%(session_id)s, %(role)s, %(content)s)
+                    RETURNING *
+                """, message_data)
+                message = cursor.fetchone()
+                conn.commit()
+                return message
     
     @staticmethod
     def get_session_messages(session_id, limit=50):
         """获取会话消息历史"""
-        return DatabaseManager.execute_with_retry(
-            """
-            SELECT * FROM chat_messages
-            WHERE session_id = %(session_id)s
-            ORDER BY created_at DESC
-            LIMIT %(limit)s
-            """,
-            {'session_id': session_id, 'limit': limit},
-            fetch_all=True
-        )
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM chat_messages
+                    WHERE session_id = %(session_id)s
+                    ORDER BY created_at DESC
+                    LIMIT %(limit)s
+                """, {'session_id': session_id, 'limit': limit})
+                return cursor.fetchall()
     
     @staticmethod
     def get_daily_usage(user_id, session_id, date):
         """获取每日使用次数"""
-        result = DatabaseManager.execute_with_retry(
-            """
-            SELECT count FROM chat_usage
-            WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
-            AND date = %(date)s
-            """,
-            {'user_id': user_id, 'session_id': session_id, 'date': date}
-        )
-        return result['count'] if result else 0
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT count FROM chat_usage
+                    WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
+                    AND date = %(date)s
+                """, {'user_id': user_id, 'session_id': session_id, 'date': date})
+                result = cursor.fetchone()
+                return result['count'] if result else 0
     
     @staticmethod
     def increment_usage(user_id, session_id, date):
         """增加使用次数"""
-        return DatabaseManager.execute_with_retry(
-            """
-            INSERT INTO chat_usage (user_id, session_id, date, count)
-            VALUES (%(user_id)s, %(session_id)s, %(date)s, 1)
-            ON CONFLICT (user_id, date) 
-            DO UPDATE SET count = chat_usage.count + 1
-            RETURNING count
-            """,
-            {'user_id': user_id, 'session_id': session_id, 'date': date}
-        )
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO chat_usage (user_id, session_id, date, count)
+                    VALUES (%(user_id)s, %(session_id)s, %(date)s, 1)
+                    ON CONFLICT (user_id, date) 
+                    DO UPDATE SET count = chat_usage.count + 1
+                    RETURNING count
+                """, {'user_id': user_id, 'session_id': session_id, 'date': date})
+                result = cursor.fetchone()
+                conn.commit()
+                return result['count'] if result else 1
         
 # 数据访问层（Data Access Layer）
 class UserDAO:
