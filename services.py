@@ -408,6 +408,13 @@ class FortuneService:
         # 8. 计算总体分数
         overall_score = int(sum(scores) / len(scores))
 
+        if overall_score >= 80:
+            overall_label = "大吉"
+        elif overall_score >= 60:
+            overall_label = "中吉"
+        else:
+    overall_label = "小吉"
+
         # 9. 构建完整的运势数据
         fortune_data = {
             "card_id": card_id,
@@ -416,6 +423,7 @@ class FortuneService:
             "dimensions": dimensions,
             "lucky_elements": lucky_elements,
             "overall_score": overall_score,
+            "overall_label": overall_label,
             "special_events": special_events,
             "element": element,
             "generated_at": datetime.now().isoformat()
