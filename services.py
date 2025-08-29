@@ -477,10 +477,10 @@ class FortuneService:
             events.append("night_moon")
 
         return events
-
+        
     @staticmethod
     def _call_dify_fortune_api(card_name, prompt):
-        """调用运势专用的 Dify API（带详细调试日志）"""
+        """调用运势专用的 Dify API（带详细调试日志，返回已解析的 dict 或 None）"""
         from config import Config
         import json
         import requests
@@ -494,7 +494,7 @@ class FortuneService:
 
         payload = {
             "inputs": {
-                "card_name": card_name,  # 必须传入
+                "card_name": card_name,
                 "query": prompt
             },
             "response_mode": "blocking",
@@ -514,31 +514,90 @@ class FortuneService:
                 timeout=Config.DIFY_TIMEOUT,
             )
 
-            print(f"Response Status: {resp.status_code}")
-            print("Response Text:", resp.text)
+            print(f"[Dify] Response Status: {resp.status_code}")
+            print(f"[Dify] Response Text: {resp.text}")
 
+            # 如果响应码不是 2xx，会在这里抛出 HTTPError
             resp.raise_for_status()
+
+            # 尝试解析 JSON
             data = resp.json()
 
-            # 解析响应
-            text = DifyService._extract_answer(data)
-            if text:
-                parsed = DifyService._parse_json_response(text)
-                if parsed:
-                    print("Parsed JSON Response:", json.dumps(parsed, ensure_ascii=False, indent=2))
-                    return parsed
+            # 优先使用现有的抽取/解析工具（你项目里的 DifyService）
+            try:
+                text = DifyService._extract_answer(data)
+            except Exception:
+                text = None
 
-            print("Failed to parse response, raw data:", json.dumps(data, ensure_ascii=False, indent=2))
+            # 如果 extract 返回文本，尝试解析为 JSON（多种可能格式）
+            if text:
+                try:
+                    parsed = DifyService._parse_json_response(text)
+                    if isinstance(parsed, dict):
+                        print("[Dify] Parsed response from extracted text.")
+                        return parsed
+                except Exception as e:
+                    print(f"[Dify] Failed to parse extracted text: {e}")
+
+            # 备选解析：直接检查常见字段（data.outputs / answer / outputs 列表等）
+            try:
+                # case: {"data": {"outputs": {"text": "..."} } }
+                if isinstance(data, dict):
+                    if "data" in data and isinstance(data["data"], dict):
+                        outputs = data["data"].get("outputs")
+                        # outputs is dict with text
+                        if isinstance(outputs, dict):
+                            txt = outputs.get("text") or outputs.get("content") or outputs.get("answer")
+                            if txt:
+                                parsed = DifyService._parse_json_response(txt) if isinstance(txt, str) else None
+                                if isinstance(parsed, dict):
+                                    print("[Dify] Parsed response from data.outputs dict.")
+                                    return parsed
+                        # outputs might be a list of chunks
+                        if isinstance(outputs, list):
+                            combined = []
+                            for o in outputs:
+                                if isinstance(o, dict):
+                                    # try several keys
+                                    candidate = o.get("text") or o.get("content") or o.get("answer")
+                                    if candidate:
+                                        combined.append(candidate)
+                                elif isinstance(o, str):
+                                    combined.append(o)
+                            if combined:
+                                combined_text = "\n".join(combined)
+                                parsed = DifyService._parse_json_response(combined_text)
+                                if isinstance(parsed, dict):
+                                    print("[Dify] Parsed response from data.outputs list.")
+                                    return parsed
+                    # case: direct "answer" field
+                    if "answer" in data and isinstance(data["answer"], (str, dict)):
+                        if isinstance(data["answer"], dict):
+                            return data["answer"]
+                        else:
+                            try:
+                                parsed = DifyService._parse_json_response(data["answer"])
+                                if isinstance(parsed, dict):
+                                    return parsed
+                            except:
+                                pass
+            except Exception as e:
+                print(f"[Dify] Fallback parsing error: {e}")
+                traceback.print_exc()
+
+            # 如果上面都没有成功，记录原始返回以便排查
+            print("[Dify] Unable to parse useful JSON from response. Raw response saved for debug.")
+            print("Raw JSON:", json.dumps(data, ensure_ascii=False, indent=2))
             return None
 
         except requests.exceptions.HTTPError as e:
-            print("HTTPError:", e)
-            if e.response is not None:
+            print("HTTPError when calling Dify Fortune API:", e)
+            if getattr(e, "response", None) is not None:
                 print("HTTP Response Content:", e.response.text)
             print("Payload that caused error:", json.dumps(payload, ensure_ascii=False, indent=2))
             return None
         except Exception as e:
-            print("Exception occurred while calling Dify API:", e)
+            print("Exception occurred while calling Dify Fortune API:", e)
             traceback.print_exc()
             print("Payload that caused exception:", json.dumps(payload, ensure_ascii=False, indent=2))
             return None
@@ -547,40 +606,50 @@ class FortuneService:
     @staticmethod
     def generate_fortune_text(fortune_data):
         """
-        调用 Dify API 生成运势文案
-        使用独立的运势 API
+        调用 Dify API 生成运势文案（不改变 _call_dify_fortune_api 的静态方法签名）
+        返回修改过的 fortune_data（包含 fortune_text 字段）
         """
         from config import Config
-    
+        import json
+
         # 检查运势 API 是否配置
         if not Config.DIFY_FORTUNE_API_KEY:
             print("Fortune API not configured, using default text")
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
             return fortune_data
-    
+
+        # 必要字段校验
+        if 'card_name' not in fortune_data or 'direction' not in fortune_data:
+            print("generate_fortune_text: fortune_data 缺少 card_name 或 direction，使用默认文案")
+            fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
+            return fortune_data
+
         # 准备 prompt（保持原有逻辑）
-        dimensions_text = [
-            f"{dim['name']}：{dim['stars']}星（{dim['level']}）"
-            for dim in fortune_data['dimensions']
-        ]
-        
+        try:
+            dimensions_text = [
+                f"{dim['name']}：{dim['stars']}星（{dim['level']}）"
+                for dim in fortune_data.get('dimensions', [])
+            ]
+        except Exception:
+            dimensions_text = []
+
         special_messages = []
         for event in fortune_data.get('special_events', []):
             if event in FortuneService.SPECIAL_EVENT_MESSAGES:
                 special_messages.append(FortuneService.SPECIAL_EVENT_MESSAGES[event])
-        
+
         prompt = f"""
-    塔罗牌：{fortune_data['card_name']}（{fortune_data['direction']}）
-    综合运势评分：{fortune_data['overall_score']}/100
+    塔罗牌：{fortune_data.get('card_name', '')}（{fortune_data.get('direction', '')}）
+    综合运势评分：{fortune_data.get('overall_score', '')}/100
 
     运势指数：
     {chr(10).join(dimensions_text)}
 
     幸运元素：
-    - 幸运色：{fortune_data['lucky_elements']['color']}
-    - 幸运数字：{fortune_data['lucky_elements']['number']}
-    - 幸运时辰：{fortune_data['lucky_elements']['hour']}
-    - 幸运方位：{fortune_data['lucky_elements']['direction']}
+    - 幸运色：{fortune_data.get('lucky_elements', {}).get('color', '')}
+    - 幸运数字：{fortune_data.get('lucky_elements', {}).get('number', '')}
+    - 幸运时辰：{fortune_data.get('lucky_elements', {}).get('hour', '')}
+    - 幸运方位：{fortune_data.get('lucky_elements', {}).get('direction', '')}
 
     {('特殊提示：' + chr(10).join(special_messages)) if special_messages else ''}
 
@@ -595,26 +664,33 @@ class FortuneService:
     - 语言积极正面，即使运势较低也要给出建设性建议
     - 建议要具体可执行
 
-    返回JSON格式。
+    返回 JSON 格式，字段：
+    - summary: 今日运势总评
+    - dimension_advice: 各维度建议（对象或键值对）
+    - do: 今日宜做（数组，2项）
+    - dont: 今日忌做（数组，2项）
     """
-        
-        # 调用运势专用 API
-        result = FortuneService._call_dify_fortune_api(prompt)
-        
-        # 解析结果
+
+        # 调用运势专用 API：注意这里传入 card_name 和 prompt 两个参数
+        result = FortuneService._call_dify_fortune_api(fortune_data.get('card_name'), prompt)
+
+        # 解析结果并赋值
         if result and isinstance(result, dict):
-            # 检查是否有所需字段
+            # 期望字段检查
             if all(k in result for k in ["summary", "dimension_advice", "do", "dont"]):
                 fortune_data['fortune_text'] = result
+                print("Fortune API returned expected format.")
             else:
-                # API 返回了 JSON 但格式不符
-                print(f"Fortune API returned unexpected format: {result}")
+                # API 返回了 JSON 但格式不符，记录返回内容以便排查
+                print(f"Fortune API returned unexpected format: {json.dumps(result, ensure_ascii=False)}")
                 fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
         else:
-            # API 调用失败，使用默认文案
+            # API 调用失败或解析失败，使用默认文案
+            print("Fortune API call failed or returned unparsable data, using default text.")
             fortune_data['fortune_text'] = FortuneService._generate_default_text(fortune_data)
-    
+
         return fortune_data
+
 
     @staticmethod
     def _generate_default_text(fortune_data):
