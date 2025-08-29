@@ -475,21 +475,16 @@ class FortuneService:
         return events
 
     @staticmethod
-    def _call_dify_fortune_api(prompt, api_key, workflow_id=None):
-        """调用运势专用的 Dify Workflow API（通过 API Key 区分，workflow_id 可选）"""
+    def _call_dify_fortune_api(prompt, api_key):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
         payload = {
             "inputs": {"query": prompt},
             "response_mode": "blocking",
             "user": f"fortune_user_{DateTimeService.get_beijing_date()}",
         }
-        if workflow_id:  # 非必需
-            payload["workflow_id"] = workflow_id
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
         try:
             resp = requests.post(
                 Config.DIFY_FORTUNE_API_URL,
@@ -499,7 +494,6 @@ class FortuneService:
             )
             resp.raise_for_status()
             data = resp.json()
-            # 复用 DifyService 的通用解析器
             text = DifyService._extract_answer(data)
             return DifyService._parse_json_response(text)
         except Exception as e:
@@ -559,9 +553,7 @@ class FortuneService:
         api_key = dify_api_key or Config.DIFY_FORTUNE_API_KEY
         result = None
         if api_key:
-            result = FortuneService._call_dify_fortune_api(
-                prompt=prompt, api_key=api_key, workflow_id=workflow_id
-            )
+            result = FortuneService._call_dify_fortune_api(prompt, api_key)
         else:
             # fallback：走通用塔罗接口；这里不要再 import 自己本模块
             # 注意：generate_reading 的返回结构与期望不同，下面会做兜底转换

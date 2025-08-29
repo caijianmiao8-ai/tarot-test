@@ -93,47 +93,30 @@ def avatar_letter(user):
 
 @app.route("/")
 def index():
-    """首页"""
-    user = g.user
+    user_id = session.get("user_id")
     today = DateTimeService.get_beijing_date()
-    has_drawn = False
-    fortune = None
-    tarot_card = None
 
-    if not user["is_guest"]:
-        has_drawn = TarotService.has_drawn_today(user['id'], today)
-        if has_drawn:
-            reading = TarotService.get_today_reading(user['id'], today)
-            if reading:
-                tarot_card = {
-                    "id": reading["card_id"],
-                    "name": reading["name"],
-                    "image": reading["image"],
-                    "meaning_up": reading["meaning_up"],
-                    "meaning_rev": reading["meaning_rev"],
-                    "direction": reading["direction"]
-                }
-                fortune = TarotService.get_today_fortune(reading)
+    # 获取今日占卜
+    reading = TarotService.get_today_reading(user_id, today)
+    if not reading:
+        card, direction = TarotService.draw_card()
+        reading = TarotService.save_reading(user_id, today, card["id"], direction)
     else:
-        guest_reading = SessionService.get_guest_reading(session, today)
-        has_drawn = guest_reading is not None
-        if guest_reading:
-            tarot_card = {
-                "id": guest_reading.get("card_id"),
-                "name": guest_reading["name"],
-                "image": guest_reading.get("image"),
-                "meaning_up": guest_reading.get("meaning_up"),
-                "meaning_rev": guest_reading.get("meaning_rev"),
-                "direction": guest_reading["direction"]
-            }
-            fortune = SessionService.get_guest_fortune(session, today)
+        card, direction = reading["card"], reading["direction"]
 
-    return render_template(
-        "index.html",
-        has_drawn=has_drawn,
-        fortune=fortune,
-        tarot_card=tarot_card
+    # 生成运势数据
+    fortune_data = FortuneService.calculate_fortune(
+        card_id=card["id"],
+        card_name=card["name"],
+        direction=direction,
+        date=today,
+        user_id=user_id
     )
+
+    # 调用 Dify 生成文案（不用 workflow_id）
+    fortune_data = FortuneService.generate_fortune_text(fortune_data)
+
+    return render_template("index.html", reading=reading, fortune=fortune_data)
 
 
 
