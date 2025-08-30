@@ -246,7 +246,7 @@ class ChatService:
         return context
     
     @staticmethod
-    def process_message(session_id, user_message):
+    def process_message(session_id, user_message, user_ref=None):
         """处理用户消息并返回 AI 回复"""
         # 获取会话信息
         session = ChatDAO.get_session_by_id(session_id)
@@ -269,7 +269,7 @@ class ChatService:
         
         # 构建上下文并调用 AI
         context = ChatService.build_context(session, messages)
-        ai_response = DifyService.chat_tarot(user_message, context)
+        ai_response = DifyService.chat_tarot(user_message, context, user_ref=user_ref)
         
         # 保存 AI 回复
         ChatDAO.save_message({
