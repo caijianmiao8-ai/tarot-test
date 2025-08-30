@@ -119,6 +119,25 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            scroll-behavior: smooth;
+        }
+        
+        /* 自定义滚动条 */
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-area::-webkit-scrollbar-thumb {
+            background: rgba(142, 108, 136, 0.3);
+            border-radius: 3px;
+        }
+        
+        .messages-area::-webkit-scrollbar-thumb:hover {
+            background: rgba(142, 108, 136, 0.5);
         }
         
         /* 欢迎消息 */
@@ -226,6 +245,76 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
+        /* AI 消息格式化样式 */
+        .message-content p {
+            margin: 0.8em 0;
+            line-height: 1.6;
+        }
+        
+        .message-content p:first-child {
+            margin-top: 0;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message-content ul, .message-content ol {
+            margin: 0.8em 0;
+            padding-left: 1.5em;
+        }
+        
+        .message-content ul {
+            list-style-type: disc;
+        }
+        
+        .message-content ol {
+            list-style-type: decimal;
+        }
+        
+        .message-content li {
+            margin: 0.4em 0;
+            line-height: 1.5;
+        }
+        
+        .message-content strong {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+        
+        .user .message-content strong {
+            color: white;
+            font-weight: 700;
+        }
+        
+        .message-content em {
+            font-style: italic;
+            opacity: 0.9;
+        }
+        
+        .message-content blockquote {
+            margin: 0.8em 0;
+            padding: 0.5em 1em;
+            border-left: 3px solid var(--primary-color);
+            background: rgba(142, 108, 136, 0.05);
+            font-style: italic;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .message-content h3 {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin: 1em 0 0.5em;
+            font-weight: 600;
+        }
+        
+        .message-content h4 {
+            font-size: 1rem;
+            color: var(--dark-color);
+            margin: 0.8em 0 0.4em;
+            font-weight: 600;
+        }
+        
         /* 打字动画 */
         .typing-indicator {
             display: flex;
@@ -295,6 +384,7 @@
             font-size: 1rem;
             transition: all 0.3s;
             max-height: 120px;
+            font-family: inherit;
         }
         
         .message-input:focus {
@@ -337,6 +427,30 @@
             margin-bottom: 15px;
         }
         
+        /* 加载状态 */
+        .loading-skeleton {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--accent-color);
+        }
+        
+        .skeleton-pulse {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: pulse 1.5s infinite;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes pulse {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
         /* 响应式设计 */
         @media (max-width: 768px) {
             .message-content {
@@ -349,6 +463,14 @@
             
             .quick-questions {
                 padding: 0 10px;
+            }
+            
+            .chat-header {
+                padding: 12px 15px;
+            }
+            
+            .messages-area {
+                padding: 15px;
             }
         }
     </style>
@@ -363,7 +485,11 @@
         
         <div class="card-info">
             <div class="card-mini">
-                <i class="fas fa-sun"></i>
+                {% if card_info.image %}
+                    <img src="{{ card_info.image }}" alt="{{ card_info.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                {% else %}
+                    <i class="fas fa-sun"></i>
+                {% endif %}
             </div>
             <div class="card-details">
                 <div class="card-name">{{ card_info.name }}</div>
@@ -380,8 +506,14 @@
     <div class="chat-container">
         <!-- 消息区域 -->
         <div class="messages-area" id="messages-area">
+            <!-- 加载骨架屏 -->
+            <div class="loading-skeleton" id="loading-skeleton">
+                <div class="skeleton-pulse"></div>
+                <div>正在准备您的专属解读空间...</div>
+            </div>
+            
             <!-- 欢迎消息 -->
-            <div class="welcome-message" id="welcome-message">
+            <div class="welcome-message" id="welcome-message" style="display: none;">
                 <div class="welcome-icon">
                     <i class="fas fa-sparkles"></i>
                 </div>
@@ -427,15 +559,72 @@
     </div>
     
     <script>
-        let sessionId = null;
+        // 从服务端获取数据
+        let sessionId = "{{ session_id or '' }}";
         let isTyping = false;
         let remainingChats = {{ remaining_chats }};
+        const hasHistory = {{ has_history|tojson }};
+        const serverMessages = {{ messages|tojson }};
+        
+        // 格式化 AI 消息
+        function formatAIMessage(content) {
+            // 处理换行 - 保留单个换行，双换行转为段落
+            let formatted = content.split(/\n\n+/).map(para => {
+                if (para.trim()) {
+                    return `<p>${para.trim().replace(/\n/g, '<br>')}</p>`;
+                }
+                return '';
+            }).filter(p => p).join('');
+            
+            // 处理编号列表 (1. 2. 等)
+            formatted = formatted.replace(/<p>(\d+)\.\s+(.+?)(<\/p>|<br>)/g, (match, num, text, ending) => {
+                return `<li value="${num}">${text}</li>`;
+            });
+            
+            // 处理无序列表 (- * • 等开头)
+            formatted = formatted.replace(/<p>[\-\*•]\s+(.+?)(<\/p>|<br>)/g, (match, text, ending) => {
+                return `<li>${text}</li>`;
+            });
+            
+            // 将连续的 li 包装成列表
+            formatted = formatted.replace(/(<li.*?<\/li>\s*)+/g, match => {
+                // 检查是否有 value 属性来判断是否为有序列表
+                if (match.includes('value=')) {
+                    return `<ol>${match}</ol>`;
+                }
+                return `<ul>${match}</ul>`;
+            });
+            
+            // 处理加粗文本 **text** 或 __text__
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            
+            // 处理斜体文本 *text* 或 _text_
+            formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
+            
+            // 处理标题 (### 等)
+            formatted = formatted.replace(/<p>###\s+(.+?)<\/p>/g, '<h4>$1</h4>');
+            formatted = formatted.replace(/<p>##\s+(.+?)<\/p>/g, '<h3>$1</h3>');
+            
+            // 处理引用 (> 开头)
+            formatted = formatted.replace(/<p>&gt;\s*(.+?)<\/p>/g, '<blockquote>$1</blockquote>');
+            
+            // 处理分隔线
+            formatted = formatted.replace(/<p>[\-\*_]{3,}<\/p>/g, '<hr style="margin: 1em 0; border: none; border-top: 1px solid #e0e0e0;">');
+            
+            return formatted || content;
+        }
         
         // 初始化
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initChat();
+        document.addEventListener('DOMContentLoaded', () => {
+            // 显示加载状态
+            document.getElementById('loading-skeleton').style.display = 'block';
             
-            // 自动调整输入框高度
+            // 初始化聊天
+            initializeChat();
+            
+            // 设置输入框事件
             const input = document.getElementById('message-input');
             if (input) {
                 input.addEventListener('input', function() {
@@ -443,7 +632,6 @@
                     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
                 });
                 
-                // Enter 发送，Shift+Enter 换行
                 input.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -454,25 +642,40 @@
         });
         
         // 初始化聊天
-        async function initChat() {
+        function initializeChat() {
+            // 隐藏加载状态
+            document.getElementById('loading-skeleton').style.display = 'none';
+            
+            // 如果有历史消息，显示它们
+            if (hasHistory && serverMessages.length > 0) {
+                serverMessages.forEach(msg => {
+                    appendMessage(msg.role, msg.content, false);
+                });
+            } else {
+                // 显示欢迎消息
+                document.getElementById('welcome-message').style.display = 'block';
+            }
+            
+            // 如果没有 session_id，初始化一个
+            if (!sessionId) {
+                initSession();
+            }
+        }
+        
+        // 初始化会话
+        async function initSession() {
             try {
                 const response = await fetch('/api/chat/init', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'}
                 });
                 
-                const data = await response.json();
-                sessionId = data.session_id;
-                
-                // 加载历史消息
-                if (data.messages && data.messages.length > 0) {
-                    document.getElementById('welcome-message').style.display = 'none';
-                    data.messages.forEach(msg => {
-                        appendMessage(msg.role, msg.content, false);
-                    });
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionId = data.session_id;
                 }
             } catch (error) {
-                console.error('Init chat failed:', error);
+                console.error('Init session failed:', error);
             }
         }
         
@@ -536,8 +739,11 @@
         
         // 快速提问
         function quickAsk(question) {
-            document.getElementById('message-input').value = question;
-            sendMessage();
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.value = question;
+                sendMessage();
+            }
         }
         
         // 添加消息到界面
@@ -556,14 +762,22 @@
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.textContent = content;
+            
+            // 根据角色处理内容
+            if (role === 'assistant') {
+                contentDiv.innerHTML = formatAIMessage(content);
+            } else {
+                contentDiv.textContent = content;
+            }
             
             messageDiv.appendChild(avatarDiv);
             messageDiv.appendChild(contentDiv);
             messagesArea.appendChild(messageDiv);
             
-            // 滚动到底部
-            messagesArea.scrollTop = messagesArea.scrollHeight;
+            // 平滑滚动到底部
+            setTimeout(() => {
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }, 100);
         }
         
         // 显示打字动画

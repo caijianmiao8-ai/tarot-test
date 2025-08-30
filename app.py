@@ -182,7 +182,6 @@ def index():
         today_card=today_card
     )
 
-# app.py 或 routes/chat.py
 @app.route("/chat")
 def chat_page():
     """聊天页面"""
@@ -200,18 +199,41 @@ def chat_page():
         return redirect(url_for("index"))
     
     # 检查对话限制
-    can_chat, remaining = ChatService.can_start_chat(
+    can_chat, remaining_chats = ChatService.can_start_chat(
         user.get('id'), 
         session.get('session_id'),
         user.get('is_guest', True)
     )
+    
+    # 获取或创建会话并加载历史消息
+    chat_session = None
+    messages = []
+    try:
+        chat_session = ChatService.create_or_get_session(
+            user.get('id'),
+            session.get('session_id'),
+            reading,
+            today
+        )
+        if chat_session:
+            messages = ChatDAO.get_session_messages(chat_session['id'])
+            # 转换为前端需要的格式
+            messages = [
+                {'role': msg['role'], 'content': msg['content']} 
+                for msg in reversed(messages)
+            ] if messages else []
+    except Exception as e:
+        print(f"Load chat history error: {e}")
     
     return render_template(
         "chat.html",
         user=user,
         card_info=reading,
         can_chat=can_chat,
-        remaining_chats=remaining
+        remaining_chats=remaining_chats,
+        session_id=str(chat_session['id']) if chat_session else None,
+        messages=messages,  # 直接传递历史消息
+        has_history=len(messages) > 0  # 标记是否有历史
     )
 
 @app.route("/api/chat/init", methods=["POST"])
