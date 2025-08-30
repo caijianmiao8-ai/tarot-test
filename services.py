@@ -284,7 +284,7 @@ class DifyService:
     """Dify AI 服务"""
 
     @staticmethod
-    def generate_reading(card_name, direction, card_meaning=""):
+    def generate_reading(card_name, direction, card_meaning="", user_ref=None):
         """生成塔罗解读"""
         prompt = f"""
         用户抽到了《{card_name}》这张牌，方向是{direction}。
@@ -303,7 +303,7 @@ class DifyService:
         "card_meaning": card_meaning
         },
             "response_mode": "blocking",
-            "user": f"tarot_user_{DateTimeService.get_beijing_date()}"
+            "user": user_ref
         }
 
         headers = {
@@ -339,7 +339,7 @@ class DifyService:
         }
 
     @staticmethod
-    def chat_tarot(user_message, context):
+    def chat_tarot(user_message, context, user_ref=None):
         """塔罗相关的对话"""
         print("\n=== Dify Chat Debug ===")
         print(f"[Input] user_message: {user_message}")
@@ -374,7 +374,7 @@ class DifyService:
             },
             "query": user_message,
             "response_mode": "blocking",
-            "user": f"chat_user_{DateTimeService.get_beijing_date()}"
+            "user": user_ref
         }
     
         print(f"[Payload] Full payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
@@ -754,7 +754,7 @@ class FortuneService:
         return events
 
     @staticmethod
-    def _call_dify_fortune_api(card_name, prompt):
+    def _call_dify_fortune_api(card_name, prompt, user_ref=None):
         """调用运势专用的 Dify API（带详细调试日志，返回已解析的 dict 或 None）"""
         from config import Config
         import json
@@ -773,7 +773,7 @@ class FortuneService:
                 "query": prompt
             },
             "response_mode": "blocking",
-            "user": f"fortune_{datetime.now().strftime('%Y-%m-%d')}",
+            "user": user_ref
         }
 
         try:

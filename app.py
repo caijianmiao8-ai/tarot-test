@@ -35,18 +35,21 @@ except ValueError as e:
 
 # ===== 中间件和辅助函数 =====
 
+import uuid
+from flask import g, session
+
 @app.before_request
 def before_request():
     """请求前处理"""
     # 确保会话 ID
     if 'session_id' not in session:
-        import uuid
-        session['session_id'] = str(uuid.uuid4())
-        session.permanent = False
-    
+        session['session_id'] = uuid.uuid4().hex[:8]  # 生成短ID，更可读
+        session.permanent = False  # 非持久化 session
+
     # 加载用户
     user = get_current_user()
     if not user:
+        # 如果没有登录用户，生成访客信息
         user = {
             "id": None, 
             "username": None, 
@@ -54,6 +57,7 @@ def before_request():
             "session_id": session['session_id']
         }
     g.user = user
+
 
 
 def get_current_user():
@@ -75,6 +79,28 @@ def login_required(f):
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+def get_user_ref():
+    """
+    返回可用于 Dify 的用户标识：
+    - 已登录用户返回 user_id
+    - 访客返回 session_id，确保多次请求一致
+    """
+    user = g.get("user", None)
+    
+    if user and not user.get("is_guest", True):
+        # 已登录用户
+        return str(user["id"])
+    
+    # 访客
+    # 确保 session_id 已生成
+    if "session_id" not in session:
+        import uuid
+        session["session_id"] = uuid.uuid4().hex[:8]
+    
+    return f"guest_{session['session_id']}"
+
+
 
 @app.route('/favicon.ico')
 def favicon():
@@ -308,7 +334,8 @@ def send_chat_message():
     
     try:
         # 处理消息
-        ai_response = ChatService.process_message(session_id, message)
+        user_ref = get_user_ref()
+        ai_response = ChatService.process_message(session_id, message, user_ref=user_ref)
         
         return jsonify({
             'reply': ai_response,
@@ -470,7 +497,8 @@ def result():
         
         # 调用 AI 生成 - 确保这里会被执行
         try:
-            result = DifyService.generate_reading(card_data["name"], direction, card_meaning)
+            user_ref = get_user_ref()
+            result = DifyService.generate_reading(card_data["name"], direction, card_meaning, user_ref=user_ref)
             
             today_insight = result.get("today_insight", f"今日你抽到了{card_data['name']}（{direction}）")
             guidance = result.get("guidance", "请静心感受这张牌的能量")
@@ -607,7 +635,8 @@ def regenerate():
             card_meaning = reading.get(f"meaning_{'up' if direction == '正位' else 'rev'}", "")
         
         # 重新生成
-        result = DifyService.generate_reading(card_name, direction, card_meaning)
+        user_ref = get_user_ref()
+        result = DifyService.generate_reading(card_name, direction, card_meaning, user_ref=user_ref)
         
         # 保存新的解读
         if not user["is_guest"]:
