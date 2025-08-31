@@ -459,7 +459,7 @@ class DifyService:
         }
 
         # 续传会话加上 conversation_id 和 user
-       if conversation_id:
+        if conversation_id:
             payload["conversation_id"] = conversation_id
         if user_ref:
             payload["user"] = user_ref
