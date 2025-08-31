@@ -264,7 +264,11 @@ class ChatService:
 
         # 增加使用次数
         today = DateTimeService.get_beijing_date()
-        ChatDAO.increment_usage(session['user_id'], session['session_id'], today)
+        ChatDAO.increment_usage(
+            user_id=user_ref,
+            session_id=session_id,
+            date=today
+        )
 
         # 获取历史消息
         messages = ChatDAO.get_session_messages(session_id)
