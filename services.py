@@ -8,7 +8,7 @@ import requests
 import json
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from services.datetime_service import DateTimeService
 from config import Config
 from database import UserDAO, ReadingDAO, CardDAO, ChatDAO
 
@@ -338,9 +338,6 @@ class DifyService:
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
 
-class DifyService:
-    # ……（保留你已有的其他方法，比如 _extract_answer / _parse_json_response 等）……
-
     @staticmethod
     def _deterministic_uuid(*parts):
         """
@@ -383,12 +380,6 @@ class DifyService:
             text = text[-max_chars:]
         return text
 
-import json
-import requests
-from config import Config
-from services.datetime_service import DateTimeService
-
-class DifyService:
 
     @staticmethod
     def chat_tarot(user_message, context, user_ref=None, conversation_id=None):
