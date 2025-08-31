@@ -8,7 +8,6 @@ import requests
 import json
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from services.datetime_service import DateTimeService
 from config import Config
 from database import UserDAO, ReadingDAO, CardDAO, ChatDAO
 
