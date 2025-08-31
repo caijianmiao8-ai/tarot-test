@@ -450,11 +450,11 @@ class DifyService:
         payload = {
             "inputs": {
                 "system_prompt": system_prompt,
-                "query": user_message,
                 "card_name": context['card_name'],
                 "card_direction": context['card_direction'],
                 "history": context['messages']
             },
+            "query": user_message,
             "response_mode": "blocking"
         }
 
