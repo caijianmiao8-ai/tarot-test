@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-from database import UserDAO, ReadingDAO, CardDAO, ChatDAO
+from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager
 
 def convert_fortune_format(dify_data):
     """将 Dify 格式转换为前端期望的格式"""
@@ -243,8 +243,7 @@ class ChatService:
             })
 
         return context
-        
-from database import DatabaseManager, ChatDAO
+
 
     @staticmethod
     def process_message(session_id, user_message, user_ref, conversation_id=None):
