@@ -341,6 +341,8 @@ class DifyService:
     @staticmethod
     def chat_tarot(user_message, context, user_ref=None):
         """塔罗相关的对话"""
+        today = DateTimeService.get_beijing_date().strftime('%Y%m%d')
+
         print("\n=== Dify Chat Debug ===")
         print(f"[Input] user_message: {user_message}")
         print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
@@ -374,6 +376,7 @@ class DifyService:
             },
             "query": user_message,
             "response_mode": "blocking",
+            "conversation_id": f"tarot_{user_ref}_{today}",
             "user": user_ref
         }
     
