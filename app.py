@@ -6,7 +6,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, g
 from functools import wraps
 from datetime import datetime
 import traceback
-
+import uuid
+from flask import g, session
 # 导入配置和服务
 from config import Config
 from database import DatabaseManager, ChatDAO
@@ -32,11 +33,6 @@ except ValueError as e:
     if Config.IS_PRODUCTION:
         raise
 
-
-# ===== 中间件和辅助函数 =====
-
-import uuid
-from flask import g, session
 
 @app.before_request
 def before_request():
@@ -81,20 +77,25 @@ def login_required(f):
     return decorated_function
 
 
-import uuid 
-
 def get_user_ref():
+    """
+    返回可用于 Dify 的用户标识：
+    - 已登录用户返回 user_id
+    - 访客返回合法 UUID
+    """
     user = g.get("user", None)
+
     if user and not user.get("is_guest", True):
+        # 已登录用户
         return str(user["id"])
-    
-    # 访客生成合法 UUID
+
+    # 访客
     if "session_id" not in session:
-        import uuid
         session["session_id"] = uuid.uuid4().hex[:8]
 
-    # 使用命名空间 + session_id 生成 UUID v5
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"guest_{session['session_id']}"))
+    # 生成合法 UUID
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, session['session_id']))
+
 
 
 
