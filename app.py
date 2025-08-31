@@ -306,45 +306,42 @@ def init_chat():
 
 @app.route("/api/chat/send", methods=["POST"])
 def send_chat_message():
-    """发送聊天消息"""
     user = g.user
     data = request.json
     message = data.get('message', '').strip()
     session_id = data.get('session_id')
     
-    # 验证消息
     if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
         return jsonify({'error': '消息长度不合法'}), 400
-    
-    # 检查限制
+
     can_chat, remaining = ChatService.can_start_chat(
         user.get('id'),
         session.get('session_id'),
         user.get('is_guest', True)
     )
-    
+
     if not can_chat:
-        # 返回拟真的限制消息
         limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
-        return jsonify({
-            'reply': limit_msg,
-            'limit_reached': True,
-            'remaining': 0
-        })
-    
+        return jsonify({'reply': limit_msg, 'limit_reached': True, 'remaining': 0})
+
     try:
-        # 处理消息
         user_ref = get_user_ref()
         ai_response = ChatService.process_message(session_id, message, user_ref=user_ref)
-        
+
+        # 确保 ai_response 是 dict
+        answer_text = ai_response.get('answer') if isinstance(ai_response, dict) else str(ai_response)
+        conversation_id = ai_response.get('conversation_id') if isinstance(ai_response, dict) else None
+
         return jsonify({
-            'reply': ai_response,
+            'reply': answer_text,
+            'conversation_id': conversation_id,
             'remaining': remaining - 1
         })
         
     except Exception as e:
         print(f"Chat error: {e}")
         return jsonify({'error': '处理消息时出错'}), 500
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
