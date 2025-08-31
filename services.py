@@ -243,6 +243,8 @@ class ChatService:
             })
 
         return context
+        
+from database import DatabaseManager, ChatDAO
 
     @staticmethod
     def process_message(session_id, user_message, user_ref, conversation_id=None):
