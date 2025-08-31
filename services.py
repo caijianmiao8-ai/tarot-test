@@ -186,6 +186,8 @@ class TarotService:
 
 class ChatService:
     # 拟真的限制提示消息池
+    user_ref = get_user_ref()
+
     LIMIT_MESSAGES = [
         "哎呀，我需要休息一下了，明天再来找我聊天吧～",
         "时间不早了，我要去冥想充电了，明天见！",
@@ -195,24 +197,24 @@ class ChatService:
     ]
     
     @staticmethod
-    def can_start_chat(user_id, session_id, is_guest=False):
+    def can_start_chat(user_ref, session_id, is_guest=False):
         """检查是否可以开始聊天"""
         today = DateTimeService.get_beijing_date()
         limit = Config.CHAT_FEATURES['daily_limit_guest'] if is_guest else Config.CHAT_FEATURES['daily_limit_user']
-        usage = ChatDAO.get_daily_usage(user_id, session_id, today)
+        usage = ChatDAO.get_daily_usage(user_ref, session_id, today)
         return usage < limit, limit - usage
     
     @staticmethod
-    def create_or_get_session(user_id, session_id, card_info, date):
+    def create_or_get_session(user_ref, session_id, card_info, date):
         """创建或获取聊天会话"""
         # 先查找现有会话
-        existing = ChatDAO.get_session_by_date(user_id, session_id, date)
+        existing = ChatDAO.get_session_by_date(user_ref, session_id, date)
         if existing:
             return existing
         
         # 创建新会话
         session_data = {
-            'user_id': user_id,
+            'user_id': user_ref,
             'session_id': session_id,
             'card_id': card_info.get('card_id'),
             'card_name': card_info.get('name'),
@@ -261,7 +263,7 @@ class ChatService:
         
         # 增加使用次数
         today = DateTimeService.get_beijing_date()
-        ChatDAO.increment_usage(session['user_id'], session['session_id'], today)
+        ChatDAO.increment_usage(user_ref, session_id, today)
         
         # 获取历史消息
         messages = ChatDAO.get_session_messages(session_id)
