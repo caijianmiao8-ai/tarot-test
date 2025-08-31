@@ -383,15 +383,20 @@ class DifyService:
 
     @staticmethod
     def chat_tarot(user_message, context, user_ref=None, conversation_id=None):
-        """塔罗相关的对话（使用 Dify 会话管理）"""
-        today = DateTimeService.get_beijing_date().strftime('%Y%m%d')
+        """
+        塔罗对话逻辑（Dify 会话管理）
+        逻辑：
+        - conversation_id 为空 → 新对话，传历史消息
+        - conversation_id 不为空 → 续传会话，只传 conversation_id 和 user
+        """
+        today = DateTimeService.get_beijing_date().strftime('%Y-%m-%d')
 
         print("\n=== Dify Chat Debug ===")
         print(f"[Input] user_message: {user_message}")
         print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
         print(f"[Input] conversation_id: {conversation_id}")
 
-        # 构建系统提示
+        # 构建系统提示（新对话时使用）
         system_prompt = f"""你是一位专业的塔罗解读师。
 用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
 日期：{context['date']}
@@ -408,19 +413,23 @@ class DifyService:
 """
 
         payload = {
-            "inputs": {
+            "query": user_message,
+            "response_mode": "blocking"
+        }
+
+        if conversation_id:
+            # 已有会话，续传 conversation_id
+            payload["conversation_id"] = conversation_id
+            payload["user"] = user_ref
+        else:
+            # 新会话，传入系统提示和上下文
+            payload["inputs"] = {
                 "system_prompt": system_prompt,
                 "card_name": context['card_name'],
                 "card_direction": context['card_direction']
-            },
-            "query": user_message,
-            "response_mode": "blocking",
-        }
-
-        # 如果有 conversation_id 就传给 Dify
-        if conversation_id:
-            payload["conversation_id"] = conversation_id
-            payload["user"] = user_ref
+            }
+            if user_ref:
+                payload["user"] = user_ref
 
         print(f"[Payload] {json.dumps(payload, ensure_ascii=False, indent=2)}")
 
@@ -430,7 +439,6 @@ class DifyService:
         }
 
         try:
-            print(f"[Request] POST {Config.DIFY_CHAT_API_URL}")
             response = requests.post(
                 Config.DIFY_CHAT_API_URL,
                 json=payload,
@@ -444,7 +452,7 @@ class DifyService:
             response.raise_for_status()
             data = response.json()
 
-            # 获取 Dify 返回的 conversation_id
+            # 从返回数据获取 conversation_id（新对话或续传都更新）
             new_conversation_id = data.get("conversation_id", conversation_id)
             print(f"[Success] conversation_id: {new_conversation_id}")
 
