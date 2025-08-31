@@ -430,26 +430,11 @@ class DifyService:
         print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
         print(f"[Input] conversation_id: {conversation_id}")
     
-        # 构建系统提示（仅用于新会话）
-        system_prompt = f"""你是一位专业的塔罗解读师。
-用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
-日期：{context['date']}
 
-你的任务：
-1. 基于用户抽到的塔罗牌，提供深入的解读和建议
-2. 结合用户的具体问题，给出个性化的指导
-3. 保持神秘而专业的语气，但要亲切友好
-4. 不要偏离塔罗主题太远
-5. 避免绝对性的预测，强调塔罗是指引而非命定
-
-    历史对话：
-    {json.dumps(context['messages'], ensure_ascii=False)}
-    """
 
         # payload 始终包含 inputs
         payload = {
             "inputs": {
-                "system_prompt": system_prompt,
                 "card_name": context['card_name'],
                 "card_direction": context['card_direction'],
                 "history": context['messages']
