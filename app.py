@@ -81,24 +81,17 @@ def login_required(f):
     return decorated_function
 
 def get_user_ref():
-    """
-    返回可用于 Dify 的用户标识：
-    - 已登录用户返回 user_id
-    - 访客返回 session_id，确保多次请求一致
-    """
     user = g.get("user", None)
-    
     if user and not user.get("is_guest", True):
-        # 已登录用户
         return str(user["id"])
     
-    # 访客
-    # 确保 session_id 已生成
+    # 访客生成合法 UUID
     if "session_id" not in session:
         import uuid
         session["session_id"] = uuid.uuid4().hex[:8]
-    
-    return f"guest_{session['session_id']}"
+
+    # 使用命名空间 + session_id 生成 UUID v5
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"guest_{session['session_id']}"))
 
 
 
