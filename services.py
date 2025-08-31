@@ -186,8 +186,6 @@ class TarotService:
 
 class ChatService:
     # 拟真的限制提示消息池
-    user_ref = get_user_ref()
-
     LIMIT_MESSAGES = [
         "哎呀，我需要休息一下了，明天再来找我聊天吧～",
         "时间不早了，我要去冥想充电了，明天见！",
@@ -195,7 +193,7 @@ class ChatService:
         "月亮告诉我该休息了，期待明天与你的对话。",
         "塔罗牌需要时间恢复能量，我们明天再探索吧。"
     ]
-    
+
     @staticmethod
     def can_start_chat(user_ref, session_id, is_guest=False):
         """检查是否可以开始聊天"""
@@ -203,7 +201,7 @@ class ChatService:
         limit = Config.CHAT_FEATURES['daily_limit_guest'] if is_guest else Config.CHAT_FEATURES['daily_limit_user']
         usage = ChatDAO.get_daily_usage(user_ref, session_id, today)
         return usage < limit, limit - usage
-    
+
     @staticmethod
     def create_or_get_session(user_ref, session_id, card_info, date):
         """创建或获取聊天会话"""
@@ -211,7 +209,7 @@ class ChatService:
         existing = ChatDAO.get_session_by_date(user_ref, session_id, date)
         if existing:
             return existing
-        
+
         # 创建新会话
         session_data = {
             'user_id': user_ref,
@@ -222,7 +220,7 @@ class ChatService:
             'date': date
         }
         return ChatDAO.create_session(session_data)
-    
+
     @staticmethod
     def build_context(session_info, messages):
         """构建 AI 对话上下文"""
@@ -232,54 +230,63 @@ class ChatService:
             'date': session_info['date'].strftime('%Y-%m-%d'),
             'messages': []
         }
-        
+
         # 只保留最近的 N 条消息作为上下文
         max_history = Config.CHAT_FEATURES['max_history_messages']
         recent_messages = messages[:max_history] if messages else []
-        
+
         # 倒序排列（从旧到新）
         for msg in reversed(recent_messages):
             context['messages'].append({
                 'role': msg['role'],
                 'content': msg['content']
             })
-        
+
         return context
-    
+
     @staticmethod
-    def process_message(session_id, user_message, user_ref=None):
+    def process_message(session_id, user_message, user_ref, conversation_id=None):
         """处理用户消息并返回 AI 回复"""
+        if not user_ref:
+            raise ValueError("必须传入 user_ref（用户唯一标识）")
+
         # 获取会话信息
         session = ChatDAO.get_session_by_id(session_id)
         if not session:
             raise ValueError("会话不存在")
-        
+
         # 保存用户消息
         ChatDAO.save_message({
             'session_id': session_id,
             'role': 'user',
             'content': user_message
         })
-        
+
         # 增加使用次数
         today = DateTimeService.get_beijing_date()
-        ChatDAO.increment_usage(user_ref, session_id, today)
-        
+        ChatDAO.increment_usage(session['user_id'], session['session_id'], today)
+
         # 获取历史消息
         messages = ChatDAO.get_session_messages(session_id)
-        
+
         # 构建上下文并调用 AI
         context = ChatService.build_context(session, messages)
-        ai_response = DifyService.chat_tarot(user_message, context, user_ref=user_ref)
-        
+        ai_response = DifyService.chat_tarot(
+            user_message,
+            context,
+            user_ref=user_ref,
+            conversation_id=conversation_id
+        )
+
         # 保存 AI 回复
         ChatDAO.save_message({
             'session_id': session_id,
             'role': 'assistant',
-            'content': ai_response
+            'content': ai_response.get("answer") if isinstance(ai_response, dict) else ai_response
         })
-        
+
         return ai_response
+
         
 class DifyService:
     """Dify AI 服务"""
