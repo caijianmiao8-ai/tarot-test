@@ -246,13 +246,13 @@ class ChatService:
 
     @staticmethod
     def process_message(session_id, user_message, user_ref, conversation_id=None):
-        """处理用户消息并返回 AI 回复"""
+        """处理用户消息并返回 AI 回复，同时保证 conversation_id 持久化"""
         if not user_ref:
             raise ValueError("必须传入 user_ref（用户唯一标识）")
 
         # 获取会话信息
-        session = ChatDAO.get_session_by_id(session_id)
-        if not session:
+        chat_session = ChatDAO.get_session_by_id(session_id)
+        if not chat_session:
             raise ValueError("会话不存在")
 
         # 保存用户消息
@@ -274,13 +274,33 @@ class ChatService:
         messages = ChatDAO.get_session_messages(session_id)
 
         # 构建上下文并调用 AI
-        context = ChatService.build_context(session, messages)
+        context = ChatService.build_context(chat_session, messages)
         ai_response = DifyService.chat_tarot(
             user_message,
             context,
             user_ref=user_ref,
-            conversation_id=conversation_id
+            conversation_id=conversation_id or chat_session.get('conversation_id')
         )
+
+        # 提取 AI 返回的 conversation_id
+        conv_id = None
+        if isinstance(ai_response, dict):
+            conv_id = ai_response.get("conversation_id")
+
+        # 保存 conversation_id 到数据库 & session
+        if conv_id and conv_id != chat_session.get('conversation_id'):
+            from flask import session as flask_session
+            flask_session['conversation_id'] = conv_id
+            flask_session.modified = True
+
+            with DatabaseManager.get_db() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE chat_sessions
+                        SET conversation_id = %s
+                        WHERE id = %s
+                    """, (conv_id, session_id))
+                    conn.commit()
 
         # 保存 AI 回复
         ChatDAO.save_message({
