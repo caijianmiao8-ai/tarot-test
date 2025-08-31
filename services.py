@@ -383,36 +383,27 @@ class DifyService:
             text = text[-max_chars:]
         return text
 
-    @staticmethod
-    def chat_tarot(user_message, context, user_ref=None, use_dify_memory=True):
-        """
-        塔罗相关的对话（混合模式）
-        - 生成一个合法的、稳定的 conversation_id（UUID v5），交给 Dify 记忆上下文
-        - 同时在 system_prompt 中附上“精简后的历史片段”，作为兜底
-        - 若 Dify 对 conversation_id 报错，则自动移除并重试一次
-        """
-        from config import Config
-        import json
-        import requests
+import json
+import requests
+from config import Config
+from services.datetime_service import DateTimeService
 
-        # —— 准备基础信息 ——
-        date_str = (context or {}).get("date") or DateTimeService.get_beijing_date().strftime("%Y-%m-%d")
-        card_name = (context or {}).get("card_name", "")
-        card_direction = (context or {}).get("card_direction", "")
-        history_snippet = DifyService._build_history_snippet(context, max_turns=Config.CHAT_FEATURES.get("max_history_messages", 10), max_chars=1600)
+class DifyService:
+
+    @staticmethod
+    def chat_tarot(user_message, context, user_ref=None, conversation_id=None):
+        """塔罗相关的对话（使用 Dify 会话管理）"""
+        today = DateTimeService.get_beijing_date().strftime('%Y%m%d')
 
         print("\n=== Dify Chat Debug ===")
         print(f"[Input] user_message: {user_message}")
-        print(f"[Input] context: {json.dumps(context or {}, ensure_ascii=False, indent=2)}")
+        print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
+        print(f"[Input] conversation_id: {conversation_id}")
 
-        # —— 配置检查 ——
-        print(f"[Config] DIFY_CHAT_API_URL: {Config.DIFY_CHAT_API_URL}")
-        print(f"[Config] DIFY_CHAT_API_KEY: {Config.DIFY_CHAT_API_KEY[:10]}..." if Config.DIFY_CHAT_API_KEY else "[Config] DIFY_CHAT_API_KEY: None")
-
-        # —— 构建 system_prompt（保留你原有语气与指引，但把“历史对话”换成精简片段） ——
+        # 构建系统提示
         system_prompt = f"""你是一位专业的塔罗解读师。
-用户今日抽到了《{card_name}》（{card_direction}）。
-日期：{date_str}
+用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
+日期：{context['date']}
 
 你的任务：
 1. 基于用户抽到的塔罗牌，提供深入的解读和建议
@@ -421,102 +412,71 @@ class DifyService:
 4. 不要偏离塔罗主题太远
 5. 避免绝对性的预测，强调塔罗是指引而非命定
 
-最近对话片段（精简）：
-{history_snippet if history_snippet else "（无历史）"}
+历史对话：
+{json.dumps(context['messages'], ensure_ascii=False)}
 """
 
-        # —— 生成合法的 conversation_id（仅当使用 Dify 记忆时） ——
-        conv_id = None
-        if use_dify_memory:
-            # 用 user_ref + 日期 生成稳定 UUID；若没有 user_ref，就用 'guest'
-            conv_id = DifyService._deterministic_uuid(user_ref or "guest", date_str)
-
-        # —— 构建 payload（尽量精简 inputs） ——
-        base_payload = {
+        payload = {
             "inputs": {
                 "system_prompt": system_prompt,
-                "card_name": card_name,
-                "card_direction": card_direction,
+                "card_name": context['card_name'],
+                "card_direction": context['card_direction']
             },
-            "query": user_message or "",
+            "query": user_message,
             "response_mode": "blocking",
-            "user": user_ref
         }
-        if conv_id:
-            base_payload["conversation_id"] = conv_id
 
-        print(f"[Payload] Full payload: {json.dumps(base_payload, ensure_ascii=False, indent=2)}")
+        # 如果有 conversation_id 就传给 Dify
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
+            payload["user"] = user_ref
+
+        print(f"[Payload] {json.dumps(payload, ensure_ascii=False, indent=2)}")
 
         headers = {
             "Authorization": f"Bearer {Config.DIFY_CHAT_API_KEY}",
             "Content-Type": "application/json"
         }
-        print(f"[Headers] {headers}")
 
-        def _post_and_log(payload):
-            print(f"[Request] Sending POST to {Config.DIFY_CHAT_API_URL}")
-            resp = requests.post(
+        try:
+            print(f"[Request] POST {Config.DIFY_CHAT_API_URL}")
+            response = requests.post(
                 Config.DIFY_CHAT_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=Config.DIFY_TIMEOUT
             )
-            print(f"[Response] Status Code: {resp.status_code}")
-            print(f"[Response] Headers: {dict(resp.headers)}")
-            # 打印文本（可能很长，仍按你原逻辑输出）
-            print(f"[Response] Text: {resp.text}")
-            return resp
 
-        try:
-            # 第一次请求（带 conversation_id）
-            resp = _post_and_log(base_payload)
+            print(f"[Response] Status Code: {response.status_code}")
+            print(f"[Response] Text: {response.text}")
 
-            # 如果 400 且是 conversation_id 的格式问题，自动降级重试
-            retry_without_conv = False
-            if resp.status_code == 400:
-                try:
-                    err = resp.json()
-                    print(f"[Error] JSON Response: {json.dumps(err, ensure_ascii=False, indent=2)}")
-                    if (err.get("code") == "invalid_param" and
-                        (err.get("params") == "conversation_id" or "conversation_id" in (err.get("message") or "").lower())):
-                        retry_without_conv = True
-                except Exception:
-                    print("[Error] Could not parse error response as JSON")
+            response.raise_for_status()
+            data = response.json()
 
-            if retry_without_conv:
-                print("[Retry] Removing conversation_id and retrying once...")
-                payload2 = dict(base_payload)
-                payload2.pop("conversation_id", None)
-                resp = _post_and_log(payload2)
+            # 获取 Dify 返回的 conversation_id
+            new_conversation_id = data.get("conversation_id", conversation_id)
+            print(f"[Success] conversation_id: {new_conversation_id}")
 
-            # 若仍非 2xx，抛出错误进入 except
-            resp.raise_for_status()
-
-            # —— 解析响应 —— 
-            data = resp.json()
-            print(f"[Success] Response data: {json.dumps(data, ensure_ascii=False, indent=2)}")
-
+            # 提取回答
             answer = DifyService._extract_answer(data)
-            print(f"[Extract] Answer: {answer}")
-
             if answer:
-                return answer
-            return "让我想想...这张牌对你的具体情况有特殊的启示。"
+                return {"answer": answer, "conversation_id": new_conversation_id}
+            else:
+                return {"answer": "让我想想...这张牌对你的具体情况有特殊的启示。", "conversation_id": new_conversation_id}
 
         except requests.exceptions.RequestException as e:
             print(f"[Error] Request Exception: {e}")
             if hasattr(e, 'response') and e.response is not None:
-                try:
-                    print(f"[Error] Response Status: {e.response.status_code}")
-                    print(f"[Error] Response Body: {e.response.text}")
-                except Exception:
-                    pass
-            return "让我重新感受一下塔罗牌的能量，请稍后再试。"
+                print(f"[Error] Response Status: {e.response.status_code}")
+                print(f"[Error] Response Body: {e.response.text}")
+            return {"answer": "让我重新感受一下塔罗牌的能量，请稍后再试。", "conversation_id": conversation_id}
+
         except Exception as e:
-            print(f"[Error] Unexpected Exception: {type(e).__name__}: {e}")
             import traceback
+            print(f"[Error] Unexpected Exception: {type(e).__name__}: {e}")
             traceback.print_exc()
-            return "星星暂时被云遮住了，请稍后再试。"
+            return {"answer": "星星暂时被云遮住了，请稍后再试。", "conversation_id": conversation_id}
+
         finally:
             print("=== End Dify Chat Debug ===\n")
 
