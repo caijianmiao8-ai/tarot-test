@@ -80,6 +80,9 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+import uuid 
+
 def get_user_ref():
     user = g.get("user", None)
     if user and not user.get("is_guest", True):
