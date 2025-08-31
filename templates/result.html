@@ -352,6 +352,57 @@
             transform: translateY(-2px);
         }
 
+        /* 解锁运势指数按钮区域 */
+        .unlock-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(142, 108, 136, 0.05), rgba(109, 76, 103, 0.05));
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .unlock-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(142, 108, 136, 0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        .btn-unlock {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(142, 108, 136, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+        .btn-unlock:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(142, 108, 136, 0.5);
+            color: white;
+        }
+        .btn-unlock i {
+            font-size: 1.2rem;
+        }
+
         .action-buttons { 
             display: flex; 
             justify-content: center; 
@@ -474,6 +525,7 @@
             .card-name { font-size: 1.8rem; }
             .card-visual { width: 240px; height: 360px; }
             .btn-tarot { padding: 10px 20px; font-size: 0.95rem; }
+            .btn-unlock { padding: 14px 30px; font-size: 1rem; }
             .action-buttons { gap: 10px; }
             .card-info { min-width: 100%; }
             .result-card { gap: 30px; }
@@ -600,6 +652,15 @@
 
     <div class="divider"></div>
 
+    <!-- 解锁运势指数按钮 -->
+    <div class="unlock-section">
+        <a href="{{ url_for('index') }}" class="btn-unlock">
+            <i class="fas fa-unlock-alt"></i> 点击解锁今日运势指数
+        </a>
+    </div>
+
+    <div class="divider"></div>
+
     <div class="meaning-explanation">
         <div class="meaning-title">
             <i class="fas fa-book-open"></i> {{ card.name }} 的深层含义
@@ -615,9 +676,6 @@
     </div>
 
     <div class="action-buttons">
-        <a href="{{ url_for('index') }}" class="btn-tarot secondary">
-            <i class="fas fa-home"></i> 返回首页
-        </a>
         {% if not user.is_guest %}
         <a href="{{ url_for('clear_cache') }}" class="btn-tarot secondary" onclick="return confirm('确定要清除今日记录吗？清除后可以重新抽牌。')">
             <i class="fas fa-redo"></i> 重新抽牌
@@ -648,7 +706,7 @@
     // 复制到剪贴板
     function copyToClipboard() {
         const content = `塔罗每日指引 - {{ today_date }}
-━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━
 抽到的牌：{{ card.name }}（{{ direction }}）
 
 【今日洞察】
@@ -660,7 +718,7 @@
 【牌面含义】
 正位：{{ card.meaning_up if card.meaning_up else '暂无' }}
 逆位：{{ card.meaning_rev if card.meaning_rev else '暂无' }}
-━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━
 生成自：塔罗每日指引`;
         
         navigator.clipboard.writeText(content).then(() => {
