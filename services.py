@@ -418,18 +418,19 @@ class DifyService:
     def chat_tarot(user_message, context, user_ref=None, conversation_id=None):
         """
         塔罗对话逻辑（Dify 会话管理）
-        逻辑：
-        - conversation_id 为空 → 新对话，传历史消息
-        - conversation_id 不为空 → 续传会话，只传 conversation_id 和 user
+        改进：
+        - 无论新对话还是续传，payload 都保证包含 inputs
+        - 新对话传历史消息和系统提示
+        - 续传会话也包含 user_message，避免 API 报错
         """
         today = DateTimeService.get_beijing_date().strftime('%Y-%m-%d')
-
+    
         print("\n=== Dify Chat Debug ===")
         print(f"[Input] user_message: {user_message}")
         print(f"[Input] context: {json.dumps(context, ensure_ascii=False, indent=2)}")
         print(f"[Input] conversation_id: {conversation_id}")
-
-        # 构建系统提示（新对话时使用）
+    
+        # 构建系统提示（仅用于新会话）
         system_prompt = f"""你是一位专业的塔罗解读师。
 用户今日抽到了《{context['card_name']}》（{context['card_direction']}）。
 日期：{context['date']}
@@ -441,28 +442,27 @@ class DifyService:
 4. 不要偏离塔罗主题太远
 5. 避免绝对性的预测，强调塔罗是指引而非命定
 
-历史对话：
-{json.dumps(context['messages'], ensure_ascii=False)}
-"""
+    历史对话：
+    {json.dumps(context['messages'], ensure_ascii=False)}
+    """
 
+        # payload 始终包含 inputs
         payload = {
-            "query": user_message,
+            "inputs": {
+                "system_prompt": system_prompt,
+                "user_message": user_message,
+                "card_name": context['card_name'],
+                "card_direction": context['card_direction'],
+                "history": context['messages']
+            },
             "response_mode": "blocking"
         }
 
-        if conversation_id:
-            # 已有会话，续传 conversation_id
+        # 续传会话加上 conversation_id 和 user
+       if conversation_id:
             payload["conversation_id"] = conversation_id
+        if user_ref:
             payload["user"] = user_ref
-        else:
-            # 新会话，传入系统提示和上下文
-            payload["inputs"] = {
-                "system_prompt": system_prompt,
-                "card_name": context['card_name'],
-                "card_direction": context['card_direction']
-            }
-            if user_ref:
-                payload["user"] = user_ref
 
         print(f"[Payload] {json.dumps(payload, ensure_ascii=False, indent=2)}")
 
@@ -485,7 +485,7 @@ class DifyService:
             response.raise_for_status()
             data = response.json()
 
-            # 从返回数据获取 conversation_id（新对话或续传都更新）
+            # 获取 conversation_id
             new_conversation_id = data.get("conversation_id", conversation_id)
             print(f"[Success] conversation_id: {new_conversation_id}")
 
@@ -511,6 +511,7 @@ class DifyService:
 
         finally:
             print("=== End Dify Chat Debug ===\n")
+
 
 
     @staticmethod
