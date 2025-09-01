@@ -1261,21 +1261,29 @@ class SpreadService:
     """牌阵占卜服务"""
     
     def _as_list(val):
-        if val is None: return []
-        if isinstance(val, (list, tuple)): return list(val)
-        if isinstance(val, dict): return [val]
+        if val is None:
+            return []
+        if isinstance(val, (list, tuple)):
+            return list(val)
+        if isinstance(val, dict):
+            return [val]
         if isinstance(val, (bytes, bytearray)):
-            try: import json; return json.loads(val.decode("utf-8"))
-            except: return []
+            try:
+                import json
+                return json.loads(val.decode("utf-8"))
+            except:
+                return []
         if isinstance(val, str):
             s = val.strip()
-            if not s: return []
+            if not s:
+                return []
             try:
                 import json
                 return _as_list(json.loads(s))
             except:
                 return []
-       return []
+        return []
+
     
     # 每日占卜次数限制
     DAILY_SPREAD_LIMITS = {
