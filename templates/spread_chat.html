@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ spread_config.name }} - 塔罗占卜</title>
+    
+    <!-- 本地化资源 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+    
+    <style>
+        :root {
+            --primary-color: #8e6c88;
+            --secondary-color: #d1bfa7;
+            --accent-color: #6d4c67;
+            --light-color: #f8f4e9;
+            --dark-color: #333333;
+            --chat-bg: #f5f3f0;
+            --user-msg-bg: #8e6c88;
+            --ai-msg-bg: #ffffff;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 顶部导航栏 */
+        .chat-header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .back-button {
+            color: var(--accent-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            color: var(--primary-color);
+            transform: translateX(-3px);
+        }
+        
+        .spread-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .spread-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color), #c0a58d);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            color: var(--accent-color);
+        }
+        
+        .spread-details {
+            text-align: center;
+        }
+        
+        .spread-name {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 2px;
+        }
+        
+        .spread-count {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .chat-limit {
+            background: var(--light-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+        
+        .chat-limit .count {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        /* 主容器 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 牌阵展示区 */
+        .spread-display {
+            width: 380px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            overflow-y: auto;
+            padding: 30px;
+            transition: margin-left 0.3s;
+        }
+        
+        .spread-display.collapsed {
+            margin-left: -380px;
+        }
+        
+        .toggle-spread {
+            position: absolute;
+            left: 380px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 60px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        
+        .toggle-spread:hover {
+            background: var(--light-color);
+        }
+        
+        .spread-display.collapsed + .toggle-spread {
+            left: 0;
+        }
+        
+        /* 牌阵标题 */
+        .spread-title {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .spread-question {
+            background: rgba(142, 108, 136, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #666;
+        }
+        
+        /* 牌阵布局可视化 */
+        .cards-layout {
+            margin-bottom: 30px;
+        }
+        
+        .card-position {
+            background: white;
+            border: 2px solid var(--secondary-color);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-position:hover {
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+        
+        .position-number {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .position-info {
+            margin-left: 40px;
+        }
+        
+        .position-name {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+        
+        .position-meaning {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .drawn-card {
+            background: linear-gradient(135deg, rgba(142,108,136,0.05), rgba(109,76,103,0.05));
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-image {
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            position: relative;
+        }
+        
+        .card-image.reversed {
+            transform: rotate(180deg);
+        }
+        
+        .card-details {
+            flex: 1;
+        }
+        
+        .card-name {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 2px;
+        }
+        
+        .card-direction {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+        }
+        
+        /* 聊天区域 */
+        .chat-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--chat-bg);
+        }
+        
+        /* 消息区域 */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+        
+        /* 自定义滚动条 */
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-area::-webkit-scrollbar-thumb {
+            background: rgba(142, 108, 136, 0.3);
+            border-radius: 3px;
+        }
+        
+        .messages-area::-webkit-scrollbar-thumb:hover {
+            background: rgba(142, 108, 136, 0.5);
+        }
+        
+        /* 初始解读卡片 */
+        .initial-reading {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .initial-reading-title {
+            font-size: 1.3rem;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        /* 消息气泡 */
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: messageSlide 0.3s ease-out;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+        
+        .message.assistant {
+            align-self: flex-start;
+        }
+        
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .user .message-avatar {
+            background: var(--user-msg-bg);
+        }
+        
+        .assistant .message-avatar {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+        
+        .user .message-content {
+            background: var(--user-msg-bg);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .assistant .message-content {
+            background: var(--ai-msg-bg);
+            color: var(--dark-color);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        /* AI 消息格式化样式 */
+        .message-content p {
+            margin: 0.8em 0;
+            line-height: 1.6;
+        }
+        
+        .message-content p:first-child {
+            margin-top: 0;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message-content ul, .message-content ol {
+            margin: 0.8em 0;
+            padding-left: 1.5em;
+        }
+        
+        .message-content li {
+            margin: 0.4em 0;
+            line-height: 1.5;
+        }
+        
+        .message-content strong {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+        
+        .user .message-content strong {
+            color: white;
+            font-weight: 700;
+        }
+        
+        /* 快速问题 */
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        
+        .quick-question {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #e0e0e0;
+            font-size: 0.95rem;
+        }
+        
+        .quick-question:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(142,108,136,0.3);
+        }
+        
+        /* 打字动画 */
+        .typing-indicator {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            max-width: 800px;
+            width: 100%;
+            align-self: flex-start;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 15px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typingDot 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingDot {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+        
+        /* 输入区域 */
+        .input-area {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .message-input {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            padding: 12px 20px;
+            resize: none;
+            outline: none;
+            font-size: 1rem;
+            transition: all 0.3s;
+            max-height: 120px;
+            font-family: inherit;
+        }
+        
+        .message-input:focus {
+            border-color: var(--primary-color);
+        }
+        
+        .send-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(142,108,136,0.3);
+        }
+        
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(142,108,136,0.4);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 限制提示 */
+        .limit-reached {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            color: #dc2626;
+        }
+        
+        /* 加载状态 */
+        .loading-skeleton {
+            text-align: center;
+            padding: 40px;
+            color: var(--accent-color);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .spread-display {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                width: 320px;
+            }
+            
+            .spread-display.collapsed {
+                margin-left: -320px;
+            }
+            
+            .toggle-spread {
+                left: 320px;
+            }
+            
+            .spread-display.collapsed + .toggle-spread {
+                left: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .spread-info {
+                display: none;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .quick-questions {
+                padding: 0 10px;
+            }
+            
+            .messages-area {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="chat-header">
+        <a href="{{ url_for('spread') }}" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+            <span>返回</span>
+        </a>
+        
+        <div class="spread-info">
+            <div class="spread-icon">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="spread-details">
+                <div class="spread-name">{{ spread_config.name }}</div>
+                <div class="spread-count">{{ spread_config.card_count }}张牌</div>
+            </div>
+        </div>
+        
+        <div class="chat-limit">
+            剩余对话: <span class="count" id="remaining-count">{{ remaining_chats }}</span>
+        </div>
+    </div>
+    
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 牌阵展示区 -->
+        <div class="spread-display" id="spreadDisplay">
+            <h2 class="spread-title">{{ spread_config.name }}</h2>
+            
+            {% if reading.question %}
+            <div class="spread-question">
+                <i class="fas fa-question-circle"></i> {{ reading.question }}
+            </div>
+            {% endif %}
+            
+            <!-- 牌阵布局 -->
+            <div class="cards-layout">
+                {% for card in reading.cards %}
+                <div class="card-position">
+                    <div class="position-number">{{ loop.index }}</div>
+                    <div class="position-info">
+                        <div class="position-name">{{ spread_config.positions[loop.index0].name }}</div>
+                        <div class="position-meaning">{{ spread_config.positions[loop.index0].meaning }}</div>
+                        <div class="drawn-card">
+                            <div class="card-image {% if card.direction == '逆位' %}reversed{% endif %}">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="card-details">
+                                <div class="card-name">{{ card.card_name }}</div>
+                                <div class="card-direction">{{ card.direction }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- 折叠按钮 -->
+        <div class="toggle-spread" id="toggleSpread" onclick="toggleSpreadDisplay()">
+            <i class="fas fa-chevron-left" id="toggleIcon"></i>
+        </div>
+        
+        <!-- 聊天容器 -->
+        <div class="chat-container">
+            <!-- 消息区域 -->
+            <div class="messages-area" id="messages-area">
+                {% if messages %}
+                    <!-- 显示历史消息 -->
+                    {% for msg in messages %}
+                    <div class="message {{ msg.role }}">
+                        <div class="message-avatar">
+                            {% if msg.role == 'user' %}
+                                <i class="fas fa-user"></i>
+                            {% else %}
+                                {% if ai_personality == 'mystic' %}
+                                    <i class="fas fa-moon"></i>
+                                {% elif ai_personality == 'wisdom' %}
+                                    <i class="fas fa-book"></i>
+                                {% else %}
+                                    <i class="fas fa-heart"></i>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="message-content">
+                            {% if msg.role == 'assistant' %}
+                                {{ msg.content|safe }}
+                            {% else %}
+                                {{ msg.content }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- 加载初始解读 -->
+                    <div class="loading-skeleton" id="loading-skeleton">
+                        <div class="fas fa-spinner fa-spin" style="font-size: 3rem; margin-bottom: 20px;"></div>
+                        <div>正在解读牌阵能量，请稍候...</div>
+                    </div>
+                {% endif %}
+                
+                <!-- 快速问题（在有历史消息后显示） -->
+                {% if messages %}
+                <div class="quick-questions">
+                    <div class="quick-question" onclick="quickAsk('这个牌阵的整体建议是什么？')">
+                        整体建议
+                    </div>
+                    <div class="quick-question" onclick="quickAsk('我应该注意什么？')">
+                        注意事项
+                    </div>
+                    <div class="quick-question" onclick="quickAsk('下一步该怎么做？')">
+                        行动指南
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 输入区域 -->
+            <div class="input-area">
+                {% if can_chat %}
+                    <div class="input-container">
+                        <textarea 
+                            class="message-input" 
+                            id="message-input" 
+                            placeholder="深入探讨这个牌阵..." 
+                            rows="1"
+                            maxlength="500"
+                        ></textarea>
+                        <button class="send-button" id="send-button" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="limit-reached">
+                        <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 从服务端获取数据
+        const readingId = "{{ reading.id }}";
+        let isTyping = false;
+        let remainingChats = {{ remaining_chats }};
+        const hasHistory = {{ has_history|tojson }};
+        const aiPersonality = "{{ ai_personality }}";
+        
+        // 格式化 AI 消息
+        function formatAIMessage(content) {
+            // 处理换行
+            let formatted = content.split(/\n\n+/).map(para => {
+                if (para.trim()) {
+                    return `<p>${para.trim().replace(/\n/g, '<br>')}</p>`;
+                }
+                return '';
+            }).filter(p => p).join('');
+            
+            // 处理列表
+            formatted = formatted.replace(/<p>(\d+)\.\s+(.+?)(<\/p>|<br>)/g, '<li value="$1">$2</li>');
+            formatted = formatted.replace(/<p>[\-\*•]\s+(.+?)(<\/p>|<br>)/g, '<li>$1</li>');
+            formatted = formatted.replace(/(<li.*?<\/li>\s*)+/g, match => {
+                if (match.includes('value=')) {
+                    return `<ol>${match}</ol>`;
+                }
+                return `<ul>${match}</ul>`;
+            });
+            
+            // 处理加粗和斜体
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            return formatted || content;
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 如果没有历史消息，获取初始解读
+            if (!hasHistory) {
+                setTimeout(getInitialReading, 1000);
+            }
+            
+            // 设置输入框事件
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+        });
+        
+        // 获取初始解读
+        async function getInitialReading() {
+            // 初始解读已在后端生成，这里只需要刷新页面或轮询
+            location.reload();
+        }
+        
+        // 切换牌阵显示
+        function toggleSpreadDisplay() {
+            const display = document.getElementById('spreadDisplay');
+            const icon = document.getElementById('toggleIcon');
+            
+            display.classList.toggle('collapsed');
+            
+            if (display.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+            
+            // 清空输入框
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // 显示用户消息
+            appendMessage('user', message);
+            
+            // 显示打字动画
+            showTyping();
+            isTyping = true;
+            
+            try {
+                const response = await fetch('/api/spread/chat/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        reading_id: readingId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                hideTyping();
+                isTyping = false;
+                
+                // 显示 AI 回复
+                appendMessage('assistant', data.reply);
+                
+                // 更新剩余次数
+                if (data.remaining !== undefined) {
+                    remainingChats = data.remaining;
+                    document.getElementById('remaining-count').textContent = remainingChats;
+                }
+                
+                // 检查是否达到限制
+                if (data.limit_reached) {
+                    disableInput();
+                }
+                
+            } catch (error) {
+                console.error('Send message failed:', error);
+                hideTyping();
+                isTyping = false;
+                appendMessage('assistant', '抱歉，消息发送失败，请稍后重试。');
+            }
+        }
+        
+        // 快速提问
+        function quickAsk(question) {
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.value = question;
+                sendMessage();
+            }
+        }
+        
+        // 添加消息到界面
+        function appendMessage(role, content, animate = true) {
+            const messagesArea = document.getElementById('messages-area');
+            
+            // 移除快速问题（如果是第一次对话）
+            const quickQuestions = messagesArea.querySelector('.quick-questions');
+            if (quickQuestions && role === 'user') {
+                quickQuestions.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            if (animate) messageDiv.style.animation = 'messageSlide 0.3s ease-out';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'message-avatar';
+            
+            if (role === 'user') {
+                avatarDiv.innerHTML = '<i class="fas fa-user"></i>';
+            } else {
+                const icons = {
+                    'mystic': '<i class="fas fa-moon"></i>',
+                    'wisdom': '<i class="fas fa-book"></i>',
+                    'warm': '<i class="fas fa-heart"></i>'
+                };
+                avatarDiv.innerHTML = icons[aiPersonality] || '<i class="fas fa-sparkles"></i>';
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // 根据角色处理内容
+            if (role === 'assistant') {
+                contentDiv.innerHTML = formatAIMessage(content);
+            } else {
+                contentDiv.textContent = content;
+            }
+            
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(contentDiv);
+            messagesArea.appendChild(messageDiv);
+            
+            // 平滑滚动到底部
+            setTimeout(() => {
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }, 100);
+        }
+        
+        // 显示打字动画
+        function showTyping() {
+            const messagesArea = document.getElementById('messages-area');
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'message assistant typing-indicator';
+            
+            const icons = {
+                'mystic': '<i class="fas fa-moon"></i>',
+                'wisdom': '<i class="fas fa-book"></i>',
+                'warm': '<i class="fas fa-heart"></i>'
+            };
+            
+            typingDiv.innerHTML = `
+                <div class="message-avatar">${icons[aiPersonality] || '<i class="fas fa-sparkles"></i>'}</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            messagesArea.appendChild(typingDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+        
+        // 隐藏打字动画
+        function hideTyping() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        // 禁用输入
+        function disableInput() {
+            const inputArea = document.querySelector('.input-area');
+            inputArea.innerHTML = `
+                <div class="limit-reached">
+                    <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html> 

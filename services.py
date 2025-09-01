@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager
+from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager, SpreadDAO
 
 def convert_fortune_format(dify_data):
     """将 Dify 格式转换为前端期望的格式"""
@@ -375,6 +375,107 @@ class DifyService:
             "today_insight": f"今日你抽到了{card_name}（{direction}），这张牌正在向你传递宇宙的信息。",
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
+
+    @staticmethod
+    def spread_initial_reading(spread_name, spread_description, question, cards, user_ref=None, ai_personality='warm'):
+        """牌阵初始解读（新会话）"""
+        # 构建牌阵描述
+        cards_desc = []
+        for i, card in enumerate(cards):
+            cards_desc.append(
+                f"位置{i+1} - {card['position_name']}（{card['position_meaning']}）：\n" +
+                f"  {card['card_name']}（{card['direction']}）"
+            )
+        
+        payload = {
+            "inputs": {
+                "spread_name": spread_name,
+                "spread_description": spread_description,
+                "question": question or "请给出整体指引",
+                "cards_layout": "\n\n".join(cards_desc),
+                "ai_personality": ai_personality
+            },
+            "query": "请根据这个牌阵给出深入的解读",
+            "response_mode": "blocking",
+            "user": user_ref
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_SPREAD_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(
+                Config.DIFY_SPREAD_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # 提取回答和 conversation_id
+            answer = DifyService._extract_answer(data)
+            conversation_id = data.get("conversation_id")
+            
+            return {
+                "answer": answer or "让我感受一下这个牌阵的能量...",
+                "conversation_id": conversation_id
+            }
+            
+        except Exception as e:
+            print(f"Spread initial reading error: {e}")
+            return {
+                "answer": "牌阵的能量正在汇聚，请稍后再试...",
+                "conversation_id": None
+            }
+    
+    @staticmethod
+    def spread_chat(user_message, user_ref=None, conversation_id=None, ai_personality='warm'):
+        """牌阵对话（续聊，使用 conversation_id）"""
+        payload = {
+            "inputs": {
+                "ai_personality": ai_personality
+            },
+            "query": user_message,
+            "response_mode": "blocking",
+            "user": user_ref
+        }
+        
+        # 如果有 conversation_id，加入 payload
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
+        
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_SPREAD_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(
+                Config.DIFY_SPREAD_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            answer = DifyService._extract_answer(data)
+            new_conversation_id = data.get("conversation_id", conversation_id)
+            
+            return {
+                "answer": answer or "让我想想...",
+                "conversation_id": new_conversation_id
+            }
+            
+        except Exception as e:
+            print(f"Spread chat error: {e}")
+            return {
+                "answer": "抱歉，我需要重新连接能量场，请稍后再试。",
+                "conversation_id": conversation_id
+            }
 
     @staticmethod
     def _deterministic_uuid(*parts):
@@ -1153,3 +1254,206 @@ class FortuneService:
         if result and result['fortune_data']:
             return result['fortune_data']
         return None
+
+# services.py 中新增 SpreadService 类
+
+class SpreadService:
+    """牌阵占卜服务"""
+    
+    # 每日占卜次数限制
+    DAILY_SPREAD_LIMITS = {
+        'guest': 1,
+        'user': 3
+    }
+    
+    # 每日对话次数限制（与普通塔罗对话共享）
+    DAILY_CHAT_LIMITS = {
+        'guest': 10,
+        'user': 50
+    }
+    
+    @staticmethod
+    def can_divine_today(user_id, session_id, is_guest=True):
+        """检查今日是否还能进行牌阵占卜"""
+        today = DateTimeService.get_beijing_date()
+        limit = SpreadService.DAILY_SPREAD_LIMITS['guest' if is_guest else 'user']
+        
+        # 获取今日占卜次数
+        count = SpreadDAO.get_today_spread_count(user_id, session_id, today)
+        return count < limit, limit - count
+    
+    @staticmethod
+    def can_chat_today(user_id, session_id, is_guest=True):
+        """检查今日是否还能对话（包括普通塔罗和牌阵）"""
+        today = DateTimeService.get_beijing_date()
+        limit = SpreadService.DAILY_CHAT_LIMITS['guest' if is_guest else 'user']
+        
+        # 获取今日总对话次数（普通塔罗 + 牌阵对话）
+        normal_chat_count = ChatDAO.get_daily_usage(user_id, session_id, today)
+        spread_chat_count = SpreadDAO.get_today_chat_count(user_id, session_id, today)
+        total_count = normal_chat_count + spread_chat_count
+        
+        return total_count < limit, limit - total_count
+    
+    @staticmethod
+    def perform_divination(user_ref, session_id, spread_id, question, ai_personality='warm'):
+        """执行牌阵占卜"""
+        import uuid
+        
+        # 从数据库获取牌阵配置
+        spread_config = SpreadDAO.get_spread_by_id(spread_id)
+        if not spread_config:
+            raise ValueError(f"Invalid spread_id: {spread_id}")
+        
+        # 解析位置信息
+        positions = json.loads(spread_config['positions'])
+        card_count = spread_config['card_count']
+
+        all_cards = CardDAO.get_all()
+        if len(all_cards) < card_count:
+            raise ValueError("Not enough cards in database")
+        
+        selected_cards = random.sample(all_cards, card_count)
+        
+        # 构建牌数据
+        cards_data = []
+        for i, card in enumerate(selected_cards):
+            direction = random.choice(["正位", "逆位"])
+            cards_data.append({
+                'position': i,
+                'card_id': card['id'],
+                'card_name': card['name'],
+                'direction': direction,
+                'image': card.get('image'),
+                'meaning_up': card.get('meaning_up'),
+                'meaning_rev': card.get('meaning_rev')
+            })
+        
+        # 创建占卜记录
+        today = DateTimeService.get_beijing_date()
+        reading_data = {
+            'id': str(uuid.uuid4()),
+            'user_id': user_ref,
+            'session_id': session_id,
+            'spread_id': spread_id,
+            'cards': json.dumps(cards_data),
+            'question': question,
+            'ai_personality': ai_personality,
+            'date': today
+        }
+        
+        # 保存到数据库
+        reading = SpreadDAO.create(reading_data)
+        
+        # 生成初始解读
+        initial_interpretation = SpreadService.generate_initial_interpretation(
+            reading['id'],
+            ai_personality
+        )
+        
+        return reading
+    
+    @staticmethod
+    def generate_initial_interpretation(reading_id, ai_personality):
+        """生成初始牌阵解读（开始新的 Dify 会话）"""
+        reading = SpreadDAO.get_by_id(reading_id)
+        # 从数据库获取牌阵配置
+        spread_config = SpreadDAO.get_spread_by_id(reading['spread_id'])
+        positions = json.loads(spread_config['positions'])
+        
+        cards = json.loads(reading['cards'])
+        
+        # 构建牌阵详细信息
+        cards_desc = []
+        for card in cards:
+            position = positions[card['position']]
+            cards_desc.append({
+                'position_name': position['name'],
+                'position_meaning': position['meaning'],
+                'card_name': card['card_name'],
+                'direction': card['direction']
+            })
+        
+        # 调用 Dify，开始新会话
+        response = DifyService.spread_initial_reading(
+            spread_name=spread_config['name'],
+            spread_description=spread_config['description'],
+            question=reading.get('question', ''),
+            cards=cards_desc,
+            user_ref=reading['user_id'],
+            ai_personality=ai_personality
+        )
+        
+        # 保存初始解读和 conversation_id
+        SpreadDAO.update_initial_interpretation(reading_id, response['answer'])
+        if response.get('conversation_id'):
+            SpreadDAO.update_conversation_id(reading_id, response['conversation_id'])
+        
+        # 保存为第一条消息
+        SpreadDAO.save_message({
+            'reading_id': reading_id,
+            'role': 'assistant',
+            'content': response['answer']
+        })
+        
+        return response
+    
+    @staticmethod
+    def process_chat_message(reading_id, user_message, user_ref):
+        """处理牌阵对话消息（使用 conversation_id，不传历史记录）"""
+        reading = SpreadDAO.get_by_id(reading_id)
+        if not reading:
+            raise ValueError("Reading not found")
+        
+        # 保存用户消息
+        SpreadDAO.save_message({
+            'reading_id': reading_id,
+            'role': 'user',
+            'content': user_message
+        })
+        
+        # 增加对话次数
+        today = DateTimeService.get_beijing_date()
+        SpreadDAO.increment_chat_usage(
+            user_id=user_ref,
+            session_id=reading['session_id'],
+            date=today
+        )
+        
+        # 调用 Dify（使用 conversation_id 续聊）
+        response = DifyService.spread_chat(
+            user_message=user_message,
+            user_ref=user_ref,
+            conversation_id=reading.get('conversation_id'),
+            ai_personality=reading.get('ai_personality', 'warm')
+        )
+        
+        # 更新 conversation_id（如果变化）
+        if response.get('conversation_id') and response['conversation_id'] != reading.get('conversation_id'):
+            SpreadDAO.update_conversation_id(reading_id, response['conversation_id'])
+        
+        # 保存 AI 回复
+        SpreadDAO.save_message({
+            'reading_id': reading_id,
+            'role': 'assistant',
+            'content': response['answer']
+        })
+        
+        return response
+    
+    @staticmethod
+    def get_reading(reading_id):
+        """获取占卜记录详情"""
+        reading = SpreadDAO.get_by_id(reading_id)
+        if reading and reading.get('cards'):
+            reading['cards'] = json.loads(reading['cards']) if isinstance(reading['cards'], str) else reading['cards']
+        return reading
+    
+    @staticmethod
+    def get_chat_messages(reading_id):
+        """获取对话历史（仅用于前端展示）"""
+        messages = SpreadDAO.get_all_messages(reading_id)
+        return [
+            {'role': msg['role'], 'content': msg['content']}
+            for msg in messages
+        ] if messages else []

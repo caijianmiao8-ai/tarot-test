@@ -22,7 +22,10 @@ class Config:
     DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
     DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://ai-bot-new.dalongyun.com/v1/workflows/run")
     DIFY_TIMEOUT = 25  # 秒
-    
+    DIFY_SPREAD_API_KEY = os.getenv("DIFY_SPREAD_API_KEY")
+    DIFY_SPREAD_API_URL = os.getenv("DIFY_SPREAD_API_URL")
+
+    ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "default-secret-key")
     # 运势专用 API 配置（独立 key，可选独立 URL）
     DIFY_FORTUNE_API_KEY = os.environ.get("DIFY_FORTUNE_API_KEY")
     DIFY_FORTUNE_API_URL = os.environ.get("DIFY_FORTUNE_API_URL", DIFY_API_URL)
@@ -42,8 +45,8 @@ class Config:
     
     CHAT_FEATURES = {
         'enabled': True,
-        'daily_limit_guest': 5,
-        'daily_limit_user': 10,
+        'daily_limit_guest': 10,
+        'daily_limit_user': 50,
         'max_message_length': 500,
         'session_timeout_minutes': 30,
         'max_history_messages': 10  # 传给AI的历史消息数

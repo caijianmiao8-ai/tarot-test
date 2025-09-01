@@ -10,7 +10,7 @@ import uuid
 from flask import g, session
 # 导入配置和服务
 from config import Config
-from database import DatabaseManager, ChatDAO
+from database import DatabaseManager, ChatDAO, SpreadDAO
 from services import (
     DateTimeService,
     UserService,
@@ -97,7 +97,78 @@ def get_user_ref():
     return str(uuid.uuid5(uuid.NAMESPACE_URL, session['session_id']))
 
 
-
+# app.py 添加一个管理员路由
+@app.route("/admin/init-spreads/<secret_key>")
+def init_spreads_route(secret_key):
+    """初始化牌阵数据的路由"""
+    # 使用环境变量中的密钥验证
+    if secret_key != os.getenv('ADMIN_SECRET_KEY', 'your-secret-key'):
+        return "Unauthorized", 403
+    
+    try:
+        spreads = [
+            {
+                'id': 'three_cards',
+                'name': '时间三牌阵',
+                'description': '探索过去、现在和未来的经典牌阵',
+                'card_count': 3,
+                'category': '通用',
+                'difficulty': '简单',
+                'positions': json.dumps([
+                    {"index": 0, "name": "过去", "meaning": "影响现状的过去因素"},
+                    {"index": 1, "name": "现在", "meaning": "当前的状况和挑战"},
+                    {"index": 2, "name": "未来", "meaning": "可能的发展方向"}
+                ])
+            },
+            {
+                'id': 'yes_no',
+                'name': '是否牌阵',
+                'description': '快速获得是或否的答案',
+                'card_count': 1,
+                'category': '决策',
+                'difficulty': '简单',
+                'positions': json.dumps([
+                    {"index": 0, "name": "答案", "meaning": "对你问题的直接回应"}
+                ])
+            },
+            {
+                'id': 'relationship',
+                'name': '关系牌阵',
+                'description': '深入了解两人之间的关系动态',
+                'card_count': 5,
+                'category': '爱情',
+                'difficulty': '中等',
+                'positions': json.dumps([
+                    {"index": 0, "name": "你的感受", "meaning": "你对关系的看法"},
+                    {"index": 1, "name": "对方感受", "meaning": "对方的想法"},
+                    {"index": 2, "name": "关系现状", "meaning": "目前的关系状态"},
+                    {"index": 3, "name": "挑战", "meaning": "需要面对的问题"},
+                    {"index": 4, "name": "建议", "meaning": "改善关系的方向"}
+                ])
+            }
+        ]
+        
+        count = 0
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                for spread in spreads:
+                    cursor.execute("""
+                        INSERT INTO spreads 
+                        (id, name, description, card_count, positions, category, difficulty)
+                        VALUES (%(id)s, %(name)s, %(description)s, %(card_count)s, 
+                                %(positions)s, %(category)s, %(difficulty)s)
+                        ON CONFLICT (id) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            description = EXCLUDED.description,
+                            positions = EXCLUDED.positions
+                    """, spread)
+                    count += 1
+                conn.commit()
+        
+        return f"成功初始化 {count} 个牌阵配置", 200
+        
+    except Exception as e:
+        return f"初始化失败: {str(e)}", 500
 
 @app.route('/favicon.ico')
 def favicon():
@@ -147,6 +218,199 @@ def server_error(e):
         return render_template('500.html'), 500
     except:
         return '<h1>500 - Server Error</h1><a href="/">Go Home</a>', 500
+
+# 1. 牌阵选择页面
+@app.route("/spread")
+def spread_page():
+    """牌阵占卜选择页面"""
+    user = g.user
+    today = DateTimeService.get_beijing_date()
+    
+    spreads = SpreadDAO.get_all_spreads()
+
+    # 检查占卜次数限制
+    can_divine, remaining = SpreadService.can_divine_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    return render_template(
+        "spread.html",
+        user=user,
+        spreads=spreads,  # 需要在 Config 中定义牌阵配置
+        can_divine=can_divine,
+        remaining_divinations=remaining
+    )
+
+# 2. 牌阵对话页面（类似原有的 chat_page）
+@app.route("/spread/chat/<reading_id>")
+def spread_chat(reading_id):
+    """牌阵占卜对话页面"""
+    user = g.user
+    
+    # 获取占卜记录
+    reading = SpreadService.get_reading(reading_id)
+    if not reading:
+        flash("占卜记录不存在", "error")
+        return redirect(url_for('spread'))
+    
+    # 验证权限
+    if reading['user_id'] != user.get('id') and reading['session_id'] != session.get('session_id'):
+        flash("无权访问此占卜记录", "error")
+        return redirect(url_for('spread'))
+    
+    # 检查对话限制
+    can_chat, remaining_chats = SpreadService.can_chat_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    # 获取历史消息
+    messages = SpreadService.get_chat_messages(reading_id)
+    
+    # 从数据库获取牌阵配置
+    spread_config = SpreadDAO.get_spread_by_id(reading['spread_id'])
+    
+    return render_template(
+        "spread_chat.html",
+        user=user,
+        reading=reading,
+        spread_config=spread_config,
+        messages=messages,
+        can_chat=can_chat,
+        remaining_chats=remaining_chats,
+        has_history=len(messages) > 0,
+        ai_personality=reading.get('ai_personality', 'warm')
+    )
+
+# 3. API: 抽取牌阵
+@app.route("/api/spread/draw", methods=["POST"])
+def api_draw_spread():
+    """抽取牌阵并开始占卜"""
+    user = g.user
+    data = request.json
+    
+    spread_id = data.get('spread_id')
+    question = data.get('question', '').strip()
+    ai_personality = data.get('ai_personality', 'warm')
+
+    spread = SpreadDAO.get_spread_by_id(spread_id)
+    if not spread:
+        return jsonify({'error': '请选择有效的牌阵'}), 400
+    
+    if question and len(question) > 200:
+        return jsonify({'error': '问题请限制在200字以内'}), 400
+    
+    # 检查占卜限制
+    can_divine, remaining = SpreadService.can_divine_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    if not can_divine:
+        return jsonify({
+            'error': '今日占卜次数已用完',
+            'remaining': 0
+        }), 429
+    
+    try:
+        user_ref = get_user_ref()  # 使用现有的 get_user_ref 函数
+        
+        # 执行占卜
+        reading = SpreadService.perform_divination(
+            user_ref=user_ref,
+            session_id=session.get('session_id'),
+            spread_id=spread_id,
+            question=question,
+            ai_personality=ai_personality
+        )
+        
+        return jsonify({
+            'success': True,
+            'reading_id': reading['id'],
+            'redirect': url_for('spread_chat', reading_id=reading['id'])
+        })
+        
+    except Exception as e:
+        print(f"Draw spread error: {e}")
+        return jsonify({'error': '占卜失败，请稍后重试'}), 500
+
+# 4. API: 发送牌阵对话消息
+@app.route("/api/spread/chat/send", methods=["POST"])
+def api_spread_chat_send():
+    """发送牌阵对话消息"""
+    user = g.user
+    data = request.json
+    
+    reading_id = data.get('reading_id')
+    message = data.get('message', '').strip()
+    
+    if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
+        return jsonify({'error': '消息长度不合法'}), 400
+    
+    # 获取占卜记录验证权限
+    reading = SpreadService.get_reading(reading_id)
+    if not reading:
+        return jsonify({'error': '占卜记录不存在'}), 404
+    
+    if reading['user_id'] != user.get('id') and reading['session_id'] != session.get('session_id'):
+        return jsonify({'error': '无权访问'}), 403
+    
+    # 检查对话限制
+    can_chat, remaining = SpreadService.can_chat_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    if not can_chat:
+        # 使用与普通聊天相同的限制消息
+        limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
+        return jsonify({
+            'reply': limit_msg,
+            'limit_reached': True,
+            'remaining': 0
+        })
+    
+    try:
+        user_ref = get_user_ref()
+        
+        # 处理消息
+        ai_response = SpreadService.process_chat_message(
+            reading_id,
+            message,
+            user_ref=user_ref
+        )
+        
+        return jsonify({
+            'reply': ai_response['answer'],
+            'conversation_id': ai_response.get('conversation_id'),
+            'remaining': remaining - 1
+        })
+        
+    except Exception as e:
+        print(f"Spread chat error: {e}")
+        return jsonify({'error': '消息处理失败，请稍后重试'}), 500
+
+# 5. 可选：获取今日占卜记录
+@app.route("/api/spread/today")
+def api_spread_today():
+    """获取今日占卜记录"""
+    user = g.user
+    today = DateTimeService.get_beijing_date()
+    
+    if not user["is_guest"]:
+        readings = SpreadDAO.get_user_readings_by_date(user["id"], today)
+    else:
+        readings = SpreadDAO.get_session_readings_by_date(session.get('session_id'), today)
+    
+    return jsonify({
+        'readings': readings,
+        'count': len(readings)
+    })
 
 # ===== 路由 =====
 @app.route("/")

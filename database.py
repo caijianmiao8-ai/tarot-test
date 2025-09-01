@@ -60,6 +60,159 @@ class DatabaseManager:
         finally:
             cls.return_connection(conn)
 
+# database.py 中新增
+
+class SpreadDAO:
+    """牌阵数据访问对象"""
+    
+    @staticmethod
+    def get_all_spreads():
+        """获取所有可用牌阵"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM spreads 
+                    ORDER BY difficulty, card_count
+                """)
+                spreads = cursor.fetchall()
+                
+                # 解析 JSON 字段
+                for spread in spreads:
+                    if spread.get('positions'):
+                        spread['positions'] = json.loads(spread['positions'])
+                
+                return spreads
+    
+    @staticmethod
+    def get_spread_by_id(spread_id):
+        """根据ID获取牌阵配置"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM spreads WHERE id = %s
+                """, (spread_id,))
+                spread = cursor.fetchone()
+                
+                if spread and spread.get('positions'):
+                    spread['positions'] = json.loads(spread['positions'])
+                
+                return spread
+    
+    @staticmethod
+    def create(reading_data):
+        """创建占卜记录"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO spread_readings 
+                    (id, user_id, session_id, spread_id, cards, question, 
+                     ai_personality, date)
+                    VALUES (%(id)s, %(user_id)s, %(session_id)s, %(spread_id)s, 
+                            %(cards)s, %(question)s, %(ai_personality)s, %(date)s)
+                    RETURNING *
+                """, reading_data)
+                reading = cursor.fetchone()
+                conn.commit()
+                return reading
+    
+    @staticmethod
+    def get_by_id(reading_id):
+        """获取占卜记录"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM spread_readings WHERE id = %s
+                """, (reading_id,))
+                return cursor.fetchone()
+    
+    @staticmethod
+    def update_initial_interpretation(reading_id, interpretation):
+        """更新初始解读"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE spread_readings 
+                    SET initial_interpretation = %s
+                    WHERE id = %s
+                """, (interpretation, reading_id))
+                conn.commit()
+    
+    @staticmethod
+    def update_conversation_id(reading_id, conversation_id):
+        """更新会话ID"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE spread_readings 
+                    SET conversation_id = %s
+                    WHERE id = %s
+                """, (conversation_id, reading_id))
+                conn.commit()
+    
+    @staticmethod
+    def save_message(message_data):
+        """保存对话消息"""
+        import uuid
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO spread_messages 
+                    (id, reading_id, role, content)
+                    VALUES (%s, %(reading_id)s, %(role)s, %(content)s)
+                """, {
+                    'id': str(uuid.uuid4()),
+                    **message_data
+                })
+                conn.commit()
+    
+    @staticmethod
+    def get_all_messages(reading_id):
+        """获取所有对话消息"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT role, content, created_at 
+                    FROM spread_messages 
+                    WHERE reading_id = %s 
+                    ORDER BY created_at ASC
+                """, (reading_id,))
+                return cursor.fetchall()
+    
+    @staticmethod
+    def get_today_spread_count(user_id, session_id, date):
+        """获取今日占卜次数"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) as count
+                    FROM spread_readings
+                    WHERE (user_id = %s OR session_id = %s) AND date = %s
+                """, (user_id, session_id, date))
+                result = cursor.fetchone()
+                return result['count'] if result else 0
+    
+    @staticmethod
+    def get_today_chat_count(user_id, session_id, date):
+        """获取今日牌阵对话次数"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) as count
+                    FROM spread_messages m
+                    JOIN spread_readings r ON m.reading_id = r.id
+                    WHERE m.role = 'user' 
+                    AND (r.user_id = %s OR r.session_id = %s) 
+                    AND DATE(m.created_at) = %s
+                """, (user_id, session_id, date))
+                result = cursor.fetchone()
+                return result['count'] if result else 0
+    
+    @staticmethod
+    def increment_chat_usage(user_id, session_id, date):
+        """增加对话使用次数（可选，如果需要单独统计）"""
+        # 由于消息已经保存，这个方法可能不需要
+        pass
+        
 class ChatDAO:
     @staticmethod
     def create_session(session_data):

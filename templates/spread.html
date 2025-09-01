@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>塔罗牌阵占卜</title>
+    
+    <!-- 本地化资源 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+    
+    <style>
+        :root {
+            --primary-color: #8e6c88;
+            --secondary-color: #d1bfa7;
+            --accent-color: #6d4c67;
+            --light-color: #f8f4e9;
+            --dark-color: #333333;
+            --success-color: #5cb85c;
+            --warning-color: #f0ad4e;
+            --info-color: #5bc0de;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 0;
+            z-index: 1000;
+        }
+        
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .back-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            color: var(--primary-color);
+            transform: translateX(-3px);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        /* 主容器 */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 标题区域 */
+        .header-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .remaining-info {
+            background: rgba(142, 108, 136, 0.1);
+            padding: 12px 24px;
+            border-radius: 25px;
+            display: inline-block;
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        
+        .remaining-count {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        /* 分类筛选 */
+        .category-filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            padding: 8px 20px;
+            border: 2px solid var(--secondary-color);
+            background: white;
+            border-radius: 25px;
+            color: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .category-btn:hover,
+        .category-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        /* 牌阵网格 */
+        .spreads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        /* 牌阵卡片 */
+        .spread-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .spread-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .spread-card.selected {
+            border: 3px solid var(--primary-color);
+            transform: scale(1.02);
+        }
+        
+        .card-header {
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(142,108,136,0.05), rgba(109,76,103,0.05));
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .spread-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+        
+        .spread-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+        }
+        
+        .meta-item i {
+            color: var(--primary-color);
+        }
+        
+        .difficulty-badge {
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .difficulty-badge.简单 {
+            background: rgba(92, 184, 92, 0.1);
+            color: var(--success-color);
+        }
+        
+        .difficulty-badge.中等 {
+            background: rgba(240, 173, 78, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .difficulty-badge.复杂 {
+            background: rgba(91, 192, 222, 0.1);
+            color: var(--info-color);
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        .spread-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .positions-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .position-tag {
+            background: var(--light-color);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: var(--accent-color);
+        }
+        
+        /* 选中标记 */
+        .selected-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s;
+        }
+        
+        .spread-card.selected .selected-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        /* 底部操作区 */
+        .action-section {
+            position: sticky;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            margin: 0 -20px -20px;
+        }
+        
+        .action-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 问题输入 */
+        .question-input-group {
+            margin-bottom: 25px;
+        }
+        
+        .question-label {
+            display: block;
+            color: var(--accent-color);
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        
+        .question-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .question-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .question-hint {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        /* 人格选择 */
+        .personality-selection {
+            margin-bottom: 25px;
+        }
+        
+        .personality-label {
+            display: block;
+            color: var(--accent-color);
+            font-weight: 500;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .personality-options {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .personality-option {
+            flex: 1;
+            max-width: 200px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .personality-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .personality-option.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .personality-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .personality-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .personality-desc {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        /* 开始按钮 */
+        .start-button {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(142,108,136,0.3);
+        }
+        
+        .start-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(142,108,136,0.4);
+        }
+        
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 无权限提示 */
+        .no-permission {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .no-permission-icon {
+            font-size: 4rem;
+            color: var(--warning-color);
+            margin-bottom: 20px;
+        }
+        
+        .no-permission-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .spreads-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .personality-options {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .category-filters {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div class="navbar">
+        <div class="navbar-content">
+            <a href="{{ url_for('index') }}" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                <span>返回首页</span>
+            </a>
+            
+            <div class="user-info">
+                <span>{{ user.username if not user.is_guest else "神秘访客" }}</span>
+                <div class="user-icon">
+                    {% if not user.is_guest %}
+                        {{ user.username[0]|upper }}
+                    {% else %}
+                        <i class="fas fa-user"></i>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主容器 -->
+    <div class="main-container">
+        {% if can_divine %}
+            <!-- 标题区域 -->
+            <div class="header-section">
+                <h1 class="page-title">
+                    <i class="fas fa-layer-group"></i> 塔罗牌阵占卜
+                </h1>
+                <p class="page-subtitle">选择适合你的牌阵，深入探索问题的答案</p>
+                <div class="remaining-info">
+                    <i class="fas fa-sparkles"></i>
+                    今日剩余占卜次数：<span class="remaining-count">{{ remaining_divinations }}</span>
+                </div>
+            </div>
+            
+            <!-- 分类筛选 -->
+            <div class="category-filters">
+                <button class="category-btn active" onclick="filterCategory('all')">
+                    全部牌阵
+                </button>
+                <button class="category-btn" onclick="filterCategory('通用')">
+                    通用占卜
+                </button>
+                <button class="category-btn" onclick="filterCategory('爱情')">
+                    爱情关系
+                </button>
+                <button class="category-btn" onclick="filterCategory('事业')">
+                    事业发展
+                </button>
+                <button class="category-btn" onclick="filterCategory('决策')">
+                    决策指引
+                </button>
+                <button class="category-btn" onclick="filterCategory('个人成长')">
+                    个人成长
+                </button>
+            </div>
+            
+            <!-- 牌阵网格 -->
+            <div class="spreads-grid" id="spreadsGrid">
+                {% for spread in spreads %}
+                <div class="spread-card" data-category="{{ spread.category }}" data-spread-id="{{ spread.id }}" onclick="selectSpread('{{ spread.id }}')">
+                    <div class="selected-indicator">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    
+                    <div class="card-header">
+                        <h3 class="spread-name">{{ spread.name }}</h3>
+                        <div class="spread-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-clone"></i>
+                                <span>{{ spread.card_count }}张牌</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="difficulty-badge {{ spread.difficulty }}">
+                                    {{ spread.difficulty }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <p class="spread-description">{{ spread.description }}</p>
+                        <div class="positions-preview">
+                            {% for position in spread.positions[:3] %}
+                            <span class="position-tag">{{ position.name }}</span>
+                            {% endfor %}
+                            {% if spread.positions|length > 3 %}
+                            <span class="position-tag">+{{ spread.positions|length - 3 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 底部操作区 -->
+            <div class="action-section">
+                <div class="action-content">
+                    <!-- 问题输入 -->
+                    <div class="question-input-group">
+                        <label class="question-label">
+                            <i class="fas fa-question-circle"></i> 你想问什么？（选填）
+                        </label>
+                        <input type="text" 
+                               class="question-input" 
+                               id="questionInput"
+                               placeholder="描述你的问题或困惑..."
+                               maxlength="200">
+                        <div class="question-hint">留空将获得整体指引</div>
+                    </div>
+                    
+                    <!-- 人格选择 -->
+                    <div class="personality-selection">
+                        <label class="personality-label">
+                            <i class="fas fa-user-circle"></i> 选择你的解读师
+                        </label>
+                        <div class="personality-options">
+                            <div class="personality-option" data-personality="mystic" onclick="selectPersonality('mystic')">
+                                <div class="personality-icon">🌙</div>
+                                <div class="personality-name">神秘占卜师</div>
+                                <div class="personality-desc">深邃神秘</div>
+                            </div>
+                            <div class="personality-option selected" data-personality="wisdom" onclick="selectPersonality('wisdom')">
+                                <div class="personality-icon">📖</div>
+                                <div class="personality-name">智慧导师</div>
+                                <div class="personality-desc">理性清晰</div>
+                            </div>
+                            <div class="personality-option" data-personality="warm" onclick="selectPersonality('warm')">
+                                <div class="personality-icon">💖</div>
+                                <div class="personality-name">温暖陪伴者</div>
+                                <div class="personality-desc">温柔治愈</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 开始按钮 -->
+                    <button class="start-button" id="startButton" onclick="startDivination()" disabled>
+                        <i class="fas fa-magic"></i> 选择牌阵后开始占卜
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <!-- 无权限提示 -->
+            <div class="no-permission">
+                <div class="no-permission-icon">
+                    <i class="fas fa-moon"></i>
+                </div>
+                <p class="no-permission-text">
+                    今日占卜次数已用完，明天再来探索塔罗的奥秘吧
+                </p>
+                <a href="{{ url_for('index') }}" class="start-button">
+                    返回首页
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        let selectedSpread = null;
+        let selectedPersonality = 'wisdom';  // 默认选择智慧导师
+        
+        // 选择牌阵
+        function selectSpread(spreadId) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.spread-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            const selectedCard = document.querySelector(`[data-spread-id="${spreadId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                selectedSpread = spreadId;
+                
+                // 更新按钮状态
+                const button = document.getElementById('startButton');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+            }
+        }
+        
+        // 选择人格
+        function selectPersonality(personality) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.personality-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            const selectedOption = document.querySelector(`[data-personality="${personality}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+                selectedPersonality = personality;
+            }
+        }
+        
+        // 筛选分类
+        function filterCategory(category) {
+            // 更新按钮状态
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 显示/隐藏牌阵
+            document.querySelectorAll('.spread-card').forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // 开始占卜
+        async function startDivination() {
+            if (!selectedSpread) {
+                alert('请先选择一个牌阵');
+                return;
+            }
+            
+            const button = document.getElementById('startButton');
+            const question = document.getElementById('questionInput').value.trim();
+            
+            // 禁用按钮
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在准备占卜...';
+            
+            try {
+                const response = await fetch('/api/spread/draw', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        spread_id: selectedSpread,
+                        question: question,
+                        ai_personality: selectedPersonality
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 跳转到对话页面
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.error || '占卜失败，请稍后重试');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('网络错误，请稍后重试');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+            }
+        }
+        
+        // 回车提交
+        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && selectedSpread) {
+                startDivination();
+            }
+        });
+    </script>
+</body>
+</html>
