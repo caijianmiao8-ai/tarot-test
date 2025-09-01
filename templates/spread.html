@@ -16,252 +16,228 @@
             --accent-color: #6d4c67;
             --light-color: #f8f4e9;
             --dark-color: #333333;
-            --success-color: #5cb85c;
-            --warning-color: #f0ad4e;
-            --info-color: #5bc0de;
+            --success-color: #34c759;
+            --warning-color: #ff9500;
+            --info-color: #5ac8fa;
+            --card-bg: #ffffff;
+            --border-color: rgba(0,0,0,0.1);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+        }
+        
+        * {
+            box-sizing: border-box;
         }
         
         body {
-            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            padding-top: 80px;
+            background: #f2f2f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--dark-color);
+            -webkit-font-smoothing: antialiased;
         }
         
         /* 导航栏 */
         .navbar {
-            position: fixed;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 15px 0;
             z-index: 1000;
         }
         
         .navbar-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .back-link {
-            color: var(--accent-color);
+            color: var(--primary-color);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.3s;
+            font-size: 17px;
+            transition: opacity 0.2s;
         }
         
         .back-link:hover {
-            color: var(--primary-color);
-            transform: translateX(-3px);
+            opacity: 0.7;
         }
         
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            font-size: 15px;
         }
         
-        .user-icon {
-            width: 36px;
-            height: 36px;
+        .user-avatar {
+            width: 32px;
+            height: 32px;
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 14px;
         }
         
         /* 主容器 */
         .main-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 32px 20px 120px;
         }
         
         /* 标题区域 */
         .header-section {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 48px;
         }
         
         .page-title {
-            font-size: 2.5rem;
-            color: var(--accent-color);
-            margin-bottom: 10px;
+            font-size: 34px;
             font-weight: 700;
+            color: #1d1d1f;
+            margin: 0 0 8px;
+            letter-spacing: -0.5px;
         }
         
         .page-subtitle {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 30px;
+            font-size: 19px;
+            color: #86868b;
+            margin: 0 0 24px;
+            font-weight: 400;
         }
         
-        .remaining-info {
-            background: rgba(142, 108, 136, 0.1);
-            padding: 12px 24px;
-            border-radius: 25px;
-            display: inline-block;
-            color: var(--accent-color);
-            font-weight: 500;
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 15px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
         }
         
-        .remaining-count {
-            font-weight: 700;
+        .status-badge i {
             color: var(--primary-color);
         }
         
-        /* 分类筛选 */
+        .remaining-count {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        /* 分类筛选 - 横向滚动 */
+        .category-container {
+            margin-bottom: 32px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .category-container::-webkit-scrollbar {
+            display: none;
+        }
+        
         .category-filters {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
+            gap: 12px;
+            padding: 4px 0;
+            min-width: max-content;
         }
         
         .category-btn {
+            flex-shrink: 0;
             padding: 8px 20px;
-            border: 2px solid var(--secondary-color);
-            background: white;
-            border-radius: 25px;
-            color: var(--accent-color);
-            cursor: pointer;
-            transition: all 0.3s;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            color: #1d1d1f;
+            font-size: 15px;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
         
-        .category-btn:hover,
+        .category-btn:hover {
+            background: #f5f5f7;
+        }
+        
         .category-btn.active {
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
-            transform: translateY(-2px);
         }
         
         /* 牌阵网格 */
         .spreads-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
         }
         
         /* 牌阵卡片 */
         .spread-card {
-            background: white;
-            border-radius: 20px;
+            background: var(--card-bg);
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            transition: all 0.3s;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             cursor: pointer;
             position: relative;
+            border: 2px solid transparent;
         }
         
         .spread-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
         }
         
         .spread-card.selected {
-            border: 3px solid var(--primary-color);
-            transform: scale(1.02);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(142, 108, 136, 0.1);
+        }
+        
+        .card-content {
+            padding: 20px;
         }
         
         .card-header {
-            padding: 25px;
-            background: linear-gradient(135deg, rgba(142,108,136,0.05), rgba(109,76,103,0.05));
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
         }
         
         .spread-name {
-            font-size: 1.5rem;
+            font-size: 20px;
             font-weight: 600;
-            color: var(--accent-color);
-            margin-bottom: 10px;
+            color: #1d1d1f;
+            margin: 0;
+            letter-spacing: -0.3px;
         }
         
-        .spread-meta {
-            display: flex;
-            gap: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #666;
-        }
-        
-        .meta-item i {
-            color: var(--primary-color);
-        }
-        
-        .difficulty-badge {
-            padding: 3px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .difficulty-badge.简单 {
-            background: rgba(92, 184, 92, 0.1);
-            color: var(--success-color);
-        }
-        
-        .difficulty-badge.中等 {
-            background: rgba(240, 173, 78, 0.1);
-            color: var(--warning-color);
-        }
-        
-        .difficulty-badge.复杂 {
-            background: rgba(91, 192, 222, 0.1);
-            color: var(--info-color);
-        }
-        
-        .card-body {
-            padding: 25px;
-        }
-        
-        .spread-description {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        
-        .positions-preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .position-tag {
-            background: var(--light-color);
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            color: var(--accent-color);
-        }
-        
-        /* 选中标记 */
-        .selected-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 30px;
-            height: 30px;
+        .selected-check {
+            width: 24px;
+            height: 24px;
             background: var(--primary-color);
             border-radius: 50%;
             display: flex;
@@ -270,163 +246,253 @@
             color: white;
             opacity: 0;
             transform: scale(0);
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
         
-        .spread-card.selected .selected-indicator {
+        .spread-card.selected .selected-check {
             opacity: 1;
             transform: scale(1);
         }
         
-        /* 底部操作区 */
-        .action-section {
-            position: sticky;
-            bottom: 0;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            padding: 30px 20px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            margin: 0 -20px -20px;
+        .spread-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #86868b;
         }
         
-        .action-content {
-            max-width: 800px;
-            margin: 0 auto;
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .difficulty-badge {
+            padding: 2px 8px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .difficulty-badge.简单 {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--success-color);
+        }
+        
+        .difficulty-badge.中等 {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--warning-color);
+        }
+        
+        .difficulty-badge.复杂 {
+            background: rgba(90, 200, 250, 0.15);
+            color: var(--info-color);
+        }
+        
+        .spread-description {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #3a3a3c;
+            margin-bottom: 16px;
+        }
+        
+        .positions-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .position-tag {
+            background: #f5f5f7;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: #1d1d1f;
+        }
+        
+        /* 浮动操作面板 */
+        .floating-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            max-width: 600px;
+            width: calc(100% - 40px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .floating-panel.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .panel-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .close-panel {
+            width: 28px;
+            height: 28px;
+            background: #f5f5f7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            color: #86868b;
+        }
+        
+        .close-panel:hover {
+            background: #e5e5e7;
         }
         
         /* 问题输入 */
-        .question-input-group {
-            margin-bottom: 25px;
+        .input-group {
+            margin-bottom: 20px;
         }
         
-        .question-label {
+        .input-label {
+            font-size: 13px;
+            color: #86868b;
+            margin-bottom: 8px;
             display: block;
-            color: var(--accent-color);
-            font-weight: 500;
-            margin-bottom: 10px;
         }
         
-        .question-input {
+        .text-input {
             width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            font-size: 1rem;
-            transition: all 0.3s;
+            padding: 12px 16px;
+            background: #f5f5f7;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+            -webkit-appearance: none;
         }
         
-        .question-input:focus {
+        .text-input:focus {
             outline: none;
+            background: white;
             border-color: var(--primary-color);
-        }
-        
-        .question-hint {
-            font-size: 0.85rem;
-            color: #999;
-            margin-top: 5px;
         }
         
         /* 人格选择 */
-        .personality-selection {
-            margin-bottom: 25px;
+        .personality-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
         }
         
-        .personality-label {
-            display: block;
-            color: var(--accent-color);
-            font-weight: 500;
-            margin-bottom: 15px;
+        .personality-card {
+            background: #f5f5f7;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px;
             text-align: center;
-        }
-        
-        .personality-options {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-        }
-        
-        .personality-option {
-            flex: 1;
-            max-width: 200px;
-            padding: 15px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
             cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
+            transition: all 0.2s;
         }
         
-        .personality-option:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
+        .personality-card:hover {
+            background: white;
+            border-color: #e5e5e7;
         }
         
-        .personality-option.selected {
-            background: var(--primary-color);
-            color: white;
+        .personality-card.selected {
+            background: white;
             border-color: var(--primary-color);
         }
         
-        .personality-icon {
-            font-size: 2rem;
+        .personality-emoji {
+            font-size: 32px;
             margin-bottom: 8px;
         }
         
         .personality-name {
+            font-size: 14px;
             font-weight: 600;
+            color: #1d1d1f;
             margin-bottom: 4px;
         }
         
-        .personality-desc {
-            font-size: 0.85rem;
-            opacity: 0.8;
+        .personality-trait {
+            font-size: 12px;
+            color: #86868b;
         }
         
-        /* 开始按钮 */
-        .start-button {
-            display: block;
+        /* 操作按钮 */
+        .action-button {
             width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 18px 40px;
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            padding: 14px 32px;
+            background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 50px;
-            font-size: 1.2rem;
+            border-radius: 12px;
+            font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 8px 20px rgba(142,108,136,0.3);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
-        .start-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 25px rgba(142,108,136,0.4);
+        .action-button:hover:not(:disabled) {
+            background: var(--accent-color);
         }
         
-        .start-button:disabled {
-            opacity: 0.6;
+        .action-button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
         
         /* 无权限提示 */
-        .no-permission {
+        .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
         }
         
-        .no-permission-icon {
-            font-size: 4rem;
-            color: var(--warning-color);
+        .empty-icon {
+            font-size: 48px;
+            color: #c7c7cc;
             margin-bottom: 20px;
         }
         
-        .no-permission-text {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 30px;
+        .empty-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+        
+        .empty-desc {
+            font-size: 17px;
+            color: #86868b;
+            margin-bottom: 24px;
         }
         
         /* 响应式 */
@@ -435,91 +501,115 @@
                 grid-template-columns: 1fr;
             }
             
-            .personality-options {
-                flex-direction: column;
-                align-items: center;
+            .personality-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
             }
             
-            .category-filters {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                justify-content: flex-start;
+            .personality-card {
+                display: flex;
+                align-items: center;
+                text-align: left;
+                padding: 12px 16px;
+            }
+            
+            .personality-emoji {
+                font-size: 24px;
+                margin-bottom: 0;
+                margin-right: 12px;
+            }
+            
+            .page-title {
+                font-size: 28px;
+            }
+            
+            .page-subtitle {
+                font-size: 17px;
             }
         }
     </style>
 </head>
 <body>
     <!-- 导航栏 -->
-    <div class="navbar">
+    <nav class="navbar">
         <div class="navbar-content">
             <a href="{{ url_for('index') }}" class="back-link">
-                <i class="fas fa-arrow-left"></i>
-                <span>返回首页</span>
+                <i class="fas fa-chevron-left"></i>
+                <span>返回</span>
             </a>
             
             <div class="user-info">
-                <span>{{ user.username if not user.is_guest else "神秘访客" }}</span>
-                <div class="user-icon">
+                <span>{{ user.username if not user.is_guest else "访客" }}</span>
+                <div class="user-avatar">
                     {% if not user.is_guest %}
                         {{ user.username[0]|upper }}
                     {% else %}
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user" style="font-size: 16px;"></i>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
+    </nav>
     
     <!-- 主容器 -->
     <div class="main-container">
         {% if can_divine %}
             <!-- 标题区域 -->
             <div class="header-section">
-                <h1 class="page-title">
-                    <i class="fas fa-layer-group"></i> 塔罗牌阵占卜
-                </h1>
+                <h1 class="page-title">塔罗牌阵占卜</h1>
                 <p class="page-subtitle">选择适合你的牌阵，深入探索问题的答案</p>
-                <div class="remaining-info">
+                <div class="status-badge">
                     <i class="fas fa-sparkles"></i>
-                    今日剩余占卜次数：<span class="remaining-count">{{ remaining_divinations }}</span>
+                    <span>今日剩余 <span class="remaining-count">{{ remaining_divinations }}</span> 次</span>
                 </div>
             </div>
             
             <!-- 分类筛选 -->
-            <div class="category-filters">
-                <button class="category-btn active" onclick="filterCategory('all')">
-                    全部牌阵
-                </button>
-                <button class="category-btn" onclick="filterCategory('通用')">
-                    通用占卜
-                </button>
-                <button class="category-btn" onclick="filterCategory('爱情')">
-                    爱情关系
-                </button>
-                <button class="category-btn" onclick="filterCategory('事业')">
-                    事业发展
-                </button>
-                <button class="category-btn" onclick="filterCategory('决策')">
-                    决策指引
-                </button>
-                <button class="category-btn" onclick="filterCategory('个人成长')">
-                    个人成长
-                </button>
+            <div class="category-container">
+                <div class="category-filters">
+                    <button class="category-btn active" onclick="filterCategory('all', event)">
+                        全部
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('通用', event)">
+                        通用占卜
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('爱情', event)">
+                        爱情关系
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('事业', event)">
+                        事业发展
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('决策', event)">
+                        决策指引
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('个人成长', event)">
+                        个人成长
+                    </button>
+                    <button class="category-btn" onclick="filterCategory('财富', event)">
+                        财富金钱
+                    </button>
+                </div>
             </div>
             
             <!-- 牌阵网格 -->
             <div class="spreads-grid" id="spreadsGrid">
                 {% for spread in spreads %}
-                <div class="spread-card" data-category="{{ spread.category }}" data-spread-id="{{ spread.id }}" onclick="selectSpread('{{ spread.id }}')">
-                    <div class="selected-indicator">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    
-                    <div class="card-header">
-                        <h3 class="spread-name">{{ spread.name }}</h3>
+                <div class="spread-card" 
+                     data-category="{{ spread.category }}" 
+                     data-spread-id="{{ spread.id }}"
+                     data-spread-name="{{ spread.name }}"
+                     onclick="selectSpread('{{ spread.id }}', '{{ spread.name }}')">
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h3 class="spread-name">{{ spread.name }}</h3>
+                            <div class="selected-check">
+                                <i class="fas fa-check" style="font-size: 14px;"></i>
+                            </div>
+                        </div>
+                        
                         <div class="spread-meta">
                             <div class="meta-item">
-                                <i class="fas fa-clone"></i>
+                                <i class="fas fa-layer-group" style="font-size: 12px;"></i>
                                 <span>{{ spread.card_count }}张牌</span>
                             </div>
                             <div class="meta-item">
@@ -528,16 +618,15 @@
                                 </span>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="card-body">
+                        
                         <p class="spread-description">{{ spread.description }}</p>
+                        
                         <div class="positions-preview">
-                            {% for position in spread.positions[:3] %}
+                            {% for position in spread.positions[:4] %}
                             <span class="position-tag">{{ position.name }}</span>
                             {% endfor %}
-                            {% if spread.positions|length > 3 %}
-                            <span class="position-tag">+{{ spread.positions|length - 3 }}</span>
+                            {% if spread.positions|length > 4 %}
+                            <span class="position-tag">+{{ spread.positions|length - 4 }}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -545,116 +634,154 @@
                 {% endfor %}
             </div>
             
-            <!-- 底部操作区 -->
-            <div class="action-section">
-                <div class="action-content">
-                    <!-- 问题输入 -->
-                    <div class="question-input-group">
-                        <label class="question-label">
-                            <i class="fas fa-question-circle"></i> 你想问什么？（选填）
-                        </label>
-                        <input type="text" 
-                               class="question-input" 
-                               id="questionInput"
-                               placeholder="描述你的问题或困惑..."
-                               maxlength="200">
-                        <div class="question-hint">留空将获得整体指引</div>
-                    </div>
-                    
-                    <!-- 人格选择 -->
-                    <div class="personality-selection">
-                        <label class="personality-label">
-                            <i class="fas fa-user-circle"></i> 选择你的解读师
-                        </label>
-                        <div class="personality-options">
-                            <div class="personality-option" data-personality="mystic" onclick="selectPersonality('mystic')">
-                                <div class="personality-icon">🌙</div>
-                                <div class="personality-name">神秘占卜师</div>
-                                <div class="personality-desc">深邃神秘</div>
+            <!-- 浮动操作面板 -->
+            <div class="floating-panel" id="floatingPanel">
+                <div class="panel-header">
+                    <h3 class="panel-title" id="selectedSpreadName">选择的牌阵</h3>
+                    <button class="close-panel" onclick="closePanel()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- 问题输入 -->
+                <div class="input-group">
+                    <label class="input-label">你的问题（选填）</label>
+                    <input type="text" 
+                           class="text-input" 
+                           id="questionInput"
+                           placeholder="描述你想探索的问题..."
+                           maxlength="200">
+                </div>
+                
+                <!-- 人格选择 -->
+                <div class="input-group">
+                    <label class="input-label">选择解读风格</label>
+                    <div class="personality-grid">
+                        <div class="personality-card" 
+                             data-personality="mystic" 
+                             onclick="selectPersonality('mystic')">
+                            <div>
+                                <div class="personality-emoji">🔮</div>
+                                <div class="personality-name">神秘</div>
+                                <div class="personality-trait">深邃直觉</div>
                             </div>
-                            <div class="personality-option selected" data-personality="wisdom" onclick="selectPersonality('wisdom')">
-                                <div class="personality-icon">📖</div>
-                                <div class="personality-name">智慧导师</div>
-                                <div class="personality-desc">理性清晰</div>
+                        </div>
+                        <div class="personality-card selected" 
+                             data-personality="wisdom" 
+                             onclick="selectPersonality('wisdom')">
+                            <div>
+                                <div class="personality-emoji">📚</div>
+                                <div class="personality-name">智慧</div>
+                                <div class="personality-trait">理性分析</div>
                             </div>
-                            <div class="personality-option" data-personality="warm" onclick="selectPersonality('warm')">
-                                <div class="personality-icon">💖</div>
-                                <div class="personality-name">温暖陪伴者</div>
-                                <div class="personality-desc">温柔治愈</div>
+                        </div>
+                        <div class="personality-card" 
+                             data-personality="warm" 
+                             onclick="selectPersonality('warm')">
+                            <div>
+                                <div class="personality-emoji">💝</div>
+                                <div class="personality-name">温暖</div>
+                                <div class="personality-trait">贴心陪伴</div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- 开始按钮 -->
-                    <button class="start-button" id="startButton" onclick="startDivination()" disabled>
-                        <i class="fas fa-magic"></i> 选择牌阵后开始占卜
-                    </button>
                 </div>
+                
+                <!-- 开始按钮 -->
+                <button class="action-button" id="startButton" onclick="startDivination()">
+                    <i class="fas fa-sparkles"></i>
+                    <span>开始占卜</span>
+                </button>
             </div>
         {% else %}
             <!-- 无权限提示 -->
-            <div class="no-permission">
-                <div class="no-permission-icon">
+            <div class="empty-state">
+                <div class="empty-icon">
                     <i class="fas fa-moon"></i>
                 </div>
-                <p class="no-permission-text">
-                    今日占卜次数已用完，明天再来探索塔罗的奥秘吧
-                </p>
-                <a href="{{ url_for('index') }}" class="start-button">
+                <h2 class="empty-title">今日占卜次数已用完</h2>
+                <p class="empty-desc">明天再来探索塔罗的奥秘吧</p>
+                <button class="action-button" onclick="window.location.href='{{ url_for('index') }}'">
                     返回首页
-                </a>
+                </button>
             </div>
         {% endif %}
     </div>
     
     <script>
         let selectedSpread = null;
-        let selectedPersonality = 'wisdom';  // 默认选择智慧导师
+        let selectedSpreadName = '';
+        let selectedPersonality = 'wisdom';
         
         // 选择牌阵
-        function selectSpread(spreadId) {
+        function selectSpread(spreadId, spreadName) {
             // 移除之前的选中状态
             document.querySelectorAll('.spread-card').forEach(card => {
                 card.classList.remove('selected');
             });
             
-            // 添加新的选中状态
+            // 添加选中状态
             const selectedCard = document.querySelector(`[data-spread-id="${spreadId}"]`);
             if (selectedCard) {
                 selectedCard.classList.add('selected');
                 selectedSpread = spreadId;
+                selectedSpreadName = spreadName;
                 
-                // 更新按钮状态
-                const button = document.getElementById('startButton');
-                button.disabled = false;
-                button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+                // 显示浮动面板
+                showPanel();
             }
+        }
+        
+        // 显示浮动面板
+        function showPanel() {
+            const panel = document.getElementById('floatingPanel');
+            const nameElement = document.getElementById('selectedSpreadName');
+            
+            nameElement.textContent = selectedSpreadName;
+            panel.classList.add('show');
+            
+            // 聚焦到输入框
+            setTimeout(() => {
+                document.getElementById('questionInput').focus();
+            }, 300);
+        }
+        
+        // 关闭面板
+        function closePanel() {
+            const panel = document.getElementById('floatingPanel');
+            panel.classList.remove('show');
+            
+            // 清除选中状态
+            document.querySelectorAll('.spread-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            selectedSpread = null;
+            selectedSpreadName = '';
         }
         
         // 选择人格
         function selectPersonality(personality) {
-            // 移除之前的选中状态
-            document.querySelectorAll('.personality-option').forEach(option => {
-                option.classList.remove('selected');
+            document.querySelectorAll('.personality-card').forEach(card => {
+                card.classList.remove('selected');
             });
             
-            // 添加新的选中状态
-            const selectedOption = document.querySelector(`[data-personality="${personality}"]`);
-            if (selectedOption) {
-                selectedOption.classList.add('selected');
+            const selectedCard = document.querySelector(`[data-personality="${personality}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
                 selectedPersonality = personality;
             }
         }
         
         // 筛选分类
-        function filterCategory(category) {
+        function filterCategory(category, event) {
             // 更新按钮状态
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
-            // 显示/隐藏牌阵
+            // 筛选牌阵
             document.querySelectorAll('.spread-card').forEach(card => {
                 if (category === 'all' || card.dataset.category === category) {
                     card.style.display = 'block';
@@ -662,21 +789,21 @@
                     card.style.display = 'none';
                 }
             });
+            
+            // 关闭浮动面板
+            closePanel();
         }
         
         // 开始占卜
         async function startDivination() {
-            if (!selectedSpread) {
-                alert('请先选择一个牌阵');
-                return;
-            }
+            if (!selectedSpread) return;
             
             const button = document.getElementById('startButton');
             const question = document.getElementById('questionInput').value.trim();
             
-            // 禁用按钮
+            // 更新按钮状态
             button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在准备占卜...';
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>准备中...</span>';
             
             try {
                 const response = await fetch('/api/spread/draw', {
@@ -694,23 +821,33 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 跳转到对话页面
                     window.location.href = data.redirect;
                 } else {
                     alert(data.error || '占卜失败，请稍后重试');
                     button.disabled = false;
-                    button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+                    button.innerHTML = '<i class="fas fa-sparkles"></i> <span>开始占卜</span>';
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('网络错误，请稍后重试');
                 button.disabled = false;
-                button.innerHTML = '<i class="fas fa-magic"></i> 开始占卜';
+                button.innerHTML = '<i class="fas fa-sparkles"></i> <span>开始占卜</span>';
             }
         }
         
+        // 点击外部关闭面板
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('floatingPanel');
+            const isClickInside = panel.contains(event.target) || 
+                                  event.target.closest('.spread-card');
+            
+            if (!isClickInside && panel.classList.contains('show')) {
+                closePanel();
+            }
+        });
+        
         // 回车提交
-        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+        document.getElementById('questionInput')?.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && selectedSpread) {
                 startDivination();
             }
