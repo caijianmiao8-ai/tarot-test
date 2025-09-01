@@ -1332,12 +1332,12 @@ class SpreadService:
     def perform_divination(user_ref, session_id, spread_id, question, ai_personality='warm'):
         """执行牌阵占卜"""
         import uuid
-
+        print("[Draw] begin perform_divination", user_ref, session_id, spread_id)
         # 从数据库获取牌阵配置
         spread_config = SpreadDAO.get_spread_by_id(spread_id)
         if not spread_config:
             raise ValueError(f"Invalid spread_id: {spread_id}")
-
+        print("[Draw] spread_config loaded:", bool(spread_config))
         # 解析位置信息（兼容 str / list / dict）
         positions_raw = spread_config.get('positions')
         if isinstance(positions_raw, str):
@@ -1374,6 +1374,7 @@ class SpreadService:
                 'meaning_up': card.get('meaning_up'),
                 'meaning_rev': card.get('meaning_rev')
             })
+        print("[Draw] cards_data len:", len(cards_data))    
 
         # 创建占卜记录
         today = DateTimeService.get_beijing_date()
@@ -1385,30 +1386,39 @@ class SpreadService:
             'cards': cards_data,
             'question': question,
             'ai_personality': ai_personality,
-            'date': str(today)
+            'date': today
         }
 
-        # 保存到数据库
-        reading = SpreadDAO.create(reading_data)
+        try:
+            reading = SpreadDAO.create(reading_data)
+            print("[Draw] DB insert ok, reading_id:", reading['id'])
+        except Exception as e:
+            import traceback
+            print("[Draw][DB ERROR]", e)
+            traceback.print_exc()
+            raise  # 让上层捕获并返回 500
 
-        # 生成初始解读
-        initial_interpretation = SpreadService.generate_initial_interpretation(
-            reading['id'],
-            ai_personality
-        )
+        try:
+            print("[Draw] gen initial interpretation start")
+            initial = SpreadService.generate_initial_interpretation(reading['id'], ai_personality)
+            print("[Draw] gen initial interpretation ok, conv_id:", initial.get('conversation_id'))
+        except Exception as e:
+            import traceback
+            print("[Draw][GEN ERROR]", e)
+            traceback.print_exc()
+            # 不 raise 也行，但建议抛给上层，前端能看到明确错误
+            raise
 
         return reading
 
-    
-    @staticmethod
+    @staticmethod    
     def generate_initial_interpretation(reading_id, ai_personality):
-        """生成初始牌阵解读（开始新的 Dify 会话）"""
+        print("[Init] start, reading_id:", reading_id)
         reading = SpreadDAO.get_by_id(reading_id)
-        if not reading:
-            raise ValueError(f"Reading not found: {reading_id}")
+        print("[Init] reading loaded:", bool(reading))
 
-        # 从数据库获取牌阵配置
         spread_config = SpreadDAO.get_spread_by_id(reading['spread_id'])
+        print("[Init] spread loaded:", bool(spread_config))
 
         # 解析位置信息
         positions_raw = spread_config.get('positions')
@@ -1444,6 +1454,7 @@ class SpreadService:
         print(f"Spread Description: {spread_config['description']}")
         print("Cards Desc:", json.dumps(cards_desc, ensure_ascii=False, indent=2))
 
+        print("[Init] calling DifyService.spread_initial_reading ...")
         # 调用 Dify，开始新会话
         response = DifyService.spread_initial_reading(
             spread_name=spread_config['name'],
@@ -1453,7 +1464,8 @@ class SpreadService:
             user_ref=reading['user_id'],
             ai_personality=ai_personality
         )
-
+        print("[Init] Dify returned, conv_id:", response.get("conversation_id"))
+        
         # 保存初始解读和 conversation_id
         SpreadDAO.update_initial_interpretation(reading_id, response['answer'])
         if response.get('conversation_id'):

@@ -121,21 +121,9 @@ class SpreadDAO:
                     spread['positions'] = _normalize_json_list(spread.get('positions'))
                 return spread
 
+    
     @staticmethod
     def create(reading_data):
-        """
-        创建占卜记录
-        方案A：service 传 Python 对象（list/dict），这里用 Json() 统一序列化入库（JSON/JSONB 列均可）
-        """
-        cards_val = reading_data.get('cards')
-        if isinstance(cards_val, str):
-            # 如果误传了字符串，尽力解析成 Python 对象再包 Json，保持一致性
-            try:
-                cards_val = json.loads(cards_val)
-            except Exception:
-                # 实在不行，按原字符串存（也能入 JSONB，但语义不一致，尽量避免）
-                pass
-
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -147,7 +135,8 @@ class SpreadDAO:
                     RETURNING *
                 """, {
                     **reading_data,
-                    'cards': Json(cards_val) if not isinstance(cards_val, str) else cards_val
+                    # 关键：把 Python list/dict 用 Json() 包一下
+                    'cards': Json(reading_data.get('cards'))
                 })
                 reading = cursor.fetchone()
                 conn.commit()
