@@ -1360,10 +1360,10 @@ class SpreadService:
             'user_id': user_ref,
             'session_id': session_id,
             'spread_id': spread_id,
-            'cards': cards_data,
+            'cards': json.dumps(cards_data, ensure_ascii=False),
             'question': question,
             'ai_personality': ai_personality,
-            'date': today
+            'date': str(today)
         }
         
         # 保存到数据库
