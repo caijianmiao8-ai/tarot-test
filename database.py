@@ -8,6 +8,31 @@ from contextlib import contextmanager
 from config import Config
 import json
 import traceback
+from psycopg2.extras import Json
+
+def _normalize_json_list(val):
+    """把 val 归一化为 list，用于 JSON/JSONB/TEXT 混存的字段"""
+    if val is None:
+        return []
+    if isinstance(val, (list, tuple)):
+        return list(val)
+    if isinstance(val, dict):
+        return [val]
+    if isinstance(val, (bytes, bytearray)):
+        try:
+            return json.loads(val.decode("utf-8"))
+        except Exception:
+            return []
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return []
+        try:
+            parsed = json.loads(s)
+            return _normalize_json_list(parsed)
+        except Exception:
+            return []
+    return []
 
 class DatabaseManager:
     """数据库管理器"""
@@ -67,40 +92,33 @@ class SpreadDAO:
     
     @staticmethod
     def get_all_spreads():
-        """获取所有可用牌阵"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT * FROM spreads 
+                    SELECT id, name, description, card_count, positions, category, difficulty
+                    FROM spreads 
                     ORDER BY difficulty, card_count
                 """)
                 spreads = cursor.fetchall()
-                
-                # 解析 JSON 字段
                 for spread in spreads:
-                    if spread.get('positions'):
-                        spread['positions'] = json.loads(spread['positions'])
-                
+                    spread['positions'] = _normalize_json_list(spread.get('positions'))
                 return spreads
-    
+
     @staticmethod
     def get_spread_by_id(spread_id):
-        """根据ID获取牌阵配置"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT * FROM spreads WHERE id = %s
+                    SELECT id, name, description, card_count, positions, category, difficulty
+                    FROM spreads WHERE id = %s
                 """, (spread_id,))
                 spread = cursor.fetchone()
-                
-                if spread and spread.get('positions'):
-                    spread['positions'] = json.loads(spread['positions'])
-                
+                if spread:
+                    spread['positions'] = _normalize_json_list(spread.get('positions'))
                 return spread
     
     @staticmethod
     def create(reading_data):
-        """创建占卜记录"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -110,10 +128,15 @@ class SpreadDAO:
                     VALUES (%(id)s, %(user_id)s, %(session_id)s, %(spread_id)s, 
                             %(cards)s, %(question)s, %(ai_personality)s, %(date)s)
                     RETURNING *
-                """, reading_data)
+                """, {
+                    **reading_data,
+                    # 如果 reading_data['cards'] 是 Python list/dict，就用 Json 包一下：
+                    'cards': Json(reading_data.get('cards'))
+                })
                 reading = cursor.fetchone()
                 conn.commit()
                 return reading
+
     
     @staticmethod
     def get_by_id(reading_id):
@@ -212,7 +235,7 @@ class SpreadDAO:
         """增加对话使用次数（可选，如果需要单独统计）"""
         # 由于消息已经保存，这个方法可能不需要
         pass
-        
+
 class ChatDAO:
     @staticmethod
     def create_session(session_data):
