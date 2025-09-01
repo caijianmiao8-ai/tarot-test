@@ -68,11 +68,14 @@ class ChatDAO:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO chat_sessions 
-                    (user_id, session_id, card_id, card_name, card_direction, date)
+                    (user_id, session_id, card_id, card_name, card_direction, date, ai_personality)
                     VALUES (%(user_id)s, %(session_id)s, %(card_id)s, %(card_name)s, 
-                            %(card_direction)s, %(date)s)
+                            %(card_direction)s, %(date)s, %(ai_personality)s)
                     RETURNING *
-                """, session_data)
+                """, {
+                    **session_data,
+                    'ai_personality': session_data.get('ai_personality', 'warm')  # 默认值为 'warm'
+                })
                 session = cursor.fetchone()
                 conn.commit()
                 return session

@@ -203,7 +203,7 @@ class ChatService:
         return usage < limit, limit - usage
 
     @staticmethod
-    def create_or_get_session(user_ref, session_id, card_info, date):
+    def create_or_get_session(user_ref, session_id, card_info, date, ai_personality=None):
         """创建或获取聊天会话"""
         # 先查找现有会话
         existing = ChatDAO.get_session_by_date(user_ref, session_id, date)
@@ -217,7 +217,8 @@ class ChatService:
             'card_id': card_info.get('card_id'),
             'card_name': card_info.get('name'),
             'card_direction': card_info.get('direction'),
-            'date': date
+            'date': date,
+            'ai_personality': ai_personality
         }
         return ChatDAO.create_session(session_data)
 
@@ -246,7 +247,7 @@ class ChatService:
 
 
     @staticmethod
-    def process_message(session_id, user_message, user_ref, conversation_id=None):
+    def process_message(session_id, user_message, user_ref, conversation_id=None, ai_personality=None):
         """处理用户消息并返回 AI 回复，同时保证 conversation_id 持久化"""
         if not user_ref:
             raise ValueError("必须传入 user_ref（用户唯一标识）")
@@ -276,11 +277,15 @@ class ChatService:
 
         # 构建上下文并调用 AI
         context = ChatService.build_context(chat_session, messages)
+
+        personality = ai_personality or chat_session.get('ai_personality', 'warm')
+
         ai_response = DifyService.chat_tarot(
             user_message,
             context,
             user_ref=user_ref,
-            conversation_id=conversation_id or chat_session.get('conversation_id')
+            conversation_id=conversation_id or chat_session.get('conversation_id'),
+            ai_personality=personality
         )
 
         # 提取 AI 返回的 conversation_id
@@ -415,7 +420,7 @@ class DifyService:
 
 
     @staticmethod
-    def chat_tarot(user_message, context, user_ref=None, conversation_id=None):
+    def chat_tarot(user_message, context, user_ref=None, conversation_id=None, ai_personality='warm'):
         """
         塔罗对话逻辑（Dify 会话管理）
         改进：
@@ -437,7 +442,8 @@ class DifyService:
             "inputs": {
                 "card_name": context['card_name'],
                 "card_direction": context['card_direction'],
-                "history": context['messages']
+                "history": context['messages'],
+                "ai_personality": ai_personality
             },
             "query": user_message,
             "response_mode": "blocking"

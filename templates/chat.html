@@ -140,6 +140,118 @@
             background: rgba(142, 108, 136, 0.5);
         }
         
+        /* 人格选择界面 */
+        .personality-selection {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .personality-title {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .personality-subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        
+        .personality-cards {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .personality-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 25px;
+            width: 220px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+        
+        .personality-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: var(--primary-color);
+        }
+        
+        .personality-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+            height: 60px;
+        }
+        
+        .personality-card.mystic .personality-icon {
+            background: linear-gradient(135deg, #8e6c88, #6d4c67);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .personality-card.wisdom .personality-icon {
+            background: linear-gradient(135deg, #4a6fa5, #2e4578);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .personality-card.warm .personality-icon {
+            background: linear-gradient(135deg, #d4a574, #b8956a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .personality-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+        
+        .personality-desc {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .personality-traits {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .trait-tag {
+            background: var(--light-color);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: var(--accent-color);
+        }
+        
         /* 欢迎消息 */
         .welcome-message {
             text-align: center;
@@ -472,6 +584,15 @@
             .messages-area {
                 padding: 15px;
             }
+            
+            .personality-cards {
+                gap: 20px;
+            }
+            
+            .personality-card {
+                width: 100%;
+                max-width: 300px;
+            }
         }
     </style>
 </head>
@@ -512,6 +633,59 @@
                 <div>正在准备您的专属解读空间...</div>
             </div>
             
+            <!-- 人格选择界面 -->
+            <div class="personality-selection" id="personality-selection">
+                <h2 class="personality-title">选择您的塔罗解读师</h2>
+                <p class="personality-subtitle">每位解读师都有独特的风格，选择最适合您的那一位</p>
+                
+                <div class="personality-cards">
+                    <div class="personality-card mystic" onclick="selectPersonality('mystic')">
+                        <span class="personality-icon">
+                            <i class="fas fa-moon"></i>
+                        </span>
+                        <h3 class="personality-name">神秘占卜师</h3>
+                        <p class="personality-desc">
+                            深谙古老智慧，用神秘的语言解读命运的轨迹
+                        </p>
+                        <div class="personality-traits">
+                            <span class="trait-tag">深邃</span>
+                            <span class="trait-tag">神秘</span>
+                            <span class="trait-tag">直觉</span>
+                        </div>
+                    </div>
+                    
+                    <div class="personality-card wisdom" onclick="selectPersonality('wisdom')">
+                        <span class="personality-icon">
+                            <i class="fas fa-book"></i>
+                        </span>
+                        <h3 class="personality-name">智慧导师</h3>
+                        <p class="personality-desc">
+                            理性分析每张牌的含义，给出实用的人生建议
+                        </p>
+                        <div class="personality-traits">
+                            <span class="trait-tag">理性</span>
+                            <span class="trait-tag">清晰</span>
+                            <span class="trait-tag">实用</span>
+                        </div>
+                    </div>
+                    
+                    <div class="personality-card warm" onclick="selectPersonality('warm')">
+                        <span class="personality-icon">
+                            <i class="fas fa-heart"></i>
+                        </span>
+                        <h3 class="personality-name">温暖陪伴者</h3>
+                        <p class="personality-desc">
+                            像朋友般倾听你的故事，用温暖的话语治愈心灵
+                        </p>
+                        <div class="personality-traits">
+                            <span class="trait-tag">温暖</span>
+                            <span class="trait-tag">共情</span>
+                            <span class="trait-tag">治愈</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- 欢迎消息 -->
             <div class="welcome-message" id="welcome-message" style="display: none;">
                 <div class="welcome-icon">
@@ -538,7 +712,7 @@
         <!-- 输入区域 -->
         <div class="input-area">
             {% if can_chat %}
-                <div class="input-container">
+                <div class="input-container" id="input-container" style="display: none;">
                     <textarea 
                         class="message-input" 
                         id="message-input" 
@@ -565,6 +739,8 @@
         let remainingChats = {{ remaining_chats }};
         const hasHistory = {{ has_history|tojson }};
         const serverMessages = {{ messages|tojson }};
+        let selectedPersonality = null;
+        let aiPersonality = {{ ai_personality|tojson }} || null;
         
         // 格式化 AI 消息
         function formatAIMessage(content) {
@@ -648,12 +824,20 @@
             
             // 如果有历史消息，显示它们
             if (hasHistory && serverMessages.length > 0) {
+                // 有历史记录，直接显示消息
                 serverMessages.forEach(msg => {
                     appendMessage(msg.role, msg.content, false);
                 });
-            } else {
-                // 显示欢迎消息
+                // 显示输入框
+                document.getElementById('input-container').style.display = 'flex';
+            } else if (aiPersonality) {
+                // 已经选择过人格，显示欢迎消息
+                selectedPersonality = aiPersonality;
                 document.getElementById('welcome-message').style.display = 'block';
+                document.getElementById('input-container').style.display = 'flex';
+            } else {
+                // 首次对话，显示人格选择
+                document.getElementById('personality-selection').style.display = 'block';
             }
             
             // 如果没有 session_id，初始化一个
@@ -662,20 +846,50 @@
             }
         }
         
+        // 选择人格
+        function selectPersonality(personality) {
+            selectedPersonality = personality;
+            
+            // 隐藏选择界面
+            document.getElementById('personality-selection').style.display = 'none';
+            
+            // 显示加载
+            document.getElementById('loading-skeleton').style.display = 'block';
+            
+            // 初始化会话（带人格参数）
+            initSession(personality);
+        }
+        
         // 初始化会话
-        async function initSession() {
+        async function initSession(personality = null) {
             try {
-                const response = await fetch('/api/chat/init', {
+                const payload = {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        ai_personality: personality || selectedPersonality
+                    })
+                };
+                
+                const response = await fetch('/api/chat/init', payload);
                 
                 if (response.ok) {
                     const data = await response.json();
                     sessionId = data.session_id;
+                    
+                    // 如果是选择人格后的初始化
+                    if (personality) {
+                        // 隐藏加载
+                        document.getElementById('loading-skeleton').style.display = 'none';
+                        // 显示欢迎消息
+                        document.getElementById('welcome-message').style.display = 'block';
+                        // 显示输入框
+                        document.getElementById('input-container').style.display = 'flex';
+                    }
                 }
             } catch (error) {
                 console.error('Init session failed:', error);
+                document.getElementById('loading-skeleton').style.display = 'none';
             }
         }
         
@@ -707,7 +921,8 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         message: message,
-                        session_id: sessionId
+                        session_id: sessionId,
+                        ai_personality: selectedPersonality
                     })
                 });
                 
@@ -756,9 +971,19 @@
             
             const avatarDiv = document.createElement('div');
             avatarDiv.className = 'message-avatar';
-            avatarDiv.innerHTML = role === 'user' ? 
-                '<i class="fas fa-user"></i>' : 
-                '<i class="fas fa-moon"></i>';
+            
+            // 根据人格和角色设置头像
+            if (role === 'user') {
+                avatarDiv.innerHTML = '<i class="fas fa-user"></i>';
+            } else {
+                // 根据选择的人格使用不同的图标
+                const icons = {
+                    'mystic': '<i class="fas fa-moon"></i>',
+                    'wisdom': '<i class="fas fa-book"></i>',
+                    'warm': '<i class="fas fa-heart"></i>'
+                };
+                avatarDiv.innerHTML = icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>';
+            }
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
@@ -787,8 +1012,16 @@
             const typingDiv = document.createElement('div');
             typingDiv.id = 'typing-indicator';
             typingDiv.className = 'message assistant typing-indicator';
+            
+            // 根据人格设置不同的打字动画图标
+            const icons = {
+                'mystic': '<i class="fas fa-moon"></i>',
+                'wisdom': '<i class="fas fa-book"></i>',
+                'warm': '<i class="fas fa-heart"></i>'
+            };
+            
             typingDiv.innerHTML = `
-                <div class="message-avatar"><i class="fas fa-moon"></i></div>
+                <div class="message-avatar">${icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>'}</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -817,6 +1050,3 @@
                 </div>
             `;
         }
-    </script>
-</body>
-</html>

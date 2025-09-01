@@ -231,6 +231,8 @@ def chat_page():
     # 获取或创建会话并加载历史消息
     chat_session = None
     messages = []
+    ai_personality = None  # 新增
+    
     try:
         chat_session = ChatService.create_or_get_session(
             user.get('id'),
@@ -240,6 +242,8 @@ def chat_page():
         )
         if chat_session:
             messages = ChatDAO.get_session_messages(chat_session['id'])
+            # 获取已保存的人格
+            ai_personality = chat_session.get('ai_personality')
             # 转换为前端需要的格式
             messages = [
                 {'role': msg['role'], 'content': msg['content']} 
@@ -255,8 +259,9 @@ def chat_page():
         can_chat=can_chat,
         remaining_chats=remaining_chats,
         session_id=str(chat_session['id']) if chat_session else None,
-        messages=messages,  # 直接传递历史消息
-        has_history=len(messages) > 0  # 标记是否有历史
+        messages=messages,
+        has_history=len(messages) > 0,
+        ai_personality=ai_personality  # 新增
     )
 
 @app.route("/api/chat/init", methods=["POST"])
@@ -264,6 +269,8 @@ def init_chat():
     """初始化聊天会话"""
     user = g.user
     today = DateTimeService.get_beijing_date()
+    data = request.json
+    ai_personality = data.get('ai_personality')  # 新增
     
     # 获取今日卡片信息
     if not user["is_guest"]:
@@ -280,18 +287,18 @@ def init_chat():
             user.get('id'),
             session.get('session_id'),
             reading,
-            today
+            today,
+            ai_personality=ai_personality  # 新增参数
         )
         
         if not chat_session:
-            # 如果获取失败，返回错误
             return jsonify({'error': '无法创建会话'}), 500
         
         # 获取历史消息
         messages = ChatDAO.get_session_messages(chat_session['id'])
         
         return jsonify({
-            'session_id': str(chat_session['id']),  # 确保是字符串
+            'session_id': str(chat_session['id']),
             'messages': [
                 {'role': msg['role'], 'content': msg['content']} 
                 for msg in reversed(messages) if messages
@@ -307,6 +314,7 @@ def send_chat_message():
     data = request.json
     message = data.get('message', '').strip()
     session_id = data.get('session_id')
+    ai_personality = data.get('ai_personality')  # 新增
     
     if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
         return jsonify({'error': '消息长度不合法'}), 400
@@ -323,7 +331,12 @@ def send_chat_message():
 
     try:
         user_ref = get_user_ref()
-        ai_response = ChatService.process_message(session_id, message, user_ref=user_ref)
+        ai_response = ChatService.process_message(
+            session_id, 
+            message, 
+            user_ref=user_ref,
+            ai_personality=ai_personality  # 新增参数
+        )
 
         # 确保 ai_response 是 dict
         answer_text = ai_response.get('answer') if isinstance(ai_response, dict) else str(ai_response)
