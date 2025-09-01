@@ -1323,59 +1323,66 @@ class SpreadService:
     def perform_divination(user_ref, session_id, spread_id, question, ai_personality='warm'):
         """执行牌阵占卜"""
         import uuid
-        
+
         # 从数据库获取牌阵配置
         spread_config = SpreadDAO.get_spread_by_id(spread_id)
         if not spread_config:
             raise ValueError(f"Invalid spread_id: {spread_id}")
-        
-        # 解析位置信息
-        positions = _as_list(spread_config.get('positions'))
+
+        # 牌阵位置信息（SpreadDAO 已经 json.loads 过了）
+        positions = spread_config.get('positions', [])
         card_count = int(spread_config['card_count'])
 
+        # 获取所有牌
         all_cards = CardDAO.get_all()
-        if len(all_cards) < card_count:
+        if not all_cards or len(all_cards) < card_count:
             raise ValueError("Not enough cards in database")
-        
+
+        # 随机抽取 N 张牌
         selected_cards = random.sample(all_cards, card_count)
-        
+
         # 构建牌数据
         cards_data = []
         for i, card in enumerate(selected_cards):
             direction = random.choice(["正位", "逆位"])
             cards_data.append({
                 'position': i,
-                'card_id': card['id'],
+                'card_id': str(card['id']),
                 'card_name': card['name'],
                 'direction': direction,
                 'image': card.get('image'),
                 'meaning_up': card.get('meaning_up'),
                 'meaning_rev': card.get('meaning_rev')
             })
-        
-        # 创建占卜记录
+
+        # 生成占卜记录数据（确保所有字段是 str/JSON）
         today = DateTimeService.get_beijing_date()
         reading_data = {
             'id': str(uuid.uuid4()),
-            'user_id': user_ref,
-            'session_id': session_id,
-            'spread_id': spread_id,
-            'cards': json.dumps(cards_data, ensure_ascii=False),
-            'question': question,
-            'ai_personality': ai_personality,
-            'date': str(today)
+            'user_id': str(user_ref) if user_ref else None,
+            'session_id': str(session_id) if session_id else None,
+            'spread_id': str(spread_id),
+            'cards': json.dumps(cards_data, ensure_ascii=False),  # list → JSON 字符串
+            'question': str(question) if question else "",
+            'ai_personality': str(ai_personality) if ai_personality else "warm",
+            'date': today.isoformat()
         }
-        
+
         # 保存到数据库
         reading = SpreadDAO.create(reading_data)
-        
-        # 生成初始解读
+
+        # 调用 AI 生成初始解读
         initial_interpretation = SpreadService.generate_initial_interpretation(
             reading['id'],
             ai_personality
         )
-        
-        return reading
+
+        # 返回占卜结果 + 初始解读
+        return {
+            **reading,
+            'initial_interpretation': initial_interpretation.get('answer')
+        }
+
     
     @staticmethod
     def generate_initial_interpretation(reading_id, ai_personality):
