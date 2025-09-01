@@ -830,12 +830,8 @@
                                 {% endif %}
                             {% endif %}
                         </div>
-                        <div class="message-content">
-                            {% if msg.role == 'assistant' %}
-                                {{ msg.content|safe }}
-                            {% else %}
-                                {{ msg.content }}
-                            {% endif %}
+                        <div class="message-content" id="msg-{{ loop.index }}">
+                            {{ msg.content }}
                         </div>
                     </div>
                     {% endfor %}
@@ -1002,8 +998,14 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            // 如果没有历史消息，获取初始解读
-            if (!hasHistory) {
+            // 格式化历史消息中的 AI 回复
+            if (hasHistory) {
+                document.querySelectorAll('.message.assistant .message-content').forEach((element, index) => {
+                    const originalContent = element.textContent;
+                    element.innerHTML = formatAIMessage(originalContent);
+                });
+            } else {
+                // 如果没有历史消息，获取初始解读
                 setTimeout(getInitialReading, 1000);
             }
             
