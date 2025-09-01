@@ -428,12 +428,21 @@ class DifyService:
         }
         
         try:
+            print("\n=== Dify Spread Initial Reading Debug ===")
+            print(f"URL: {Config.DIFY_SPREAD_API_URL}")
+            print("Headers:", json.dumps(headers, ensure_ascii=False, indent=2))
+            print("Payload:", json.dumps(payload, ensure_ascii=False, indent=2))
+
             response = requests.post(
                 Config.DIFY_SPREAD_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=30
             )
+
+            print(f"[Response] Status Code: {response.status_code}")
+            print(f"[Response] Text: {response.text}")
+            
             response.raise_for_status()
             data = response.json()
             
@@ -1329,16 +1338,27 @@ class SpreadService:
         if not spread_config:
             raise ValueError(f"Invalid spread_id: {spread_id}")
 
-        # 牌阵位置信息（SpreadDAO 已经 json.loads 过了）
-        positions = spread_config.get('positions', [])
+        # 解析位置信息（兼容 str / list / dict）
+        positions_raw = spread_config.get('positions')
+        if isinstance(positions_raw, str):
+            try:
+                positions = json.loads(positions_raw)
+            except Exception as e:
+                print(f"[Error] Failed to parse positions JSON: {positions_raw}, error: {e}")
+                positions = []
+        elif isinstance(positions_raw, list):
+            positions = positions_raw
+        elif isinstance(positions_raw, dict):
+            positions = [positions_raw[str(i)] for i in sorted(map(int, positions_raw.keys()))]
+        else:
+            positions = []
+
         card_count = int(spread_config['card_count'])
 
-        # 获取所有牌
         all_cards = CardDAO.get_all()
-        if not all_cards or len(all_cards) < card_count:
+        if len(all_cards) < card_count:
             raise ValueError("Not enough cards in database")
 
-        # 随机抽取 N 张牌
         selected_cards = random.sample(all_cards, card_count)
 
         # 构建牌数据
@@ -1347,7 +1367,7 @@ class SpreadService:
             direction = random.choice(["正位", "逆位"])
             cards_data.append({
                 'position': i,
-                'card_id': str(card['id']),
+                'card_id': card['id'],
                 'card_name': card['name'],
                 'direction': direction,
                 'image': card.get('image'),
@@ -1355,56 +1375,75 @@ class SpreadService:
                 'meaning_rev': card.get('meaning_rev')
             })
 
-        # 生成占卜记录数据（确保所有字段是 str/JSON）
+        # 创建占卜记录
         today = DateTimeService.get_beijing_date()
         reading_data = {
             'id': str(uuid.uuid4()),
-            'user_id': str(user_ref) if user_ref else None,
-            'session_id': str(session_id) if session_id else None,
-            'spread_id': str(spread_id),
-            'cards': json.dumps(cards_data, ensure_ascii=False),  # list → JSON 字符串
-            'question': str(question) if question else "",
-            'ai_personality': str(ai_personality) if ai_personality else "warm",
-            'date': today.isoformat()
+            'user_id': user_ref,
+            'session_id': session_id,
+            'spread_id': spread_id,
+            'cards': json.dumps(cards_data, ensure_ascii=False),
+            'question': question,
+            'ai_personality': ai_personality,
+            'date': str(today)
         }
 
         # 保存到数据库
         reading = SpreadDAO.create(reading_data)
 
-        # 调用 AI 生成初始解读
+        # 生成初始解读
         initial_interpretation = SpreadService.generate_initial_interpretation(
             reading['id'],
             ai_personality
         )
 
-        # 返回占卜结果 + 初始解读
-        return {
-            **reading,
-            'initial_interpretation': initial_interpretation.get('answer')
-        }
+        return reading
 
     
     @staticmethod
     def generate_initial_interpretation(reading_id, ai_personality):
         """生成初始牌阵解读（开始新的 Dify 会话）"""
         reading = SpreadDAO.get_by_id(reading_id)
+        if not reading:
+            raise ValueError(f"Reading not found: {reading_id}")
+
         # 从数据库获取牌阵配置
         spread_config = SpreadDAO.get_spread_by_id(reading['spread_id'])
-        positions = _as_list(spread_config.get('positions'))
-        
-        cards = reading['cards'] if isinstance(reading.get('cards'), list) else _as_list(reading.get('cards'))
-        
+
+        # 解析位置信息
+        positions_raw = spread_config.get('positions')
+        if isinstance(positions_raw, str):
+            try:
+                positions = json.loads(positions_raw)
+            except Exception as e:
+                print(f"[Error] Failed to parse positions JSON: {positions_raw}, error: {e}")
+                positions = []
+        elif isinstance(positions_raw, list):
+            positions = positions_raw
+        elif isinstance(positions_raw, dict):
+            positions = [positions_raw[str(i)] for i in sorted(map(int, positions_raw.keys()))]
+        else:
+            positions = []
+
+        cards = json.loads(reading['cards']) if isinstance(reading['cards'], str) else reading['cards']
+
         # 构建牌阵详细信息
         cards_desc = []
         for card in cards:
-            position = positions[card['position']]
+            position = positions[card['position']] if card['position'] < len(positions) else {"name": "未知", "meaning": ""}
             cards_desc.append({
                 'position_name': position['name'],
                 'position_meaning': position['meaning'],
                 'card_name': card['card_name'],
                 'direction': card['direction']
             })
-        
+
+        # 打印调试日志
+        print("\n=== Spread Initial Reading Debug ===")
+        print(f"Spread Name: {spread_config['name']}")
+        print(f"Spread Description: {spread_config['description']}")
+        print("Cards Desc:", json.dumps(cards_desc, ensure_ascii=False, indent=2))
+
         # 调用 Dify，开始新会话
         response = DifyService.spread_initial_reading(
             spread_name=spread_config['name'],
@@ -1414,19 +1453,19 @@ class SpreadService:
             user_ref=reading['user_id'],
             ai_personality=ai_personality
         )
-        
+
         # 保存初始解读和 conversation_id
         SpreadDAO.update_initial_interpretation(reading_id, response['answer'])
         if response.get('conversation_id'):
             SpreadDAO.update_conversation_id(reading_id, response['conversation_id'])
-        
+
         # 保存为第一条消息
         SpreadDAO.save_message({
             'reading_id': reading_id,
             'role': 'assistant',
             'content': response['answer']
         })
-        
+
         return response
     
     @staticmethod
