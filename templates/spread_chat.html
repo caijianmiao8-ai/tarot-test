@@ -229,20 +229,32 @@
         }
         
         .card-image {
-            width: 50px;
-            height: 70px;
+            width: 60px;
+            height: 90px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            position: relative;
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            border-radius: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            position: relative;
         }
         
-        .card-image.reversed {
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .card-image.reversed img {
             transform: rotate(180deg);
+        }
+        
+        .card-image .placeholder-icon {
+            color: white;
+            font-size: 1.5rem;
         }
         
         .card-details {
@@ -775,7 +787,11 @@
                         <div class="position-meaning">{{ spread_config.positions[loop.index0].meaning }}</div>
                         <div class="drawn-card">
                             <div class="card-image {% if card.direction == '逆位' %}reversed{% endif %}">
-                                <i class="fas fa-star"></i>
+                                {% if card.image %}
+                                    <img src="{{ card.image }}" alt="{{ card.card_name }}" />
+                                {% else %}
+                                    <i class="fas fa-star placeholder-icon"></i>
+                                {% endif %}
                             </div>
                             <div class="card-details">
                                 <div class="card-name">{{ card.card_name }}</div>
