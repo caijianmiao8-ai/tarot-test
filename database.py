@@ -527,7 +527,13 @@ class ReadingDAO:
 
 class CardDAO:
     """塔罗牌数据访问对象"""
-    
+    @staticmethod
+    def get_all():
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM tarot_cards")
+                return cur.fetchall()
+
     @staticmethod
     def get_random():
         """随机获取一张塔罗牌"""

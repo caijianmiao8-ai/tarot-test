@@ -1260,6 +1260,23 @@ class FortuneService:
 class SpreadService:
     """牌阵占卜服务"""
     
+    def _as_list(val):
+    if val is None: return []
+    if isinstance(val, (list, tuple)): return list(val)
+    if isinstance(val, dict): return [val]
+    if isinstance(val, (bytes, bytearray)):
+        try: import json; return json.loads(val.decode("utf-8"))
+        except: return []
+    if isinstance(val, str):
+        s = val.strip()
+        if not s: return []
+        try:
+            import json
+            return _as_list(json.loads(s))
+        except:
+            return []
+    return []
+    
     # 每日占卜次数限制
     DAILY_SPREAD_LIMITS = {
         'guest': 1,
@@ -1306,8 +1323,8 @@ class SpreadService:
             raise ValueError(f"Invalid spread_id: {spread_id}")
         
         # 解析位置信息
-        positions = json.loads(spread_config['positions'])
-        card_count = spread_config['card_count']
+        positions = _as_list(spread_config.get('positions'))
+        card_count = int(spread_config['card_count'])
 
         all_cards = CardDAO.get_all()
         if len(all_cards) < card_count:
@@ -1336,7 +1353,7 @@ class SpreadService:
             'user_id': user_ref,
             'session_id': session_id,
             'spread_id': spread_id,
-            'cards': json.dumps(cards_data),
+            'cards': cards_data,
             'question': question,
             'ai_personality': ai_personality,
             'date': today
@@ -1359,9 +1376,9 @@ class SpreadService:
         reading = SpreadDAO.get_by_id(reading_id)
         # 从数据库获取牌阵配置
         spread_config = SpreadDAO.get_spread_by_id(reading['spread_id'])
-        positions = json.loads(spread_config['positions'])
+        positions = _as_list(spread_config.get('positions'))
         
-        cards = json.loads(reading['cards'])
+        cards = reading['cards'] if isinstance(reading.get('cards'), list) else _as_list(reading.get('cards'))
         
         # 构建牌阵详细信息
         cards_desc = []
