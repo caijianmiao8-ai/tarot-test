@@ -263,7 +263,10 @@ def chat_page():
         has_history=len(messages) > 0,
         ai_personality=ai_personality  # 新增
     )
-
+    print(f"Has history: {len(messages) > 0}")
+    print(f"AI personality: {ai_personality}")
+    print(f"Session exists: {chat_session is not None}")
+    
 @app.route("/api/chat/init", methods=["POST"])
 def init_chat():
     """初始化聊天会话"""

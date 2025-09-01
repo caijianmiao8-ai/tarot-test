@@ -822,24 +822,27 @@
             // 隐藏加载状态
             document.getElementById('loading-skeleton').style.display = 'none';
             
-            // 如果有历史消息，显示它们
+            console.log('Has history:', hasHistory);
+            console.log('Server messages:', serverMessages);
+            console.log('AI personality:', aiPersonality);
+            
+            // 修改判断逻辑
             if (hasHistory && serverMessages.length > 0) {
-                // 有历史记录，直接显示消息
+                // 有历史记录，显示消息和输入框
                 serverMessages.forEach(msg => {
                     appendMessage(msg.role, msg.content, false);
                 });
-                // 显示输入框
                 document.getElementById('input-container').style.display = 'flex';
-            } else if (aiPersonality) {
-                // 已经选择过人格，显示欢迎消息
+            } else if (!aiPersonality) {
+                // 没有选择过人格，显示选择界面
+                document.getElementById('personality-selection').style.display = 'block';
+            } else {
+                // 已选择人格但没有历史，显示欢迎消息
                 selectedPersonality = aiPersonality;
                 document.getElementById('welcome-message').style.display = 'block';
                 document.getElementById('input-container').style.display = 'flex';
-            } else {
-                // 首次对话，显示人格选择
-                document.getElementById('personality-selection').style.display = 'block';
             }
-            
+    
             // 如果没有 session_id，初始化一个
             if (!sessionId) {
                 initSession();
