@@ -2,15 +2,18 @@
 塔罗每日指引 - 主应用
 重构版本，支持 Vercel 部署和未来迁移
 """
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response
-from functools import wraps
-from datetime import datetime
+import os
+import json
+import random
 import traceback
 import uuid
-from flask import g, session
-# 导入配置和服务
+from datetime import datetime
+from functools import wraps
+
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response
+
 from config import Config
-from database import DatabaseManager, ChatDAO, SpreadDAO
+from database import DatabaseManager, ChatDAO, SpreadDAO  # 这里如果用到 UserDAO 也只在函数内部 import 了，OK
 from services import (
     DateTimeService,
     UserService,
@@ -18,8 +21,10 @@ from services import (
     DifyService,
     SessionService,
     FortuneService,
-    ChatService
+    ChatService,
+    SpreadService,   # ★ 必须补上
 )
+
 
 # 初始化 Flask 应用
 app = Flask(__name__)
@@ -220,7 +225,7 @@ def server_error(e):
         return '<h1>500 - Server Error</h1><a href="/">Go Home</a>', 500
 
 # 1. 牌阵选择页面
-@app.route("/spread")
+@app.route("/spread", endpoint="spread")
 def spread_page():
     """牌阵占卜选择页面"""
     user = g.user
@@ -1061,16 +1066,6 @@ def fortune_preview():
     except Exception as e:
         return jsonify({"error": "获取运势预览失败"}), 500
 
-# ===== 错误处理 =====
-
-@app.errorhandler(404)
-def not_found(e):
-    return render_template('404.html'), 404
-
-
-@app.errorhandler(500)
-def server_error(e):
-    return render_template('500.html'), 500
 
 
 # ===== 主程序入口 =====
