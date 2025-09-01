@@ -11,6 +11,28 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager, SpreadDAO
 
+def _as_list(val):
+    if val is None:
+        return []
+    if isinstance(val, (list, tuple)):
+        return list(val)
+    if isinstance(val, dict):
+        return [val]
+    if isinstance(val, (bytes, bytearray)):
+        try:
+            return json.loads(val.decode("utf-8"))
+        except:
+            return []
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return []
+        try:
+            return _as_list(json.loads(s))
+        except:
+            return []
+    return []
+    
 def convert_fortune_format(dify_data):
     """将 Dify 格式转换为前端期望的格式"""
     # 基础维度配置
@@ -1260,29 +1282,6 @@ class FortuneService:
 class SpreadService:
     """牌阵占卜服务"""
     
-    def _as_list(val):
-        if val is None:
-            return []
-        if isinstance(val, (list, tuple)):
-            return list(val)
-        if isinstance(val, dict):
-            return [val]
-        if isinstance(val, (bytes, bytearray)):
-            try:
-                import json
-                return json.loads(val.decode("utf-8"))
-            except:
-                return []
-        if isinstance(val, str):
-            s = val.strip()
-            if not s:
-                return []
-            try:
-                import json
-                return _as_list(json.loads(s))
-            except:
-                return []
-        return []
 
     
     # 每日占卜次数限制
