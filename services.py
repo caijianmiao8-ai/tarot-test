@@ -1382,7 +1382,7 @@ class SpreadService:
             'user_id': user_ref,
             'session_id': session_id,
             'spread_id': spread_id,
-            'cards': json.dumps(cards_data, ensure_ascii=False),
+            'cards': cards_data,
             'question': question,
             'ai_personality': ai_personality,
             'date': str(today)

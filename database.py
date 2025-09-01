@@ -10,6 +10,7 @@ import json
 import traceback
 from psycopg2.extras import Json
 
+
 def _normalize_json_list(val):
     """把 val 归一化为 list，用于 JSON/JSONB/TEXT 混存的字段"""
     if val is None:
@@ -34,11 +35,12 @@ def _normalize_json_list(val):
             return []
     return []
 
+
 class DatabaseManager:
     """数据库管理器"""
-    
+
     _pool = None
-    
+
     @classmethod
     def init_pool(cls):
         """初始化连接池（仅在非 Vercel 环境使用）"""
@@ -51,7 +53,7 @@ class DatabaseManager:
                 db_config["dsn"],
                 cursor_factory=psycopg2.extras.RealDictCursor
             )
-    
+
     @classmethod
     def get_connection(cls):
         """获取数据库连接"""
@@ -66,7 +68,7 @@ class DatabaseManager:
             # 传统部署: 使用连接池
             cls.init_pool()
             return cls._pool.getconn()
-    
+
     @classmethod
     def return_connection(cls, conn):
         """归还连接到连接池"""
@@ -74,7 +76,7 @@ class DatabaseManager:
             cls._pool.putconn(conn)
         else:
             conn.close()
-    
+
     @classmethod
     @contextmanager
     def get_db(cls):
@@ -85,11 +87,13 @@ class DatabaseManager:
         finally:
             cls.return_connection(conn)
 
-# database.py 中新增
 
+# =========================
+#        SpreadDAO
+# =========================
 class SpreadDAO:
     """牌阵数据访问对象"""
-    
+
     @staticmethod
     def get_all_spreads():
         with DatabaseManager.get_db() as conn:
@@ -116,9 +120,22 @@ class SpreadDAO:
                 if spread:
                     spread['positions'] = _normalize_json_list(spread.get('positions'))
                 return spread
-    
+
     @staticmethod
     def create(reading_data):
+        """
+        创建占卜记录
+        方案A：service 传 Python 对象（list/dict），这里用 Json() 统一序列化入库（JSON/JSONB 列均可）
+        """
+        cards_val = reading_data.get('cards')
+        if isinstance(cards_val, str):
+            # 如果误传了字符串，尽力解析成 Python 对象再包 Json，保持一致性
+            try:
+                cards_val = json.loads(cards_val)
+            except Exception:
+                # 实在不行，按原字符串存（也能入 JSONB，但语义不一致，尽量避免）
+                pass
+
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -130,14 +147,12 @@ class SpreadDAO:
                     RETURNING *
                 """, {
                     **reading_data,
-                    # 如果 reading_data['cards'] 是 Python list/dict，就用 Json 包一下：
-                    'cards': Json(reading_data.get('cards'))
+                    'cards': Json(cards_val) if not isinstance(cards_val, str) else cards_val
                 })
                 reading = cursor.fetchone()
                 conn.commit()
                 return reading
 
-    
     @staticmethod
     def get_by_id(reading_id):
         """获取占卜记录"""
@@ -147,7 +162,7 @@ class SpreadDAO:
                     SELECT * FROM spread_readings WHERE id = %s
                 """, (reading_id,))
                 return cursor.fetchone()
-    
+
     @staticmethod
     def update_initial_interpretation(reading_id, interpretation):
         """更新初始解读"""
@@ -159,7 +174,7 @@ class SpreadDAO:
                     WHERE id = %s
                 """, (interpretation, reading_id))
                 conn.commit()
-    
+
     @staticmethod
     def update_conversation_id(reading_id, conversation_id):
         """更新会话ID"""
@@ -171,23 +186,23 @@ class SpreadDAO:
                     WHERE id = %s
                 """, (conversation_id, reading_id))
                 conn.commit()
-    
+
     @staticmethod
     def save_message(message_data):
-        """保存对话消息"""
+        """保存牌阵对话消息（修复：全命名占位，避免 dict is not a sequence）"""
         import uuid
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO spread_messages 
                     (id, reading_id, role, content)
-                    VALUES (%s, %(reading_id)s, %(role)s, %(content)s)
+                    VALUES (%(id)s, %(reading_id)s, %(role)s, %(content)s)
                 """, {
                     'id': str(uuid.uuid4()),
                     **message_data
                 })
                 conn.commit()
-    
+
     @staticmethod
     def get_all_messages(reading_id):
         """获取所有对话消息"""
@@ -200,7 +215,7 @@ class SpreadDAO:
                     ORDER BY created_at ASC
                 """, (reading_id,))
                 return cursor.fetchall()
-    
+
     @staticmethod
     def get_today_spread_count(user_id, session_id, date):
         """获取今日占卜次数"""
@@ -213,7 +228,7 @@ class SpreadDAO:
                 """, (user_id, session_id, date))
                 result = cursor.fetchone()
                 return result['count'] if result else 0
-    
+
     @staticmethod
     def get_today_chat_count(user_id, session_id, date):
         """获取今日牌阵对话次数"""
@@ -224,18 +239,22 @@ class SpreadDAO:
                     FROM spread_messages m
                     JOIN spread_readings r ON m.reading_id = r.id
                     WHERE m.role = 'user' 
-                    AND (r.user_id = %s OR r.session_id = %s) 
-                    AND DATE(m.created_at) = %s
+                      AND (r.user_id = %s OR r.session_id = %s) 
+                      AND DATE(m.created_at) = %s
                 """, (user_id, session_id, date))
                 result = cursor.fetchone()
                 return result['count'] if result else 0
-    
+
     @staticmethod
     def increment_chat_usage(user_id, session_id, date):
         """增加对话使用次数（可选，如果需要单独统计）"""
         # 由于消息已经保存，这个方法可能不需要
         pass
 
+
+# =========================
+#         ChatDAO
+# =========================
 class ChatDAO:
     @staticmethod
     def create_session(session_data):
@@ -250,12 +269,12 @@ class ChatDAO:
                     RETURNING *
                 """, {
                     **session_data,
-                    'ai_personality': session_data.get('ai_personality', 'warm')  # 默认值为 'warm'
+                    'ai_personality': session_data.get('ai_personality', 'warm')
                 })
                 session = cursor.fetchone()
                 conn.commit()
                 return session
-    
+
     @staticmethod
     def get_session_by_date(user_id, session_id, date):
         """获取指定日期的会话"""
@@ -264,15 +283,15 @@ class ChatDAO:
                 cursor.execute("""
                     SELECT * FROM chat_sessions 
                     WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
-                    AND date = %(date)s
+                      AND date = %(date)s
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, {'user_id': user_id, 'session_id': session_id, 'date': date})
                 return cursor.fetchone()
-    
+
     @staticmethod
     def save_message(message_data):
-        """保存聊天消息"""
+        """保存聊天消息（修复：写入 chat_messages，且全命名占位）"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -283,7 +302,7 @@ class ChatDAO:
                 message = cursor.fetchone()
                 conn.commit()
                 return message
-    
+
     @staticmethod
     def get_session_messages(session_id, limit=50):
         """获取会话消息历史"""
@@ -296,7 +315,7 @@ class ChatDAO:
                     LIMIT %(limit)s
                 """, {'session_id': session_id, 'limit': limit})
                 return cursor.fetchall()
-    
+
     @staticmethod
     def get_daily_usage(user_id, session_id, date):
         """获取每日使用次数"""
@@ -305,7 +324,7 @@ class ChatDAO:
                 cursor.execute("""
                     SELECT count FROM chat_usage
                     WHERE (user_id = %(user_id)s OR session_id = %(session_id)s)
-                    AND date = %(date)s
+                      AND date = %(date)s
                 """, {'user_id': user_id, 'session_id': session_id, 'date': date})
                 result = cursor.fetchone()
                 return result['count'] if result else 0
@@ -325,6 +344,7 @@ class ChatDAO:
                 result = cursor.fetchone()
                 conn.commit()
                 return result['count'] if result else 1
+
     @staticmethod
     def get_session_by_id(session_id):
         """根据ID获取会话"""
@@ -335,11 +355,14 @@ class ChatDAO:
                     WHERE id = %s
                 """, (session_id,))
                 return cursor.fetchone()
-        
-# 数据访问层（Data Access Layer）
+
+
+# =========================
+#         UserDAO
+# =========================
 class UserDAO:
     """用户数据访问对象"""
-    
+
     @staticmethod
     def get_by_id(user_id):
         """根据 ID 获取用户"""
@@ -347,7 +370,7 @@ class UserDAO:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
                 return cursor.fetchone()
-    
+
     @staticmethod
     def get_by_username(username):
         """根据用户名获取用户"""
@@ -355,7 +378,7 @@ class UserDAO:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                 return cursor.fetchone()
-    
+
     @staticmethod
     def create(user_data):
         """创建新用户"""
@@ -371,7 +394,7 @@ class UserDAO:
                 user = cursor.fetchone()
                 conn.commit()
                 return user
-    
+
     @staticmethod
     def update_visit(user_id):
         """更新用户访问信息"""
@@ -386,9 +409,12 @@ class UserDAO:
                 conn.commit()
 
 
+# =========================
+#        ReadingDAO
+# =========================
 class ReadingDAO:
     """占卜记录数据访问对象"""
-    
+
     @staticmethod
     def get_today_reading(user_id, date):
         """获取今日占卜记录"""
@@ -401,7 +427,7 @@ class ReadingDAO:
                     WHERE r.user_id = %s AND r.date = %s
                 """, (user_id, date))
                 return cursor.fetchone()
-    
+
     @staticmethod
     def create(reading_data):
         """创建占卜记录"""
@@ -416,7 +442,7 @@ class ReadingDAO:
                 reading = cursor.fetchone()
                 conn.commit()
                 return reading
-    
+
     @staticmethod
     def update_insight(user_id, date, today_insight, guidance):
         """更新今日洞察和指引"""
@@ -434,7 +460,7 @@ class ReadingDAO:
             print(f"Update insight error: {e}")
             traceback.print_exc()
             return False
-    
+
     @staticmethod
     def update_fortune(user_id, date, fortune_data):
         """更新运势数据"""
@@ -454,7 +480,7 @@ class ReadingDAO:
             print(f"Update fortune error: {e}")
             traceback.print_exc()
             return False
-    
+
     @staticmethod
     def get_fortune(user_id, date):
         """获取运势数据"""
@@ -465,7 +491,7 @@ class ReadingDAO:
                     SELECT fortune_data, fortune_generated_at
                     FROM readings
                     WHERE user_id = %s AND date = %s
-                    AND fortune_data IS NOT NULL
+                      AND fortune_data IS NOT NULL
                 """, (user_id, date))
                 result = cursor.fetchone()
                 if result and result['fortune_data']:
@@ -485,7 +511,7 @@ class ReadingDAO:
             print(f"Get fortune error: {e}")
             traceback.print_exc()
             return None
-    
+
     @staticmethod
     def delete_today(user_id, date):
         """删除今日记录（重新抽牌）"""
@@ -496,7 +522,7 @@ class ReadingDAO:
                     (user_id, date)
                 )
                 conn.commit()
-    
+
     @staticmethod
     def get_recent(user_id, limit=10):
         """获取最近的占卜记录"""
@@ -512,21 +538,25 @@ class ReadingDAO:
                     LIMIT %s
                 """, (user_id, limit))
                 return cursor.fetchall()
-    
+
     @staticmethod
     def count_by_user(user_id):
         """统计用户占卜次数"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT COUNT(*) as count FROM readings WHERE user_id = %s", 
+                    "SELECT COUNT(*) as count FROM readings WHERE user_id = %s",
                     (user_id,)
                 )
                 return cursor.fetchone()['count']
 
 
+# =========================
+#         CardDAO
+# =========================
 class CardDAO:
     """塔罗牌数据访问对象"""
+
     @staticmethod
     def get_all():
         with DatabaseManager.get_db() as conn:
@@ -541,7 +571,7 @@ class CardDAO:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM tarot_cards ORDER BY RANDOM() LIMIT 1")
                 return cursor.fetchone()
-    
+
     @staticmethod
     def get_by_id(card_id):
         """根据 ID 获取塔罗牌"""
@@ -549,7 +579,7 @@ class CardDAO:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM tarot_cards WHERE id = %s", (card_id,))
                 return cursor.fetchone()
-                
+
     @staticmethod
     def get_by_id_with_energy(card_id):
         """获取塔罗牌完整信息，包括能量值"""
@@ -563,4 +593,4 @@ class CardDAO:
                     FROM tarot_cards 
                     WHERE id = %s
                 """, (card_id,))
-                return cursor.fetchone()                
+                return cursor.fetchone()
