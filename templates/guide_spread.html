@@ -72,16 +72,16 @@
     }
 
     /* ============= 主容器 ============= */
-    .main{ 
+    .main{
       max-width:900px; width:100%; margin:40px auto; padding:0 20px; flex:1;
       display: flex; flex-direction: column;
     }
 
-    .guide{ 
-      background: rgba(255,255,255,0.95); 
-      border-radius: var(--radius-lg); 
+    .guide{
+      background: rgba(255,255,255,0.95);
+      border-radius: var(--radius-lg);
       border:1px solid var(--border);
-      box-shadow: var(--shadow-md); 
+      box-shadow: var(--shadow-md);
       overflow:hidden;
       flex: 1;
       display: flex;
@@ -89,76 +89,77 @@
     }
 
     /* 装饰条 */
-    .decor{ 
-      height:6px; 
-      background:linear-gradient(135deg,var(--primary-color),var(--accent-color)); 
+    .decor{
+      height:6px;
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
     }
 
-    .stage{ 
-      padding:32px 28px; 
+    .stage{
+      padding:32px 28px;
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 0; /* ✅ 关键：允许滚动区收缩 */
     }
 
     /* ============= 进度指示器 ============= */
-    .progress{ 
-      display:flex; gap:12px; justify-content:center; margin-bottom:20px; 
+    .progress{
+      display:flex; gap:12px; justify-content:center; margin-bottom:20px;
     }
-    .dot{ 
-      width:10px; height:10px; border-radius:50%; 
-      background:#e5e7eb; 
-      transition: all .3s ease; 
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background:#e5e7eb;
+      transition: all .3s ease;
     }
-    .dot.active{ 
-      width:28px; 
-      background:var(--primary-color); 
+    .dot.active{
+      width:28px;
+      background:var(--primary-color);
       box-shadow: 0 4px 12px rgba(142,108,136,.3);
     }
-    .dot.done{ 
-      background:var(--secondary-color); 
+    .dot.done{
+      background:var(--secondary-color);
     }
 
     /* ============= 对话区域 ============= */
-    .msgs{ 
-      display:flex; flex-direction:column; gap:20px; 
-      flex: 1;
-      min-height: 420px;
+    .msgs{
+      display:flex; flex-direction:column; gap:20px;
+      flex: 1 1 0%;        /* ✅ 关键：更稳定的 flex 行为 */
+      min-height: 0;       /* ✅ 关键：配合父容器可收缩 */
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--primary-color) transparent;
     }
     .msgs::-webkit-scrollbar { width: 6px; }
     .msgs::-webkit-scrollbar-track { background: transparent; }
-    .msgs::-webkit-scrollbar-thumb { 
-      background: var(--primary-color); 
-      border-radius: 3px; 
+    .msgs::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 3px;
     }
 
-    .msg{ 
-      display:flex; gap:14px; 
-      animation: msgSlideIn .4s ease-out; 
+    .msg{
+      display:flex; gap:14px;
+      animation: msgSlideIn .4s ease-out;
       max-width: 100%;
     }
-    @keyframes msgSlideIn{ 
-      from{opacity:0; transform:translateY(12px);} 
-      to{opacity:1; transform:translateY(0);} 
+    @keyframes msgSlideIn{
+      from{opacity:0; transform:translateY(12px);}
+      to{opacity:1; transform:translateY(0);}
     }
 
-    .ava{ 
-      width:44px; height:44px; border-radius:50%; 
+    .ava{
+      width:44px; height:44px; border-radius:50%;
       background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
       color:#fff; display:flex; align-items:center; justify-content:center;
       box-shadow: var(--shadow-sm);
       flex-shrink: 0;
     }
 
-    .bubble{ 
-      background: var(--card); 
-      padding:18px 20px; 
-      border-radius: var(--radius-md); 
-      border-bottom-left-radius:6px; 
-      line-height:1.65; 
+    .bubble{
+      background: var(--card);
+      padding:18px 20px;
+      border-radius: var(--radius-md);
+      border-bottom-left-radius:6px;
+      line-height:1.65;
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--border);
       flex: 1;
@@ -166,16 +167,16 @@
     }
 
     /* ============= 选项区域（改进样式） ============= */
-    .options{ 
-      display:flex; flex-direction:column; gap:12px; margin-top:16px; 
+    .options{
+      display:flex; flex-direction:column; gap:12px; margin-top:16px;
     }
-    .opt{ 
-      background: var(--card); 
-      border:2px solid var(--border); 
-      border-radius: var(--radius-md); 
+    .opt{
+      background: var(--card);
+      border:2px solid var(--border);
+      border-radius: var(--radius-md);
       padding:16px 18px;
-      display:flex; align-items:center; gap:14px; 
-      cursor:pointer; 
+      display:flex; align-items:center; gap:14px;
+      cursor:pointer;
       transition: all .2s ease;
       position: relative;
       overflow: hidden;
@@ -193,91 +194,73 @@
     .opt:hover::before {
       left: 100%;
     }
-    .opt:hover{ 
-      background: rgba(142,108,136,0.02); 
-      border-color: var(--primary-color); 
+    .opt:hover{
+      background: rgba(142,108,136,0.02);
+      border-color: var(--primary-color);
       transform: translateX(4px);
       box-shadow: var(--shadow-sm);
     }
-    .opt .emoji{ 
+    .opt .emoji{
       width:32px; text-align:center; font-size:24px; flex-shrink: 0;
     }
-    .opt .content {
-      flex: 1;
-    }
-    .opt .ttl{ 
+    .opt .content { flex: 1; }
+    .opt .ttl{
       font-weight:700; color:var(--accent-color); font-size: 16px;
       margin-bottom: 4px;
     }
-    .opt .desc{ 
+    .opt .desc{
       font-size:14px; color:var(--muted); line-height: 1.4;
     }
     .opt .arrow {
       color: var(--secondary-color);
       transition: transform .2s ease;
     }
-    .opt:hover .arrow {
-      transform: translateX(4px);
-    }
+    .opt:hover .arrow { transform: translateX(4px); }
 
     /* 用户选择消息 */
-    .user{ 
-      display:flex; justify-content:flex-end; 
-    }
-    .user .me{ 
-      background:linear-gradient(135deg,var(--primary-color),var(--accent-color)); 
-      color:#fff; padding:12px 18px; 
-      border-radius: var(--radius-md); 
+    .user{ display:flex; justify-content:flex-end; }
+    .user .me{
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+      color:#fff; padding:12px 18px;
+      border-radius: var(--radius-md);
       border-bottom-right-radius:6px;
       box-shadow: var(--shadow-sm);
       font-weight: 600;
     }
 
     /* ============= 结果区域 ============= */
-    .result{ 
-      display:none; text-align:center; padding:32px 28px; 
+    .result{
+      display:none; text-align:center; padding:32px 28px;
       border-top:1px solid var(--border);
       background: linear-gradient(135deg, rgba(248,244,233,0.3), rgba(236,228,215,0.3));
     }
-    .result-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-    .r-title{ 
-      font-size:24px; font-weight:800; color:var(--accent-color); 
+    .result-icon { font-size: 48px; margin-bottom: 12px; }
+    .r-title{
+      font-size:24px; font-weight:800; color:var(--accent-color);
       margin: 8px 0 6px;
     }
-    .r-desc{ 
-      color:var(--muted); margin:0 0 24px; font-size: 16px;
-    }
+    .r-desc{ color:var(--muted); margin:0 0 24px; font-size: 16px; }
 
     /* 推荐牌阵卡片 */
-    .spread-card{ 
+    .spread-card{
       background: var(--card);
-      border:1px solid var(--border); 
-      border-radius: var(--radius-md); 
-      padding:20px; 
-      margin-bottom:20px; 
+      border:1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding:20px;
+      margin-bottom:20px;
       text-align:left;
       box-shadow: var(--shadow-sm);
     }
-    .spread-name{ 
-      font-size:20px; font-weight:800; color:var(--primary-color); 
+    .spread-name{
+      font-size:20px; font-weight:800; color:var(--primary-color);
       margin-bottom: 8px;
     }
-    .spread-meta{ 
-      color:var(--muted); font-size:14px; margin-bottom: 12px;
-    }
-    .spread-desc {
-      color: var(--ink);
-      line-height: 1.6;
-    }
+    .spread-meta{ color:var(--muted); font-size:14px; margin-bottom: 12px; }
+    .spread-desc { color: var(--ink); line-height: 1.6; }
 
     /* ============= AI性格选择（与spread.html统一） ============= */
-    .personality-section {
-      margin-bottom: 24px;
-    }
-    .personality-label {
+    .personality-section { margin-bottom: 24px; }
+    .personality-label{
       display: block;
       color: var(--accent-color);
       font-size: 16px;
@@ -314,43 +297,31 @@
       background: linear-gradient(90deg, transparent, rgba(142,108,136,0.1), transparent);
       transition: left .4s ease;
     }
-    .personality-card:hover::before {
-      left: 100%;
-    }
-    .personality-card:hover{ 
-      transform: translateY(-2px); 
-      box-shadow: var(--shadow-md); 
-    }
+    .personality-card:hover::before { left: 100%; }
+    .personality-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .personality-card.selected{
       border-color: var(--primary-color);
       background: linear-gradient(180deg, #fff, #fdf8f2);
       box-shadow: 0 0 0 3px rgba(142,108,136,0.12), var(--shadow-md);
     }
-    .personality-emoji{ 
-      font-size: 28px; margin-bottom: 8px; 
-    }
-    .personality-name{ 
-      font-size: 15px; font-weight: 800; color: var(--accent-color); 
-      margin-bottom: 4px; 
-    }
-    .personality-trait{ 
-      font-size: 12px; color: var(--muted); line-height: 1.3;
-    }
+    .personality-emoji{ font-size: 28px; margin-bottom: 8px; }
+    .personality-name{ font-size: 15px; font-weight: 800; color: var(--accent-color); margin-bottom: 4px; }
+    .personality-trait{ font-size: 12px; color: var(--muted); line-height: 1.3; }
 
     /* ============= 底部操作区 ============= */
-    .footer{ 
-      padding:20px 0 0; 
-      display:flex; 
-      justify-content: space-between; 
+    .footer{
+      padding:20px 0 0;
+      display:flex;
+      justify-content: space-between;
       align-items: center;
-      gap:16px; 
+      gap:16px;
     }
-    .ghost-btn{ 
-      border:2px solid var(--border); 
-      background: var(--card); 
+    .ghost-btn{
+      border:2px solid var(--border);
+      background: var(--card);
       color: var(--accent-color);
-      border-radius: var(--radius-md); 
-      padding:12px 20px; 
+      border-radius: var(--radius-md);
+      padding:12px 20px;
       cursor: pointer;
       font-weight: 600;
       transition: all .2s ease;
@@ -367,9 +338,9 @@
 
     .btn-primary{
       background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
-      color:#fff; border:none; 
-      padding:14px 24px; 
-      border-radius: var(--radius-md); 
+      color:#fff; border:none;
+      padding:14px 24px;
+      border-radius: var(--radius-md);
       font-weight:700;
       box-shadow: var(--shadow-md);
       cursor: pointer;
@@ -383,11 +354,7 @@
       transform: translateY(-2px);
       box-shadow: var(--shadow-lg);
     }
-    .btn-primary[disabled]{ 
-      opacity:.6; 
-      cursor: not-allowed;
-      transform: none !important;
-    }
+    .btn-primary[disabled]{ opacity:.6; cursor: not-allowed; transform: none !important; }
 
     /* ============= 响应式 ============= */
     @media (max-width:768px){
@@ -409,26 +376,18 @@
     }
 
     @media (max-width:480px){
-      .opt {
-        padding: 14px 16px;
-      }
-      .opt .emoji {
-        font-size: 20px;
-      }
-      .opt .ttl {
-        font-size: 15px;
-      }
+      .opt { padding: 14px 16px; }
+      .opt .emoji { font-size: 20px; }
+      .opt .ttl { font-size: 15px; }
     }
 
     /* 尊重系统"减少动态"设置 */
     @media (prefers-reduced-motion: reduce){
-      .opt, .personality-card, .btn-primary, .ghost-btn, .msg { 
-        transition: none !important; 
-        animation: none !important; 
+      .opt, .personality-card, .btn-primary, .ghost-btn, .msg {
+        transition: none !important;
+        animation: none !important;
       }
-      .opt::before, .personality-card::before {
-        display: none !important;
-      }
+      .opt::before, .personality-card::before { display: none !important; }
     }
   </style>
 </head>
@@ -437,7 +396,7 @@
   <nav class="navbar">
     <div class="navbar-content">
       <a class="back-link" href="{{ url_for('spread') }}">
-        <i class="fas fa-chevron-left"></i> 
+        <i class="fas fa-chevron-left"></i>
         <span>返回</span>
       </a>
       <div class="nav-title">智能牌阵推荐</div>
@@ -481,12 +440,12 @@
           </div>
 
           <div class="footer">
-            <button class="ghost-btn" onclick="resetGuide()">
+            <button class="ghost-btn" id="resetBtn">
               <i class="fas fa-redo"></i>
               重新选择
             </button>
-            <button class="btn-primary" id="goBtn" disabled onclick="proceedToSpread(this)">
-              <i class="fas fa-sparkles"></i> 
+            <button class="btn-primary" id="goBtn" disabled>
+              <i class="fas fa-sparkles"></i>
               开始占卜
             </button>
           </div>
@@ -496,7 +455,9 @@
   </main>
 
   <script>
-    // ====== 决策树（spread_id 使用你数据库的 varchar 主键） ======
+    /***************
+     * 决策树（与 DB spreads.id 对齐的 spread_id）
+     ***************/
     const decision = {
       start: {
         message: "你好！我是你的塔罗引导师 ✨\n今天想探索什么主题？",
@@ -550,7 +511,7 @@
       }
     };
 
-    // 展示信息（仅 UI 用，不影响后端）
+    // 展示信息（仅 UI，用于结果卡）
     const spreadsShow = {
       single_card:{ name:'单牌指引', cards:1, desc:'快速获取当下核心提示' },
       yes_no:{ name:'是否牌阵', cards:1, desc:'判断倾向与注意点' },
@@ -564,7 +525,7 @@
       spiritual:{ name:'灵性成长牌阵', cards:7, desc:'长期方向与课题' }
     };
 
-    // 人格：优先从 /api/personas 取；失败则用 fallback（与 spread.html 风格统一）
+    // 人格：优先 /api/personas；失败使用 fallback
     let personas = null;
     const personasFallback = [
       { id:'wisdom',  name:'智慧', desc:'理性分析' },
@@ -575,13 +536,50 @@
     // ====== 状态 ======
     let current = 'start';
     let history = [];
-    let chosenSpread = null;     // 与 DB 中 spreads.id 一致（varchar）
-    let aiPersonality = null;    // 字符串，提交给后端的 ai_personality
-    const msgs = document.getElementById('msgs');
+    let chosenSpread = null;   // 与 DB 中 spreads.id 一致（varchar）
+    let aiPersonality = null;  // 提交给后端的 ai_personality
+    let personaDelegationBound = false;
 
-    document.addEventListener('DOMContentLoaded', () => {
-      showStep('start');
-    });
+    // 工具：简单转义
+    function escapeHTML(s){
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+    function escapeAttr(s){
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/"/g,'&quot;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+
+    // 初始化（兼容脚本延后插入）
+    function initGuide(){
+      try {
+        window.__msgs = document.getElementById('msgs') || document.querySelector('.msgs');
+        if (!window.__msgs) {
+          console.error('[guide] 未找到 #msgs 容器');
+          return;
+        }
+
+        // 绑定按钮事件（移除 inline onclick，兼容 CSP）
+        const resetBtn = document.getElementById('resetBtn');
+        const goBtn = document.getElementById('goBtn');
+        if (resetBtn) resetBtn.addEventListener('click', resetGuide);
+        if (goBtn) goBtn.addEventListener('click', proceedToSpread);
+
+        showStep('start');
+      } catch (e) {
+        console.error('[guide] 初始化失败：', e);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGuide, { once:true });
+    } else {
+      initGuide();
+    }
 
     async function ensurePersonasLoaded(){
       if (personas) return personas;
@@ -589,10 +587,9 @@
         const res = await fetch('/api/personas');
         if (!res.ok) throw new Error('no personas api');
         const data = await res.json();
-        // 期望：[{id, name, desc/style?}]——与 spread.html 的人格选择保持一致体验
         personas = Array.isArray(data) && data.length ? data.map(p=>({
-          id: p.id ?? p.code ?? 'warm', 
-          name: p.name ?? '自定义人格', 
+          id: p.id ?? p.code ?? 'warm',
+          name: p.name ?? '自定义人格',
           desc: p.desc ?? (p.style ? `风格：${p.style}` : '')
         })) : personasFallback;
       }catch(_){
@@ -603,67 +600,94 @@
 
     // ====== 渲染步骤 ======
     function showStep(id){
-      const node = decision[id]; 
-      if (!node) return;
-      
-      current = id; 
-      updateProgress();
+      try {
+        const node = decision[id];
+        if (!node) {
+          console.warn('[guide] 未找到步骤：', id);
+          return;
+        }
 
-      const block = document.createElement('div');
-      block.className = 'msg';
-      const text = node.message.replace(/</g,'&lt;').replace(/>/g,'&gt;'); // 简单转义
-      block.innerHTML = `
-        <div class="ava"><i class="fas fa-sparkles"></i></div>
-        <div class="bubble">
-          ${text}
-          <div class="options">
-            ${node.options.map((o,i)=>`
-              <div class="opt" data-idx="${i}">
-                <div class="emoji">${o.emoji}</div>
-                <div class="content">
-                  <div class="ttl">${o.title}</div>
-                  <div class="desc">${o.desc || ''}</div>
-                </div>
-                <div class="arrow"><i class="fas fa-chevron-right"></i></div>
-              </div>
-            `).join('')}
+        const msgs = window.__msgs || document.getElementById('msgs');
+        if (!msgs) {
+          console.error('[guide] #msgs 容器缺失，无法渲染');
+          return;
+        }
+
+        current = id;
+        updateProgress();
+
+        const block = document.createElement('div');
+        block.className = 'msg';
+        const text = escapeHTML(node.message || '');
+
+        const optsHTML = Array.isArray(node.options) ? node.options.map((o,i)=>`
+          <div class="opt" data-idx="${i}">
+            <div class="emoji">${o.emoji || ''}</div>
+            <div class="content">
+              <div class="ttl">${escapeHTML(o.title || '')}</div>
+              <div class="desc">${escapeHTML(o.desc || '')}</div>
+            </div>
+            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
           </div>
-        </div>`;
-      msgs.appendChild(block);
+        `).join('') : '';
 
-      block.querySelectorAll('.opt').forEach(el=>{
-        el.addEventListener('click', ()=>selectOption(parseInt(el.dataset.idx,10), block));
-      });
+        block.innerHTML = `
+          <div class="ava"><i class="fas fa-sparkles"></i></div>
+          <div class="bubble">
+            ${text}
+            <div class="options">
+              ${optsHTML}
+            </div>
+          </div>`;
 
-      setTimeout(()=>{ msgs.scrollTop = msgs.scrollHeight; }, 100);
+        msgs.appendChild(block);
+
+        // 仅给当前块的选项绑定点击
+        block.querySelectorAll('.opt').forEach(el=>{
+          el.addEventListener('click', ()=>{
+            const idx = parseInt(el.dataset.idx, 10);
+            selectOption(idx, block);
+          }, { once:true });
+        });
+
+        // 滚动至底部
+        requestAnimationFrame(()=>{ msgs.scrollTop = msgs.scrollHeight; });
+      } catch (e) {
+        console.error('[guide] showStep 渲染失败：', e);
+      }
     }
 
     function selectOption(index, block){
-      // 禁用该块
-      block.querySelectorAll('.opt').forEach(el=>{
-        el.style.pointerEvents='none'; 
-        el.style.opacity='.6'; 
-      });
+      try{
+        // 禁用该块
+        block.querySelectorAll('.opt').forEach(el=>{
+          el.style.pointerEvents='none';
+          el.style.opacity='.6';
+        });
 
-      const node = decision[current];
-      const opt = node.options[index];
+        const node = decision[current];
+        const opt = node?.options?.[index] || {};
 
-      // 用户选择泡泡
-      const me = document.createElement('div');
-      me.className = 'user';
-      me.innerHTML = `<div class="me">${opt.emoji} ${opt.title}</div>`;
-      msgs.appendChild(me);
-      history.push({ step: current, choice: index });
+        // 用户选择泡泡
+        const me = document.createElement('div');
+        me.className = 'user';
+        me.innerHTML = `<div class="me">${escapeHTML(opt.emoji || '')} ${escapeHTML(opt.title || '')}</div>`;
+        (window.__msgs || document.getElementById('msgs')).appendChild(me);
+        history.push({ step: current, choice: index });
 
-      setTimeout(()=>{
-        if (opt.result){
-          showResult(opt.result);
-        } else if (opt.next){
-          showStep(opt.next);
-        }
-        msgs.scrollTop = msgs.scrollHeight;
-      }, 500);
-      updateProgress();
+        setTimeout(()=>{
+          if (opt.result){
+            showResult(opt.result);
+          } else if (opt.next){
+            showStep(opt.next);
+          }
+          const msgs = window.__msgs || document.getElementById('msgs');
+          msgs.scrollTop = msgs.scrollHeight;
+        }, 500);
+        updateProgress();
+      }catch(e){
+        console.error('[guide] selectOption 失败：', e);
+      }
     }
 
     function updateProgress(){
@@ -681,44 +705,57 @@
       const s = spreadsShow[spreadId] || {name:spreadId, cards:'-', desc:''};
 
       // 隐藏对话，展示结果卡
-      document.getElementById('result').style.display = 'block';
-      document.getElementById('progress').style.display = 'none';
-      msgs.style.display = 'none';
+      const resultEl = document.getElementById('result');
+      const progressEl = document.getElementById('progress');
+      const msgs = window.__msgs || document.getElementById('msgs');
+
+      if (resultEl) resultEl.style.display = 'block';
+      if (progressEl) progressEl.style.display = 'none';
+      if (msgs) msgs.style.display = 'none';
 
       document.getElementById('rName').textContent = s.name;
       document.getElementById('rMeta').textContent = `${s.cards} 张 · ${s.desc}`;
-      
-      // 添加详细描述
-      const descEl = document.getElementById('rDesc');
-      if (descEl) {
-        descEl.textContent = getSpreadDescription(spreadId);
-      }
 
-      // 渲染人格列表（与 spread.html 的人格交互风格一致）
+      const descEl = document.getElementById('rDesc');
+      if (descEl) { descEl.textContent = getSpreadDescription(spreadId); }
+
+      // 渲染人格列表（事件委托，避免 inline onclick）
       const list = document.getElementById('personaList');
       const data = await ensurePersonasLoaded();
       list.innerHTML = data.map((p, idx)=>`
-        <div class="personality-card ${idx === 0 ? 'selected' : ''}" 
-             data-personality="${p.id.replace(/'/g,'\\'')}" 
-             onclick="pickPersona('${p.id.replace(/'/g,'\\\'')}', '${(p.name||'').replace(/'/g,'\\\'')}')"
-             style="cursor: pointer;">
+        <div class="personality-card ${idx === 0 ? 'selected' : ''}"
+             data-personality="${escapeAttr(p.id)}"
+             data-name="${escapeAttr(p.name || p.id)}">
           <div class="personality-emoji">${getPersonalityEmoji(p.id)}</div>
-          <div class="personality-name">${p.name || p.id}</div>
-          <div class="personality-trait">${p.desc || ''}</div>
+          <div class="personality-name">${escapeHTML(p.name || p.id)}</div>
+          <div class="personality-trait">${escapeHTML(p.desc || '')}</div>
         </div>
       `).join('');
-      
+
       // 默认选中第一个人格
       if (data.length > 0) {
         aiPersonality = data[0].id;
         updateGoButton();
       }
+
+      bindPersonaDelegation();
+    }
+
+    function bindPersonaDelegation(){
+      if (personaDelegationBound) return;
+      personaDelegationBound = true;
+      const list = document.getElementById('personaList');
+      list.addEventListener('click', (e)=>{
+        const card = e.target.closest('.personality-card');
+        if (!card) return;
+        pickPersona(card.dataset.personality, card.dataset.name);
+      });
     }
 
     function getPersonalityEmoji(id) {
       const emojiMap = {
         'wisdom': '📚',
-        'mystic': '🔮', 
+        'mystic': '🔮',
         'warm': '💝',
         'blunt': '⚡',
         'heal': '🌿',
@@ -745,31 +782,26 @@
     }
 
     function pickPersona(id, name){
-      // 移除所有选中状态
+      // 取消所有选中
       document.querySelectorAll('.personality-card').forEach(card => {
         card.classList.remove('selected');
       });
-      
-      // 选中当前卡片
-      const selectedCard = document.querySelector(`[data-personality="${id}"]`);
-      if (selectedCard) {
-        selectedCard.classList.add('selected');
-      }
-      
+      // 选中当前
+      const selectedCard = document.querySelector(`.personality-card[data-personality="${CSS.escape(id)}"]`);
+      if (selectedCard) selectedCard.classList.add('selected');
+
       aiPersonality = id;
       updateGoButton();
-      
-      // 显示确认提示
       showPersonalityConfirmation(name || id);
     }
 
     function showPersonalityConfirmation(name) {
-      // 移除之前的提示
+      const sec = document.querySelector('.personality-section');
+      if (!sec) return;
+
       const existingHint = document.querySelector('.persona-confirmation');
-      if (existingHint) {
-        existingHint.remove();
-      }
-      
+      if (existingHint) existingHint.remove();
+
       const hint = document.createElement('div');
       hint.className = 'persona-confirmation';
       hint.style.cssText = `
@@ -782,9 +814,8 @@
         font-size: 14px;
         text-align: center;
       `;
-      hint.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 6px;"></i>已选择对话人格：${name}`;
-      
-      document.querySelector('.personality-section').appendChild(hint);
+      hint.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 6px;"></i>已选择对话人格：${escapeHTML(name)}`;
+      sec.appendChild(hint);
     }
 
     function updateGoButton() {
@@ -807,17 +838,18 @@
     }
 
     // ====== 开始占卜（与后端一致：/api/spread/draw） ======
-    async function proceedToSpread(btn){
-      if (!chosenSpread){ 
-        alert('请先完成选择'); 
-        return; 
+    async function proceedToSpread(){
+      if (!chosenSpread){
+        alert('请先完成选择');
+        return;
       }
-      if (!aiPersonality){ 
-        alert('请先选择对话人格'); 
-        return; 
+      if (!aiPersonality){
+        alert('请先选择对话人格');
+        return;
       }
 
-      const oldText = btn.innerHTML;
+      const btn = document.getElementById('goBtn');
+      const oldHTML = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 准备中…';
 
@@ -827,27 +859,27 @@
           question: generateQuestion(),     // 合成首问
           ai_personality: aiPersonality     // 字符串人格
         };
-        
+
         const res = await fetch('/api/spread/draw', {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
           body: JSON.stringify(payload)
         });
-        
+
         if (!res.ok) throw new Error('抽牌接口错误');
-        
         const data = await res.json();
+
         if (data?.success && data?.redirect){
           window.location.href = data.redirect; // /spread/chat/<reading_id>
           return;
         }
-        
+
         throw new Error(data?.error || '抽牌失败，请稍后重试');
       }catch(err){
         console.error(err);
         alert(err.message || '网络错误，请稍后重试');
         btn.disabled = false;
-        btn.innerHTML = oldText;
+        btn.innerHTML = oldHTML;
       }
     }
 
@@ -857,19 +889,20 @@
       chosenSpread = null;
       aiPersonality = null;
       current = 'start';
-      
+
       // 清空并重新显示对话区
+      const msgs = window.__msgs || document.getElementById('msgs');
       msgs.innerHTML = '';
       msgs.style.display = '';
       document.getElementById('result').style.display = 'none';
       document.getElementById('progress').style.display = '';
-      
+
       // 重置进度指示器
       document.querySelectorAll('.dot').forEach((d,i)=>{
         d.classList.toggle('active', i===0);
         d.classList.remove('done');
       });
-      
+
       // 重新开始
       showStep('start');
     }
