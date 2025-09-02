@@ -99,7 +99,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 0; /* ✅ 关键：允许滚动区收缩 */
+      min-height: 0;            /* ✅ 允许滚动区收缩 */
     }
 
     /* ============= 进度指示器 ============= */
@@ -116,18 +116,17 @@
       background:var(--primary-color);
       box-shadow: 0 4px 12px rgba(142,108,136,.3);
     }
-    .dot.done{
-      background:var(--secondary-color);
-    }
+    .dot.done{ background:var(--secondary-color); }
 
     /* ============= 对话区域 ============= */
     .msgs{
-      display:flex; flex-direction:column; gap:20px;
-      flex: 1 1 0%;        /* ✅ 关键：更稳定的 flex 行为 */
-      min-height: 0;       /* ✅ 关键：配合父容器可收缩 */
+      display:flex; flex-direction:column; gap:16px;
+      flex: 1 1 0%;        /* ✅ 稳定 flex 行为 */
+      min-height: 0;       /* ✅ 配合父容器可收缩 */
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--primary-color) transparent;
+      scroll-behavior: smooth;   /* ✅ 自动滚动更顺滑 */
     }
     .msgs::-webkit-scrollbar { width: 6px; }
     .msgs::-webkit-scrollbar-track { background: transparent; }
@@ -138,134 +137,136 @@
 
     .msg{
       display:flex; gap:14px;
-      animation: msgSlideIn .4s ease-out;
+      animation: msgSlideIn .25s ease-out;
       max-width: 100%;
     }
     @keyframes msgSlideIn{
-      from{opacity:0; transform:translateY(12px);}
+      from{opacity:0; transform:translateY(8px);}
       to{opacity:1; transform:translateY(0);}
     }
 
     .ava{
-      width:44px; height:44px; border-radius:50%;
+      width:40px; height:40px; border-radius:50%;
       background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
       color:#fff; display:flex; align-items:center; justify-content:center;
       box-shadow: var(--shadow-sm);
       flex-shrink: 0;
+      font-size: 14px;
     }
 
     .bubble{
       background: var(--card);
-      padding:18px 20px;
+      padding:16px 16px;
       border-radius: var(--radius-md);
       border-bottom-left-radius:6px;
-      line-height:1.65;
+      line-height:1.6;
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--border);
       flex: 1;
       white-space: pre-line;
     }
 
-    /* ============= 选项区域（改进样式） ============= */
+    /* 折叠历史对话（仅保留最近2条展开） */
+    .msg.collapsed .bubble{ padding:10px 12px; opacity:.85; }
+    .msg.collapsed .options{ display:none !important; }
+    .msg.collapsed{ gap:10px; }
+    .user.collapsed .me{ padding:8px 12px; font-weight:500; opacity:.9; }
+
+    /* ============= 选项区域：两列网格（桌面端） ============= */
     .options{
-      display:flex; flex-direction:column; gap:12px; margin-top:16px;
+      display:grid;                 /* ✅ 从竖排改为网格 */
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px; margin-top:12px;
+      align-items: stretch;
     }
     .opt{
       background: var(--card);
       border:2px solid var(--border);
       border-radius: var(--radius-md);
-      padding:16px 18px;
-      display:flex; align-items:center; gap:14px;
+      padding:14px 14px;
+      display:flex; align-items:center; gap:12px;
       cursor:pointer;
       transition: all .2s ease;
       position: relative;
       overflow: hidden;
+      min-height: 64px;            /* ✅ 统一高度，紧凑但不拥挤 */
     }
     .opt::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
+      top: 0; left: -100%; width: 100%; height: 100%;
       background: linear-gradient(90deg, transparent, rgba(142,108,136,0.05), transparent);
       transition: left .4s ease;
     }
-    .opt:hover::before {
-      left: 100%;
-    }
+    .opt:hover::before { left: 100%; }
     .opt:hover{
       background: rgba(142,108,136,0.02);
       border-color: var(--primary-color);
-      transform: translateX(4px);
+      transform: translateY(-1px);
       box-shadow: var(--shadow-sm);
     }
-    .opt .emoji{
-      width:32px; text-align:center; font-size:24px; flex-shrink: 0;
-    }
-    .opt .content { flex: 1; }
+    .opt .emoji{ width:28px; text-align:center; font-size:22px; flex-shrink: 0; }
+    .opt .content { flex: 1; min-width: 0; }
     .opt .ttl{
-      font-weight:700; color:var(--accent-color); font-size: 16px;
-      margin-bottom: 4px;
+      font-weight:700; color:var(--accent-color); font-size: 15px;
+      margin-bottom: 2px; line-height: 1.25;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .opt .desc{
-      font-size:14px; color:var(--muted); line-height: 1.4;
+      font-size:13px; color:var(--muted); line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .opt .arrow {
-      color: var(--secondary-color);
-      transition: transform .2s ease;
-    }
-    .opt:hover .arrow { transform: translateX(4px); }
+    .opt .arrow { color: var(--secondary-color); transition: transform .2s ease; }
+    .opt:hover .arrow { transform: translateX(3px); }
 
     /* 用户选择消息 */
     .user{ display:flex; justify-content:flex-end; }
     .user .me{
       background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
-      color:#fff; padding:12px 18px;
+      color:#fff; padding:10px 14px;
       border-radius: var(--radius-md);
       border-bottom-right-radius:6px;
       box-shadow: var(--shadow-sm);
       font-weight: 600;
+      max-width: 80%;
+      line-height: 1.4;
     }
 
     /* ============= 结果区域 ============= */
     .result{
-      display:none; text-align:center; padding:32px 28px;
+      display:none; text-align:center; padding:28px 24px;
       border-top:1px solid var(--border);
       background: linear-gradient(135deg, rgba(248,244,233,0.3), rgba(236,228,215,0.3));
     }
-    .result-icon { font-size: 48px; margin-bottom: 12px; }
+    .result-icon { font-size: 44px; margin-bottom: 10px; }
     .r-title{
-      font-size:24px; font-weight:800; color:var(--accent-color);
-      margin: 8px 0 6px;
+      font-size:22px; font-weight:800; color:var(--accent-color);
+      margin: 6px 0 6px;
     }
-    .r-desc{ color:var(--muted); margin:0 0 24px; font-size: 16px; }
+    .r-desc{ color:var(--muted); margin:0 0 18px; font-size: 15px; }
 
     /* 推荐牌阵卡片 */
     .spread-card{
       background: var(--card);
       border:1px solid var(--border);
       border-radius: var(--radius-md);
-      padding:20px;
-      margin-bottom:20px;
+      padding:18px;
+      margin-bottom:18px;
       text-align:left;
       box-shadow: var(--shadow-sm);
     }
-    .spread-name{
-      font-size:20px; font-weight:800; color:var(--primary-color);
-      margin-bottom: 8px;
-    }
-    .spread-meta{ color:var(--muted); font-size:14px; margin-bottom: 12px; }
+    .spread-name{ font-size:19px; font-weight:800; color:var(--primary-color); margin-bottom: 6px; }
+    .spread-meta{ color:var(--muted); font-size:13px; margin-bottom: 8px; }
     .spread-desc { color: var(--ink); line-height: 1.6; }
 
     /* ============= AI性格选择（与spread.html统一） ============= */
-    .personality-section { margin-bottom: 24px; }
+    .personality-section { margin-bottom: 20px; }
     .personality-label{
       display: block;
       color: var(--accent-color);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       text-align: left;
     }
     .personality-grid{
@@ -278,7 +279,7 @@
     .personality-card{
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center;
-      padding: 16px 12px;
+      padding: 14px 12px;
       border: 2px solid var(--border); border-radius: var(--radius-md);
       background: var(--card); box-shadow: var(--shadow-sm);
       transition: all .2s ease;
@@ -286,42 +287,40 @@
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      min-height: 82px;
     }
     .personality-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
+      top: 0; left: -100%; width: 100%; height: 100%;
       background: linear-gradient(90deg, transparent, rgba(142,108,136,0.1), transparent);
       transition: left .4s ease;
     }
     .personality-card:hover::before { left: 100%; }
-    .personality-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .personality-card:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); }
     .personality-card.selected{
       border-color: var(--primary-color);
       background: linear-gradient(180deg, #fff, #fdf8f2);
       box-shadow: 0 0 0 3px rgba(142,108,136,0.12), var(--shadow-md);
     }
-    .personality-emoji{ font-size: 28px; margin-bottom: 8px; }
-    .personality-name{ font-size: 15px; font-weight: 800; color: var(--accent-color); margin-bottom: 4px; }
-    .personality-trait{ font-size: 12px; color: var(--muted); line-height: 1.3; }
+    .personality-emoji{ font-size: 24px; margin-bottom: 6px; }
+    .personality-name{ font-size: 14px; font-weight: 800; color: var(--accent-color); margin-bottom: 2px; }
+    .personality-trait{ font-size: 12px; color: var(--muted); line-height: 1.2; }
 
     /* ============= 底部操作区 ============= */
     .footer{
-      padding:20px 0 0;
+      padding:16px 0 0;
       display:flex;
       justify-content: space-between;
       align-items: center;
-      gap:16px;
+      gap:12px;
     }
     .ghost-btn{
       border:2px solid var(--border);
       background: var(--card);
       color: var(--accent-color);
       border-radius: var(--radius-md);
-      padding:12px 20px;
+      padding:10px 16px;
       cursor: pointer;
       font-weight: 600;
       transition: all .2s ease;
@@ -330,16 +329,12 @@
       align-items: center;
       gap: 8px;
     }
-    .ghost-btn:hover {
-      background: var(--bg-ivory);
-      border-color: var(--primary-color);
-      transform: translateY(-1px);
-    }
+    .ghost-btn:hover { background: var(--bg-ivory); border-color: var(--primary-color); transform: translateY(-1px); }
 
     .btn-primary{
       background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
       color:#fff; border:none;
-      padding:14px 24px;
+      padding:12px 18px;
       border-radius: var(--radius-md);
       font-weight:700;
       box-shadow: var(--shadow-md);
@@ -348,37 +343,28 @@
       align-items: center;
       gap: 8px;
       transition: all .2s ease;
-      font-size: 16px;
+      font-size: 15px;
     }
-    .btn-primary:hover:not([disabled]) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }
+    .btn-primary:hover:not([disabled]) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
     .btn-primary[disabled]{ opacity:.6; cursor: not-allowed; transform: none !important; }
 
     /* ============= 响应式 ============= */
+    @media (max-width:900px){
+      .options{ grid-template-columns: 1fr; }  /* ✅ 移动端单列，避免横向挤压 */
+      .personality-grid { grid-template-columns: 1fr; }
+      .msgs{ gap:14px; }
+    }
     @media (max-width:768px){
       .main{ margin:20px auto; padding: 0 16px; }
       .stage { padding: 24px 20px; }
       .msgs{ min-height:360px; }
-      .personality-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .footer {
-        flex-direction: column-reverse;
-        gap: 12px;
-      }
-      .ghost-btn, .btn-primary {
-        width: 100%;
-        justify-content: center;
-      }
+      .footer { flex-direction: column-reverse; gap: 10px; }
+      .ghost-btn, .btn-primary { width: 100%; justify-content: center; }
     }
-
     @media (max-width:480px){
-      .opt { padding: 14px 16px; }
-      .opt .emoji { font-size: 20px; }
-      .opt .ttl { font-size: 15px; }
+      .opt { padding: 12px 12px; }
+      .opt .emoji { font-size: 20px; width:24px; }
+      .opt .ttl { font-size: 14px; }
     }
 
     /* 尊重系统"减少动态"设置 */
@@ -434,9 +420,7 @@
 
           <div class="personality-section">
             <label class="personality-label">选择对话人格（只影响语气，不改变解读结论）</label>
-            <div class="personality-grid" id="personaList">
-              <!-- 动态渲染：优先 /api/personas，失败时使用内置列表 -->
-            </div>
+            <div class="personality-grid" id="personaList"></div>
           </div>
 
           <div class="footer">
@@ -541,28 +525,32 @@
     let personaDelegationBound = false;
 
     // 工具：简单转义
-    function escapeHTML(s){
-      return String(s)
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
+    const escapeHTML = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const escapeAttr = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // 平滑滚动到最新 & 折叠历史，减少手动下滑
+    function scrollToLatest(el){
+      const msgs = window.__msgs || document.getElementById('msgs');
+      if (!msgs) return;
+      requestAnimationFrame(()=>{
+        if (el && el.scrollIntoView) {
+          el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        }
+        msgs.scrollTo({ top: msgs.scrollHeight, behavior:'smooth' });
+      });
     }
-    function escapeAttr(s){
-      return String(s)
-        .replace(/&/g,'&amp;')
-        .replace(/"/g,'&quot;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
+    function collapseHistory(keep=2){
+      const msgs = window.__msgs || document.getElementById('msgs');
+      if (!msgs) return;
+      const nodes = Array.from(msgs.children).filter(n => n.classList.contains('msg') || n.classList.contains('user'));
+      nodes.slice(0, Math.max(0, nodes.length - keep)).forEach(n => n.classList.add('collapsed'));
     }
 
     // 初始化（兼容脚本延后插入）
     function initGuide(){
       try {
         window.__msgs = document.getElementById('msgs') || document.querySelector('.msgs');
-        if (!window.__msgs) {
-          console.error('[guide] 未找到 #msgs 容器');
-          return;
-        }
+        if (!window.__msgs) { console.error('[guide] 未找到 #msgs 容器'); return; }
 
         // 绑定按钮事件（移除 inline onclick，兼容 CSP）
         const resetBtn = document.getElementById('resetBtn');
@@ -571,15 +559,11 @@
         if (goBtn) goBtn.addEventListener('click', proceedToSpread);
 
         showStep('start');
-      } catch (e) {
-        console.error('[guide] 初始化失败：', e);
-      }
+      } catch (e) { console.error('[guide] 初始化失败：', e); }
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initGuide, { once:true });
-    } else {
-      initGuide();
-    }
+    } else { initGuide(); }
 
     async function ensurePersonasLoaded(){
       if (personas) return personas;
@@ -592,9 +576,7 @@
           name: p.name ?? '自定义人格',
           desc: p.desc ?? (p.style ? `风格：${p.style}` : '')
         })) : personasFallback;
-      }catch(_){
-        personas = personasFallback;
-      }
+      }catch(_){ personas = personasFallback; }
       return personas;
     }
 
@@ -602,16 +584,10 @@
     function showStep(id){
       try {
         const node = decision[id];
-        if (!node) {
-          console.warn('[guide] 未找到步骤：', id);
-          return;
-        }
+        if (!node) { console.warn('[guide] 未找到步骤：', id); return; }
 
         const msgs = window.__msgs || document.getElementById('msgs');
-        if (!msgs) {
-          console.error('[guide] #msgs 容器缺失，无法渲染');
-          return;
-        }
+        if (!msgs) { console.error('[guide] #msgs 容器缺失，无法渲染'); return; }
 
         current = id;
         updateProgress();
@@ -650,11 +626,9 @@
           }, { once:true });
         });
 
-        // 滚动至底部
-        requestAnimationFrame(()=>{ msgs.scrollTop = msgs.scrollHeight; });
-      } catch (e) {
-        console.error('[guide] showStep 渲染失败：', e);
-      }
+        collapseHistory(2);   // ✅ 折叠旧消息
+        scrollToLatest(block); // ✅ 自动滚到新步骤
+      } catch (e) { console.error('[guide] showStep 渲染失败：', e); }
     }
 
     function selectOption(index, block){
@@ -675,19 +649,16 @@
         (window.__msgs || document.getElementById('msgs')).appendChild(me);
         history.push({ step: current, choice: index });
 
+        collapseHistory(2);    // ✅ 选择后也折叠旧消息
+        scrollToLatest(me);    // ✅ 拉到选择位置
+
         setTimeout(()=>{
-          if (opt.result){
-            showResult(opt.result);
-          } else if (opt.next){
-            showStep(opt.next);
-          }
-          const msgs = window.__msgs || document.getElementById('msgs');
-          msgs.scrollTop = msgs.scrollHeight;
-        }, 500);
+          if (opt.result){ showResult(opt.result); }
+          else if (opt.next){ showStep(opt.next); }
+          scrollToLatest();    // ✅ 再次确保看到下一步
+        }, 250);
         updateProgress();
-      }catch(e){
-        console.error('[guide] selectOption 失败：', e);
-      }
+      }catch(e){ console.error('[guide] selectOption 失败：', e); }
     }
 
     function updateProgress(){
@@ -719,7 +690,7 @@
       const descEl = document.getElementById('rDesc');
       if (descEl) { descEl.textContent = getSpreadDescription(spreadId); }
 
-      // 渲染人格列表（事件委托，避免 inline onclick）
+      // 渲染人格列表（事件委托）
       const list = document.getElementById('personaList');
       const data = await ensurePersonasLoaded();
       list.innerHTML = data.map((p, idx)=>`
@@ -733,12 +704,10 @@
       `).join('');
 
       // 默认选中第一个人格
-      if (data.length > 0) {
-        aiPersonality = data[0].id;
-        updateGoButton();
-      }
+      if (data.length > 0) { aiPersonality = data[0].id; updateGoButton(); }
 
       bindPersonaDelegation();
+      resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
     function bindPersonaDelegation(){
@@ -753,15 +722,7 @@
     }
 
     function getPersonalityEmoji(id) {
-      const emojiMap = {
-        'wisdom': '📚',
-        'mystic': '🔮',
-        'warm': '💝',
-        'blunt': '⚡',
-        'heal': '🌿',
-        'ritual': '🕯️',
-        'pro': '📊'
-      };
+      const emojiMap = { 'wisdom':'📚','mystic':'🔮','warm':'💝','blunt':'⚡','heal':'🌿','ritual':'🕯️','pro':'📊' };
       return emojiMap[id] || '🗣️';
     }
 
@@ -782,11 +743,7 @@
     }
 
     function pickPersona(id, name){
-      // 取消所有选中
-      document.querySelectorAll('.personality-card').forEach(card => {
-        card.classList.remove('selected');
-      });
-      // 选中当前
+      document.querySelectorAll('.personality-card').forEach(card => card.classList.remove('selected'));
       const selectedCard = document.querySelector(`.personality-card[data-personality="${CSS.escape(id)}"]`);
       if (selectedCard) selectedCard.classList.add('selected');
 
@@ -798,21 +755,16 @@
     function showPersonalityConfirmation(name) {
       const sec = document.querySelector('.personality-section');
       if (!sec) return;
-
       const existingHint = document.querySelector('.persona-confirmation');
       if (existingHint) existingHint.remove();
-
       const hint = document.createElement('div');
       hint.className = 'persona-confirmation';
       hint.style.cssText = `
-        margin: 12px 0 0 0;
-        padding: 8px 12px;
+        margin: 10px 0 0 0; padding: 8px 12px;
         background: rgba(142,108,136,0.05);
         border: 1px solid rgba(142,108,136,0.12);
-        border-radius: 8px;
-        color: var(--accent-color);
-        font-size: 14px;
-        text-align: center;
+        border-radius: 8px; color: var(--accent-color);
+        font-size: 14px; text-align: center;
       `;
       hint.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 6px;"></i>已选择对话人格：${escapeHTML(name)}`;
       sec.appendChild(hint);
@@ -820,9 +772,7 @@
 
     function updateGoButton() {
       const btn = document.getElementById('goBtn');
-      if (btn) {
-        btn.disabled = !(chosenSpread && aiPersonality);
-      }
+      if (btn) btn.disabled = !(chosenSpread && aiPersonality);
     }
 
     function generateQuestion(){
@@ -839,14 +789,8 @@
 
     // ====== 开始占卜（与后端一致：/api/spread/draw） ======
     async function proceedToSpread(){
-      if (!chosenSpread){
-        alert('请先完成选择');
-        return;
-      }
-      if (!aiPersonality){
-        alert('请先选择对话人格');
-        return;
-      }
+      if (!chosenSpread){ alert('请先完成选择'); return; }
+      if (!aiPersonality){ alert('请先选择对话人格'); return; }
 
       const btn = document.getElementById('goBtn');
       const oldHTML = btn.innerHTML;
@@ -859,21 +803,17 @@
           question: generateQuestion(),     // 合成首问
           ai_personality: aiPersonality     // 字符串人格
         };
-
         const res = await fetch('/api/spread/draw', {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
           body: JSON.stringify(payload)
         });
-
         if (!res.ok) throw new Error('抽牌接口错误');
         const data = await res.json();
-
         if (data?.success && data?.redirect){
           window.location.href = data.redirect; // /spread/chat/<reading_id>
           return;
         }
-
         throw new Error(data?.error || '抽牌失败，请稍后重试');
       }catch(err){
         console.error(err);
@@ -884,27 +824,24 @@
     }
 
     function resetGuide(){
-      // 重置所有状态
       history = [];
       chosenSpread = null;
       aiPersonality = null;
       current = 'start';
 
-      // 清空并重新显示对话区
       const msgs = window.__msgs || document.getElementById('msgs');
       msgs.innerHTML = '';
       msgs.style.display = '';
       document.getElementById('result').style.display = 'none';
       document.getElementById('progress').style.display = '';
 
-      // 重置进度指示器
       document.querySelectorAll('.dot').forEach((d,i)=>{
         d.classList.toggle('active', i===0);
         d.classList.remove('done');
       });
 
-      // 重新开始
       showStep('start');
+      scrollToLatest();
     }
   </script>
 </body>
