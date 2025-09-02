@@ -463,7 +463,29 @@ def api_spread_generate_initial():
         SpreadDAO.update_status(reading_id, 'error')
         print(f"generate_initial failed: {e}")
         return jsonify({'ok': False, 'status': 'error'}), 500
-
+        
+# app.py
+@app.route("/guide/spread")
+def guide_spread():
+    """引导式牌阵选择页面"""
+    user = g.user
+    
+    # 检查占卜次数限制
+    can_divine, remaining = SpreadService.can_divine_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    
+    if not can_divine:
+        flash("今日占卜次数已用完", "info")
+        return redirect(url_for('spread'))
+    
+    return render_template(
+        "guide_spread.html",
+        user=user,
+        remaining_divinations=remaining
+    )
 
 @app.route("/api/spread/status/<reading_id>")
 def api_spread_status(reading_id):
