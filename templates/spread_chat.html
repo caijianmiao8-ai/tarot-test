@@ -411,76 +411,100 @@
                         return String(text||'').replace(/[&<>"']/g,m=>map[m]);
                 }
 
-                function formatAIMessage(content){
-                        let text = String(content||'')
-                                .replace(/[\u00A0\u2007\u202F\u3000]/g,' ')
-                                .replace(/\r\n/g,'\n');
+function formatAIMessage(content){
+  let text = String(content || '').replace(/\r\n/g,'\n');
 
-                        // 暂存代码块
-                        const codeBlocks=[];
-                        text = text.replace(/```(\w*)\n([\s\S]*?)```/g,(m,lang,code)=>{
-                                const id=`__CODE_BLOCK_${codeBlocks.length}__`;
-                                codeBlocks.push(`<pre><code class="language-${lang||'plaintext'}">${escapeHtml(code.trim())}</code></pre>`);
-                                return id;
-                        });
+  // 1) 提前摘走代码块（三引号），并安全转义其内容
+  const fences = [];
+  text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
+    const id = `__FENCE_${fences.length}__`;
+    fences.push(
+      `<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`
+    );
+    return id;
+  });
 
-                        // 行内代码
-                        text = text.replace(/`([^`]+)`/g,'<code>$1</code>');
+  // 2) 对“非代码块区域”统一 HTML 转义（不会影响 # * _ 等 Markdown 符号）
+  text = escapeHtml(text);
 
-                        // 标题
-                        text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm,(m,hs,t)=>{
-                                const lvl=Math.min(hs.length,6);
-                                return `<h${lvl}>${escapeHtml(t.trim())}</h${lvl}>`;
-                        });
+  // 3) 标题（# .. ######）
+  text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm, (m, hs, t) => {
+    const lvl = Math.min(hs.length, 6);
+    return `<h${lvl}>${t.trim()}</h${lvl}>`;
+  });
 
-                        // 引用、分隔线
-                        text = text.replace(/^\s*>\s+(.+)$/gm,'<blockquote>$1</blockquote>')
-                                   .replace(/^\s*---+\s*$/gm,'<hr>');
+  // 4) 水平线
+  text = text.replace(/^\s*---+\s*$/gm, '<hr>');
 
-                        // 列表（先转 li）
-                        text = text.replace(/^\s*\d+\.\s+(.+)$/gm,'<li>$1</li>')
-                                   .replace(/^\s*[-*+]\s+(.+)$/gm,'<li>$1</li>');
+  // 5) 多行引用：把连续 &gt; 行合并为一个 blockquote
+  text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g, (block) => {
+    const inner = block.replace(/(^|\n)&gt;\s?/g, '$1').trim();
+    return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
+  });
 
-                        // 连续 li 包裹
-                        text = text.replace(/(?:^(?:<li>.*<\/li>\n?)+)/gms,(block)=>{
-                                const raw=block.replace(/<li>|<\/li>/g,'');
-                                const ordered=/^\s*\d+\.\s+/m.test(raw);
-                                return ordered?`<ol>${block.trim()}</ol>\n`:`<ul>${block.trim()}</ul>\n`;
-                        });
+  // 6) 行内代码（反引号）——此时文本已转义，无需再次 escape
+  text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
 
-                        // 强调/删除
-                        text = text.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
-                                   .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                                   .replace(/\*(.+?)\*/g,'<em>$1</em>')
-                                   .replace(/___(.+?)___/g,'<strong><em>$1</em></strong>')
-                                   .replace(/__(.+?)__/g,'<strong>$1</strong>')
-                                   .replace(/_(.+?)_/g,'<em>$1</em>')
-                                   .replace(/~~(.+?)~~/g,'<del>$1</del>');
+  // 7) 加粗/斜体（顺序很重要，先强再弱）
+  text = text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
 
-                        // 简易表格
-                        text = text.replace(/\|(.+)\|/g,(m,inner)=>{
-                                if (/^[\s\-:|]+$/.test(inner)) return m;
-                                const cells=inner.split('|').map(c=>c.trim());
-                                return `<tr>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
-                        });
-                        text = text.replace(/(<tr>[\s\S]*?<\/tr>)+/g,m=>`<table class="markdown-table">${m}</table>`);
+  // 8) 链接 [text](https://...)（只允许 http/https，避免 javascript:）
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
 
-                        // 段落包裹
-                        text = text.split(/\n{2,}/).map(seg=>{
-                                const s=seg.trim(); if(!s) return '';
-                                if(/^<(h\d|blockquote|hr|ul|ol|table|pre|code)/i.test(s)) return s;
-                                if(s.startsWith('__CODE_BLOCK_')) return s;
-                                return `<p>${s.replace(/\n/g,'<br>')}</p>`;
-                        }).filter(Boolean).join('\n');
+  // 9) 列表：先打标记，再成组包裹，避免 “有序→无序”误判
+  text = text
+    .replace(/^\s*(\d+)\.\s+(.+)$/gm, (m, n, item) => `<li data-ol="1">${item}</li>`)
+    .replace(/^\s*[-*+]\s+(.+)$/gm, (m, item) => `<li data-ul="1">${item}</li>`);
 
-                        // 回填代码块
-                        codeBlocks.forEach((html,i)=>{ text=text.replace(`__CODE_BLOCK_${i}__`,html); });
+  text = text.replace(/(?:^(?:<li[^>]*>.*<\/li>\n?)+)/gms, (block) => {
+    const isOl = /<li[^>]*data-ol="1"/.test(block) && !/<li[^>]*data-ul="1"/.test(block);
+    const clean = block.replace(/ data-(ol|ul)="1"/g, '');
+    return (isOl ? `<ol>${clean.trim()}</ol>` : `<ul>${clean.trim()}</ul>`) + '\n';
+  });
 
-                        // 清理多余 <p>
-                        text = text.replace(/<p><(h\d|ul|ol|table|blockquote|hr)/g,'<$1')
-                                   .replace(/<\/(h\d|ul|ol|table|blockquote|hr)><\/p>/g,'</$1>');
-                        return text;
-                }
+  // 10) 表格（简单版）：识别表头 + 多行数据；只处理形如 markdown 的表，不滥杀
+  text = text.replace(
+    /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
+    (m, header, sep, rows) => {
+      const ths = header.split('|').map(s => `<th>${s.trim()}</th>`).join('');
+      const trs = rows.trim().split('\n').map(r => {
+        const tds = r.replace(/^\||\|$/g,'')
+                     .split('|').map(s => `<td>${s.trim()}</td>`).join('');
+        return `<tr>${tds}</tr>`;
+      }).join('');
+      return `\n<table class="markdown-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>\n`;
+    }
+  );
+
+  // 11) 段落：以空行分段，保持已有块级元素不再二次包裹
+  const parts = text.split(/\n{2,}/).map(seg => {
+    const s = seg.trim();
+    if (!s) return '';
+    if (/^<(h\d|blockquote|hr|ul|ol|table|pre)/i.test(s)) return s;
+    return `<p>${s.replace(/\n/g,'<br>')}</p>`;
+  }).filter(Boolean);
+
+  let html = parts.join('\n');
+
+  // 12) 回填代码块
+  fences.forEach((codeHtml, i) => {
+    html = html.replace(`__FENCE_${i}__`, codeHtml);
+  });
+
+  // 13) 清理不必要的包裹
+  html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
+             .replace(/<\/(h\d|blockquote|hr|ul|table|pre)><\/p>/g,'</$1>');
+
+  return html;
+}
+
 
                 /* ===== 初始化：格式化历史 / 首次触发与轮询 ===== */
                 document.addEventListener('DOMContentLoaded',()=>{
@@ -608,8 +632,9 @@
                         const avatar=document.createElement('div'); avatar.className='message-avatar';
                         avatar.innerHTML = role==='user' ? '<i class="fas fa-user"></i>' : personaIcon();
                         const cont=document.createElement('div'); cont.className='message-content';
-                        cont.innerHTML = (role==='assistant' && shouldFormat) ? formatAIMessage(content) :
-                                         (role==='assistant' ? formatAIMessage(escapeHtml(content)) : escapeHtml(content));
+cont.innerHTML = (role === 'assistant')
+  ? formatAIMessage(content)         // 始终交给 parser 统一处理与转义
+  : escapeHtml(content);             // 用户文本保持纯文本安全显示
                         wrap.appendChild(avatar); wrap.appendChild(cont); area.appendChild(wrap);
                         setTimeout(()=>{ area.scrollTop=area.scrollHeight; },50);
                 }
