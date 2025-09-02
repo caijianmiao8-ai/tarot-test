@@ -698,32 +698,55 @@
                 }
 
                 function pollInitial() {
-                        const maxTries = 20; // 可根据 Dify 时延调大到 25~30
-                        let tries = 0;
-                        const timer = setInterval(async () => {
-                                try {
-                                        tries++;
-                                        const r = await fetch(`/api/spread/status/${encodeURIComponent(readingId)}`, { cache: 'no-store' });
-                                        if (!r.ok) throw new Error('status not ok');
-                                        const s = await r.json();
-                                        if (s.has_initial || s.status === 'ready') {
-                                                clearInterval(timer);
-                                                // 直接刷新拿历史消息（也可改成前端插入 s.initial_text）
-                                                location.reload();
-                                                return;
-                                        }
-                                        if (tries >= maxTries) {
-                                                clearInterval(timer);
-                                                location.reload();
-                                        }
-                                } catch (e) {
-                                        console.warn('poll status failed:', e);
-                                        if (tries >= maxTries) {
-                                                clearInterval(timer);
-                                                location.reload();
-                                        }
-                                }
-                        }, 1000);
+const maxTries = 20;
+let tries = 0;
+const timer = setInterval(async () => {
+  try {
+    tries++;
+    const r = await fetch(`/api/spread/status/${encodeURIComponent(readingId)}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('status not ok');
+    const s = await r.json();
+
+    if (s.has_initial || s.status === 'ready') {
+      clearInterval(timer);
+
+      // 找到消息区
+      const messagesArea = document.getElementById('messages-area');
+      if (s.initial_text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message assistant';
+        msgDiv.innerHTML = `
+          <div class="message-avatar">
+            ${aiPersonality === 'mystic' ? '<i class="fas fa-moon"></i>' :
+              aiPersonality === 'wisdom' ? '<i class="fas fa-book"></i>' :
+              '<i class="fas fa-heart"></i>'}
+          </div>
+          <div class="message-content">${formatAIMessage(s.initial_text)}</div>
+        `;
+        messagesArea.appendChild(msgDiv);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+      }
+
+      return;
+    }
+
+    if (tries >= maxTries) {
+      clearInterval(timer);
+      // 超时提示
+      const messagesArea = document.getElementById('messages-area');
+      const errMsg = document.createElement('div');
+      errMsg.className = 'message assistant';
+      errMsg.innerHTML = `<div class="message-content">⚠️ 初始解读生成超时，请稍后重试。</div>`;
+      messagesArea.appendChild(errMsg);
+    }
+  } catch (e) {
+    console.warn('poll status failed:', e);
+    if (tries >= maxTries) {
+      clearInterval(timer);
+    }
+  }
+}, 1000);
+
                 }
 
                 // ===== UI 交互 / 消息流 =====

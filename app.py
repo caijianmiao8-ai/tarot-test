@@ -470,12 +470,16 @@ def api_spread_status(reading_id):
     row = SpreadDAO.get_status(reading_id)
     if not row:
         return jsonify({'error': 'not found'}), 404
+
     msgs = SpreadDAO.get_all_messages(reading_id) or []
+
     return jsonify({
         'status': row.get('status', 'init'),
         'has_initial': bool(row.get('has_initial')),
-        'message_count': len(msgs)
+        'message_count': len(msgs),
+        'initial_text': row.get('initial_interpretation')  # 新增
     })
+
 
 
 # 5. 可选：获取今日占卜记录

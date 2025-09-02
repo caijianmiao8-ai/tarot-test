@@ -156,8 +156,12 @@ class SpreadDAO:
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT status, initial_interpretation IS NOT NULL AS has_initial
-                    FROM spread_readings WHERE id = %s
+                    SELECT id,
+                           status,
+                           initial_interpretation,
+                           (initial_interpretation IS NOT NULL) as has_initial
+                    FROM spread_readings
+                    WHERE id = %s
                 """, (reading_id,))
                 return cursor.fetchone()
 
