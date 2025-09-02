@@ -192,25 +192,70 @@ body{
 .text-input:focus{ outline:none; background:#fff; box-shadow: 0 0 0 4px rgba(142,108,136,0.10); }
 
 /* ============= 人格选择（柔和优雅） ============= */
-.personality-grid{
-  display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:6px 0 16px;
-}
-.personality-card{
-  flex:1 1 170px; max-width:220px;
-  padding:14px 12px; text-align:center; cursor:pointer;
-  border:1px solid var(--border); border-radius: var(--radius-md);
-  background:#fff; box-shadow: var(--shadow-sm);
-  transition: transform .2s, box-shadow .2s, border-color .2s;
-}
-.personality-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.personality-card.selected{
-  border-color: transparent;
-  background: linear-gradient(180deg, #fff, #fdf8f2);
-  box-shadow: 0 0 0 4px rgba(142,108,136,0.12), var(--shadow-md);
-}
-.personality-emoji{ font-size:26px; margin-bottom:6px; }
-.personality-name{ font-size:15px; font-weight:900; color:var(--accent-color); margin-bottom:4px; }
-.personality-trait{ font-size:12px; color:var(--muted); }
+        /* 人格选择：三列等分 + 自适应降列 */
+        .personality-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr)); /* 三列均分 */
+                gap: 14px;
+                align-items: stretch;           /* 让每列等高 */
+                justify-items: stretch;         /* 卡片拉满单元格 */
+                margin: 6px 0 16px;
+        }
+
+        /* 人格卡片：等高、内容居中 */
+        .personality-card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;        /* 内容垂直居中 */
+                text-align: center;
+                padding: 16px 14px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                background: #fff;
+                box-shadow: var(--shadow-sm);
+                transition: transform .2s, box-shadow .2s, border-color .2s;
+                height: 100%;                   /* 关键：撑满网格单元格高度 */
+        }
+
+        /* 悬停/选中态 */
+        .personality-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+        }
+        .personality-card.selected {
+                border-color: transparent;
+                background: linear-gradient(180deg, #fff, #fdf8f2);
+                box-shadow: 0 0 0 4px rgba(142,108,136,0.12), var(--shadow-md);
+        }
+
+        .personality-emoji {
+                font-size: 26px;
+                margin-bottom: 6px;
+        }
+        .personality-name {
+                font-size: 15px;
+                font-weight: 900;
+                color: var(--accent-color);
+                margin-bottom: 4px;
+        }
+        .personality-trait {
+                font-size: 12px;
+                color: var(--muted);
+        }
+
+        /* 响应式：平板两列，手机一列 */
+        @media (max-width: 992px) {
+                .personality-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+        }
+        @media (max-width: 560px) {
+                .personality-grid {
+                        grid-template-columns: 1fr;
+                }
+        }
+
 
 /* ============= 行动按钮 ============= */
 .action-button{
