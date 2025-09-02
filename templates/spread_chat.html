@@ -189,6 +189,22 @@
                 .message.user .message-content{
                         background:var(--user-msg-bg);color:#fff;border-bottom-right-radius:6px;border-bottom-left-radius:18px;
                 }
+/* markdown 任务清单 */
+.message-content .task-list{ 
+  list-style: none; 
+  padding-left: 0; 
+  margin: .8em 0;
+}
+.message-content .task-list li{ 
+  margin: .35em 0; 
+}
+.message-content .task-list input[type="checkbox"]{
+  margin-right: 8px; 
+  transform: scale(1.05); 
+  vertical-align: middle;
+  accent-color: var(--primary-color); /* 让勾选颜色跟主题色一致 */
+  pointer-events: none; /* 只是展示，不可点击 */
+}
 
                 /* Markdown 样式 */
                 .message-content h1{font-size:1.35rem;margin:1em 0 .5em;color:var(--accent-color);font-weight:800}
@@ -411,10 +427,12 @@
                         return String(text||'').replace(/[&<>"']/g,m=>map[m]);
                 }
 
+// 依赖你现有的 escapeHtml(text) 函数
+
 function formatAIMessage(content){
   let text = String(content || '').replace(/\r\n/g,'\n');
 
-  // 1) 提前摘走代码块（三引号），并安全转义其内容
+  // ===== 0) 代码块：先摘走，再统一转义其他部分 =====
   const fences = [];
   text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
     const id = `__FENCE_${fences.length}__`;
@@ -424,28 +442,31 @@ function formatAIMessage(content){
     return id;
   });
 
-  // 2) 对“非代码块区域”统一 HTML 转义（不会影响 # * _ 等 Markdown 符号）
+  // ===== 0.1) 表格容错：把“挤在一行”的表格修成多行 =====
+  text = normalizeCompactTables(text);
+
+  // ===== 1) 统一转义（安全基线）=====
   text = escapeHtml(text);
 
-  // 3) 标题（# .. ######）
+  // ===== 2) 标题 (# .. ######) =====
   text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm, (m, hs, t) => {
     const lvl = Math.min(hs.length, 6);
     return `<h${lvl}>${t.trim()}</h${lvl}>`;
   });
 
-  // 4) 水平线
+  // ===== 3) 水平线 ---- =====
   text = text.replace(/^\s*---+\s*$/gm, '<hr>');
 
-  // 5) 多行引用：把连续 &gt; 行合并为一个 blockquote
+  // ===== 4) 多行引用（> ...）合并为一个 blockquote =====
   text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g, (block) => {
     const inner = block.replace(/(^|\n)&gt;\s?/g, '$1').trim();
     return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
   });
 
-  // 6) 行内代码（反引号）——此时文本已转义，无需再次 escape
+  // ===== 5) 行内代码 `code`（此时已转义，无需再次 escape）=====
   text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
 
-  // 7) 加粗/斜体（顺序很重要，先强再弱）
+  // ===== 6) 强/斜体（顺序重要）=====
   text = text
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -454,11 +475,20 @@ function formatAIMessage(content){
     .replace(/__(.+?)__/g, '<strong>$1</strong>')
     .replace(/_(.+?)_/g, '<em>$1</em>');
 
-  // 8) 链接 [text](https://...)（只允许 http/https，避免 javascript:）
+  // ===== 7) 安全链接 [text](https://...) =====
   text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
 
-  // 9) 列表：先打标记，再成组包裹，避免 “有序→无序”误判
+  // ===== 8) 任务清单 - [ ] / - [x] =====
+  text = text.replace(
+    /^\s*[-*+]\s+\[( |x|X)\]\s+(.+)$/gm,
+    (m, chk, body) => `<li data-task="1"><input type="checkbox" disabled ${/x/i.test(chk)?'checked':''}> ${body}</li>`
+  );
+  text = text.replace(/(?:^(?:<li data-task="1">.*<\/li>\n?)+)/gms, (block) => {
+    return `<ul class="task-list">${block.replace(/ data-task="1"/g,'').trim()}</ul>\n`;
+  });
+
+  // ===== 9) 普通列表（先标记，再成组包裹，避免有序→无序误判）=====
   text = text
     .replace(/^\s*(\d+)\.\s+(.+)$/gm, (m, n, item) => `<li data-ol="1">${item}</li>`)
     .replace(/^\s*[-*+]\s+(.+)$/gm, (m, item) => `<li data-ul="1">${item}</li>`);
@@ -469,7 +499,7 @@ function formatAIMessage(content){
     return (isOl ? `<ol>${clean.trim()}</ol>` : `<ul>${clean.trim()}</ul>`) + '\n';
   });
 
-  // 10) 表格（简单版）：识别表头 + 多行数据；只处理形如 markdown 的表，不滥杀
+  // ===== 10) 标准 Markdown 表格（表头/分隔线/多行数据）=====
   text = text.replace(
     /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
     (m, header, sep, rows) => {
@@ -483,7 +513,7 @@ function formatAIMessage(content){
     }
   );
 
-  // 11) 段落：以空行分段，保持已有块级元素不再二次包裹
+  // ===== 11) 段落包裹（空行分段；保留块级原样）=====
   const parts = text.split(/\n{2,}/).map(seg => {
     const s = seg.trim();
     if (!s) return '';
@@ -493,17 +523,27 @@ function formatAIMessage(content){
 
   let html = parts.join('\n');
 
-  // 12) 回填代码块
+  // ===== 12) 回填代码块 =====
   fences.forEach((codeHtml, i) => {
     html = html.replace(`__FENCE_${i}__`, codeHtml);
   });
 
-  // 13) 清理不必要的包裹
+  // ===== 13) 清理不必要的 <p> 包裹 =====
   html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
              .replace(/<\/(h\d|blockquote|hr|ul|table|pre)><\/p>/g,'</$1>');
 
   return html;
 }
+
+// 表格“挤成一行”的容错拆分：在提取代码块之后、escapeHtml 之前执行
+function normalizeCompactTables(s){
+  // 让 “| |------| |” 变为换行分隔线
+  s = s.replace(/\|\s*\|([ :\-|]{3,})\|\s*/g, '|\n|$1|\n');
+  // 常见一行挤压：空格+|+空格+| → 换行+|
+  s = s.replace(/\s\|\s\|/g, '\n|');
+  return s;
+}
+
 
 
                 /* ===== 初始化：格式化历史 / 首次触发与轮询 ===== */
@@ -623,21 +663,22 @@ function formatAIMessage(content){
                         if(aiPersonality==='wisdom') return '<i class="fas fa-book"></i>';
                         return '<i class="fas fa-heart"></i>';
                 }
+function appendMessage(role, content, shouldFormat){
+  const area = document.getElementById('messages-area');
+  const quick = area.querySelector('.quick-questions');
+  if (quick && role === 'user') quick.remove();
 
-                function appendMessage(role, content, shouldFormat){
-                        const area=document.getElementById('messages-area');
-                        const quick=area.querySelector('.quick-questions');
-                        if(quick && role==='user'){ quick.remove(); }
-                        const wrap=document.createElement('div'); wrap.className=`message ${role}`;
-                        const avatar=document.createElement('div'); avatar.className='message-avatar';
-                        avatar.innerHTML = role==='user' ? '<i class="fas fa-user"></i>' : personaIcon();
-                        const cont=document.createElement('div'); cont.className='message-content';
-cont.innerHTML = (role === 'assistant')
-  ? formatAIMessage(content)         // 始终交给 parser 统一处理与转义
-  : escapeHtml(content);             // 用户文本保持纯文本安全显示
-                        wrap.appendChild(avatar); wrap.appendChild(cont); area.appendChild(wrap);
-                        setTimeout(()=>{ area.scrollTop=area.scrollHeight; },50);
-                }
+  const wrap = document.createElement('div'); wrap.className = `message ${role}`;
+  const avatar = document.createElement('div'); avatar.className = 'message-avatar';
+  avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : personaIcon();
+
+  const cont = document.createElement('div'); cont.className = 'message-content';
+  cont.innerHTML = (role === 'assistant') ? formatAIMessage(content) : escapeHtml(String(content||''));
+  wrap.appendChild(avatar); wrap.appendChild(cont); area.appendChild(wrap);
+
+  setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 50);
+}
+
 
                 function showTyping(){
                         const area=document.getElementById('messages-area');
