@@ -1315,7 +1315,8 @@ class SpreadService:
         count = SpreadDAO.get_today_spread_count(user_id, session_id, today)
         return count < limit, limit - count
     
-        @staticmethod
+    
+    @staticmethod
     def create_reading_fast(user_ref, session_id, spread_id, question, ai_personality='warm'):
         """
         仅抽牌+入库，不触发 LLM。status=init
@@ -1370,7 +1371,7 @@ class SpreadService:
             'status': 'init'
         }
         return SpreadDAO.create(reading_data)
-        
+
     @staticmethod
     def can_chat_today(user_id, session_id, is_guest=True):
         """检查今日是否还能对话（包括普通塔罗和牌阵）"""
