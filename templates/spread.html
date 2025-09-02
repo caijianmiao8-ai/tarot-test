@@ -576,6 +576,53 @@
         let selectedSpread=null, selectedSpreadName='', selectedPersonality='wisdom';
         let selectedCardCount=3;   // 默认 3，选择牌阵时会被覆盖（2-7）
         let overlayTimer=null, overlayProgressTimer=null;
+        let overlayStartAt=0;
+
+        /* ===== 可调常量（时间与节奏） ===== */
+        const HINT_INTERVAL_MS = 2200;              // 每条提示切换间隔
+        const PROGRESS_TICK_MS = 400;               // 进度条推进节奏
+        const PROGRESS_MAX_BEFORE_REDIRECT = 96;    // 后端未返回前，最多推进到的百分比
+        const TIMEOUT_SOFT_HINT_MS = 45000;         // 显示“服务器有点忙”的阈值（可调 45–60s）
+        const REDIRECT_FILL_MS = 500;               // 收到跳转后，进度条补满再跳的动画时长
+        const MIN_OVERLAY_SHOW_MS = 900;            // 覆盖层最少展示时长，避免闪烁
+
+        /* ===== 提示文案：通用 + 人格差异化 ===== */
+        const hintsBase = [
+                '正在洗牌并链接你的问题…',
+                '抽取你的专属牌面中…',
+                '同步月相与能量节律…',
+                '编织象征与直觉的线索…',
+                '整理启示词与行动建议…',
+                '聆听牌面的细语，等待它们开口…',
+                '为你对齐当下与未来的交汇点…',
+                '收集关键符号，拼合属于你的图景…',
+                '确认能量流向，安放最核心的主题…',
+                '温柔地为答案扫清阻塞与噪声…'
+        ];
+        const hintsByPersona = {
+                'wisdom': [
+                        '提取关键信息，构建理性框架…',
+                        '梳理因果与线索，寻找可行动的切口…',
+                        '验证直觉与现实的可行性…',
+                        '对齐短期与长期的平衡点…'
+                ],
+                'mystic': [
+                        '让直觉在牌影间流动…',
+                        '凝视象征，寻求更高的回应…',
+                        '呼唤潜意识中的答案…',
+                        '让灵感与共时性自然汇聚…'
+                ],
+                'warm': [
+                        '为你整理最温柔的提醒…',
+                        '替你安放那些不安与担心…',
+                        '拥抱此刻，并给出可落地的关怀…',
+                        '让答案以更柔和的方式靠近…'
+                ]
+        };
+        function getHintsByPersonality(persona) {
+                const ext = hintsByPersona[persona] || [];
+                return [...hintsBase, ...ext];
+        }
 
         function selectSpread(spreadId, spreadName, cardCount){
                 document.querySelectorAll('.spread-card').forEach(c=>c.classList.remove('selected'));
@@ -584,13 +631,11 @@
                         card.classList.add('selected');
                         selectedSpread=spreadId;
                         selectedSpreadName=spreadName;
-                        // 保险：限制在 2~7 张之间
                         const n = parseInt(cardCount || card?.dataset?.cardCount || 3, 10);
                         selectedCardCount = Math.min(Math.max(isNaN(n)?3:n, 2), 7);
                         showPanel();
                 }
         }
-
         function showPanel(){
                 const panel=document.getElementById('floatingPanel');
                 const nameEl=document.getElementById('selectedSpreadName');
@@ -621,12 +666,10 @@
         function renderShuffle(n){
                 const wrap = document.getElementById('shuffleContainer');
                 wrap.innerHTML = '';
-                // 生成 n 张卡背，设置交错的初始 transform 与延迟
                 for(let i=0;i<n;i++){
                         const d = document.createElement('div');
                         d.className = 'tarot';
                         d.style.animationDelay = (i * 0.15) + 's';
-                        // 轻微旋转/上下错位，增强层次
                         const rot = (i % 2 === 0 ? 1 : -1) * (3 + Math.random()*2);
                         const ty  = (i % 3 === 0 ? -1 : 1) * (1 + Math.random()*2);
                         d.style.transform = `translateY(${ty}px) rotate(${rot}deg)`;
@@ -636,37 +679,37 @@
 
         function showOverlay() {
                 renderShuffle(selectedCardCount);
+
                 const ov = document.getElementById('readingOverlay');
                 const bar = document.getElementById('readingBar');
                 const hint = document.getElementById('readingHint');
 
                 ov.style.display = 'flex';
                 ov.setAttribute('aria-hidden', 'false');
+                overlayStartAt = Date.now();
 
-                const hints = [
-                        '正在洗牌并链接你的问题…',
-                        '抽取你的专属牌面中…',
-                        '同步月相与能量节律…',
-                        '编织象征与直觉的线索…',
-                        '整理启示词与行动建议…'
-                ];
+                const hints = getHintsByPersonality(selectedPersonality);
                 let i = 0;
+                hint.textContent = hints[i];
+
                 overlayTimer = setInterval(() => {
                         i = (i + 1) % hints.length;
                         hint.textContent = hints[i];
-                }, 2200);
+                }, HINT_INTERVAL_MS);
 
                 let p = 0;
                 overlayProgressTimer = setInterval(() => {
-                        p = Math.min(p + Math.random() * 7 + 3, 88);
+                        const remain = PROGRESS_MAX_BEFORE_REDIRECT - p;
+                        const step = Math.max(1.2, Math.min(6.8, remain * 0.12)) + (Math.random() * 1.4);
+                        p = Math.min(PROGRESS_MAX_BEFORE_REDIRECT, p + step);
                         bar.style.width = p.toFixed(0) + '%';
-                }, 400);
+                }, PROGRESS_TICK_MS);
 
                 setTimeout(() => {
                         if (ov.style.display === 'flex') {
                                 hint.textContent = '服务器有点忙，再陪你等一下下…';
                         }
-                }, 20000);
+                }, TIMEOUT_SOFT_HINT_MS);
         }
 
         function hideOverlay() {
@@ -684,9 +727,15 @@
         function finalizeOverlayThenRedirect(url) {
                 const bar = document.getElementById('readingBar');
                 const hint = document.getElementById('readingHint');
-                bar.style.width = '100%';
-                hint.textContent = '启示已就绪，马上为你呈现…';
-                setTimeout(() => { window.location.href = url; }, 500);
+
+                const elapsed = Date.now() - overlayStartAt;
+                const waitMore = Math.max(0, MIN_OVERLAY_SHOW_MS - elapsed);
+
+                setTimeout(() => {
+                        bar.style.width = '100%';
+                        hint.textContent = '启示已就绪，马上为你呈现…';
+                        setTimeout(() => { window.location.href = url; }, REDIRECT_FILL_MS);
+                }, waitMore);
         }
 
         function cancelOverlay() {

@@ -9,7 +9,9 @@ import traceback
 import uuid
 from datetime import datetime
 from functools import wraps
-
+import time
+import logging
+from contextlib import contextmanager
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response
 
 from config import Config
@@ -38,6 +40,21 @@ except ValueError as e:
     if Config.IS_PRODUCTION:
         raise
 
+# 统一日志格式（生产上可以写到 JSON）
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+def _rid():
+    """生成本次请求内的短 request id，便于串联日志"""
+    return uuid.uuid4().hex[:6]
+
+@contextmanager
+def time_block(label, rid=None):
+    t0 = time.perf_counter()
+    try:
+        yield
+    finally:
+        t1 = time.perf_counter()
+        app.logger.info(f"[{rid}] {label} took {(t1 - t0)*1000:.1f} ms")
 
 @app.before_request
 def before_request():
@@ -290,58 +307,63 @@ def spread_chat(reading_id):
         ai_personality=reading.get('ai_personality', 'warm')
     )
 
-# 3. API: 抽取牌阵
 @app.route("/api/spread/draw", methods=["POST"])
 def api_draw_spread():
-    """抽取牌阵并开始占卜"""
+    """抽取牌阵并开始占卜（加测速 & 快速返回模式）"""
+    rid = getattr(g, "rid", _rid())
     user = g.user
-    data = request.json
-    
-    spread_id = data.get('spread_id')
-    question = data.get('question', '').strip()
-    ai_personality = data.get('ai_personality', 'warm')
+    data = request.json or {}
 
-    spread = SpreadDAO.get_spread_by_id(spread_id)
+    # 开关：快速返回模式（先建记录再跳转，AI 初始化延后）
+    # export FAST_DRAW=1 开启；不设置或为 0 则按原来“同步生成”的逻辑走
+    FAST_DRAW = os.getenv("FAST_DRAW", "0") == "1"
+
+    with time_block("parse_request", rid):
+        spread_id = data.get('spread_id')
+        question = (data.get('question') or '').strip()
+        ai_personality = data.get('ai_personality', 'warm')
+
+    with time_block("load_spread", rid):
+        spread = SpreadDAO.get_spread_by_id(spread_id)
+
     if not spread:
         return jsonify({'error': '请选择有效的牌阵'}), 400
-    
+
     if question and len(question) > 200:
         return jsonify({'error': '问题请限制在200字以内'}), 400
-    
-    # 检查占卜限制
-    can_divine, remaining = SpreadService.can_divine_today(
-        user.get('id'),
-        session.get('session_id'),
-        user.get('is_guest', True)
-    )
-    
+
+    with time_block("check_quota", rid):
+        can_divine, remaining = SpreadService.can_divine_today(
+            user.get('id'),
+            session.get('session_id'),
+            user.get('is_guest', True)
+        )
+
     if not can_divine:
-        return jsonify({
-            'error': '今日占卜次数已用完',
-            'remaining': 0
-        }), 429
-    
+        return jsonify({'error': '今日占卜次数已用完', 'remaining': 0}), 429
+
     try:
-        user_ref = get_user_ref()  # 使用现有的 get_user_ref 函数
-        
-        # 执行占卜
-        reading = SpreadService.perform_divination(
+        user_ref = get_user_ref()
+
+        # ★ 仅建单，立刻返回
+        reading = SpreadService.create_reading_fast(
             user_ref=user_ref,
             session_id=session.get('session_id'),
             spread_id=spread_id,
             question=question,
             ai_personality=ai_personality
         )
-        
+
         return jsonify({
             'success': True,
             'reading_id': reading['id'],
             'redirect': url_for('spread_chat', reading_id=reading['id'])
         })
-        
+
     except Exception as e:
         print(f"Draw spread error: {e}")
         return jsonify({'error': '占卜失败，请稍后重试'}), 500
+
 
 # 4. API: 发送牌阵对话消息
 @app.route("/api/spread/chat/send", methods=["POST"])
@@ -399,6 +421,62 @@ def api_spread_chat_send():
     except Exception as e:
         print(f"Spread chat error: {e}")
         return jsonify({'error': '消息处理失败，请稍后重试'}), 500
+
+@app.route("/api/spread/generate_initial", methods=["POST"])
+def api_spread_generate_initial():
+    """
+    幂等：如果首条解读已有 => 秒回
+    如果 status=init|error => 置 generating 并执行一次生成；成功置 ready；失败置 error
+    （注意：Vercel Serverless 内不要线程，这里就同步跑一次 Dify）
+    """
+    data = request.json or {}
+    reading_id = data.get("reading_id")
+    if not reading_id:
+        return jsonify({'error': 'missing reading_id'}), 400
+
+    reading = SpreadDAO.get_by_id(reading_id)
+    if not reading:
+        return jsonify({'error': 'not found'}), 404
+
+    status_row = SpreadDAO.get_status(reading_id) or {}
+    status = status_row.get('status', 'init')
+    has_initial = bool(status_row.get('has_initial'))
+
+    if has_initial or status == 'ready':
+        return jsonify({'ok': True, 'status': 'ready', 'message': 'already generated'})
+
+    if status == 'generating':
+        # 前端可继续轮询
+        return jsonify({'ok': True, 'status': 'generating'})
+
+    # init/error -> 开始生成
+    try:
+        SpreadDAO.update_status(reading_id, 'generating')
+        # 直接调用你已有的生成逻辑（同步）
+        resp = SpreadService.generate_initial_interpretation(
+            reading_id=reading_id,
+            ai_personality=reading.get('ai_personality', 'warm')
+        )
+        SpreadDAO.update_status(reading_id, 'ready')
+        return jsonify({'ok': True, 'status': 'ready', 'conversation_id': resp.get('conversation_id')})
+    except Exception as e:
+        SpreadDAO.update_status(reading_id, 'error')
+        print(f"generate_initial failed: {e}")
+        return jsonify({'ok': False, 'status': 'error'}), 500
+
+
+@app.route("/api/spread/status/<reading_id>")
+def api_spread_status(reading_id):
+    row = SpreadDAO.get_status(reading_id)
+    if not row:
+        return jsonify({'error': 'not found'}), 404
+    msgs = SpreadDAO.get_all_messages(reading_id) or []
+    return jsonify({
+        'status': row.get('status', 'init'),
+        'has_initial': bool(row.get('has_initial')),
+        'message_count': len(msgs)
+    })
+
 
 # 5. 可选：获取今日占卜记录
 @app.route("/api/spread/today")

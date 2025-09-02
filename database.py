@@ -129,18 +129,37 @@ class SpreadDAO:
                 cursor.execute("""
                     INSERT INTO spread_readings 
                     (id, user_id, session_id, spread_id, cards, question, 
-                     ai_personality, date)
+                     ai_personality, date, status)
                     VALUES (%(id)s, %(user_id)s, %(session_id)s, %(spread_id)s, 
-                            %(cards)s, %(question)s, %(ai_personality)s, %(date)s)
+                            %(cards)s, %(question)s, %(ai_personality)s, %(date)s, %(status)s)
                     RETURNING *
                 """, {
                     **reading_data,
-                    # 关键：把 Python list/dict 用 Json() 包一下
-                    'cards': Json(reading_data.get('cards'))
+                    'cards': Json(reading_data.get('cards')),
+                    'status': reading_data.get('status', 'init')
                 })
-                reading = cursor.fetchone()
+                row = cursor.fetchone()
                 conn.commit()
-                return reading
+                return row
+
+    @staticmethod
+    def update_status(reading_id, status):
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE spread_readings SET status = %s WHERE id = %s
+                """, (status, reading_id))
+                conn.commit()
+
+    @staticmethod
+    def get_status(reading_id):
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT status, initial_interpretation IS NOT NULL AS has_initial
+                    FROM spread_readings WHERE id = %s
+                """, (reading_id,))
+                return cursor.fetchone()
 
     @staticmethod
     def get_by_id(reading_id):

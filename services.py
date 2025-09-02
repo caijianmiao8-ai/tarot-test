@@ -1315,6 +1315,62 @@ class SpreadService:
         count = SpreadDAO.get_today_spread_count(user_id, session_id, today)
         return count < limit, limit - count
     
+        @staticmethod
+    def create_reading_fast(user_ref, session_id, spread_id, question, ai_personality='warm'):
+        """
+        仅抽牌+入库，不触发 LLM。status=init
+        """
+        import uuid, json, random
+        spread_config = SpreadDAO.get_spread_by_id(spread_id)
+        if not spread_config:
+            raise ValueError(f"Invalid spread_id: {spread_id}")
+
+        positions_raw = spread_config.get('positions')
+        if isinstance(positions_raw, str):
+            try:
+                positions = json.loads(positions_raw)
+            except Exception:
+                positions = []
+        elif isinstance(positions_raw, list):
+            positions = positions_raw
+        elif isinstance(positions_raw, dict):
+            positions = [positions_raw[str(i)] for i in sorted(map(int, positions_raw.keys()))]
+        else:
+            positions = []
+
+        card_count = int(spread_config['card_count'])
+        all_cards = CardDAO.get_all()
+        if len(all_cards) < card_count:
+            raise ValueError("Not enough cards in database")
+        selected_cards = random.sample(all_cards, card_count)
+
+        cards_data = []
+        for i, card in enumerate(selected_cards):
+            direction = random.choice(["正位", "逆位"])
+            cards_data.append({
+                'position': i,
+                'card_id': card['id'],
+                'card_name': card['name'],
+                'direction': direction,
+                'image': card.get('image'),
+                'meaning_up': card.get('meaning_up'),
+                'meaning_rev': card.get('meaning_rev')
+            })
+
+        today = DateTimeService.get_beijing_date()
+        reading_data = {
+            'id': str(uuid.uuid4()),
+            'user_id': user_ref,
+            'session_id': session_id,
+            'spread_id': spread_id,
+            'cards': cards_data,
+            'question': question or "",
+            'ai_personality': ai_personality,
+            'date': today,
+            'status': 'init'
+        }
+        return SpreadDAO.create(reading_data)
+        
     @staticmethod
     def can_chat_today(user_id, session_id, is_guest=True):
         """检查今日是否还能对话（包括普通塔罗和牌阵）"""
