@@ -233,62 +233,94 @@ def api_guided_create_reading():
         print(f"[guided] create_reading error: {e}")
         return jsonify({'error': '创建占卜失败，请稍后重试'}), 500
 
-# app.py — 逐张揭示卡牌（健壮版）
-from flask import request, jsonify, g, session
-# 确保引入 SpreadService
-# from services.spread_service import SpreadService
+_INTERNAL_TOKENS = set(
+    t.strip() for t in (os.getenv("INTERNAL_TOKENS") or "").split(",") if t.strip()
+)
 
+def _is_internal_call(req: request) -> bool:
+    """识别来自 Dify/后端的可信调用"""
+    token = req.headers.get("X-Internal-Token", "")
+    return bool(token) and (token in _INTERNAL_TOKENS)
+
+def _json_error(status: int, error: str, message: str, **details):
+    """统一错误体"""
+    payload = {"success": False, "error": error, "message": message}
+    if details:
+        payload["details"] = details
+    return jsonify(payload), status
+
+def _json_ok(**data):
+    """统一成功体"""
+    payload = {"success": True}
+    payload.update(data)
+    return jsonify(payload), 200
+
+# ===== 路由：逐张揭示卡牌 =====
 @app.route("/api/guided/reveal_card", methods=["POST"])
 def api_guided_reveal_card():
     """
     参数(JSON)：reading_id: str, index: int
     行为：从既有 reading.cards 中取第 index 张，返回卡名/方位/图/位置信息，并记录一条 system 日志
+    权限：同一用户 / 同一 session / 或携带有效 X-Internal-Token
     """
     data = request.get_json(silent=True) or {}
-    reading_id = (data.get('reading_id') or '').strip()
-    index_raw = data.get('index')
+    reading_id = (data.get("reading_id") or "").strip()
+    index_raw = data.get("index")
 
+    # 入口日志（注意不要打印敏感内容）
+    app.logger.info("reveal_card HIT json=%s headers[X-Internal-Token]=%s",
+                    {"reading_id": reading_id, "index": index_raw},
+                    bool(request.headers.get("X-Internal-Token")))
+
+    # 参数校验
     if not reading_id or index_raw is None:
-        return jsonify({'error': 'missing_params', 'message': 'reading_id and index required'}), 400
+        return _json_error(400, "missing_params", "reading_id 和 index 为必填")
 
-    # index 校验
     try:
         index = int(index_raw)
     except (TypeError, ValueError):
-        return jsonify({'error': 'bad_index', 'message': 'index must be integer'}), 400
+        return _json_error(400, "bad_index", "index 必须是整数", got=index_raw)
+
+    # 读取调用方是否可信（内部令牌）
+    trusted = _is_internal_call(request)
 
     # 取登录/访客身份
-    user = getattr(g, 'user', None) or {}
-    sess_id = session.get('session_id')
+    user = getattr(g, "user", None) or {}
+    sess_id = session.get("session_id")
 
     # 查 reading
-    reading = SpreadService.get_reading(reading_id)
+    try:
+        reading = SpreadService.get_reading(reading_id)
+    except Exception as e:
+        app.logger.exception("reveal_card get_reading failed: %s", e)
+        return _json_error(500, "server_error", "读取占卜记录失败")
+
     if not reading:
-        return jsonify({'error': 'not_found', 'message': '占卜记录不存在'}), 404
+        return _json_error(404, "not_found", "占卜记录不存在", reading_id=reading_id)
 
-    # 权限：同一用户 或 同一 session（与你现有逻辑一致）
-    same_user = (reading.get('user_id') and reading.get('user_id') == user.get('id'))
-    same_session = (reading.get('session_id') and reading.get('session_id') == sess_id)
-    if not (same_user or same_session):
-        return jsonify({'error': 'forbidden', 'message': '无权访问'}), 403
+    # 权限校验：同一用户 或 同一 session 或 内部可信调用
+    same_user = (reading.get("user_id") and user.get("id") == reading.get("user_id"))
+    same_session = (reading.get("session_id") and sess_id == reading.get("session_id"))
+    if not (same_user or same_session or trusted):
+        app.logger.warning(
+            "reveal_card FORBIDDEN reading_uid=%s reading_sid=%s req_uid=%s req_sid=%s trusted=%s",
+            reading.get("user_id"), reading.get("session_id"), user.get("id"), sess_id, trusted
+        )
+        return _json_error(403, "forbidden", "无权访问此占卜记录")
 
+    # 业务执行
     try:
         card = SpreadService.reveal_card(reading_id, index)
-        # 可选：记录一条系统日志
+        # 可选：记录系统日志
         # SpreadService.log_system(reading_id, f"reveal_card index={index}")
 
-        return jsonify({
-            'success': True,
-            'reading_id': reading_id,
-            'index': index,
-            'card': card
-        }), 200
+        return _json_ok(reading_id=reading_id, index=index, card=card)
 
     except IndexError:
-        return jsonify({'error': 'out_of_range', 'message': '索引越界'}), 400
+        return _json_error(400, "out_of_range", "索引越界", index=index)
     except Exception as e:
-        app.logger.exception("[guided] reveal_card error: %s", e)
-        return jsonify({'error': 'server_error', 'message': '揭示失败，请稍后重试'}), 500
+        app.logger.exception("reveal_card error: %s", e)
+        return _json_error(500, "server_error", "揭示失败，请稍后重试")
 
 
 # app.py — 新增：引导模式完成后触发首解读
