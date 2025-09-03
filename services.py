@@ -10,6 +10,63 @@ from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager, SpreadDAO
+import hmac, hashlib, base64, time
+
+def _norm(s):  # 简易归一
+    return (s or '').strip().lower()
+
+def _depth_window(depth):
+    if depth == 'short':   return (1, 3)
+    if depth == 'medium':  return (4, 6)
+    if depth == 'full':    return (7, 99)
+    return (1, 10)
+
+def _difficulty_rank(s):
+    order = {'简单': 1, '普通': 2, '进阶': 3}
+    return order.get(s, 2)
+
+def _fit_bucket(val, target):
+    # 完全命中1，邻近0.6，其他0.2
+    return 1.0 if val == target else 0.6 if abs(val - target) == 1 else 0.2
+
+def _special_rule_boost(name, desc, question):
+    text = f"{name} {desc}".lower()
+    q = (question or '').lower()
+    boost = 0.0
+    # 是/否
+    if any(k in q for k in ['是否','能不能','要不要','可不可以','yes or no','yes/no']):
+        if any(k in text for k in ['是否','yes','no']): boost += 1.0
+    # 时间/时机
+    if any(k in q for k in ['什么时候','多久','何时','时机','时间','未来几','近三月','时间线']):
+        if any(k in text for k in ['时间','时机','流向','时间线']): boost += 0.8
+    # 选择题
+    if any(k in q for k in ['还是','两者','二选一','抉择','选择题']):
+        if any(k in text for k in ['选择','抉择','二选一']): boost += 0.8
+    # 关系/全景
+    if any(k in q for k in ['他对我','关系','现状','阻碍','全貌','全景','综合']):
+        if any(k in text for k in ['凯尔特','十字','马掌','关系','全景']): boost += 0.6
+    return min(boost, 1.2)
+
+def _sign_candidate_ids(spread_ids, user_ref):
+    payload = json.dumps({
+        'ids': spread_ids,
+        'user': user_ref,
+        'ts': int(time.time())
+    }, ensure_ascii=False, separators=(',',':')).encode('utf-8')
+    sig = hmac.new(Config.SECRET_KEY.encode('utf-8'), payload, hashlib.sha256).digest()
+    token = base64.urlsafe_b64encode(payload + b'.' + sig).decode('ascii')
+    return token
+
+def _verify_candidate_ids(token, max_age=1800):
+    raw = base64.urlsafe_b64decode(token.encode('ascii'))
+    payload, sig = raw.rsplit(b'.', 1)
+    expect = hmac.new(Config.SECRET_KEY.encode('utf-8'), payload, hashlib.sha256).digest()
+    if not hmac.compare_digest(sig, expect):
+        return None
+    data = json.loads(payload.decode('utf-8'))
+    if int(time.time()) - int(data.get('ts', 0)) > max_age:
+        return None
+    return data  # {'ids': [...], 'user': '...', 'ts': ...}
 
 def _as_list(val):
     if val is None:
@@ -1726,3 +1783,219 @@ class SpreadService:
             question=question,
             ai_personality=ai_personality
         )
+
+    @staticmethod
+    def suggest_spreads(user_ref, topic, depth, difficulty, question, avoid_recent_user_id=None, topn=3):
+        # 1) 映射 depth -> card_count 区间
+        min_c, max_c = _depth_window(depth or 'short')
+
+        # 2) 取初筛候选
+        cands = SpreadDAO.suggest_candidates(
+            topic=topic or None,
+            min_cards=min_c, max_cards=max_c,
+            max_difficulty=difficulty or None
+        )
+        if not cands:
+            # 兜底：不限制长度与难度，仅按 category=topic|通用
+            cands = SpreadDAO.suggest_candidates(topic=topic)
+
+        if not cands:
+            return {'candidate_set_id': _sign_candidate_ids([], user_ref), 'items': []}
+
+        ids = [c['id'] for c in cands]
+        pop = SpreadDAO.get_popularity(ids, days=30)
+        recent = SpreadDAO.used_recently(avoid_recent_user_id, ids, days=14) if avoid_recent_user_id else set()
+
+        # 3) 打分
+        # 归一化人气
+        max_pop = max(pop.values()) if pop else 0
+        def norm_pop(x): 
+            return (pop.get(x, 0) / max_pop) if max_pop else 0.0
+
+        depth_target = 1 if max_c<=3 else 2 if max_c<=6 else 3
+        w = dict(topic=0.30, depth=0.20, diff=0.15, rule=0.20, sim=0.10, pop=0.10, repeat=0.25)
+
+        scored = []
+        for s in cands:
+            topic_fit = 1.0 if _norm(s['category']) == _norm(topic) else (0.6 if _norm(s['category'])=='通用' else 0.2)
+            depth_fit = _fit_bucket( 1 if s['card_count']<=3 else 2 if s['card_count']<=6 else 3, depth_target)
+            diff_fit = _fit_bucket(_difficulty_rank(s['difficulty']), _difficulty_rank(difficulty or '简单'))
+            rule = _special_rule_boost(s['name'], s.get('description',''), question or '')
+            sim = 0.0  # 如需，可接 pg_trgm 相似度结果（此处先置 0）
+            p = norm_pop(s['id'])
+            rep = 1.0 if s['id'] in recent else 0.0
+
+            score = w['topic']*topic_fit + w['depth']*depth_fit + w['diff']*diff_fit + \
+                    w['rule']*rule + w['sim']*sim + w['pop']*p - w['repeat']*rep
+
+            scored.append((score, s))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        items = [
+            {
+              'spread_id': s['id'],
+              'spread_name': s['name'],
+              'card_count': s['card_count'],
+              'purpose': s.get('description','')[:60],
+              'difficulty': s['difficulty'],
+              'category': s['category'],
+              'score': round(score, 3)
+            }
+            for score, s in scored[:max(topn, 2)]
+        ]
+
+        token = _sign_candidate_ids([it['spread_id'] for it in items], user_ref)
+        return {'candidate_set_id': token, 'items': items}
+
+    @staticmethod
+    def verify_candidate_and_create(user_ref, session_id, spread_id, question, ai_personality, candidate_set_id):
+        data = _verify_candidate_ids(candidate_set_id or '')
+        if not data or spread_id not in set(data.get('ids', [])):
+            raise ValueError('spread not in last candidate set')
+        # 进入你已有的创建流程（只抽牌+入库）
+        return SpreadService.create_reading_fast(
+            user_ref=user_ref,
+            session_id=session_id,
+            spread_id=spread_id,
+            question=question,
+            ai_personality=ai_personality
+        )
+
+    @staticmethod
+    def resolve_spreads_from_llm(user_ref, normalized, recommended, question, topn=3):
+        """
+        根据 LLM 推断（名称/别名/标签/张数范围+normalized 偏好）从数据库挑选候选并打分。
+        只返回 DB 中真实存在的牌阵，并签名 candidate_set_id。
+        """
+        topic = (normalized or {}).get('topic') or None
+        depth = (normalized or {}).get('depth') or None
+        difficulty = (normalized or {}).get('difficulty') or None
+        min_cards, max_cards = _depth_window(depth)
+
+        # 1) DB 初筛（只从库里取）
+        cands = SpreadDAO.suggest_candidates(
+            topic=topic,
+            min_cards=min_cards,
+            max_cards=max_cards,
+            max_difficulty=difficulty
+        )
+
+        if not cands:
+            # 兜底：只按 topic/通用再取一次
+            cands = SpreadDAO.suggest_candidates(topic=topic)
+
+        # 2) 把 LLM 推荐整理为易用的匹配词
+        #    names/aka/tags 全部小写，min/max_cards 做容差
+        recs = []
+        for r in (recommended or []):
+            try:
+                nm = (r.get('name') or '').strip().lower()
+                aka = [s.strip().lower() for s in (r.get('aka') or []) if s]
+                tgs = [s.strip().lower() for s in (r.get('tags') or []) if s]
+                rmin = int(r.get('min_cards') or 0) or None
+                rmax = int(r.get('max_cards') or 0) or None
+                why = (r.get('why') or '').strip()
+                conf = float(r.get('confidence') or 0.0)
+                recs.append({'name': nm, 'aka': aka, 'tags': tgs, 'min': rmin, 'max': rmax, 'why': why, 'conf': conf})
+            except Exception:
+                continue
+
+        # 3) 评分
+        w = dict(topic=0.30, depth=0.20, diff=0.15, rule=0.20, name=0.15, pop=0.00, repeat=0.00)
+        scored = []
+
+        def _depth_bucket(n):
+            return 1 if n <= 3 else 2 if n <= 6 else 3
+
+        depth_target = _depth_bucket(max_cards)
+
+        for s in cands:
+            s_name = (s['name'] or '')
+            s_name_l = s_name.lower()
+            s_desc = (s.get('description') or '')
+            s_cat  = (s.get('category') or '')
+            s_cnt  = int(s.get('card_count') or 0)
+            s_diff = (s.get('difficulty') or '')
+
+            # 主题匹配
+            topic_fit = 1.0 if (topic and s_cat == topic) else (0.6 if s_cat == '通用' else (0.2 if topic else 0.8))
+
+            # 深度匹配
+            depth_fit = 1.0 if _depth_bucket(s_cnt) == depth_target else 0.6 if abs(_depth_bucket(s_cnt) - depth_target) == 1 else 0.2
+
+            # 难度匹配
+            diff_fit = 1.0
+            user_rank = _difficulty_rank(difficulty or '简单')
+            s_rank    = _difficulty_rank(s_diff)
+            if s_rank - user_rank == 1:
+                diff_fit = 0.5
+            elif s_rank - user_rank >= 2:
+                diff_fit = 0.0
+
+            # 名称/标签命中（只在 LLM 提供的推荐里找，不编造）
+            name_hit = 0.0
+            if recs:
+                for r in recs:
+                    if r['name'] and r['name'] in s_name_l:
+                        name_hit = max(name_hit, 1.0 * (0.7 + 0.3 * r['conf']))
+                    for alias in r['aka']:
+                        if alias and alias in s_name_l:
+                            name_hit = max(name_hit, 0.8 * (0.7 + 0.3 * r['conf']))
+                    # 张数范围软匹配（允许±1）
+                    if r['min'] and s_cnt < r['min'] - 1:
+                        name_hit *= 0.8
+                    if r['max'] and s_cnt > r['max'] + 1:
+                        name_hit *= 0.8
+
+            # 特殊规则：根据 question 内容加权（不越界）
+            rule = _special_rule_boost(s_name, s_desc, question)
+
+            score = w['topic']*topic_fit + w['depth']*depth_fit + w['diff']*diff_fit + \
+                    w['rule']*rule + w['name']*name_hit
+
+            scored.append((score, s, name_hit))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top_items = []
+        for score, s, name_hit in scored[:max(topn, 2)]:
+            # 生成 why：优先用 LLM 的 why（若命中），否则根据匹配维度拼接
+            why = ""
+            if recs:
+                for r in recs:
+                    if r['name'] and r['name'] in (s['name'] or '').lower() and r['why']:
+                        why = r['why']; break
+            if not why:
+                parts = []
+                if topic and s.get('category') == topic:
+                    parts.append("主题契合")
+                if abs(_depth_bucket(int(s.get('card_count') or 0)) - depth_target) == 0:
+                    parts.append("张数匹配")
+                if name_hit >= 0.8:
+                    parts.append("与推断名称/别名相符")
+                if _special_rule_boost(s['name'], s.get('description',''), question) >= 0.8:
+                    parts.append("针对你的问题类型更合适")
+                why = "、".join(parts) or "综合匹配较好"
+
+            top_items.append({
+                "spread_id": s['id'],
+                "spread_name": s['name'],
+                "card_count": int(s.get('card_count') or 0),
+                "tags": [s.get('category') or '', s.get('difficulty') or ''],
+                "why": why,
+                "score": round(float(score), 3)
+            })
+
+        token = _sign_candidate_ids([it['spread_id'] for it in top_items], user_ref)
+        return {"candidate_set_id": token, "items": top_items}
+
+    @staticmethod
+    def verify_candidate_membership(candidate_set_id: str, spread_id: str, user_ref: str, max_age: int = 1800):
+        data = _verify_candidate_ids(candidate_set_id or '', max_age=max_age)
+        if not data:
+            return False, 'candidate_set_invalid_or_expired'
+        if data.get('user') != user_ref:
+            return False, 'candidate_set_user_mismatch'
+        ids = set(data.get('ids') or [])
+        if spread_id not in ids:
+            return False, 'spread_not_in_candidate_set'
+        return True, None

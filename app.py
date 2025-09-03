@@ -126,6 +126,66 @@ def _resolve_ai_personality(data: dict) -> str:
         (data.get("ai_personality") or data.get("persona_id"))
     )
 
+# ========= spreads: 根据 LLM 推断解析数据库候选 =========
+@app.route("/api/spreads/resolve_from_llm", methods=["POST"])
+def api_spreads_resolve_from_llm():
+    """
+    输入：
+      - normalized: {topic, depth, difficulty}
+      - recommended: LLM 推断出的候选数组（名字/别名/标签/张数范围/理由/置信度）
+      - question: 原始问题（可选）
+    输出：
+      - candidate_set_id: 本次候选签名（HMAC）
+      - items: [{spread_id, spread_name, card_count, tags, why, score}, ...]（按 score 降序）
+    """
+    try:
+        data = request.json or {}
+        normalized = data.get('normalized') or {}
+        recommended = data.get('recommended') or []
+        question = (data.get('question') or '').strip()
+
+        # 兼容前端把 recommended 作为字符串传来的情况
+        if isinstance(recommended, str):
+            try:
+                import json as _json
+                recommended = _json.loads(recommended)
+            except Exception:
+                recommended = []
+
+        from services import SpreadService
+        user_ref = get_user_ref()
+        result = SpreadService.resolve_spreads_from_llm(
+            user_ref=user_ref,
+            normalized=normalized,
+            recommended=recommended,
+            question=question,
+            topn=3  # 返回前3个候选
+        )
+        return jsonify({'success': True, **result})
+    except Exception as e:
+        print(f"[resolve_from_llm] error: {e}")
+        return jsonify({'success': False, 'error': '解析候选失败'}), 500
+
+
+@app.route("/api/spreads/suggest", methods=["POST"])
+def api_spreads_suggest():
+    user_ref = get_user_ref()
+    data = request.json or {}
+    topic = data.get('topic') or '通用'
+    depth = data.get('depth') or 'short'
+    difficulty = data.get('difficulty') or '简单'
+    question = (data.get('question') or '').strip()
+
+    items = SpreadService.suggest_spreads(
+        user_ref=user_ref,
+        topic=topic, depth=depth, difficulty=difficulty,
+        question=question,
+        avoid_recent_user_id=g.user.get('id'),
+        topn=3
+    )
+    return jsonify({'success': True, **items})
+
+
 @app.route("/spread/chat2")
 def spread_chat2():
     """
@@ -184,35 +244,57 @@ def api_guided_chat_send():
         'remaining': max(remaining - 1, 0)
     })
 
-# app.py — 新增：引导落地创建 reading
+# app.py — 新增：引导落地创建 reading（带候选集强校验）
 @app.route("/api/guided/create_reading", methods=["POST"])
 def api_guided_create_reading():
     """
     在引导阶段确定了 spread_id + question + ai_personality 后调用：
+    - 可选接收 candidate_set_id，用于强校验“spread_id 属于最近一次候选集合”
     - 抽牌并入库（status=init），不触发 LLM
-    - 返回 reading_id、positions（用于前端渲染占位）与 card_count
+    - 返回 reading_id、positions（前端占位）与 card_count
     """
     rid = getattr(g, "rid", _rid())
-    user = g.user
+    user = g.user or {}
     data = request.json or {}
-    spread_id = data.get('spread_id')
+    spread_id = (data.get('spread_id') or '').strip()
     question = (data.get('question') or '').strip()
     ai_personality = _resolve_ai_personality(data)
+    candidate_set_id = (data.get('candidate_set_id') or '').strip()
 
     if not spread_id:
         return jsonify({'error': '缺少牌阵 ID'}), 400
     if question and len(question) > 200:
         return jsonify({'error': '问题请限制在200字以内'}), 400
 
-    # 次数校验（与 /api/spread/draw 一致）
+    # 1) 每日次数校验（与 /api/spread/draw 一致）
     can_divine, _ = SpreadService.can_divine_today(
         user.get('id'), session.get('session_id'), user.get('is_guest', True)
     )
     if not can_divine:
         return jsonify({'error': '今日占卜次数已用完'}), 429
 
+    # 2) 基础: 牌阵必须真实存在于数据库
+    spread = SpreadDAO.get_spread_by_id(spread_id)
+    if not spread:
+        return jsonify({'error': '所选牌阵不存在或已下线'}), 404
+
+    # 3) （可选）候选集强校验：如果提供了 candidate_set_id，就必须验证通过
+    user_ref = get_user_ref()
+    if candidate_set_id:
+        ok, reason = SpreadService.verify_candidate_membership(
+            candidate_set_id=candidate_set_id,
+            spread_id=spread_id,
+            user_ref=user_ref
+        )
+        if not ok:
+            # 422：语义正确但不被允许（不在候选集 / 过期 / 用户不匹配）
+            return jsonify({
+                'error': '所选牌阵不在最近的候选集合内或候选已过期，请重新选择',
+                'reason': reason
+            }), 422
+
     try:
-        user_ref = get_user_ref()
+        # 4) 入库创建（仅抽牌+保存，不触发 LLM）
         reading = SpreadService.create_guided_reading(
             user_ref=user_ref,
             session_id=session.get('session_id'),
@@ -220,18 +302,24 @@ def api_guided_create_reading():
             question=question,
             ai_personality=ai_personality
         )
-        # 取 positions 给前端渲染
-        spread = SpreadDAO.get_spread_by_id(spread_id)
+
         positions = (spread or {}).get('positions') or []
+        card_count = int(spread.get('card_count', 0)) if spread else 0
+
         return jsonify({
             'success': True,
             'reading_id': reading['id'],
             'positions': positions,
-            'card_count': int(spread.get('card_count', 0)) if spread else 0
+            'card_count': card_count
         })
+    except ValueError as ve:
+        # 业务显式抛错（例如库存、计费等）
+        return jsonify({'error': str(ve)}), 400
     except Exception as e:
-        print(f"[guided] create_reading error: {e}")
+        # 记日志后返回 500
+        print(f"[guided] create_reading error rid={rid}: {e}")
         return jsonify({'error': '创建占卜失败，请稍后重试'}), 500
+
 
 _INTERNAL_TOKENS = set(
     t.strip() for t in (os.getenv("INTERNAL_TOKENS") or "").split(",") if t.strip()

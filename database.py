@@ -95,6 +95,85 @@ class SpreadDAO:
     """牌阵数据访问对象"""
 
     @staticmethod
+    def suggest_candidates(topic=None, min_cards=None, max_cards=None, max_difficulty=None):
+        """
+        基于用户偏好做初筛：主题/张数范围/难度不超出。
+        返回：[{id,name,description,card_count,category,difficulty}, ...]
+        """
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cursor:
+                sql = """
+                    SELECT id, name, description, card_count, category, difficulty
+                    FROM spreads
+                    WHERE 1=1
+                """
+                params = {}
+                if topic:
+                    sql += " AND (category = %(topic)s OR category = '通用')"
+                    params['topic'] = topic
+                if min_cards is not None:
+                    sql += " AND card_count >= %(minc)s"
+                    params['minc'] = int(min_cards)
+                if max_cards is not None:
+                    sql += " AND card_count <= %(maxc)s"
+                    params['maxc'] = int(max_cards)
+                if max_difficulty:
+                    # 难度不超出一个级别（简单<=普通<=进阶），用 CASE 做个序映射
+                    sql += """
+                    AND (CASE difficulty
+                            WHEN '简单' THEN 1
+                            WHEN '普通' THEN 2
+                            WHEN '进阶' THEN 3
+                            ELSE 2
+                         END)
+                        <=
+                        (CASE %(maxd)s
+                            WHEN '简单' THEN 1
+                            WHEN '普通' THEN 2
+                            WHEN '进阶' THEN 3
+                            ELSE 3
+                         END)
+                    """
+                    params['maxd'] = max_difficulty
+
+                sql += " ORDER BY card_count ASC, name ASC"
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+                return rows
+
+    @staticmethod
+    def get_popularity(spread_ids, days=30):
+        if not spread_ids:
+            return {}
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT spread_id, COUNT(*) AS cnt
+                    FROM spread_readings
+                    WHERE spread_id = ANY(%s) 
+                      AND date >= (CURRENT_DATE - INTERVAL '%s day')
+                    GROUP BY spread_id
+                """, (spread_ids, days))
+                rows = cur.fetchall()
+                return {r['spread_id']: r['cnt'] for r in rows}
+
+    @staticmethod
+    def used_recently(user_id, spread_ids, days=14):
+        if not user_id or not spread_ids:
+            return set()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT spread_id
+                    FROM spread_readings
+                    WHERE user_id = %s
+                      AND spread_id = ANY(%s)
+                      AND date >= (CURRENT_DATE - INTERVAL '%s day')
+                """, (user_id, spread_ids, days))
+                rows = cur.fetchall()
+                return {r['spread_id'] for r in rows}
+
+    @staticmethod
     def get_all_spreads():
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cursor:
