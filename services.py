@@ -339,7 +339,29 @@ class ChatService:
 
         return ai_response
 
-        
+class PersonaService:
+    """
+    将前端/URL里的 persona_id（UI别名）映射为 Dify 需要的 ai_personality（提示词风格名）。
+    你可以把映射挪到数据库；此处给一个安全默认。
+    """
+    MAP = {
+        "warm":   "warm",        # 温柔疗愈
+        "wisdom": "wisdom",      # 理性分析
+        "mystic": "mystic",      # 神秘直觉
+        # 兼容中文别名（如有）
+        "温柔疗愈": "warm",
+        "理性分析": "wisdom",
+        "神秘直觉": "mystic",
+    }
+
+    @staticmethod
+    def resolve_ai(value: str | None) -> str:
+        if not value:
+            return "warm"
+        key = str(value).strip()
+        # 已经是 ai_personality 就直通；否则查映射；都查不到就用原值（允许自定义）
+        return PersonaService.MAP.get(key, key)
+                
 class DifyService:
     """Dify AI 服务"""
 
@@ -397,6 +419,46 @@ class DifyService:
             "today_insight": f"今日你抽到了{card_name}（{direction}），这张牌正在向你传递宇宙的信息。",
             "guidance": f"{'正位' if direction == '正位' else '逆位'}的{card_name}提醒你，要相信内心的声音。"
         }
+
+    @staticmethod
+    def guided_chat(user_message, user_ref=None, conversation_id=None,
+                    ai_personality='warm', phase='guide'):
+        """
+        走【Guided Chatflow】：负责引导与逐张抽牌阶段的对话。
+        """
+        payload = {
+            "inputs": {
+                "ai_personality": ai_personality,
+                "phase": phase
+            },
+            "query": user_message or "",
+            "response_mode": "blocking",
+            "user": user_ref
+        }
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
+
+        headers = {
+            "Authorization": f"Bearer {Config.DIFY_GUIDED_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            import requests
+            resp = requests.post(
+                Config.DIFY_GUIDED_API_URL,  # ← 新增：走“引导”Chatflow
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            answer = DifyService._extract_answer(data)
+            new_cid = data.get("conversation_id", conversation_id)
+            return {"answer": answer or "让我更了解你的诉求～", "conversation_id": new_cid}
+        except Exception as e:
+            print(f"[Dify] guided_chat error: {e}")
+            return {"answer": "抱歉，我这边信号有点弱，稍后再试试。", "conversation_id": conversation_id}
 
     @staticmethod
     def spread_initial_reading(spread_name, spread_description, question, cards, user_ref=None, ai_personality='warm'):
@@ -1596,3 +1658,71 @@ class SpreadService:
             {'role': msg['role'], 'content': msg['content']}
             for msg in messages
         ] if messages else []
+
+    @staticmethod
+    def get_card_at(reading_id, index: int):
+        """
+        读取既有 reading.cards 的第 index 张，并补充该位置的位置信息（name/meaning）。
+        """
+        reading = SpreadDAO.get_by_id(reading_id)
+        if not reading:
+            raise ValueError("reading not found")
+
+        # 归一化 cards
+        cards = reading.get('cards') or []
+        if isinstance(cards, str):
+            import json
+            try:
+                cards = json.loads(cards) or []
+            except Exception:
+                cards = []
+
+        if index < 0 or index >= len(cards):
+            raise IndexError("card index out of range")
+
+        card = dict(cards[index])  # 复制以免副作用
+
+        # 取 positions
+        spread = SpreadDAO.get_spread_by_id(reading['spread_id'])
+        positions = (spread or {}).get('positions') or []
+        pos = positions[index] if index < len(positions) else {"index": index, "name": f"位置{index+1}", "meaning": ""}
+
+        card['position_info'] = {
+            "index": pos.get("index", index),
+            "name": pos.get("name", f"位置{index+1}"),
+            "meaning": pos.get("meaning", "")
+        }
+        return card
+
+    @staticmethod
+    def reveal_card(reading_id, index: int):
+        """
+        揭示一张卡：返回卡信息，并以 system 角色落一条“揭示日志”到 spread_messages。
+        """
+        card = SpreadService.get_card_at(reading_id, index)
+        # 记录系统消息（便于后续回溯）
+        name = card.get('card_name') or '未知牌'
+        direction = card.get('direction') or ''
+        pos = card.get('position_info', {})
+        pos_name = pos.get('name') or f"位置{index+1}"
+        log = f"【揭示】{pos_name}：{name}（{direction}）"
+        SpreadDAO.save_message({
+            "reading_id": reading_id,
+            "role": "system",
+            "content": log
+        })
+        return card
+
+    @staticmethod
+    def create_guided_reading(user_ref, session_id, spread_id, question, ai_personality='warm'):
+        """
+        引导模式下创建 reading：只抽牌+入库，不触发 LLM。
+        直接复用 create_reading_fast。
+        """
+        return SpreadService.create_reading_fast(
+            user_ref=user_ref,
+            session_id=session_id,
+            spread_id=spread_id,
+            question=question,
+            ai_personality=ai_personality
+        )

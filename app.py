@@ -118,6 +118,189 @@ def get_user_ref():
     # 生成合法 UUID
     return str(uuid.uuid5(uuid.NAMESPACE_URL, session['session_id']))
 
+# app.py（顶部或实用函数区）
+def _resolve_ai_personality(data: dict) -> str:
+    # 支持两种字段：优先 ai_personality，其次 persona_id
+    return PersonaService.resolve_ai(
+        (data.get("ai_personality") or data.get("persona_id"))
+    )
+
+@app.route("/spread/chat2")
+def spread_chat2():
+    """
+    引导牌阵占卜：先进入聊天页，由 Dify 引导收集诉求、推荐牌阵和问题，
+    确认后再创建 reading 并逐张翻牌。
+    """
+    user = g.user
+    can_chat, remaining = SpreadService.can_chat_today(
+        user.get('id'),
+        session.get('session_id'),
+        user.get('is_guest', True)
+    )
+    # 渲染新模板（下一步你会添加 spread_chat2.html）
+    return render_template(
+        "spread_chat2.html",
+        user=user,
+        can_chat=can_chat,
+        remaining_chats=remaining
+    )
+
+@app.route("/api/guided/chat/send", methods=["POST"])
+def api_guided_chat_send():
+    """
+    引导阶段与 Dify 对话（未绑定 reading）：
+    - 前端传 ai_personality（人格）、message、可选 conversation_id
+    - 返回 answer 与新的 conversation_id
+    """
+    user = g.user
+    data = request.json or {}
+    message = (data.get('message') or '').strip()
+    ai_personality = _resolve_ai_personality(data)
+    conversation_id = data.get('conversation_id')
+
+    if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
+        return jsonify({'error': '消息长度不合法'}), 400
+
+    # 这里不计入 spread_messages，不占旧对话额度；额度控制沿用全局 can_chat_today 即可
+    can_chat, remaining = SpreadService.can_chat_today(
+        user.get('id'), session.get('session_id'), user.get('is_guest', True)
+    )
+    if not can_chat:
+        limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
+        return jsonify({'reply': limit_msg, 'limit_reached': True, 'remaining': 0})
+
+    user_ref = get_user_ref()
+    resp = DifyService.guided_chat(
+        user_message=message,
+        user_ref=user_ref,
+        conversation_id=conversation_id,
+        ai_personality=ai_personality,
+        phase='guide'
+    )
+    return jsonify({
+        'reply': resp.get('answer', ''),
+        'conversation_id': resp.get('conversation_id'),
+        'remaining': max(remaining - 1, 0)
+    })
+
+# app.py — 新增：引导落地创建 reading
+@app.route("/api/guided/create_reading", methods=["POST"])
+def api_guided_create_reading():
+    """
+    在引导阶段确定了 spread_id + question + ai_personality 后调用：
+    - 抽牌并入库（status=init），不触发 LLM
+    - 返回 reading_id、positions（用于前端渲染占位）与 card_count
+    """
+    rid = getattr(g, "rid", _rid())
+    user = g.user
+    data = request.json or {}
+    spread_id = data.get('spread_id')
+    question = (data.get('question') or '').strip()
+    ai_personality = _resolve_ai_personality(data)
+
+    if not spread_id:
+        return jsonify({'error': '缺少牌阵 ID'}), 400
+    if question and len(question) > 200:
+        return jsonify({'error': '问题请限制在200字以内'}), 400
+
+    # 次数校验（与 /api/spread/draw 一致）
+    can_divine, _ = SpreadService.can_divine_today(
+        user.get('id'), session.get('session_id'), user.get('is_guest', True)
+    )
+    if not can_divine:
+        return jsonify({'error': '今日占卜次数已用完'}), 429
+
+    try:
+        user_ref = get_user_ref()
+        reading = SpreadService.create_guided_reading(
+            user_ref=user_ref,
+            session_id=session.get('session_id'),
+            spread_id=spread_id,
+            question=question,
+            ai_personality=ai_personality
+        )
+        # 取 positions 给前端渲染
+        spread = SpreadDAO.get_spread_by_id(spread_id)
+        positions = (spread or {}).get('positions') or []
+        return jsonify({
+            'success': True,
+            'reading_id': reading['id'],
+            'positions': positions,
+            'card_count': int(spread.get('card_count', 0)) if spread else 0
+        })
+    except Exception as e:
+        print(f"[guided] create_reading error: {e}")
+        return jsonify({'error': '创建占卜失败，请稍后重试'}), 500
+
+# app.py — 新增：逐张揭示卡牌
+@app.route("/api/guided/reveal_card", methods=["POST"])
+def api_guided_reveal_card():
+    """
+    参数：reading_id, index
+    行为：从既有 reading.cards 中取第 index 张，返回卡名/方位/图/位置信息，并记录一条 system 日志
+    """
+    user = g.user
+    data = request.json or {}
+    reading_id = data.get('reading_id')
+    index = data.get('index')
+
+    if reading_id is None or index is None:
+        return jsonify({'error': 'missing reading_id or index'}), 400
+
+    reading = SpreadService.get_reading(reading_id)
+    if not reading:
+        return jsonify({'error': '占卜记录不存在'}), 404
+    if reading['user_id'] != user.get('id') and reading['session_id'] != session.get('session_id'):
+        return jsonify({'error': '无权访问'}), 403
+
+    try:
+        index = int(index)
+        card = SpreadService.reveal_card(reading_id, index)
+        return jsonify({'success': True, 'card': card})
+    except IndexError:
+        return jsonify({'error': '索引越界'}), 400
+    except Exception as e:
+        print(f"[guided] reveal_card error: {e}")
+        return jsonify({'error': '揭示失败，请稍后重试'}), 500
+
+# app.py — 新增：引导模式完成后触发首解读
+@app.route("/api/guided/finalize", methods=["POST"])
+def api_guided_finalize():
+    """
+    所有卡牌已揭示后调用：触发一次首解读生成（与 /api/spread/generate_initial 同步逻辑保持一致）。
+    """
+    data = request.json or {}
+    reading_id = data.get("reading_id")
+    if not reading_id:
+        return jsonify({'error': 'missing reading_id'}), 400
+
+    reading = SpreadDAO.get_by_id(reading_id)
+    if not reading:
+        return jsonify({'error': 'not found'}), 404
+
+    status_row = SpreadDAO.get_status(reading_id) or {}
+    status = status_row.get('status', 'init')
+    has_initial = bool(status_row.get('has_initial'))
+
+    if has_initial or status == 'ready':
+        # 已生成则直接返回，保持幂等
+        return jsonify({'ok': True, 'status': 'ready', 'message': 'already generated'})
+
+    if status == 'generating':
+        return jsonify({'ok': True, 'status': 'generating'})
+
+    try:
+        SpreadDAO.update_status(reading_id, 'generating')
+        resp = SpreadService.generate_initial_interpretation(
+            reading_id=reading_id,
+            ai_personality=reading.get('ai_personality', 'warm')
+        )
+        SpreadDAO.update_status(reading_id, 'ready')
+        return jsonify({'ok': True, 'status': 'ready', 'conversation_id': resp.get('conversation_id')})
+    except Exception as e:
+        SpreadDAO.update_status(reading_id, 'error')
+        print(f"[guided] finalize error: {e}")
+        return jsonify({'ok': False, 'status': 'error', 'error': '生成失败，请稍后重试'}), 500
 
 # app.py 添加一个管理员路由
 @app.route("/admin/init-spreads/<secret_key>")

@@ -24,7 +24,8 @@ class Config:
     DIFY_TIMEOUT = 25  # 秒
     DIFY_SPREAD_API_KEY = os.getenv("DIFY_SPREAD_API_KEY")
     DIFY_SPREAD_API_URL = os.getenv("DIFY_SPREAD_API_URL")
-
+    DIFY_GUIDED_API_URL = os.getenv("DIFY_GUIDED_API_URL", "").strip()
+    DIFY_GUIDED_API_KEY = os.getenv("DIFY_GUIDED_API_KEY", "").strip()
     ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "default-secret-key")
     # 运势专用 API 配置（独立 key，可选独立 URL）
     DIFY_FORTUNE_API_KEY = os.environ.get("DIFY_FORTUNE_API_KEY")
