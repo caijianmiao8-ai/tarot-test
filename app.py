@@ -233,36 +233,63 @@ def api_guided_create_reading():
         print(f"[guided] create_reading error: {e}")
         return jsonify({'error': '创建占卜失败，请稍后重试'}), 500
 
-# app.py — 新增：逐张揭示卡牌
+# app.py — 逐张揭示卡牌（健壮版）
+from flask import request, jsonify, g, session
+# 确保引入 SpreadService
+# from services.spread_service import SpreadService
+
 @app.route("/api/guided/reveal_card", methods=["POST"])
 def api_guided_reveal_card():
     """
-    参数：reading_id, index
+    参数(JSON)：reading_id: str, index: int
     行为：从既有 reading.cards 中取第 index 张，返回卡名/方位/图/位置信息，并记录一条 system 日志
     """
-    user = g.user
-    data = request.json or {}
-    reading_id = data.get('reading_id')
-    index = data.get('index')
+    data = request.get_json(silent=True) or {}
+    reading_id = (data.get('reading_id') or '').strip()
+    index_raw = data.get('index')
 
-    if reading_id is None or index is None:
-        return jsonify({'error': 'missing reading_id or index'}), 400
+    if not reading_id or index_raw is None:
+        return jsonify({'error': 'missing_params', 'message': 'reading_id and index required'}), 400
 
+    # index 校验
+    try:
+        index = int(index_raw)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'bad_index', 'message': 'index must be integer'}), 400
+
+    # 取登录/访客身份
+    user = getattr(g, 'user', None) or {}
+    sess_id = session.get('session_id')
+
+    # 查 reading
     reading = SpreadService.get_reading(reading_id)
     if not reading:
-        return jsonify({'error': '占卜记录不存在'}), 404
-    if reading['user_id'] != user.get('id') and reading['session_id'] != session.get('session_id'):
-        return jsonify({'error': '无权访问'}), 403
+        return jsonify({'error': 'not_found', 'message': '占卜记录不存在'}), 404
+
+    # 权限：同一用户 或 同一 session（与你现有逻辑一致）
+    same_user = (reading.get('user_id') and reading.get('user_id') == user.get('id'))
+    same_session = (reading.get('session_id') and reading.get('session_id') == sess_id)
+    if not (same_user or same_session):
+        return jsonify({'error': 'forbidden', 'message': '无权访问'}), 403
 
     try:
-        index = int(index)
         card = SpreadService.reveal_card(reading_id, index)
-        return jsonify({'success': True, 'card': card})
+        # 可选：记录一条系统日志
+        # SpreadService.log_system(reading_id, f"reveal_card index={index}")
+
+        return jsonify({
+            'success': True,
+            'reading_id': reading_id,
+            'index': index,
+            'card': card
+        }), 200
+
     except IndexError:
-        return jsonify({'error': '索引越界'}), 400
+        return jsonify({'error': 'out_of_range', 'message': '索引越界'}), 400
     except Exception as e:
-        print(f"[guided] reveal_card error: {e}")
-        return jsonify({'error': '揭示失败，请稍后重试'}), 500
+        app.logger.exception("[guided] reveal_card error: %s", e)
+        return jsonify({'error': 'server_error', 'message': '揭示失败，请稍后重试'}), 500
+
 
 # app.py — 新增：引导模式完成后触发首解读
 @app.route("/api/guided/finalize", methods=["POST"])
