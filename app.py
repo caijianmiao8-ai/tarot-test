@@ -24,7 +24,8 @@ from services import (
     SessionService,
     FortuneService,
     ChatService,
-    SpreadService,   # ★ 必须补上
+    SpreadService, 
+    PersonaService  # ★ 必须补上
 )
 
 
