@@ -586,6 +586,8 @@ class DifyService:
         """牌阵对话（续聊，使用 conversation_id）"""
         payload = {
             "inputs": {
+                "spread_name": spread_name,
+                "spread_description": spread_description,
                 "ai_personality": ai_personality
             },
             "query": user_message,
