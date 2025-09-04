@@ -263,7 +263,7 @@ def api_guided_create_reading():
 
     if not spread_id:
         return jsonify({'error': '缺少牌阵 ID'}), 400
-    if question and len(question) > 200:
+    if question and len(question) > 400:
         return jsonify({'error': '问题请限制在200字以内'}), 400
 
     # 1) 每日次数校验（与 /api/spread/draw 一致）
