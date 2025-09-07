@@ -130,31 +130,30 @@ def _resolve_ai_personality(data: dict) -> str:
 
 @app.route("/api/guided/get_reading", methods=["POST"])
 def api_guided_get_reading():
-    """
-    输入(JSON):
-      - reading_id: str   必填
-      - include_messages: bool 可选，是否返回消息历史（system/assistant/user）
-      - mask_until: int   可选，未携带内部令牌时，用于“只暴露前K张”的遮罩（K=已揭示数量；其后置空卡名）
-    权限：
-      - 同一登录用户 或 同一会话(session) 或 携带有效 X-Internal-Token
-    返回:
-      {
-        success, reading_id, question, ai_personality,
-        spread: {id, name, description, card_count, positions: [...]},
-        cards:  [
-          { index, position_name, position_meaning, card_id, card_name, direction, image, masked? },
-          ...
-        ],
-        cards_layout: "1. 位置名（含义）\n   牌名（正/逆）\n2. ...",
-        messages?: [...]
-      }
-    """
-    data = request.get_json(silent=True) or {}
-    reading_id = (data.get("reading_id") or "").strip()
-    include_messages = bool(data.get("include_messages"))
-    mask_until = data.get("mask_until", None)  # int or None
+    # ——新增：记录原始头和前200字原始体，便于定位
+    app.logger.info("get_reading HIT ct=%s raw[:200]=%r",
+                    request.headers.get("Content-Type"),
+                    (request.data or b"")[:200])
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        data = {}
+
+    # ——更健壮的读取：依次尝试 JSON / form / query / raw
+    reading_id = (data.get("reading_id") or request.form.get("reading_id") or request.args.get("reading_id") or "").strip()
+
+    if not reading_id and request.data:
+        try:
+            import json as _json
+            raw_obj = _json.loads(request.data.decode("utf-8", "ignore"))
+            if isinstance(raw_obj, dict):
+                reading_id = (raw_obj.get("reading_id") or "").strip()
+        except Exception:
+            pass
 
     if not reading_id:
+        app.logger.warning("get_reading 400 missing_reading_id; json=%r form=%r args=%r",
+                           data, dict(request.form), dict(request.args))
         return jsonify({"success": False, "error": "missing_reading_id"}), 400
 
     trusted = _is_internal_call(request)
