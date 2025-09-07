@@ -381,18 +381,23 @@ def spread_chat2():
     引导牌阵占卜：先进入聊天页，由 Dify 引导收集诉求、推荐牌阵和问题，
     确认后再创建 reading 并逐张翻牌。
     """
-    user = g.user
+    user = g.user or {}
     can_chat, remaining = SpreadService.can_chat_today(
         user.get('id'),
         session.get('session_id'),
         user.get('is_guest', True)
     )
-    # 渲染新模板（下一步你会添加 spread_chat2.html）
+    # 可把 URL 参数透传给模板，便于调试（模板里也用到了）
     return render_template(
         "spread_chat2.html",
         user=user,
         can_chat=can_chat,
-        remaining_chats=remaining
+        remaining_chats=remaining,
+        persona_id=request.args.get("persona_id", ""),
+        spread_id=request.args.get("spread_id", ""),
+        question=request.args.get("question", ""),
+        debug=request.args.get("debug", ""),
+        itoken=request.args.get("itoken", ""),
     )
 
 # app.py
