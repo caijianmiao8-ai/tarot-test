@@ -478,20 +478,36 @@ class DifyService:
         }
 
     @staticmethod
-    def guided_chat(user_message, user_ref=None, conversation_id=None,
-                    ai_personality='warm', phase='guide'):
+    def guided_chat(user_message,
+                    user_ref=None,
+                    conversation_id=None,
+                    ai_personality='warm',
+                    phase=None,
+                    **kwargs):
         """
-        走【Guided Chatflow】：负责引导与逐张抽牌阶段的对话。
+        统一入口：把所有对话上下文透传到 Chatflow
+        kwargs 可包含：spread_id / reading_id / question / candidate_set_id ...
         """
+        # 组 inputs：最少有 ai_personality，其它有就带
+        inputs = {"ai_personality": ai_personality}
+
+        # phase 可选：不传或传 'auto' 时，不强控分支，让 Chatflow 自判
+        if phase and phase != 'auto':
+            inputs["phase"] = phase
+
+        # 透传额外上下文
+        for key in ("spread_id", "reading_id", "question", "candidate_set_id"):
+            val = kwargs.get(key, None)
+            if val is not None:
+                inputs[key] = val
+
         payload = {
-            "inputs": {
-                "ai_personality": ai_personality,
-                "phase": phase
-            },
+            "inputs": inputs,
             "query": user_message or "",
-            "response_mode": "blocking",
-            "user": user_ref
+            "response_mode": "blocking"
         }
+        if user_ref:
+            payload["user"] = user_ref
         if conversation_id:
             payload["conversation_id"] = conversation_id
 
@@ -501,9 +517,15 @@ class DifyService:
         }
 
         try:
-            import requests
+            import requests, json
+            if getattr(Config, "DIFY_DEBUG", False):
+                print("\n=== Dify guided_chat Debug ===")
+                print("URL:", Config.DIFY_GUIDED_API_URL)
+                print("Headers:", json.dumps(headers, ensure_ascii=False))
+                print("Payload:", json.dumps(payload, ensure_ascii=False))
+
             resp = requests.post(
-                Config.DIFY_GUIDED_API_URL,  # ← 新增：走“引导”Chatflow
+                Config.DIFY_GUIDED_API_URL,
                 json=payload,
                 headers=headers,
                 timeout=30
@@ -512,7 +534,7 @@ class DifyService:
             data = resp.json()
             answer = DifyService._extract_answer(data)
             new_cid = data.get("conversation_id", conversation_id)
-            return {"answer": answer or "让我更了解你的诉求～", "conversation_id": new_cid}
+            return {"answer": answer or "", "conversation_id": new_cid}
         except Exception as e:
             print(f"[Dify] guided_chat error: {e}")
             return {"answer": "抱歉，我这边信号有点弱，稍后再试试。", "conversation_id": conversation_id}

@@ -1,50 +1,45 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>引导式牌阵占卜 - 塔罗占卜</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>引导式牌阵占卜</title>
 
-  <!-- 本地化资源，与现有 spread_chat.html 保持一致 -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}" />
+  <!-- 与现有项目一致的样式依赖 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}"/>
 
   <style>
     :root{
-      --primary-color:#8e6c88;   /* 丁香紫（主色） */
-      --accent-color:#6d4c67;    /* 深梅紫（强调） */
-      --secondary-color:#d1bfa7; /* 香槟米（辅助） */
-      --bg-ivory:#f8f4e9;        /* 象牙浅底 */
-      --ink:#333;                /* 主文字 */
-      --muted:#6b7280;           /* 次要文字 */
+      --primary:#8e6c88; --primary-ink:#fff;
+      --accent:#6d4c67; --bg:#f8f4e9; --ink:#333; --muted:#6b7280;
+      --card:#fff; --border:#e5e7eb; --shadow:0 10px 24px rgba(0,0,0,.05);
     }
-    html,body{height:100%;background:var(--bg-ivory);color:var(--ink)}
+    html,body{height:100%;background:var(--bg);color:var(--ink)}
     .page{max-width:1024px;margin:0 auto;padding:16px}
 
-    /* 顶部状态条 */
-    .chat-header{display:flex;align-items:center;gap:12px;margin:8px 0 12px}
-    .phase-pill{padding:6px 10px;border-radius:999px;font-weight:700;font-size:.9rem}
-    .phase-GUIDE{background:#fff;border:1px solid #e5e7eb;color:#374151}
-    .phase-DRAWING{background:#fff0;border:1px dashed var(--primary-color);color:var(--primary-color)}
-    .phase-INTERPRET{background:#fff0;border:1px dashed #ef8f35;color:#b45309}
-    .phase-DEEP_CHAT{background:#e7f5ff;color:#1e3a8a}
+    .chat-header{display:flex;align-items:center;gap:12px;margin:6px 0 12px}
+    .phase-pill{padding:6px 12px;border-radius:999px;font-weight:700;border:1px solid var(--border);background:#fff}
+    .phase-GUIDE{color:#374151}
+    .phase-DRAWING{color:var(--primary)}
+    .phase-INTERPRET{color:#b45309;border-style:dashed}
+    .phase-DEEP_CHAT{color:#1e3a8a;background:#e7f5ff}
 
     .progress-wrap{display:flex;align-items:center;gap:10px;margin-left:auto}
     .slots{display:flex;gap:6px}
-    .slot{width:20px;height:20px;border-radius:4px;border:1px solid #e5e7eb;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af}
-    .slot.done{background:var(--primary-color);color:#fff;border-color:var(--primary-color)}
+    .slot{width:20px;height:20px;border-radius:4px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af}
+    .slot.done{background:var(--primary);border-color:var(--primary);color:#fff}
+    #progress-text{color:var(--muted);font-size:.9rem}
 
-    /* 聊天容器 */
-    .chat-card{background:#fff;border:1px solid #eee;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.05)}
+    .chat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
     .messages{height:64vh;overflow:auto;padding:16px;scroll-behavior:smooth}
     .message{display:flex;gap:12px;margin:12px 0}
-    .message .message-avatar{width:36px;height:36px;border-radius:50%;background:#f4f4f5;display:flex;align-items:center;justify-content:center;color:#6b7280}
+    .message-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f4f4f5;color:#6b7280}
     .message.user .message-avatar{background:#6366f1;color:#fff}
-    .message.assistant .message-avatar{background:var(--primary-color);color:#fff}
-    .message-content{flex:1;background:#fff;border:1px solid #eee;border-radius:12px;padding:12px}
-    .message.assistant .message-content{background:linear-gradient(180deg,#fff, #fdf8ff)}
+    .message.assistant .message-avatar{background:var(--primary);color:var(--primary-ink)}
+    .message-content{flex:1;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
+    .message.assistant .message-content{background:linear-gradient(180deg,#fff,#fdf8ff)}
 
-    /* 打字指示器 */
     .typing{display:flex;align-items:center;gap:10px;margin:6px 0}
     .typing-dots{display:flex;gap:6px}
     .typing-dot{width:7px;height:7px;background:#cbd5e1;border-radius:50%;animation:blink 1.1s infinite ease-in-out}
@@ -52,40 +47,34 @@
     .typing-dot:nth-child(3){animation-delay:.3s}
     @keyframes blink{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
 
-    /* 快速问题 */
-    .quick-questions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:8px auto 14px;max-width:820px}
-    .quick-question{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:9px 16px;font-weight:600;font-size:.95rem;cursor:pointer;transition:.2s;user-select:none}
-    .quick-question:hover{background:var(--primary-color);color:#fff;transform:translateY(-2px);box-shadow:0 8px 18px rgba(142,108,136,.25)}
-
-    /* 输入区 */
-    .input-area{display:flex;gap:10px;padding:12px;border-top:1px solid #eee}
-    .input-area textarea{flex:1;resize:none;min-height:48px;max-height:160px;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px}
-    .send-btn{background:var(--primary-color);border:none;color:#fff;border-radius:10px;padding:0 16px;font-weight:700}
+    .input-area{display:flex;gap:10px;padding:12px;border-top:1px solid var(--border)}
+    .input-area textarea{flex:1;resize:none;min-height:48px;max-height:160px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff}
+    .send-btn{background:var(--primary);border:none;color:#fff;border-radius:10px;padding:0 16px;font-weight:700}
     .send-btn:disabled{opacity:.6}
 
-    /* 系统卡：牌阵确认 */
-    .sys-card{border:1px dashed #e5e7eb;border-radius:14px;background:#fafafa;padding:12px}
+    .quick-questions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px auto 14px;max-width:820px}
+    .quick-question{background:#fff;border:1px solid var(--border);border-radius:999px;padding:9px 14px;font-weight:600;font-size:.95rem;cursor:pointer;transition:.2s}
+    .quick-question:hover{background:var(--primary);color:#fff;transform:translateY(-2px);box-shadow:0 8px 18px rgba(142,108,136,.25)}
+
+    .sys-card{border:1px dashed var(--border);border-radius:14px;background:#fafafa;padding:12px}
     .sys-title{font-weight:800;color:#374151;margin-bottom:6px}
     .sys-actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-    .btn-outline{border:1px solid var(--primary-color);color:var(--primary-color);background:#fff;border-radius:10px;padding:6px 12px}
+    .btn-outline{border:1px solid var(--primary);color:var(--primary);background:#fff;border-radius:10px;padding:6px 12px}
 
-    /* 卡面气泡 */
     .card-bubble{display:flex;gap:12px;align-items:flex-start}
-    .card-bubble img{width:86px;height:140px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;background:#fff}
-    .card-meta{font-size:.9rem;color:#6b7280}
+    .card-bubble img{width:86px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);background:#fff}
+    .card-meta{font-size:.9rem;color:var(--muted)}
     .card-meta .name{font-weight:800;color:#374151}
-    .card-meta .pos{font-weight:700;color:var(--accent-color)}
+    .card-meta .pos{font-weight:700;color:var(--accent)}
 
-    /* 全牌阵 Modal */
     .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none}
     .modal-panel{position:fixed;inset:auto 0 0 auto;width:min(980px,96vw);height:min(84vh,96vh);background:#fff;border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -12px 32px rgba(0,0,0,.2);transform:translateY(100%);transition:.25s}
     .modal-backdrop-custom.show{display:block}
     .modal-backdrop-custom.show .modal-panel{transform:none}
-    .spread-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(160px,1fr));gap:16px;padding:10px}
-    .spread-cell{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
-    .spread-cell img{width:100%;height:180px;object-fit:cover;border-radius:10px;border:1px solid #eee}
+    .spread-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:10px}
+    .spread-cell{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}
+    .spread-cell img{width:100%;height:180px;object-fit:cover;border-radius:10px;border:1px solid var(--border)}
 
-    /* 辅助 */
     .hidden{display:none !important}
   </style>
 </head>
@@ -94,7 +83,7 @@
     <div class="chat-header">
       <div id="phase-pill" class="phase-pill phase-GUIDE">引导中</div>
       <div class="progress-wrap">
-        <span id="progress-text" class="text-muted">0 / 0</span>
+        <span id="progress-text">0 / 0</span>
         <div id="slots" class="slots"></div>
       </div>
     </div>
@@ -110,7 +99,7 @@
     <div id="quick-questions" class="quick-questions hidden"></div>
   </div>
 
-  <!-- 人格选择 Modal（当 URL 未带 persona_id 时出现） -->
+  <!-- 人格选择 Modal（URL 未带 persona_id 时出现） -->
   <div id="persona-modal" class="modal-backdrop-custom">
     <div class="modal-panel p-3">
       <div class="d-flex align-items-center justify-content-between">
@@ -118,7 +107,6 @@
         <button class="btn btn-sm btn-light" onclick="closePersonaModal()"><i class="fas fa-times"></i></button>
       </div>
       <div class="row g-3 mt-1">
-        <!-- 可从后端 /api/personas 拉取；未拉到时用静态回退 -->
         <div class="col-6 col-md-4">
           <div class="p-3 border rounded-3 h-100" role="button" onclick="pickPersona('warm')">
             <div class="fw-bold">温柔疗愈</div>
@@ -139,13 +127,13 @@
         </div>
       </div>
       <div class="mt-3 d-flex gap-2">
-        <input id="pref-question" class="form-control" placeholder="（可选）本次想咨询什么？" />
+        <input id="pref-question" class="form-control" placeholder="（可选）这次想咨询什么？"/>
         <button class="btn btn-primary" onclick="confirmPersona()">开始</button>
       </div>
     </div>
   </div>
 
-  <!-- 全牌阵 Modal -->
+  <!-- 查看全牌阵 Modal -->
   <div id="spread-modal" class="modal-backdrop-custom">
     <div class="modal-panel">
       <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
@@ -160,18 +148,14 @@
   </div>
 
   <script>
-    // ====== 配置 & 全局状态 ======
+    // ========================= 基本配置 =========================
     const API = {
-      GUIDED_CHAT: '/api/guided/chat/send',         // Chatflow（引导期）
-      CREATE_READING: '/api/guided/create_reading', // 预建 reading + 预抽全套
-      REVEAL_CARD: '/api/guided/reveal_card',       // 按 index 揭示单张
-      FINALIZE: '/api/guided/finalize',             // 触发完整解读
-      SPREAD_STATUS: (id)=>`/api/spread/status/${encodeURIComponent(id)}`,
-      SPREAD_CHAT: '/api/spread/chat/send'          // 完整解读后续聊（旧接口）
+      GUIDED_CHAT: '/api/guided/chat/send' // 唯一入口（Chatflow）
     };
+    const DEBUG = false; // 打开以便 console 调试
 
     const state = {
-      phase: 'GUIDE',
+      phase: 'GUIDE',             // GUIDE -> DRAWING -> INTERPRET -> DEEP_CHAT
       readingId: null,
       personaId: null,
       spreadId: null,
@@ -179,32 +163,38 @@
       total: 0,
       progress: 0,
       positions: [],
-      drawn: [] // {index, position_name, card_name, upright, image_url}
+      drawn: [],                  // {index, position_name, card_name, upright, image_url}
+      candidateSetId: null,
+      interpretShown: false       // 已经收到完整解读
     };
 
-    // ====== 工具函数（与旧页保持一致风格） ======
+    // ========================= 工具函数 =========================
+    function log(...args){ if(DEBUG) console.log(...args); }
     function escapeHtml(text){
-      const map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'};
-      return String(text||'').replace(/[&<>"']/g,m=>map[m]);
+      const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; return String(text||'').replace(/[&<>"']/g, s=>m[s]);
     }
-
+    function stripThinkTags(s){
+      if(!s) return '';
+      // 去除 <think>, <details>, <summary>, <thinking> 等标签及其内容
+      s = s.replace(/<(think|details|summary|thinking)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+      s = s.replace(/<\/?(think|details|summary|thinking)\b[^>]*>/gi, '');
+      // 去除 ```json ... ```
+      s = s.replace(/```json\s*([\s\S]*?)```/gi, '$1');
+      return s.trim();
+    }
     function normalizeCompactTables(text){
-      // 将 "|a|b|c|d|" 单行表格修成多行（简单处理，兼容旧页）
-      return text.replace(/(^|\n)\s*\|[^\n]*\|\s*(?=\n|$)/g, m => `\n${m}\n`);
+      return String(text||'').replace(/(^|\n)\s*\|[^\n]*\|\s*(?=\n|$)/g, m=>`\n${m}\n`);
     }
-
     function formatAIMessage(content){
-      let text = String(content || '').replace(/\r\n/g,'\n');
+      let text = stripThinkTags(String(content||'').replace(/\r\n/g,'\n'));
       const fences=[];
       text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g,(m,lang,body)=>{
-        const id = `__FENCE_${fences.length}__`;
+        const id=`__FENCE_${fences.length}__`;
         fences.push(`<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`);
         return id;
       });
       text = normalizeCompactTables(text);
-      text = escapeHtml(text);
-      // 粗体/斜体/行内代码/链接/列表/引用（与旧页相近）
-      text = text
+      text = escapeHtml(text)
         .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
         .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
         .replace(/\*(.+?)\*/g,'<em>$1</em>')
@@ -213,18 +203,56 @@
         .replace(/^>\s?(.+)$/gm,'<blockquote>$1</blockquote>')
         .replace(/^\s*[-*+]\s+(.+)$/gm,'<li>$1</li>')
         .replace(/^(\d+)\.\s+(.+)$/gm,'<li>$1. $2</li>');
-      text = text.replace(/(__FENCE_\d+__)/g,(m)=>fences[Number(m.match(/\d+/)[0])]||m);
-      // 将单独的 li 包在 ul/ol（简化处理）
-      text = text.replace(/(?:^|\n)(<li>.*?<\/li>)(?=\n|$)/gs,'\n<ul>$1</ul>');
+      text = text.replace(/(__FENCE_\d+__)/g,m=>fences[Number(m.match(/\d+/)[0])]||m)
+                 .replace(/(?:^|\n)(<li>.*?<\/li>)(?=\n|$)/gs,'\n<ul>$1</ul>');
       return text;
     }
-
     function personaIcon(){
       if(state.personaId==='mystic') return '<i class="fas fa-moon"></i>';
       if(state.personaId==='wisdom') return '<i class="fas fa-book"></i>';
       return '<i class="fas fa-heart"></i>';
     }
 
+    // 指令解析：抽取第一个 {...}
+    function extractFirstJson(str){
+      if(!str) return '';
+      // 优先找 ```json 块
+      const m = str.match(/```json\s*([\s\S]*?)```/i);
+      if(m && m[1]) return m[1].trim();
+      // 再找第一个 { 到配对 }
+      let i = str.indexOf('{'); if(i<0) return '';
+      let lvl=0, out=''; let inStr=false, prev=''; 
+      for(let k=i;k<str.length;k++){
+        const ch=str[k];
+        if(ch === '"' && prev !== '\\') inStr = !inStr;
+        if(!inStr){
+          if(ch==='{' ) lvl++;
+          if(ch==='}') lvl--;
+        }
+        out+=ch; prev=ch;
+        if(!inStr && lvl===0) break;
+      }
+      return out;
+    }
+    function tryParseDirectiveBlocks(text){
+      const res = { spreads:[], cards:[] };
+      const clean = String(text||'');
+      // 允许多个指令行
+      const lines = clean.split('\n');
+      for(const line of lines){
+        if(line.includes('[[SPREAD_SELECTED]]')){
+          const jsonText = extractFirstJson(line.slice(line.indexOf('[[SPREAD_SELECTED]]')+18));
+          if(jsonText){ try{ res.spreads.push(JSON.parse(jsonText)); }catch(e){ log('parse SPREAD_SELECTED fail',e,jsonText); } }
+        }
+        if(line.includes('[[CARD_DRAWN]]')){
+          const jsonText = extractFirstJson(line.slice(line.indexOf('[[CARD_DRAWN]]')+14));
+          if(jsonText){ try{ res.cards.push(JSON.parse(jsonText)); }catch(e){ log('parse CARD_DRAWN fail',e,jsonText); } }
+        }
+      }
+      return res;
+    }
+
+    // ========================= 渲染与状态 =========================
     function appendMessage(role, raw, asAIFormat){
       const area = document.getElementById('messages-area');
       const wrap = document.createElement('div');
@@ -235,93 +263,70 @@
       cont.innerHTML = (role==='assistant' && asAIFormat) ? formatAIMessage(raw) : escapeHtml(String(raw||''));
       wrap.appendChild(avatar); wrap.appendChild(cont); area.appendChild(wrap);
       setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 30);
+      // 如果当前在 INTERPRET 阶段，收到了助手文本，切到 DEEP_CHAT 并展示快捷问
+      if(role==='assistant' && state.phase==='INTERPRET' && !state.interpretShown){
+        state.interpretShown = true;
+        updatePhase('DEEP_CHAT');
+        showQuickQuestions();
+      }
     }
-
     function showTyping(){
       const area=document.getElementById('messages-area');
-      const typing=document.createElement('div'); typing.id='typing-indicator'; typing.className='typing';
-      typing.innerHTML=`<div class="message-avatar">${personaIcon()}</div>
+      const t=document.createElement('div'); t.id='typing-indicator'; t.className='typing';
+      t.innerHTML=`<div class="message-avatar">${personaIcon()}</div>
         <div class="message-content"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
-      area.appendChild(typing); area.scrollTop=area.scrollHeight;
+      area.appendChild(t); area.scrollTop=area.scrollHeight;
     }
     function hideTyping(){ const t=document.getElementById('typing-indicator'); if(t) t.remove(); }
 
-    // ====== 解析 Chatflow 指令块 ======
-    function tryParseDirectiveBlocks(text){
-      const res = {spread:null, card:null};
-      try{
-        const spreadTag = text.indexOf('[[SPREAD_SELECTED]]');
-        if(spreadTag!==-1){
-          const jsonText = extractFirstJson(text.slice(spreadTag+18));
-          if(jsonText) res.spread = JSON.parse(jsonText);
-        }
-        const cardTag = text.indexOf('[[CARD_DRAWN]]');
-        if(cardTag!==-1){
-          const jsonText = extractFirstJson(text.slice(cardTag+14));
-          if(jsonText) res.card = JSON.parse(jsonText);
-        }
-      }catch(e){ console.warn('directive parse failed',e); }
-      return res;
+    function updatePhase(p){
+      state.phase = p;
+      const pill = document.getElementById('phase-pill');
+      pill.className = `phase-pill phase-${p}`;
+      pill.textContent = p==='GUIDE'?'引导中':(p==='DRAWING'?'抽牌中':(p==='INTERPRET'?'完整解读':'交流中'));
     }
-    function extractFirstJson(str){
-      // 简易 JSON 提取器：找到第一个 { ... } 配对
-      let i=str.indexOf('{'); if(i===-1) return '';
-      let level=0, out='';
-      for(let k=i;k<str.length;k++){
-        const ch=str[k];
-        if(ch==='{' ) level++;
-        if(ch==='}') level--;
-        out+=ch;
-        if(level===0) break;
+    function renderSlots(){
+      const box=document.getElementById('slots'); box.innerHTML='';
+      const n = Number(state.total)||0, done = Number(state.progress)||0;
+      for(let i=1;i<=n;i++){
+        const s=document.createElement('div'); s.className='slot'+(i<=done?' done':''); s.textContent=i; box.appendChild(s);
       }
-      return out;
+      document.getElementById('progress-text').textContent = `${done} / ${n}`;
     }
 
-    // ====== UI 组件渲染 ======
     function renderSpreadConfirm(spread){
-      // spread: {spread_id, spread_name, question, positions?}
+      // spread: {spread_id, spread_name, question, positions?, card_count?, candidate_set_id?}
       const html = `
         <div class="sys-card">
           <div class="sys-title">已选牌阵：${escapeHtml(spread.spread_name||'（未命名牌阵）')}</div>
           ${spread.question?`<div class="text-muted">问题：${escapeHtml(spread.question)}</div>`:''}
-          ${Array.isArray(spread.positions)?`<div class="small text-muted mt-1">位义：${spread.positions.map(p=>escapeHtml(p.title||p)).join(' / ')}</div>`:''}
+          ${Array.isArray(spread.positions)?`<div class="small text-muted mt-1">位义：${spread.positions.map(p=>escapeHtml(p.name||p.title||p)).join(' / ')}</div>`:''}
           <div class="sys-actions">
             <button class="btn btn-primary" onclick='confirmSpread(${JSON.stringify(spread).replace(/"/g,"&quot;")})'><i class="fas fa-check"></i> 确认并开始抽牌</button>
-            <button class="btn btn-outline" onclick='appendMessage("assistant", "没问题，我们也可以换一个你更喜欢的牌阵～", true)'><i class="fas fa-random"></i> 换一个</button>
+            <button class="btn btn-outline" onclick='appendMessage("assistant","没问题，我们也可以换一个你更喜欢的牌阵～",true)'><i class="fas fa-random"></i> 换一个</button>
           </div>
         </div>`;
       appendMessage('assistant', html, false);
     }
 
     function renderCardBubble(card){
-      // card: {index, position_name, card_name, upright, image_url, short_meaning?}
+      // card: {index(展示1基), position_name, card_name, direction/upright, image_url|image, short_meaning?}
+      const idx = Number(card.index)||state.progress||1;
+      const upright = (typeof card.upright==='boolean') ? card.upright : (String(card.direction||'').includes('正'));
+      const img = card.image_url || card.image || '';
       const html = `
         <div class="card-bubble">
-          <img src="${escapeHtml(card.image_url||'')}" alt="${escapeHtml(card.card_name||'')}"/>
+          <img src="${escapeHtml(img)}" alt="${escapeHtml(card.card_name||'')}"/>
           <div class="card-meta">
-            <div class="pos">${escapeHtml(card.position_name||'')}｜第 ${card.index} 张</div>
-            <div class="name">${escapeHtml(card.card_name||'')}（${card.upright? '正位':'逆位'}）</div>
+            <div class="pos">${escapeHtml(card.position_name||'')}｜第 ${idx} 张</div>
+            <div class="name">${escapeHtml(card.card_name||'')}（${upright?'正位':'逆位'}）</div>
             ${card.short_meaning?`<div class="mt-1">${escapeHtml(card.short_meaning)}</div>`:''}
           </div>
         </div>`;
       appendMessage('assistant', html, false);
     }
 
-    function updatePhase(newPhase){
-      state.phase = newPhase;
-      const pill=document.getElementById('phase-pill');
-      pill.className = `phase-pill phase-${newPhase}`;
-      pill.textContent = newPhase==='GUIDE'?'引导中':(newPhase==='DRAWING'?'抽牌中':(newPhase==='INTERPRET'?'完整解读':'交流中'));
-    }
-    function renderSlots(){
-      const box=document.getElementById('slots'); box.innerHTML='';
-      for(let i=1;i<=state.total;i++){
-        const s=document.createElement('div'); s.className='slot'+(i<=state.progress?' done':''); s.textContent=i; box.appendChild(s);
-      }
-      document.getElementById('progress-text').textContent=`${state.progress} / ${state.total}`;
-    }
-
-    // ====== 网络调用 ======
+    // ========================= 网络交互 =========================
     let isTyping=false;
     async function sendMessage(){
       const input=document.getElementById('message-input');
@@ -330,152 +335,173 @@
       input.value=''; input.style.height='auto';
       appendMessage('user', msg, false);
 
-      const endpoint = (state.phase==='DEEP_CHAT') ? API.SPREAD_CHAT : API.GUIDED_CHAT;
-      const payload = (state.phase==='DEEP_CHAT')
-        ? {reading_id: state.readingId, message: msg}
-        : {message: msg, persona_id: state.personaId, spread_id: state.spreadId, reading_id: state.readingId, question: state.question};
+      const payload = {
+        message: msg,
+        persona_id: state.personaId || undefined,
+        reading_id: state.readingId || undefined,
+        spread_id: state.spreadId || undefined,
+        question: state.question || undefined
+      };
 
       showTyping(); isTyping=true;
       try{
-        const r = await fetch(endpoint, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), cache:'no-store'
+        const r = await fetch(API.GUIDED_CHAT, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload), cache:'no-store'
         });
-        const data = await r.json();
+        let data=null;
+        try{ data = await r.json(); }catch(_){}
         hideTyping(); isTyping=false;
-        const text = data.reply || data.text || '…';
-        appendMessage('assistant', text, true);
 
-        // 解析可能的指令块
-        const d = tryParseDirectiveBlocks(text);
-        if(d.spread){ renderSpreadConfirm(d.spread); }
-        if(d.card){ onCardArrived(d.card); }
+        const text = (data && (data.reply||data.text||data.answer)) || '…';
+        processAssistantReply(text);
+
       }catch(e){
         hideTyping(); isTyping=false;
         appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
-        console.error(e);
+        log(e);
       }
     }
 
-    async function confirmSpread(spread){
-      // 由用户点击“确认并开始抽牌”触发；后端预建 reading 并预抽全套
-      state.spreadId = spread.spread_id || state.spreadId;
-      state.question = spread.question || state.question;
-      try{
-        const r = await fetch(API.CREATE_READING, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({persona_id: state.personaId, spread_id: state.spreadId, question: state.question})
+    function processAssistantReply(text){
+      appendMessage('assistant', text, true);
+
+      // 解析指令
+      const directives = tryParseDirectiveBlocks(text);
+      // 1) 选阵确认
+      if(directives.spreads.length){
+        directives.spreads.forEach(sp=>{
+          // 状态写回
+          if(sp.spread_id) state.spreadId = sp.spread_id;
+          if(sp.card_count) { state.total = Number(sp.card_count)||0; renderSlots(); }
+          if(sp.question && !state.question) state.question = sp.question;
+          if(sp.reading_id) state.readingId = sp.reading_id;
+          if(sp.candidate_set_id) state.candidateSetId = sp.candidate_set_id;
+          if(Array.isArray(sp.positions)) state.positions = sp.positions;
+
+          // 引导 UI
+          renderSpreadConfirm(sp);
         });
-        const data = await r.json();
-        state.readingId = data.reading_id; state.total = data.total || (data.positions?.length||0); state.progress = 0;
-        state.positions = data.positions || [];
-        updatePhase('DRAWING'); renderSlots();
-        appendMessage('assistant','好的，现在我们从第 1 张开始翻开。',true);
-      }catch(e){ appendMessage('assistant','创建牌阵失败，请稍后再试。',true); }
-    }
-
-    function onCardArrived(card){
-      // Chatflow 已经通过 HTTP 工具拿到卡片并在文本中带了 [[CARD_DRAWN]] JSON，我们据此渲染
-      if(typeof card.index==='number'){
-        state.progress = Math.max(state.progress, card.index);
       }
-      state.drawn.push(card); renderSlots(); renderCardBubble(card);
-      if(state.progress===state.total && state.total>0){
-        // 抽完，进入完整解读阶段
-        updatePhase('INTERPRET');
-        appendMessage('assistant','全部抽完啦！我来为你整合完整解读，请稍等…',true);
-        finalizeAndInsert();
+
+      // 2) 单张翻牌
+      if(directives.cards.length){
+        // 切换阶段
+        if(state.phase!=='DRAWING'){ updatePhase('DRAWING'); }
+        directives.cards.forEach(c=>{
+          // 进度推进（容错）
+          const idx = Number(c.index)||Number(c.index_1)|| (state.progress+1);
+          state.progress = Math.max(state.progress, idx||1);
+          // 记录
+          state.drawn.push({
+            index: idx,
+            position_name: c.position_name || '',
+            card_name: c.card_name || '',
+            upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
+            image_url: c.image_url || c.image || '',
+            short_meaning: c.short_meaning || ''
+          });
+          renderSlots();
+          renderCardBubble(c);
+        });
+
+        // 如果抽满，切换到“完整解读”阶段，等待 Chatflow 下一条 Answer（即完整解读文本）
+        if(state.total>0 && state.progress>=state.total){
+          updatePhase('INTERPRET');
+          appendMessage('assistant','全部抽完啦！我来整合完整解读…',true);
+        }
       }
     }
 
-    async function finalizeAndInsert(){
-      try{
-        await fetch(API.FINALIZE, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({reading_id: state.readingId})});
-      }catch(e){ console.warn('finalize failed',e); }
-      // 复用旧页的轮询逻辑
-      const area=document.getElementById('messages-area');
-      const loading=document.createElement('div'); loading.className='message assistant';
-      loading.innerHTML = `<div class="message-avatar">${personaIcon()}</div>
-        <div class="message-content"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
-      area.appendChild(loading); area.scrollTop=area.scrollHeight;
-
-      let inserted=false; let tries=0;
-      const timer=setInterval(async()=>{
-        tries++; if(tries>90){ clearInterval(timer); loading.remove(); return; }
-        try{
-          const r = await fetch(API.SPREAD_STATUS(state.readingId)+`?t=${Date.now()}`, {cache:'no-store'});
-          if(!r.ok) return; const s = await r.json();
-          if(s.has_initial || s.status==='ready'){
-            clearInterval(timer);
-            if(!inserted && s.initial_text){ loading.remove(); appendMessage('assistant', s.initial_text, true); inserted=true; showQuickQuestions(); updatePhase('DEEP_CHAT'); }
-          }
-        }catch(e){ console.warn('poll error', e); }
-      }, 1000);
+    // 用户点击“确认并开始抽牌”
+    async function confirmSpread(spread){
+      // 让 Chatflow 知道这是确认操作，并传会话已知字段（candidate_set_id 可选）
+      const token = {
+        spread_id: spread.spread_id || state.spreadId,
+        spread_name: spread.spread_name || '',
+        question: state.question || spread.question || '',
+        candidate_set_id: state.candidateSetId || spread.candidate_set_id || ''
+      };
+      const payload = `[[SPREAD_SELECTED]] ${JSON.stringify(token)}`;
+      appendMessage('user', '确认这个牌阵', false);
+      document.getElementById('message-input').value = payload;
+      await sendMessage();
     }
 
+    // ========================= 交互与快捷问 =========================
     function showQuickQuestions(){
       const box=document.getElementById('quick-questions'); box.classList.remove('hidden');
       box.innerHTML='';
       const qs=['整体建议','我应该注意什么？','下一步该怎么做？'];
-      qs.forEach(q=>{ const el=document.createElement('div'); el.className='quick-question'; el.textContent=q; el.onclick=()=>quickAsk(q); box.appendChild(el); });
-    }
-    function quickAsk(q){
-      const input=document.getElementById('message-input');
-      input.value = q; sendMessage();
+      qs.forEach(q=>{
+        const el=document.createElement('div'); el.className='quick-question'; el.textContent=q;
+        el.onclick=()=>{ const input=document.getElementById('message-input'); input.value=q; sendMessage(); };
+        box.appendChild(el);
+      });
     }
 
-    // ====== Persona 选择 ======
+    // ========================= Persona 选择 =========================
     function openPersonaModal(){ document.getElementById('persona-modal').classList.add('show'); }
     function closePersonaModal(){ document.getElementById('persona-modal').classList.remove('show'); }
     function pickPersona(id){ state.personaId=id; [...document.querySelectorAll('#persona-modal .border')].forEach(b=>b.classList.remove('border-primary')); }
-    function confirmPersona(){
+    async function confirmPersona(){
       if(!state.personaId) state.personaId='warm';
-      state.question = document.getElementById('pref-question').value.trim()||state.question;
+      const v = document.getElementById('pref-question').value.trim();
+      if(v) state.question = v;
       closePersonaModal();
-      // 和 Chatflow 建立开场（第一次对话）
+
       const hello = state.question ? `你好，我想咨询：${state.question}` : '你好，我们开始吧。';
       appendMessage('user', hello, false);
-      // 发送到引导 Chatflow
-      sendFirstHello(hello);
+      await sendFirstHello(hello);
     }
 
     async function sendFirstHello(msg){
       showTyping(); isTyping=true;
       try{
-        const r = await fetch(API.GUIDED_CHAT, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message: msg, persona_id: state.personaId, spread_id: state.spreadId, question: state.question}), cache:'no-store'});
-        const data = await r.json(); hideTyping(); isTyping=false;
-        const text = data.reply || data.text || '…';
-        appendMessage('assistant', text, true);
-        const d = tryParseDirectiveBlocks(text);
-        if(d.spread){ renderSpreadConfirm(d.spread); }
-        if(d.card){ onCardArrived(d.card); }
-      }catch(e){ hideTyping(); isTyping=false; appendMessage('assistant','抱歉，网络有点忙，请重试。',true); }
+        const r = await fetch(API.GUIDED_CHAT, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            message: msg, persona_id: state.personaId,
+            spread_id: state.spreadId || undefined,
+            question: state.question || undefined
+          }),
+          cache:'no-store'
+        });
+        let data=null; try{ data=await r.json(); }catch(_){}
+        hideTyping(); isTyping=false;
+        const text = (data && (data.reply||data.text||data.answer)) || '…';
+        processAssistantReply(text);
+      }catch(e){
+        hideTyping(); isTyping=false;
+        appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
+      }
     }
 
-    // ====== 输入框行为 ======
+    // ========================= 输入框与初始化 =========================
     function bindInputEvents(){
       const input=document.getElementById('message-input');
       input.addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,160)+'px'; });
       input.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }});
       document.getElementById('send-btn').addEventListener('click', sendMessage);
     }
+    function getQuery(){ const p = new URLSearchParams(location.search); return Object.fromEntries(p.entries()); }
 
-    // ====== 初始化（URL 预设支持） ======
-    function getQuery(){ const p=new URLSearchParams(location.search); return Object.fromEntries(p.entries()); }
     async function init(){
       bindInputEvents();
       const q = getQuery();
-      state.personaId = q.persona_id || null; state.spreadId = q.spread_id || null; state.question = q.question || null;
+      state.personaId = q.persona_id || null;
+      state.spreadId  = q.spread_id  || null;
+      state.question  = q.question   || null;
       updatePhase('GUIDE'); renderSlots();
 
       if(!state.personaId){ openPersonaModal(); return; }
-      // 若有 persona 但无 spread → 进入 GUIDE；若 persona + spread 同时带上 → 可在确认阶段直接建单
-      appendMessage('assistant', '你好，我是你的占卜师～先简单聊聊你的诉求，我会为你推荐合适的牌阵。', true);
+
+      appendMessage('assistant','你好，我是你的占卜师～先简单聊聊你的诉求，我会为你推荐合适的牌阵。',true);
       if(state.question){ appendMessage('user', `我本次的问题：${state.question}`, false); }
-      // 主动向 Chatflow 发第一条
-      sendFirstHello(state.question?`我想咨询：${state.question}`:'我们开始吧');
+      await sendFirstHello(state.question?`我想咨询：${state.question}`:'我们开始吧');
     }
 
-    // ====== 导出/查看全牌阵 ======
+    // ========================= 全牌阵查看与导出 =========================
     function openSpreadModal(){ document.getElementById('spread-modal').classList.add('show'); renderSpreadGrid(); }
     function closeSpreadModal(){ document.getElementById('spread-modal').classList.remove('show'); }
     function renderSpreadGrid(){
@@ -489,8 +515,14 @@
       });
     }
     function downloadReading(){
-      // 简单导出 JSON（可扩展为 PDF）
-      const data = {persona: state.personaId, question: state.question, spread_id: state.spreadId, cards: state.drawn};
+      const data = {
+        reading_id: state.readingId,
+        persona: state.personaId,
+        question: state.question,
+        spread_id: state.spreadId,
+        total: state.total,
+        cards: state.drawn
+      };
       const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`reading_${state.readingId||'draft'}.json`; a.click();
     }
