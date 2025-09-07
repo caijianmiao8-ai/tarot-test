@@ -130,50 +130,104 @@ def _resolve_ai_personality(data: dict) -> str:
 
 @app.route("/api/guided/get_reading", methods=["POST"])
 def api_guided_get_reading():
-    # ——新增：记录原始头和前200字原始体，便于定位
-    app.logger.info("get_reading HIT ct=%s raw[:200]=%r",
-                    request.headers.get("Content-Type"),
-                    (request.data or b"")[:200])
+    """
+    输入(JSON):
+      - reading_id: str   必填
+      - include_messages: bool 可选
+      - mask_until: int   可选（非内部调用时可用来遮罩未揭示卡）
+    权限：
+      - 同一登录用户 或 同一会话(session) 或 携带有效 X-Internal-Token
+    返回:
+      success, reading_id, question, ai_personality,
+      spread: {id, name, description, card_count, positions: [...]},
+      cards:  [{ index, position_name, position_meaning, card_id, card_name, direction, image, masked? }, ...],
+      cards_layout: "1. ...\n2. ...",
+      messages?: [...]
+    """
+    # --- 统一日志：看 content-type 和原始前200字 ---
+    app.logger.info(
+        "get_reading HIT ct=%s raw[:200]=%r",
+        request.headers.get("Content-Type"),
+        (request.data or b"")[:200],
+    )
 
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        data = {}
-
-    # ——更健壮的读取：依次尝试 JSON / form / query / raw
-    reading_id = (data.get("reading_id") or request.form.get("reading_id") or request.args.get("reading_id") or "").strip()
-
-    if not reading_id and request.data:
-        try:
-            import json as _json
-            raw_obj = _json.loads(request.data.decode("utf-8", "ignore"))
-            if isinstance(raw_obj, dict):
-                reading_id = (raw_obj.get("reading_id") or "").strip()
-        except Exception:
-            pass
-
-    if not reading_id:
-        app.logger.warning("get_reading 400 missing_reading_id; json=%r form=%r args=%r",
-                           data, dict(request.form), dict(request.args))
-        return jsonify({"success": False, "error": "missing_reading_id"}), 400
-
-    trusted = _is_internal_call(request)
-    user = getattr(g, "user", None) or {}
-    sess_id = session.get("session_id")
+    # --- 先给默认值，避免 NameError ---
+    include_messages = False
+    mask_until = None
+    reading_id = ""
 
     try:
+        # 解析 JSON（容错：失败则给空 dict）
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            data = {}
+
+        # 读取字段（允许前端传 false / 0 / "false" 等）
+        reading_id = (data.get("reading_id") or "").strip()
+
+        # include_messages 统一为 bool
+        im = data.get("include_messages", False)
+        # 接受多种形式：True/False, "true"/"false", 1/0
+        if isinstance(im, str):
+            include_messages = im.strip().lower() in ("1", "true", "t", "yes", "y")
+        else:
+            include_messages = bool(im)
+
+        # 遮罩参数
+        mask_until = data.get("mask_until", None)
+        try:
+            if mask_until is not None:
+                mask_until = int(mask_until)
+        except Exception:
+            mask_until = None
+
+        # 容错：若未取到 reading_id，尝试 raw 再 parse 一次
+        if not reading_id and request.data:
+            try:
+                import json as _json
+                raw_obj = _json.loads(request.data.decode("utf-8", "ignore"))
+                if isinstance(raw_obj, dict):
+                    reading_id = (raw_obj.get("reading_id") or "").strip()
+                    if "include_messages" in raw_obj:
+                        im2 = raw_obj.get("include_messages")
+                        if isinstance(im2, str):
+                            include_messages = im2.strip().lower() in ("1", "true", "t", "yes", "y")
+                        else:
+                            include_messages = bool(im2)
+            except Exception:
+                pass
+
+        if not reading_id:
+            app.logger.warning(
+                "get_reading 400 missing_reading_id; json=%r form=%r args=%r",
+                data, dict(request.form), dict(request.args)
+            )
+            return jsonify({"success": False, "error": "missing_reading_id"}), 400
+
+        # --- 鉴权：同用户 / 同会话 / 内部令牌 ---
         from services import SpreadService
         from database import SpreadDAO
+        from flask import session as flask_session
+
+        def _is_internal_call(req):
+            from config import Config
+            token = (req.headers.get("X-Internal-Token") or "").strip()
+            return bool(token and token in Config.INTERNAL_TOKENS)
+
+        trusted = _is_internal_call(request)
+        user = getattr(g, "user", None) or {}
+        sess_id = flask_session.get("session_id")
 
         reading = SpreadService.get_reading(reading_id)
         if not reading:
             return jsonify({"success": False, "error": "not_found"}), 404
 
-        # 鉴权：同一用户 或 同一会话 或 内部调用
         same_user = (reading.get("user_id") and user.get("id") == reading.get("user_id"))
         same_session = (reading.get("session_id") and sess_id == reading.get("session_id"))
         if not (same_user or same_session or trusted):
             return jsonify({"success": False, "error": "forbidden"}), 403
 
+        # --- 取 spread/positions ---
         spread = SpreadDAO.get_spread_by_id(reading["spread_id"]) or {}
         positions = spread.get("positions") or []
         # 兼容字符串/对象
@@ -189,7 +243,7 @@ def api_guided_get_reading():
             except Exception:
                 positions = []
 
-        # 归一化 cards，并拼位置信息
+        # --- 归一化 cards 并拼位置信息 ---
         cards_raw = reading.get("cards") or []
         if isinstance(cards_raw, str):
             try:
@@ -212,7 +266,7 @@ def api_guided_get_reading():
             }
             cards.append(item)
 
-        # 非内部调用时，可按 mask_until 遮住尚未揭示的卡
+        # --- 非内部调用可按 mask_until 遮住尚未揭示的卡 ---
         if not trusted and isinstance(mask_until, int):
             for it in cards:
                 if it["index"] >= mask_until:
@@ -223,7 +277,7 @@ def api_guided_get_reading():
                         "masked": True
                     })
 
-        # 生成 cards_layout（可直接喂给“整体验读” LLM）
+        # --- cards_layout 文本 ---
         lines = []
         for i, c in enumerate(cards, 1):
             pos = c["position_name"]
@@ -256,8 +310,10 @@ def api_guided_get_reading():
         return jsonify(resp)
 
     except Exception as e:
-        print(f"[get_reading] error: {e}")
+        # 这里不要引用 include_messages / mask_until 等局部变量，避免二次 NameError
+        app.logger.exception("[get_reading] error: %s", e)
         return jsonify({"success": False, "error": "server_error"}), 500
+
         
 # ========= spreads: 根据 LLM 推断解析数据库候选 =========
 @app.route("/api/spreads/resolve_from_llm", methods=["POST"])
