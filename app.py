@@ -343,61 +343,49 @@ def _json_ok(**data):
     payload.update(data)
     return jsonify(payload), 200
 
-# ===== 路由：逐张揭示卡牌 =====
 @app.route("/api/guided/reveal_card", methods=["POST"])
 def api_guided_reveal_card():
     """
     参数(JSON)：reading_id: str, index: int
-    行为：
-      - 从既有 reading 中揭示第 index 张卡（支持 0/1 基索引输入）
-      - 返回卡名/方位/图片/位置等信息
-      - 可记录 system 日志（可选）
-    权限：
-      - 同一用户 或 同一 session 或 携带有效 X-Internal-Token
-
-    返回(JSON)：
-      - success: true/false
-      - reading_id, index(0-based), index1(1-based)
-      - card: {...}
-      - 错误时：code/message/可选扩展字段
+    权限：同一用户 / 同一 session / 或携带有效 X-Internal-Token
+    特性：
+      - 支持 0/1 基索引输入，内部统一成 0-based
+      - 调用服务前先做顺序与重复校验，错误码更明确：
+          * already_revealed       -> 409
+          * sequence_mismatch      -> 409（需按 expected_index 翻）
+          * out_of_range           -> 400
     """
     data = request.get_json(silent=True) or {}
     reading_id = (data.get("reading_id") or "").strip()
     index_raw = data.get("index")
 
-    # 入口日志（不打印敏感信息）
     app.logger.info("reveal_card HIT json=%s headers[X-Internal-Token]=%s",
                     {"reading_id": reading_id, "index": index_raw},
                     bool(request.headers.get("X-Internal-Token")))
 
-    # 参数校验
     if not reading_id or index_raw is None:
         return _json_error(400, "missing_params", "reading_id 和 index 为必填")
 
-    # index 先转成 int（此处仅校验是整数，基准归一化放到读取 reading 后）
+    # 1) 解析 index 为整数（先不判断 0/1 基）
     try:
         idx_in = int(index_raw)
     except (TypeError, ValueError):
         return _json_error(400, "bad_index", "index 必须是整数", got=index_raw)
 
-    # 内部信任头
+    # 2) 鉴权：内部令牌 / 同用户 / 同 session
     trusted = _is_internal_call(request)
-
-    # 会话身份
     user = getattr(g, "user", None) or {}
     sess_id = session.get("session_id")
 
-    # 读取 reading
+    # 3) 读取 reading
     try:
         reading = SpreadService.get_reading(reading_id)
     except Exception as e:
         app.logger.exception("reveal_card get_reading failed: %s", e)
         return _json_error(500, "server_error", "读取占卜记录失败")
-
     if not reading:
         return _json_error(404, "not_found", "占卜记录不存在", reading_id=reading_id)
 
-    # 权限校验：同一用户 / 同一 session / 内部可信调用
     same_user = (reading.get("user_id") and user.get("id") == reading.get("user_id"))
     same_session = (reading.get("session_id") and sess_id == reading.get("session_id"))
     if not (same_user or same_session or trusted):
@@ -407,55 +395,76 @@ def api_guided_reveal_card():
         )
         return _json_error(403, "forbidden", "无权访问此占卜记录")
 
-    # ====== 归一化 index：同时支持 0/1 基输入 ======
-    # 多源推断 card_count（按你项目的真实结构调整优先级）
+    # 4) 牌数与 0/1 基归一化
     def _int_or_0(v):
-        try:
-            return int(v or 0)
-        except Exception:
-            return 0
+        try: return int(v or 0)
+        except Exception: return 0
 
-    card_count = 0
-    # 1) reading.card_count
     card_count = _int_or_0(reading.get("card_count"))
-    # 2) reading.spread.card_count
     if not card_count and isinstance(reading.get("spread"), dict):
         card_count = _int_or_0(reading["spread"].get("card_count"))
-    # 3) reading.positions（如果存了位置数组）
     if not card_count and isinstance(reading.get("positions"), list):
         card_count = len(reading["positions"])
-    # 4) reading.cards（仅当它代表牌阵位数）
     if not card_count and isinstance(reading.get("cards"), list):
         card_count = len(reading["cards"])
 
-    # 根据 card_count 认定 0/1 基
-    if card_count > 0 and 0 <= idx_in < card_count:
-        idx0 = idx_in                      # 0-based
-    elif card_count > 0 and 1 <= idx_in <= card_count:
-        idx0 = idx_in - 1                  # 1-based -> 0-based
+    if card_count <= 0:
+        return _json_error(400, "bad_state", "牌阵张数异常", card_count=card_count)
+
+    if 0 <= idx_in < card_count:
+        idx0 = idx_in
+    elif 1 <= idx_in <= card_count:
+        idx0 = idx_in - 1
     else:
-        # 无法判定或越界
-        rng0 = f"[0,{max(0, card_count-1)}]" if card_count else "[0..N-1]"
-        rng1 = f"[1,{max(1, card_count)}]" if card_count else "[1..N]"
         return _json_error(400, "out_of_range",
-                           f"index={idx_in} 不在允许范围 {rng0} 或 {rng1}",
+                           f"index={idx_in} 不在 [0,{card_count-1}] 或 [1,{card_count}]",
                            index_in=idx_in, card_count=card_count)
 
-    app.logger.info("reveal_card AUTH same_user=%s same_session=%s trusted=%s idx_in=%s -> idx0=%s cc=%s",
-                    same_user, same_session, trusted, idx_in, idx0, card_count)
+    # 5) 读取已揭示索引 & 计算下一可翻
+    revealed = set()
+    # a) 从 reading.cards 中推断（有些实现会在卡对象上打标）
+    cards_arr = reading.get("cards") or []
+    if isinstance(cards_arr, list):
+        for i, c in enumerate(cards_arr):
+            if isinstance(c, dict) and (c.get("revealed") or c.get("revealed_at") or c.get("shown")):
+                revealed.add(i)
+    # b) 从 reading.revealed_indexes（若你有这个字段）
+    if isinstance(reading.get("revealed_indexes"), list):
+        for x in reading["revealed_indexes"]:
+            try:
+                revealed.add(int(x))
+            except Exception:
+                pass
 
-    # 业务执行
+    expected_idx0 = None
+    for i in range(card_count):
+        if i not in revealed:
+            expected_idx0 = i
+            break
+
+    # 6) 前置校验：重复 / 顺序
+    if idx0 in revealed:
+        return _json_error(409, "already_revealed", "该位置已揭示",
+                           index0=idx0, index1=idx0+1, revealed_count=len(revealed))
+
+    # 如果你的业务需要“必须按顺序翻牌”，打开这个判断
+    ENFORCE_SEQUENCE = True  # 如不需要顺序限制，设为 False
+    if ENFORCE_SEQUENCE and expected_idx0 is not None and idx0 != expected_idx0:
+        return _json_error(409, "sequence_mismatch", "请按顺序翻牌",
+                           expected_index0=expected_idx0, expected_index1=expected_idx0+1,
+                           got_index0=idx0, got_index1=idx0+1)
+
+    app.logger.info("reveal_card AUTH ok idx_in=%s -> idx0=%s cc=%s revealed=%s expected=%s",
+                    idx_in, idx0, card_count, sorted(revealed), expected_idx0)
+
+    # 7) 业务执行
     try:
         card = SpreadService.reveal_card(reading_id, idx0)
-        # 可选：记录系统日志
-        # SpreadService.log_system(reading_id, f"reveal_card index0={idx0}")
-
-        # 同时返回 0/1 基索引，方便前端/ChatFlow 显示“第几张”
         return _json_ok(reading_id=reading_id, index=idx0, index1=(idx0 + 1), card=card)
-
     except IndexError:
-        # 后端实现可能将“已揭示/越界”都抛 IndexError；这里统一视为 out_of_range
-        return _json_error(400, "out_of_range", "索引越界或当前索引不可揭示", index0=idx0, index_in=idx_in)
+        # 服务内部也可能校验顺序/重复，这里兜底成 out_of_range/不可揭示
+        return _json_error(400, "out_of_range", "索引越界或当前索引不可揭示",
+                           index0=idx0, index1=idx0+1, revealed=list(sorted(revealed)))
     except Exception as e:
         app.logger.exception("reveal_card error: %s", e)
         return _json_error(500, "server_error", "揭示失败，请稍后重试")
