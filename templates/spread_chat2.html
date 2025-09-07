@@ -1,574 +1,4 @@
-interpretShown: false       // 已经收到完整解读
-        };
-
-        // ========================= 工具函数 =========================
-        function log(...args){ if(DEBUG) console.log(...args); }
-        function escapeHtml(text){
-            const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; 
-            return String(text||'').replace(/[&<>"']/g, s=>m[s]);
-        }
-        function stripThinkTags(s){
-            if(!s) return '';
-            // 去除 <think>, <details>, <summary>, <thinking> 等标签及其内容
-            s = s.replace(/<(think|details|summary|thinking)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
-            s = s.replace(/<\/?(think|details|summary|thinking)\b[^>]*>/gi, '');
-            // 去除 ```json ... ```
-            s = s.replace(/```json\s*([\s\S]*?)```/gi, '$1');
-            return s.trim();
-        }
-        function normalizeCompactTables(s){
-            // 让 "| |------| |" 变为换行分隔线
-            s = s.replace(/\|\s*\|([ :\-|]{3,})\|\s*/g, '|\n|$1|\n');
-            // 常见一行挤压：空格+|+空格+| → 换行+|
-            s = s.replace(/\s\|\s\|/g, '\n|');
-            return s;
-        }
-
-        // 格式化AI消息 - 与spread_chat保持一致
-        function formatAIMessage(content){
-            let text = String(content || '').replace(/\r\n/g,'\n');
-            
-            // 先清理指令标签
-            text = stripThinkTags(text);
-
-            // ===== 0) 代码块：先摘走，再统一转义其他部分 =====
-            const fences = [];
-            text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
-                const id = `__FENCE_${fences.length}__`;
-                fences.push(
-                    `<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`
-                );
-                return id;
-            });
-
-            // ===== 0.1) 表格容错：把"挤在一行"的表格修成多行 =====
-            text = normalizeCompactTables(text);
-
-            // ===== 1) 统一转义（安全基线）=====
-            text = escapeHtml(text);
-
-            // ===== 2) 标题 (# .. ######) =====
-            text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm, (m, hs, t) => {
-                const lvl = Math.min(hs.length, 6);
-                return `<h${lvl}>${t.trim()}</h${lvl}>`;
-            });
-
-            // ===== 3) 水平线 ---- =====
-            text = text.replace(/^\s*---+\s*$/gm, '<hr>');
-
-            // ===== 4) 多行引用（> ...）合并为一个 blockquote =====
-            text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g, (block) => {
-                const inner = block.replace(/(^|\n)&gt;\s?/g, '$1').trim();
-                return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
-            });
-
-            // ===== 5) 行内代码 `code`（此时已转义，无需再次escape）=====
-            text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
-
-            // ===== 6) 强/斜体（顺序重要）=====
-            text = text
-                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
-                .replace(/__(.+?)__/g, '<strong>$1</strong>')
-                .replace(/_(.+?)_/g, '<em>$1</em>');
-
-            // ===== 7) 安全链接 [text](https://...) =====
-            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-                '<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
-
-            // ===== 8) 任务清单 - [ ] / - [x] =====
-            text = text.replace(
-                /^\s*[-*+]\s+\[( |x|X)\]\s+(.+)$/gm,
-                (m, chk, body) => `<li data-task="1"><input type="checkbox" disabled ${/x/i.test(chk)?'checked':''}> ${body}</li>`
-            );
-            text = text.replace(/(?:^(?:<li data-task="1">.*<\/li>\n?)+)/gms, (block) => {
-                return `<ul class="task-list">${block.replace(/ data-task="1"/g,'').trim()}</ul>\n`;
-            });
-
-            // ===== 9) 普通列表（先标记，再成组包裹，避免有序→无序误判）=====
-            text = text
-                .replace(/^\s*(\d+)\.\s+(.+)$/gm, (m, n, item) => `<li data-ol="1">${item}</li>`)
-                .replace(/^\s*[-*+]\s+(.+)$/gm, (m, item) => `<li data-ul="1">${item}</li>`);
-
-            text = text.replace(/(?:^(?:<li[^>]*>.*<\/li>\n?)+)/gms, (block) => {
-                const isOl = /<li[^>]*data-ol="1"/.test(block) && !/<li[^>]*data-ul="1"/.test(block);
-                const clean = block.replace(/ data-(ol|ul)="1"/g, '');
-                return (isOl ? `<ol>${clean.trim()}</ol>` : `<ul>${clean.trim()}</ul>`) + '\n';
-            });
-
-            // ===== 10) 标准 Markdown 表格（表头/分隔线/多行数据）=====
-            text = text.replace(
-                /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
-                (m, header, sep, rows) => {
-                    const ths = header.split('|').map(s => `<th>${s.trim()}</th>`).join('');
-                    const trs = rows.trim().split('\n').map(r => {
-                        const tds = r.replace(/^\||\|$/g,'')
-                                     .split('|').map(s => `<td>${s.trim()}</td>`).join('');
-                        return `<tr>${tds}</tr>`;
-                    }).join('');
-                    return `\n<table class="markdown-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>\n`;
-                }
-            );
-
-            // ===== 11) 段落包裹（空行分段；保留块级原样）=====
-            const parts = text.split(/\n{2,}/).map(seg => {
-                const s = seg.trim();
-                if (!s) return '';
-                if (/^<(h\d|blockquote|hr|ul|ol|table|pre)/i.test(s)) return s;
-                return `<p>${s.replace(/\n/g,'<br>')}</p>`;
-            }).filter(Boolean);
-
-            let html = parts.join('\n');
-
-            // ===== 12) 回填代码块 =====
-            fences.forEach((codeHtml, i) => {
-                html = html.replace(`__FENCE_${i}__`, codeHtml);
-            });
-
-            // ===== 13) 清理不必要的 <p> 包裹 =====
-            html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
-                       .replace(/<\/(h\d|blockquote|hr|ul|table|pre)><\/p>/g,'</$1>');
-
-            return html;
-        }
-
-        function personaIcon(){
-            if(state.personaId==='mystic') return '<i class="fas fa-moon"></i>';
-            if(state.personaId==='wisdom') return '<i class="fas fa-book"></i>';
-            return '<i class="fas fa-heart"></i>';
-        }
-
-        // 指令解析：抽取第一个 {...}
-        function extractFirstJson(str){
-            if(!str) return '';
-            // 优先找 ```json 块
-            const m = str.match(/```json\s*([\s\S]*?)```/i);
-            if(m && m[1]) return m[1].trim();
-            // 再找第一个 { 到配对 }
-            let i = str.indexOf('{'); if(i<0) return '';
-            let lvl=0, out=''; let inStr=false, prev=''; 
-            for(let k=i;k<str.length;k++){
-                const ch=str[k];
-                if(ch === '"' && prev !== '\\') inStr = !inStr;
-                if(!inStr){
-                    if(ch==='{' ) lvl++;
-                    if(ch==='}') lvl--;
-                }
-                out+=ch; prev=ch;
-                if(!inStr && lvl===0) break;
-            }
-            return out;
-        }
-        
-        function tryParseDirectiveBlocks(text){
-            const res = { spreads:[], cards:[] };
-            const clean = String(text||'');
-            // 允许多个指令行
-            const lines = clean.split('\n');
-            for(const line of lines){
-                if(line.includes('[[SPREAD_SELECTED]]')){
-                    const jsonText = extractFirstJson(line.slice(line.indexOf('[[SPREAD_SELECTED]]')+18));
-                    if(jsonText){ 
-                        try{ res.spreads.push(JSON.parse(jsonText)); }
-                        catch(e){ log('parse SPREAD_SELECTED fail',e,jsonText); } 
-                    }
-                }
-                if(line.includes('[[CARD_DRAWN]]')){
-                    const jsonText = extractFirstJson(line.slice(line.indexOf('[[CARD_DRAWN]]')+14));
-                    if(jsonText){ 
-                        try{ res.cards.push(JSON.parse(jsonText)); }
-                        catch(e){ log('parse CARD_DRAWN fail',e,jsonText); } 
-                    }
-                }
-            }
-            return res;
-        }
-
-        // ========================= 渲染与状态 =========================
-        function appendMessage(role, raw, asAIFormat){
-            const area = document.getElementById('messages-area');
-            const wrap = document.createElement('div');
-            wrap.className = `message ${role}`;
-            const avatar = document.createElement('div'); 
-            avatar.className='message-avatar';
-            avatar.innerHTML = role==='user' ? '<i class="fas fa-user"></i>' : personaIcon();
-            const cont = document.createElement('div'); 
-            cont.className='message-content';
-            
-            // 处理HTML内容（系统卡片等）
-            if(role==='assistant' && !asAIFormat && raw.includes('<div')){
-                cont.innerHTML = raw;
-            } else {
-                cont.innerHTML = (role==='assistant' && asAIFormat) ? formatAIMessage(raw) : escapeHtml(String(raw||''));
-            }
-            
-            wrap.appendChild(avatar); 
-            wrap.appendChild(cont); 
-            area.appendChild(wrap);
-            setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 50);
-            
-            // 如果当前在 INTERPRET 阶段，收到了助手文本，切到 DEEP_CHAT 并展示快捷问
-            if(role==='assistant' && state.phase==='INTERPRET' && !state.interpretShown){
-                state.interpretShown = true;
-                updatePhase('DEEP_CHAT');
-                showQuickQuestions();
-                showSpreadPanel();
-            }
-        }
-
-        function showTyping(){
-            const area=document.getElementById('messages-area');
-            const t=document.createElement('div'); 
-            t.id='typing-indicator'; 
-            t.className='message assistant typing-indicator';
-            t.innerHTML=`<div class="message-avatar">${personaIcon()}</div>
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>`;
-            area.appendChild(t); 
-            area.scrollTop=area.scrollHeight;
-        }
-        
-        function hideTyping(){ 
-            const t=document.getElementById('typing-indicator'); 
-            if(t) t.remove(); 
-        }
-
-        function updatePhase(p){
-            state.phase = p;
-            const pill = document.getElementById('phase-pill');
-            pill.className = `phase-pill phase-${p}`;
-            pill.textContent = p==='GUIDE'?'引导中':(p==='DRAWING'?'抽牌中':(p==='INTERPRET'?'完整解读':'交流中'));
-        }
-        
-        function renderSlots(){
-            const box=document.getElementById('slots'); 
-            box.innerHTML='';
-            const n = Number(state.total)||0, done = Number(state.progress)||0;
-            for(let i=1;i<=n;i++){
-                const s=document.createElement('div'); 
-                s.className='slot'+(i<=done?' done':''); 
-                s.textContent=i; 
-                box.appendChild(s);
-            }
-            document.getElementById('progress-text').textContent = `${done} / ${n}`;
-        }
-
-        function renderSpreadConfirm(spread){
-            // spread: {spread_id, spread_name, question, positions?, card_count?, candidate_set_id?}
-            const html = `
-                <div class="sys-card">
-                    <div class="sys-title">已选牌阵：${escapeHtml(spread.spread_name||'（未命名牌阵）')}</div>
-                    ${spread.question?`<div style="color:#6b7280;margin-bottom:8px">问题：${escapeHtml(spread.question)}</div>`:''}
-                    ${Array.isArray(spread.positions)?`<div style="font-size:.9rem;color:#6b7280;margin-top:6px">位义：${spread.positions.map(p=>escapeHtml(p.name||p.title||p)).join(' / ')}</div>`:''}
-                    <div class="sys-actions">
-                        <button class="btn-confirm" onclick='confirmSpread(${JSON.stringify(spread).replace(/'/g,"&#39;").replace(/"/g,"&quot;")})'><i class="fas fa-check"></i> 确认并开始抽牌</button>
-                        <button class="btn-outline" onclick='requestChangeSpread()'><i class="fas fa-random"></i> 换一个</button>
-                    </div>
-                </div>`;
-            appendMessage('assistant', html, false);
-        }
-
-        function renderCardBubble(card){
-            // card: {index(展示1基), position_name, card_name, direction/upright, image_url|image, short_meaning?}
-            const idx = Number(card.index)||state.progress||1;
-            const upright = (typeof card.upright==='boolean') ? card.upright : (String(card.direction||'').includes('正'));
-            const img = card.image_url || card.image || '';
-            const html = `
-                <div class="card-bubble">
-                    <img src="${escapeHtml(img)}" alt="${escapeHtml(card.card_name||'')}"/>
-                    <div class="card-meta">
-                        <div class="pos">${escapeHtml(card.position_name||'')}｜第 ${idx} 张</div>
-                        <div class="name">${escapeHtml(card.card_name||'')}（${upright?'正位':'逆位'}）</div>
-                        ${card.short_meaning?`<div class="meaning">${escapeHtml(card.short_meaning)}</div>`:''}
-                    </div>
-                </div>`;
-            appendMessage('assistant', html, false);
-        }
-
-        // ========================= 网络交互 =========================
-        let isTyping=false;
-        async function sendMessage(){
-            const input=document.getElementById('message-input');
-            const msg=(input?.value||'').trim();
-            if(!msg||isTyping) return;
-            input.value=''; 
-            input.style.height='auto';
-            
-            // 隐藏快捷问题
-            const quick = document.getElementById('quick-questions');
-            if(quick) quick.classList.add('hidden');
-            
-            appendMessage('user', msg, false);
-
-            const payload = {
-                message: msg,
-                persona_id: state.personaId || undefined,
-                reading_id: state.readingId || undefined,
-                spread_id: state.spreadId || undefined,
-                question: state.question || undefined
-            };
-
-            showTyping(); 
-            isTyping=true;
-            try{
-                const r = await fetch(API.GUIDED_CHAT, {
-                    method:'POST', 
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify(payload), 
-                    cache:'no-store'
-                });
-                let data=null;
-                try{ data = await r.json(); }catch(_){}
-                hideTyping(); 
-                isTyping=false;
-
-                const text = (data && (data.reply||data.text||data.answer)) || '…';
-                processAssistantReply(text);
-
-            }catch(e){
-                hideTyping(); 
-                isTyping=false;
-                appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
-                log(e);
-            }
-        }
-
-        function processAssistantReply(text){
-            appendMessage('assistant', text, true);
-
-            // 解析指令
-            const directives = tryParseDirectiveBlocks(text);
-            
-            // 1) 选阵确认
-            if(directives.spreads.length){
-                directives.spreads.forEach(sp=>{
-                    // 状态写回
-                    if(sp.spread_id) state.spreadId = sp.spread_id;
-                    if(sp.spread_name) state.spreadName = sp.spread_name;
-                    if(sp.card_count) { 
-                        state.total = Number(sp.card_count)||0; 
-                        renderSlots(); 
-                    }
-                    if(sp.question && !state.question) state.question = sp.question;
-                    if(sp.reading_id) state.readingId = sp.reading_id;
-                    if(sp.candidate_set_id) state.candidateSetId = sp.candidate_set_id;
-                    if(Array.isArray(sp.positions)) state.positions = sp.positions;
-
-                    // 引导 UI
-                    renderSpreadConfirm(sp);
-                });
-            }
-
-            // 2) 单张翻牌
-            if(directives.cards.length){
-                // 切换阶段
-                if(state.phase!=='DRAWING'){ 
-                    updatePhase('DRAWING'); 
-                }
-                directives.cards.forEach(c=>{
-                    // 进度推进（容错）
-                    const idx = Number(c.index)||Number(c.index_1)|| (state.progress+1);
-                    state.progress = Math.max(state.progress, idx||1);
-                    // 记录
-                    state.drawn.push({
-                        index: idx,
-                        position_name: c.position_name || '',
-                        card_name: c.card_name || '',
-                        upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
-                        image_url: c.image_url || c.image || '',
-                        short_meaning: c.short_meaning || ''
-                    });
-                    renderSlots();
-                    renderCardBubble(c);
-                });
-
-                // 如果抽满，切换到"完整解读"阶段，等待 Chatflow 下一条 Answer（即完整解读文本）
-                if(state.total>0 && state.progress>=state.total){
-                    updatePhase('INTERPRET');
-                    appendMessage('assistant','全部抽完啦！我来整合完整解读…',true);
-                }
-            }
-        }
-
-        // 用户点击"确认并开始抽牌"
-        async function confirmSpread(spread){
-            // 让 Chatflow 知道这是确认操作，并传会话已知字段（candidate_set_id 可选）
-            const token = {
-                spread_id: spread.spread_id || state.spreadId,
-                spread_name: spread.spread_name || state.spreadName || '',
-                question: state.question || spread.question || '',
-                candidate_set_id: state.candidateSetId || spread.candidate_set_id || ''
-            };
-            const payload = `[[SPREAD_SELECTED]] ${JSON.stringify(token)}`;
-            document.getElementById('message-input').value = payload;
-            await sendMessage();
-        }
-
-        function requestChangeSpread(){
-            appendMessage('assistant','没问题，我们也可以换一个你更喜欢的牌阵～',true);
-        }
-
-        // ========================= 左侧牌阵面板 =========================
-        function showSpreadPanel(){
-            const panel = document.getElementById('spreadDisplay');
-            const toggle = document.getElementById('toggleSpread');
-            panel.classList.add('active');
-            toggle.classList.add('active');
-            
-            // 更新标题和问题
-            if(state.spreadName){
-                document.getElementById('spread-title').textContent = state.spreadName;
-            }
-            if(state.question){
-                const qBox = document.getElementById('spread-question-display');
-                qBox.style.display = 'block';
-                document.getElementById('question-text').textContent = state.question;
-            }
-            
-            // 渲染牌阵
-            renderSpreadCards();
-        }
-
-        function renderSpreadCards(){
-            const layout = document.getElementById('cards-layout');
-            layout.innerHTML = '';
-            
-            state.drawn.forEach((card, idx) => {
-                const cardEl = document.createElement('div');
-                cardEl.className = 'card-position';
-                cardEl.innerHTML = `
-                    <div class="position-number">${idx + 1}</div>
-                    <div class="position-info">
-                        <div class="position-name">${escapeHtml(card.position_name||`位置 ${idx+1}`)}</div>
-                        <div class="position-meaning">${escapeHtml(state.positions[idx]?.meaning||'')}</div>
-                        <div class="drawn-card">
-                            <div class="card-image ${!card.upright?'reversed':''}">
-                                ${card.image_url ? 
-                                    `<img src="${escapeHtml(card.image_url)}" alt="${escapeHtml(card.card_name)}"/>` :
-                                    '<i class="fas fa-star"></i>'
-                                }
-                            </div>
-                            <div class="card-details">
-                                <div class="card-name">${escapeHtml(card.card_name)}</div>
-                                <div class="card-direction">${card.upright?'正位':'逆位'}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                layout.appendChild(cardEl);
-            });
-        }
-
-        function toggleSpreadDisplay(){
-            const panel=document.getElementById('spreadDisplay');
-            const icon=document.getElementById('toggleIcon');
-            panel.classList.toggle('collapsed');
-            icon.className = panel.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
-        }
-
-        // ========================= 交互与快捷问 =========================
-        function showQuickQuestions(){
-            const box=document.getElementById('quick-questions'); 
-            box.classList.remove('hidden');
-            box.innerHTML='';
-            const qs=['整体建议','我应该注意什么？','下一步该怎么做？','查看完整牌阵'];
-            qs.forEach(q=>{
-                const el=document.createElement('div'); 
-                el.className='quick-question'; 
-                el.textContent=q;
-                el.onclick=()=>{ 
-                    if(q === '查看完整牌阵'){
-                        openSpreadModal();
-                    } else {
-                        const input=document.getElementById('message-input'); 
-                        input.value=q; 
-                        sendMessage(); 
-                    }
-                };
-                box.appendChild(el);
-            });
-        }
-
-        // ========================= Persona 选择 =========================
-        function openPersonaModal(){ 
-            document.getElementById('persona-modal').classList.add('show'); 
-        }
-        function closePersonaModal(){ 
-            document.getElementById('persona-modal').classList.remove('show'); 
-        }
-        function pickPersona(id){ 
-            state.personaId=id; 
-            // 更新选中状态
-            document.querySelectorAll('.persona-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-        }
-        async function confirmPersona(){
-            if(!state.personaId) state.personaId='warm';
-            const v = document.getElementById('pref-question').value.trim();
-            if(v) state.question = v;
-            closePersonaModal();
-
-            const hello = state.question ? `你好，我想咨询：${state.question}` : '你好，我们开始吧。';
-            appendMessage('user', hello, false);
-            await sendFirstHello(hello);
-        }
-
-        async function sendFirstHello(msg){
-            showTyping(); 
-            isTyping=true;
-            try{
-                const r = await fetch(API.GUIDED_CHAT, {
-                    method:'POST', 
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        message: msg, 
-                        persona_id: state.personaId,
-                        spread_id: state.spreadId || undefined,
-                        question: state.question || undefined
-                    }),
-                    cache:'no-store'
-                });
-                let data=null; 
-                try{ data=await r.json(); }catch(_){}
-                hideTyping(); 
-                isTyping=false;
-                const text = (data && (data.reply||data.text||data.answer)) || '…';
-                processAssistantReply(text);
-            }catch(e){
-                hideTyping(); 
-                isTyping=false;
-                appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
-            }
-        }
-
-        // ========================= 全牌阵查看与导出 =========================
-        function openSpreadModal(){ 
-            document.getElementById('spread-modal').classList.add('show'); 
-            renderSpreadGrid(); 
-        }
-        function closeSpreadModal(){ 
-            document.getElementById('spread-modal').classList.remove('show'); 
-        }
-        function renderSpreadGrid(){
-            const grid=document.getElementById('spread-grid'); 
-            grid.innerHTML='';
-            state.drawn.forEach(c=>{
-                const cell=document.createElement('div'); 
-                cell.className='spread-cell';
-                cell.innerHTML = `
-                    <div class="position">${escapeHtml(c.position_name||'')}</div>
-                    <img src="${escapeHtml(c.image_url||'')}" alt="${escapeHtml(c.card_name||'')}">
-                    <div class="card-name">${escapeHtml(c.card_name||'')}</div>
-                    <div class="direction">${c.upright?'正位':'逆位'}</div>`;
-                grid.appendChild(cell);
-            });<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8"/>
@@ -938,6 +368,55 @@ interpretShown: false       // 已经收到完整解读
             border-bottom-right-radius:6px;
             border-bottom-left-radius:18px;
         }
+
+        /* markdown 任务清单 */
+        .message-content .task-list{ 
+            list-style: none; 
+            padding-left: 0; 
+            margin: .8em 0;
+        }
+        .message-content .task-list li{ 
+            margin: .35em 0; 
+        }
+        .message-content .task-list input[type="checkbox"]{
+            margin-right: 8px; 
+            transform: scale(1.05); 
+            vertical-align: middle;
+            accent-color: var(--primary-color);
+            pointer-events: none;
+        }
+
+        /* Markdown 样式 */
+        .message-content h1{font-size:1.35rem;margin:1em 0 .5em;color:var(--accent-color);font-weight:800}
+        .message-content h2{font-size:1.2rem;margin:.9em 0 .45em;color:var(--accent-color);font-weight:700}
+        .message-content h3{font-size:1.06rem;margin:.7em 0 .35em;font-weight:700}
+        .message-content p{margin:.8em 0}
+        .message-content ul,.message-content ol{margin:.8em 0;padding-left:1.4em}
+        .message-content li{margin:.35em 0}
+        .message-content strong{font-weight:800;color:var(--accent-color)}
+        .message.user .message-content strong{color:#fff}
+        .message-content em{font-style:italic}
+        .message-content del{opacity:.75;text-decoration:line-through}
+        .message-content blockquote{
+            margin:.8em 0;padding:.6em 1em;border-left:4px solid var(--primary-color);
+            background:rgba(142,108,136,.06);border-radius:0 10px 10px 0;
+        }
+        .message-content hr{border:none;border-top:2px solid #e5e7eb;margin:1.2em 0}
+        .message-content code{
+            background:rgba(142,108,136,.12);padding:2px 6px;border-radius:6px;
+            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+            font-size:.92em;color:var(--accent-color);
+        }
+        .message-content pre{
+            background:#f6f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:14px;overflow:auto;margin:1em 0;
+        }
+        .message-content pre code{background:none;padding:0;color:inherit;font-size:.9em}
+
+        /* markdown 表格 */
+        .markdown-table{width:100%;border-collapse:collapse;margin:.9em 0;display:block;overflow:auto}
+        .markdown-table td,.markdown-table th{border:1px solid #e1e4e8;padding:8px 12px;text-align:left}
+        .markdown-table tr:nth-child(even){background:#f9fafb}
+        .markdown-table th{background:rgba(142,108,136,.1);font-weight:700}
 
         /* 打字动画 */
         .typing-indicator{
@@ -1470,4 +949,455 @@ interpretShown: false       // 已经收到完整解读
         const DEBUG = false;
 
         const state = {
-            phase: 'GUIDE',             // GUIDE ->
+            phase: 'GUIDE',             // GUIDE -> DRAWING -> INTERPRET -> DEEP_CHAT
+            readingId: null,
+            personaId: null,
+            spreadId: null,
+            spreadName: null,
+            question: null,
+            total: 0,
+            progress: 0,
+            positions: [],
+            drawn: [],                  // {index, position_name, card_name, upright, image_url}
+            candidateSetId: null,
+            interpretShown: false       // 已经收到完整解读
+        };
+
+        // ========================= 工具函数 =========================
+        function log(...args){ if(DEBUG) console.log(...args); }
+        function escapeHtml(text){
+            const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; 
+            return String(text||'').replace(/[&<>"']/g, s=>m[s]);
+        }
+        function stripThinkTags(s){
+            if(!s) return '';
+            // 去除 <think>, <details>, <summary>, <thinking> 等标签及其内容
+            s = s.replace(/<(think|details|summary|thinking)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+            s = s.replace(/<\/?(think|details|summary|thinking)\b[^>]*>/gi, '');
+            // 去除 ```json ... ```
+            s = s.replace(/```json\s*([\s\S]*?)```/gi, '$1');
+            return s.trim();
+        }
+        function normalizeCompactTables(s){
+            // 让 "| |------| |" 变为换行分隔线
+            s = s.replace(/\|\s*\|([ :\-|]{3,})\|\s*/g, '|\n|$1|\n');
+            // 常见一行挤压：空格+|+空格+| → 换行+|
+            s = s.replace(/\s\|\s\|/g, '\n|');
+            return s;
+        }
+
+        // 格式化AI消息 - 与spread_chat保持一致
+        function formatAIMessage(content){
+            let text = String(content || '').replace(/\r\n/g,'\n');
+            
+            // 先清理指令标签
+            text = stripThinkTags(text);
+
+            // ===== 0) 代码块：先摘走，再统一转义其他部分 =====
+            const fences = [];
+            text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
+                const id = `__FENCE_${fences.length}__`;
+                fences.push(
+                    `<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`
+                );
+                return id;
+            });
+
+            // ===== 0.1) 表格容错：把"挤在一行"的表格修成多行 =====
+            text = normalizeCompactTables(text);
+
+            // ===== 1) 统一转义（安全基线）=====
+            text = escapeHtml(text);
+
+            // ===== 2) 标题 (# .. ######) =====
+            text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm, (m, hs, t) => {
+                const lvl = Math.min(hs.length, 6);
+                return `<h${lvl}>${t.trim()}</h${lvl}>`;
+            });
+
+            // ===== 3) 水平线 ---- =====
+            text = text.replace(/^\s*---+\s*$/gm, '<hr>');
+
+            // ===== 4) 多行引用（> ...）合并为一个 blockquote =====
+            text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g, (block) => {
+                const inner = block.replace(/(^|\n)&gt;\s?/g, '$1').trim();
+                return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
+            });
+
+            // ===== 5) 行内代码 `code`（此时已转义，无需再次escape）=====
+            text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
+
+            // ===== 6) 强/斜体（顺序重要）=====
+            text = text
+                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+                .replace(/__(.+?)__/g, '<strong>$1</strong>')
+                .replace(/_(.+?)_/g, '<em>$1</em>');
+
+            // ===== 7) 安全链接 [text](https://...) =====
+            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
+
+            // ===== 8) 任务清单 - [ ] / - [x] =====
+            text = text.replace(
+                /^\s*[-*+]\s+\[( |x|X)\]\s+(.+)$/gm,
+                (m, chk, body) => `<li data-task="1"><input type="checkbox" disabled ${/x/i.test(chk)?'checked':''}> ${body}</li>`
+            );
+            text = text.replace(/(?:^(?:<li data-task="1">.*<\/li>\n?)+)/gms, (block) => {
+                return `<ul class="task-list">${block.replace(/ data-task="1"/g,'').trim()}</ul>\n`;
+            });
+
+            // ===== 9) 普通列表（先标记，再成组包裹，避免有序→无序误判）=====
+            text = text
+                .replace(/^\s*(\d+)\.\s+(.+)$/gm, (m, n, item) => `<li data-ol="1">${item}</li>`)
+                .replace(/^\s*[-*+]\s+(.+)$/gm, (m, item) => `<li data-ul="1">${item}</li>`);
+
+            text = text.replace(/(?:^(?:<li[^>]*>.*<\/li>\n?)+)/gms, (block) => {
+                const isOl = /<li[^>]*data-ol="1"/.test(block) && !/<li[^>]*data-ul="1"/.test(block);
+                const clean = block.replace(/ data-(ol|ul)="1"/g, '');
+                return (isOl ? `<ol>${clean.trim()}</ol>` : `<ul>${clean.trim()}</ul>`) + '\n';
+            });
+
+            // ===== 10) 标准 Markdown 表格（表头/分隔线/多行数据）=====
+            text = text.replace(
+                /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
+                (m, header, sep, rows) => {
+                    const ths = header.split('|').map(s => `<th>${s.trim()}</th>`).join('');
+                    const trs = rows.trim().split('\n').map(r => {
+                        const tds = r.replace(/^\||\|$/g,'')
+                                     .split('|').map(s => `<td>${s.trim()}</td>`).join('');
+                        return `<tr>${tds}</tr>`;
+                    }).join('');
+                    return `\n<table class="markdown-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>\n`;
+                }
+            );
+
+            // ===== 11) 段落包裹（空行分段；保留块级原样）=====
+            const parts = text.split(/\n{2,}/).map(seg => {
+                const s = seg.trim();
+                if (!s) return '';
+                if (/^<(h\d|blockquote|hr|ul|ol|table|pre)/i.test(s)) return s;
+                return `<p>${s.replace(/\n/g,'<br>')}</p>`;
+            }).filter(Boolean);
+
+            let html = parts.join('\n');
+
+            // ===== 12) 回填代码块 =====
+            fences.forEach((codeHtml, i) => {
+                html = html.replace(`__FENCE_${i}__`, codeHtml);
+            });
+
+            // ===== 13) 清理不必要的 <p> 包裹 =====
+            html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
+                       .replace(/<\/(h\d|blockquote|hr|ul|table|pre)><\/p>/g,'</$1>');
+
+            return html;
+        }
+
+        function personaIcon(){
+            if(state.personaId==='mystic') return '<i class="fas fa-moon"></i>';
+            if(state.personaId==='wisdom') return '<i class="fas fa-book"></i>';
+            return '<i class="fas fa-heart"></i>';
+        }
+
+        // 指令解析：抽取第一个 {...}
+        function extractFirstJson(str){
+            if(!str) return '';
+            // 优先找 ```json 块
+            const m = str.match(/```json\s*([\s\S]*?)```/i);
+            if(m && m[1]) return m[1].trim();
+            // 再找第一个 { 到配对 }
+            let i = str.indexOf('{'); if(i<0) return '';
+            let lvl=0, out=''; let inStr=false, prev=''; 
+            for(let k=i;k<str.length;k++){
+                const ch=str[k];
+                if(ch === '"' && prev !== '\\') inStr = !inStr;
+                if(!inStr){
+                    if(ch==='{' ) lvl++;
+                    if(ch==='}') lvl--;
+                }
+                out+=ch; prev=ch;
+                if(!inStr && lvl===0) break;
+            }
+            return out;
+        }
+        
+        function tryParseDirectiveBlocks(text){
+            const res = { spreads:[], cards:[] };
+            const clean = String(text||'');
+            // 允许多个指令行
+            const lines = clean.split('\n');
+            for(const line of lines){
+                if(line.includes('[[SPREAD_SELECTED]]')){
+                    const jsonText = extractFirstJson(line.slice(line.indexOf('[[SPREAD_SELECTED]]')+18));
+                    if(jsonText){ 
+                        try{ res.spreads.push(JSON.parse(jsonText)); }
+                        catch(e){ log('parse SPREAD_SELECTED fail',e,jsonText); } 
+                    }
+                }
+                if(line.includes('[[CARD_DRAWN]]')){
+                    const jsonText = extractFirstJson(line.slice(line.indexOf('[[CARD_DRAWN]]')+14));
+                    if(jsonText){ 
+                        try{ res.cards.push(JSON.parse(jsonText)); }
+                        catch(e){ log('parse CARD_DRAWN fail',e,jsonText); } 
+                    }
+                }
+            }
+            return res;
+        }
+
+        // ========================= 渲染与状态 =========================
+        function appendMessage(role, raw, asAIFormat){
+            const area = document.getElementById('messages-area');
+            const wrap = document.createElement('div');
+            wrap.className = `message ${role}`;
+            const avatar = document.createElement('div'); 
+            avatar.className='message-avatar';
+            avatar.innerHTML = role==='user' ? '<i class="fas fa-user"></i>' : personaIcon();
+            const cont = document.createElement('div'); 
+            cont.className='message-content';
+            
+            // 处理HTML内容（系统卡片等）
+            if(role==='assistant' && !asAIFormat && raw.includes('<div')){
+                cont.innerHTML = raw;
+            } else {
+                cont.innerHTML = (role==='assistant' && asAIFormat) ? formatAIMessage(raw) : escapeHtml(String(raw||''));
+            }
+            
+            wrap.appendChild(avatar); 
+            wrap.appendChild(cont); 
+            area.appendChild(wrap);
+            setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 50);
+            
+            // 如果当前在 INTERPRET 阶段，收到了助手文本，切到 DEEP_CHAT 并展示快捷问
+            if(role==='assistant' && state.phase==='INTERPRET' && !state.interpretShown){
+                state.interpretShown = true;
+                updatePhase('DEEP_CHAT');
+                showQuickQuestions();
+                showSpreadPanel();
+            }
+        }
+
+        function showTyping(){
+            const area=document.getElementById('messages-area');
+            const t=document.createElement('div'); 
+            t.id='typing-indicator'; 
+            t.className='message assistant typing-indicator';
+            t.innerHTML=`<div class="message-avatar">${personaIcon()}</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>`;
+            area.appendChild(t); 
+            area.scrollTop=area.scrollHeight;
+        }
+        
+        function hideTyping(){ 
+            const t=document.getElementById('typing-indicator'); 
+            if(t) t.remove(); 
+        }
+
+        function updatePhase(p){
+            state.phase = p;
+            const pill = document.getElementById('phase-pill');
+            pill.className = `phase-pill phase-${p}`;
+            pill.textContent = p==='GUIDE'?'引导中':(p==='DRAWING'?'抽牌中':(p==='INTERPRET'?'完整解读':'交流中'));
+        }
+        
+        function renderSlots(){
+            const box=document.getElementById('slots'); 
+            box.innerHTML='';
+            const n = Number(state.total)||0, done = Number(state.progress)||0;
+            for(let i=1;i<=n;i++){
+                const s=document.createElement('div'); 
+                s.className='slot'+(i<=done?' done':''); 
+                s.textContent=i; 
+                box.appendChild(s);
+            }
+            document.getElementById('progress-text').textContent = `${done} / ${n}`;
+        }
+
+        function renderSpreadConfirm(spread){
+            // spread: {spread_id, spread_name, question, positions?, card_count?, candidate_set_id?}
+            const html = `
+                <div class="sys-card">
+                    <div class="sys-title">已选牌阵：${escapeHtml(spread.spread_name||'（未命名牌阵）')}</div>
+                    ${spread.question?`<div style="color:#6b7280;margin-bottom:8px">问题：${escapeHtml(spread.question)}</div>`:''}
+                    ${Array.isArray(spread.positions)?`<div style="font-size:.9rem;color:#6b7280;margin-top:6px">位义：${spread.positions.map(p=>escapeHtml(p.name||p.title||p)).join(' / ')}</div>`:''}
+                    <div class="sys-actions">
+                        <button class="btn-confirm" onclick='confirmSpread(${JSON.stringify(spread).replace(/'/g,"&#39;").replace(/"/g,"&quot;")})'><i class="fas fa-check"></i> 确认并开始抽牌</button>
+                        <button class="btn-outline" onclick='requestChangeSpread()'><i class="fas fa-random"></i> 换一个</button>
+                    </div>
+                </div>`;
+            appendMessage('assistant', html, false);
+        }
+
+        function renderCardBubble(card){
+            // card: {index(展示1基), position_name, card_name, direction/upright, image_url|image, short_meaning?}
+            const idx = Number(card.index)||state.progress||1;
+            const upright = (typeof card.upright==='boolean') ? card.upright : (String(card.direction||'').includes('正'));
+            const img = card.image_url || card.image || '';
+            const html = `
+                <div class="card-bubble">
+                    <img src="${escapeHtml(img)}" alt="${escapeHtml(card.card_name||'')}"/>
+                    <div class="card-meta">
+                        <div class="pos">${escapeHtml(card.position_name||'')}｜第 ${idx} 张</div>
+                        <div class="name">${escapeHtml(card.card_name||'')}（${upright?'正位':'逆位'}）</div>
+                        ${card.short_meaning?`<div class="meaning">${escapeHtml(card.short_meaning)}</div>`:''}
+                    </div>
+                </div>`;
+            appendMessage('assistant', html, false);
+        }
+
+        // ========================= 网络交互 =========================
+        let isTyping=false;
+        async function sendMessage(){
+            const input=document.getElementById('message-input');
+            const msg=(input?.value||'').trim();
+            if(!msg||isTyping) return;
+            input.value=''; 
+            input.style.height='auto';
+            
+            // 隐藏快捷问题
+            const quick = document.getElementById('quick-questions');
+            if(quick) quick.classList.add('hidden');
+            
+            appendMessage('user', msg, false);
+
+            const payload = {
+                message: msg,
+                persona_id: state.personaId || undefined,
+                reading_id: state.readingId || undefined,
+                spread_id: state.spreadId || undefined,
+                question: state.question || undefined
+            };
+
+            showTyping(); 
+            isTyping=true;
+            try{
+                const r = await fetch(API.GUIDED_CHAT, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(payload), 
+                    cache:'no-store'
+                });
+                let data=null;
+                try{ data = await r.json(); }catch(_){}
+                hideTyping(); 
+                isTyping=false;
+
+                const text = (data && (data.reply||data.text||data.answer)) || '…';
+                processAssistantReply(text);
+
+            }catch(e){
+                hideTyping(); 
+                isTyping=false;
+                appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
+                log(e);
+            }
+        }
+
+        function processAssistantReply(text){
+            appendMessage('assistant', text, true);
+
+            // 解析指令
+            const directives = tryParseDirectiveBlocks(text);
+            
+            // 1) 选阵确认
+            if(directives.spreads.length){
+                directives.spreads.forEach(sp=>{
+                    // 状态写回
+                    if(sp.spread_id) state.spreadId = sp.spread_id;
+                    if(sp.spread_name) state.spreadName = sp.spread_name;
+                    if(sp.card_count) { 
+                        state.total = Number(sp.card_count)||0; 
+                        renderSlots(); 
+                    }
+                    if(sp.question && !state.question) state.question = sp.question;
+                    if(sp.reading_id) state.readingId = sp.reading_id;
+                    if(sp.candidate_set_id) state.candidateSetId = sp.candidate_set_id;
+                    if(Array.isArray(sp.positions)) state.positions = sp.positions;
+
+                    // 引导 UI
+                    renderSpreadConfirm(sp);
+                });
+            }
+
+            // 2) 单张翻牌
+            if(directives.cards.length){
+                // 切换阶段
+                if(state.phase!=='DRAWING'){ 
+                    updatePhase('DRAWING'); 
+                }
+                directives.cards.forEach(c=>{
+                    // 进度推进（容错）
+                    const idx = Number(c.index)||Number(c.index_1)|| (state.progress+1);
+                    state.progress = Math.max(state.progress, idx||1);
+                    // 记录
+                    state.drawn.push({
+                        index: idx,
+                        position_name: c.position_name || '',
+                        card_name: c.card_name || '',
+                        upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
+                        image_url: c.image_url || c.image || '',
+                        short_meaning: c.short_meaning || ''
+                    });
+                    renderSlots();
+                    renderCardBubble(c);
+                });
+
+                // 如果抽满，切换到"完整解读"阶段，等待 Chatflow 下一条 Answer（即完整解读文本）
+                if(state.total>0 && state.progress>=state.total){
+                    updatePhase('INTERPRET');
+                    appendMessage('assistant','全部抽完啦！我来整合完整解读…',true);
+                }
+            }
+        }
+
+        // 用户点击"确认并开始抽牌"
+        async function confirmSpread(spread){
+            // 让 Chatflow 知道这是确认操作，并传会话已知字段（candidate_set_id 可选）
+            const token = {
+                spread_id: spread.spread_id || state.spreadId,
+                spread_name: spread.spread_name || state.spreadName || '',
+                question: state.question || spread.question || '',
+                candidate_set_id: state.candidateSetId || spread.candidate_set_id || ''
+            };
+            const payload = `[[SPREAD_SELECTED]] ${JSON.stringify(token)}`;
+            document.getElementById('message-input').value = payload;
+            await sendMessage();
+        }
+
+        function requestChangeSpread(){
+            appendMessage('assistant','没问题，我们也可以换一个你更喜欢的牌阵～',true);
+        }
+
+        // ========================= 左侧牌阵面板 =========================
+        function showSpreadPanel(){
+            const panel = document.getElementById('spreadDisplay');
+            const toggle = document.getElementById('toggleSpread');
+            panel.classList.add('active');
+            toggle.classList.add('active');
+            
+            // 更新标题和问题
+            if(state.spreadName){
+                document.getElementById('spread-title').textContent = state.spreadName;
+            }
+            if(state.question){
+                const qBox = document.getElementById('spread-question-display');
+                qBox.style.display = 'block';
+                document.getElementById('question-text').textContent = state.question;
+            }
+            
+            // 渲染牌阵
+            renderSpreadCards();
+        }
+
+        function renderSpreadCards(){
+            const layout = document.getElementById('cards-layout');
+            layout.innerHTML = '';
+            
+            state.drawn.forEach((card, idx)
