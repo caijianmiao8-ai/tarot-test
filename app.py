@@ -126,6 +126,140 @@ def _resolve_ai_personality(data: dict) -> str:
         (data.get("ai_personality") or data.get("persona_id"))
     )
 
+
+
+@app.route("/api/guided/get_reading", methods=["POST"])
+def api_guided_get_reading():
+    """
+    输入(JSON):
+      - reading_id: str   必填
+      - include_messages: bool 可选，是否返回消息历史（system/assistant/user）
+      - mask_until: int   可选，未携带内部令牌时，用于“只暴露前K张”的遮罩（K=已揭示数量；其后置空卡名）
+    权限：
+      - 同一登录用户 或 同一会话(session) 或 携带有效 X-Internal-Token
+    返回:
+      {
+        success, reading_id, question, ai_personality,
+        spread: {id, name, description, card_count, positions: [...]},
+        cards:  [
+          { index, position_name, position_meaning, card_id, card_name, direction, image, masked? },
+          ...
+        ],
+        cards_layout: "1. 位置名（含义）\n   牌名（正/逆）\n2. ...",
+        messages?: [...]
+      }
+    """
+    data = request.get_json(silent=True) or {}
+    reading_id = (data.get("reading_id") or "").strip()
+    include_messages = bool(data.get("include_messages"))
+    mask_until = data.get("mask_until", None)  # int or None
+
+    if not reading_id:
+        return jsonify({"success": False, "error": "missing_reading_id"}), 400
+
+    trusted = _is_internal_call(request)
+    user = getattr(g, "user", None) or {}
+    sess_id = session.get("session_id")
+
+    try:
+        from services import SpreadService
+        from database import SpreadDAO
+
+        reading = SpreadService.get_reading(reading_id)
+        if not reading:
+            return jsonify({"success": False, "error": "not_found"}), 404
+
+        # 鉴权：同一用户 或 同一会话 或 内部调用
+        same_user = (reading.get("user_id") and user.get("id") == reading.get("user_id"))
+        same_session = (reading.get("session_id") and sess_id == reading.get("session_id"))
+        if not (same_user or same_session or trusted):
+            return jsonify({"success": False, "error": "forbidden"}), 403
+
+        spread = SpreadDAO.get_spread_by_id(reading["spread_id"]) or {}
+        positions = spread.get("positions") or []
+        # 兼容字符串/对象
+        if isinstance(positions, str):
+            try:
+                import json as _json
+                positions = _json.loads(positions) or []
+            except Exception:
+                positions = []
+        elif isinstance(positions, dict):
+            try:
+                positions = [positions[str(i)] for i in sorted(map(int, positions.keys()))]
+            except Exception:
+                positions = []
+
+        # 归一化 cards，并拼位置信息
+        cards_raw = reading.get("cards") or []
+        if isinstance(cards_raw, str):
+            try:
+                import json as _json
+                cards_raw = _json.loads(cards_raw) or []
+            except Exception:
+                cards_raw = []
+
+        cards = []
+        for i, c in enumerate(cards_raw):
+            pos = positions[i] if i < len(positions) else {}
+            item = {
+                "index": i,
+                "position_name": pos.get("name", f"位置{i+1}"),
+                "position_meaning": pos.get("meaning", ""),
+                "card_id": c.get("card_id"),
+                "card_name": c.get("card_name", ""),
+                "direction": c.get("direction", ""),
+                "image": c.get("image", "")
+            }
+            cards.append(item)
+
+        # 非内部调用时，可按 mask_until 遮住尚未揭示的卡
+        if not trusted and isinstance(mask_until, int):
+            for it in cards:
+                if it["index"] >= mask_until:
+                    it.update({
+                        "card_name": "",
+                        "direction": "",
+                        "image": "",
+                        "masked": True
+                    })
+
+        # 生成 cards_layout（可直接喂给“整体验读” LLM）
+        lines = []
+        for i, c in enumerate(cards, 1):
+            pos = c["position_name"]
+            mean = c["position_meaning"]
+            cn = c["card_name"] or "（未揭示）"
+            dr = c["direction"] or ""
+            lines.append(f"{i}. {pos}（{mean}）\n   {cn}{f'（{dr}）' if dr else ''}")
+        cards_layout = "\n".join(lines)
+
+        resp = {
+            "success": True,
+            "reading_id": reading_id,
+            "question": reading.get("question", ""),
+            "ai_personality": reading.get("ai_personality", ""),
+            "spread": {
+                "id": spread.get("id") or reading.get("spread_id"),
+                "name": spread.get("name", ""),
+                "description": spread.get("description", ""),
+                "card_count": int(spread.get("card_count") or len(cards)),
+                "positions": positions
+            },
+            "cards": cards,
+            "cards_layout": cards_layout
+        }
+
+        if include_messages:
+            msgs = SpreadService.get_chat_messages(reading_id)
+            resp["messages"] = msgs
+
+        return jsonify(resp)
+
+    except Exception as e:
+        print(f"[get_reading] error: {e}")
+        return jsonify({"success": False, "error": "server_error"}), 500
+        
 # ========= spreads: 根据 LLM 推断解析数据库候选 =========
 @app.route("/api/spreads/resolve_from_llm", methods=["POST"])
 def api_spreads_resolve_from_llm():
