@@ -404,36 +404,21 @@ def spread_chat2():
 @app.route("/api/guided/chat/send", methods=["POST"])
 def api_guided_chat_send():
     """
-    单 Chatflow 对话入口（包含引导/翻牌/整合解读/续聊）
-    前端可传：
-      - message: 必填
-      - persona_id / ai_personality: 任选其一
-      - conversation_id: 续聊时可选
-      - spread_id / reading_id / question / candidate_set_id: 透传给 Chatflow
-      - phase: 可选('guide'|'drawing'|'interpret'|'deep_chat'|'auto')；不传则 'auto'
-    返回：
-      - reply: LLM文本（包含你在 Chatflow Answer 模板拼接的 [[...]] 指令行）
-      - conversation_id: Dify 会话 id
-      - remaining: 当日剩余对话额度（你已有的限流逻辑）
+    引导阶段与 Dify 对话（未绑定 reading）：
+    - 前端传 ai_personality（人格）、message、可选 conversation_id
+    - 返回 answer 与新的 conversation_id
     """
     user = g.user or {}
     data = request.json or {}
-
     message = (data.get('message') or '').strip()
+    ai_personality = _resolve_ai_personality(data)
+
+    # ✅ 关键：优先用前端传的，其次用后端 session 缓存的
+    conversation_id = data.get('conversation_id') or session.get('guided_cid')
+
     if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
         return jsonify({'error': '消息长度不合法'}), 400
 
-    ai_personality = _resolve_ai_personality(data)  # 支持 persona_id / ai_personality
-    conversation_id = data.get('conversation_id')
-
-    # 这些是前端现在会传的上下文字段：直接透传给 Dify Chatflow 作为 inputs
-    spread_id        = (data.get('spread_id') or data.get('pending_spread_id') or '') or None
-    reading_id       = (data.get('reading_id') or '') or None
-    question         = (data.get('question') or '').strip() or None
-    candidate_set_id = (data.get('candidate_set_id') or '').strip() or None
-    phase            = (data.get('phase') or 'auto').strip().lower()  # 不传就让 Chatflow 自己判断
-
-    # 额度检查（保留你原有逻辑）
     can_chat, remaining = SpreadService.can_chat_today(
         user.get('id'), session.get('session_id'), user.get('is_guest', True)
     )
@@ -442,25 +427,31 @@ def api_guided_chat_send():
         return jsonify({'reply': limit_msg, 'limit_reached': True, 'remaining': 0})
 
     user_ref = get_user_ref()
-
     resp = DifyService.guided_chat(
         user_message=message,
         user_ref=user_ref,
-        conversation_id=conversation_id,
+        conversation_id=conversation_id,   # ✅ 带上（可能为 None）
         ai_personality=ai_personality,
-        phase=phase,  # 允许 'auto'
-        # 统一透传，Chatflow 中可直接用 inputs.xxx
-        spread_id=spread_id,
-        reading_id=reading_id,
-        question=question,
-        candidate_set_id=candidate_set_id
+        phase='guide',
+        # 这里也可以把 spread_id / reading_id / question / candidate_set_id 透传
+        spread_id=data.get('spread_id'),
+        reading_id=data.get('reading_id'),
+        question=data.get('question'),
+        candidate_set_id=data.get('candidate_set_id'),
     )
 
+    # ✅ 拿到新的会话 ID，持久化到后端 session
+    new_cid = resp.get('conversation_id') or conversation_id
+    if new_cid:
+        session['guided_cid'] = new_cid
+        session.modified = True
+
     return jsonify({
-        'reply': resp.get('answer', '') or '',
-        'conversation_id': resp.get('conversation_id'),
+        'reply': resp.get('answer', ''),
+        'conversation_id': new_cid,
         'remaining': max(remaining - 1, 0)
     })
+
 
 
 # app.py — 新增：引导落地创建 reading（带候选集强校验）
