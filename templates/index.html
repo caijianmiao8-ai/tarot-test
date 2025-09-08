@@ -301,18 +301,30 @@
 
   <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片"><i class="fas fa-share-alt"></i></div>
 
-  <div class="sc-overlay" id="scOverlay" aria-modal="true" role="dialog">
-    <div class="sc-mask" id="scMask"></div>
-    <div class="sc-panel">
-      <button class="sc-close" id="scClose"><i class="fas fa-times"></i></button>
-      <iframe class="sc-frame" id="scFrame" allow="clipboard-write" scrolling="no"></iframe>
-      <div class="sc-actions">
-        <button class="sc-btn" id="scGen">✨ 生成分享</button>
-        <button class="sc-btn ghost" id="scCopy">🔗 复制链接</button>
-        <button class="sc-btn ghost" id="scSave">💾 保存图片</button>
-      </div>
+<!-- 分享卡弹层（iframe 方式，无滚动，自适应） -->
+<div class="sc-overlay" id="scOverlay" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
+  <div class="sc-mask" id="scMask" style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);"></div>
+
+  <div class="sc-panel" style="position:relative;z-index:1;padding:12px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 42px rgba(0,0,0,.38);display:flex;flex-direction:column;align-items:center;gap:10px;">
+    <button class="sc-close" id="scClose" style="position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">
+      <i class="fas fa-times"></i>
+    </button>
+
+    <!-- 封装一层 wrapper 用于等比缩放：我们给 iframe 真尺寸，外层按比例缩放并同步高宽 -->
+    <div id="scFrameWrap" style="position:relative;overflow:hidden;">
+      <iframe id="shareFrame" title="Share Card"
+              style="border:0;display:block;transform-origin:top left;will-change:transform;"></iframe>
+    </div>
+
+    <!-- 操作栏 -->
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-primary" id="SC_btnGen">✨ 生成分享</button>
+      <button class="btn btn-outline-light d-none" id="SC_btnCopy">🔗 复制链接</button>
+      <button class="btn btn-outline-light" id="SC_btnSave">💾 保存图片</button>
     </div>
   </div>
+</div>
+
 
   <script id="INDEX_DATA" type="application/json">
     {
@@ -542,5 +554,185 @@
       });
     }, 5000);
   </script>
+  <script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  // —— 状态 —— //
+  const state = {
+    hasDrawn: {{ 'true' if has_drawn else 'false' }},
+    userName: "{{ user.username if not user.is_guest else '神秘访客' }}",
+    today: "{{ today }}",
+    reading: {{ (today_card or {})|tojson }},
+    fortune: {{ (fortune_data or {})|tojson }},
+    shareId: null,
+    qr: null
+  };
+
+  // —— 打开弹层 —— //
+  function openShare(){
+    if(!state.hasDrawn){ alert('请先抽取今日塔罗牌'); return; }
+
+    const overlay = $('scOverlay');
+    overlay.style.display = 'flex';
+
+    const frame = $('shareFrame');
+    const wrap  = $('scFrameWrap');
+
+    // 加载 share_card 页面（嵌入模式）
+    const src = '/share/card?embed=1';  // 由后端渲染基础样式；数据用 postMessage 推进去
+    frame.src = src;
+
+    // 首次 ready -> 推送数据
+    const onMsg = (e)=>{
+      const data = e.data || {};
+      if(data.type === 'share:ready'){
+        frame.contentWindow.postMessage({
+          type: 'share:set-data',
+          payload: {
+            user_name: state.userName,
+            date: state.today,
+            reading: state.reading || {},
+            fortune: state.fortune || {}
+          }
+        }, '*');
+      }
+      if(data.type === 'share:size'){
+        // 子页回传真实尺寸（不缩放）
+        fitFrameToSize(data.width, data.height);
+      }
+    };
+    window.addEventListener('message', onMsg, { once:false });
+
+    // 关闭逻辑
+    const close = ()=>{
+      overlay.style.display = 'none';
+      window.removeEventListener('message', onMsg);
+      frame.src = 'about:blank';
+    };
+    $('scMask').onclick = close;
+    $('scClose').onclick = close;
+
+    // 生成分享
+    $('SC_btnGen').onclick = async ()=>{
+      const btn = $('SC_btnGen');
+      btn.disabled = true; btn.textContent = '生成中…';
+      try{
+        const r = await fetch('/api/share/create', {method:'POST'});
+        const d = await r.json();
+        if(!d.success) throw new Error(d.error || '生成失败');
+
+        state.shareId = d.share_id || null;
+        state.qr = d.qr_code || d.qr_base64 || null;
+
+        // 统一按你的需求：二维码链接指向主页
+        const shareUrl = 'https://www.ruoshui.fun';
+
+        // 推送二维码到子页展示
+        frame.contentWindow.postMessage({
+          type:'share:set-qr',
+          qr: state.qr,
+          url: shareUrl
+        }, '*');
+
+        // 显示复制按钮
+        const btnCopy = $('SC_btnCopy');
+        btnCopy.classList.remove('d-none');
+        btnCopy.onclick = ()=> copyText(shareUrl);
+
+        btn.textContent = '已生成';
+      }catch(err){
+        alert(err.message || '生成失败');
+        btn.textContent = '✨ 生成分享';
+      }finally{
+        $('SC_btnGen').disabled = false;
+      }
+    };
+
+    // 保存图片（服务器导出）
+    $('SC_btnSave').onclick = async ()=>{
+      if(!state.shareId){
+        alert('请先点击“生成分享”生成二维码');
+        return;
+      }
+      try{
+        const r = await fetch('/api/share/export', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ share_id: state.shareId })
+        });
+        const data = await r.json().catch(()=>null);
+        if(!r.ok || (data && data.error)){
+          // 后端返回错误信息（如“Playwright 未安装”）
+          throw new Error((data && data.error) || '导出失败');
+        }
+        // 正确返回是二进制？那就直接拿 blob（若你的后端返回 is_attachment）
+        if(!data){ // 尝试按blob接收
+          const bin = await r.blob();
+          const url = URL.createObjectURL(bin);
+          const a = document.createElement('a');
+          a.href = url; a.download = `ruoshui_tarot_${Date.now()}.png`; a.click();
+          URL.revokeObjectURL(url);
+        }else if(data.url){ // 或者后端给了下载地址
+          window.open(data.url, '_blank');
+        }
+      }catch(err){
+        alert(err.message || '导出失败');
+      }
+    };
+  }
+
+  // —— 父页自适应：无滚动 + 等比缩放（最后兜底） —— //
+  function fitFrameToSize(naturalW, naturalH){
+    const wrap  = document.getElementById('scFrameWrap');
+    const frame = document.getElementById('shareFrame');
+
+    // 允许的最大区域（留点边距）
+    const maxW = Math.min(window.innerWidth * 0.92, 420); // 卡宽不超过 420
+    const maxH = Math.min(window.innerHeight * 0.92, window.innerHeight - 40);
+
+    // 等比缩放系数（不放大，只缩小）
+    const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+
+    // 外层容器按“缩放后的尺寸”设置，iframe 给“真实尺寸”+ transform 缩放
+    wrap.style.width  = (naturalW * scale) + 'px';
+    wrap.style.height = (naturalH * scale) + 'px';
+
+    frame.style.width  = naturalW + 'px';
+    frame.style.height = naturalH + 'px';
+    frame.style.transform = `scale(${scale})`;
+  }
+
+  function copyText(text){
+    if(!text) return;
+    (navigator.clipboard?.writeText(text) || Promise.reject())
+    .then(()=>alert('链接已复制'))
+    .catch(()=>{
+      const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制');
+    });
+  }
+
+  // 绑定入口按钮
+  document.getElementById('openShareBtn')?.addEventListener('click', openShare);
+  document.getElementById('fabShare')?.addEventListener('click', ()=>{
+    const el = document.getElementById('fabShare');
+    if(!el.classList.contains('disabled')) openShare();
+  });
+
+  // 视口变化时，按最近一次子页上报尺寸重算缩放
+  let lastSize = {w:0,h:0};
+  window.addEventListener('message', (e)=>{
+    if(e.data && e.data.type==='share:size'){
+      lastSize = {w:e.data.width, h:e.data.height};
+    }
+  });
+  window.addEventListener('resize', ()=>{
+    const {w,h} = lastSize;
+    if(w && h) fitFrameToSize(w,h);
+  });
+})();
+</script>
+
 </body>
 </html>

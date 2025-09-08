@@ -6,6 +6,21 @@
   <title>若水占卜 · 分享卡片</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
+    body.embed-mode *, body.export-mode * { animation: none !important; }
+
+/* 让“宜/忌”列表永不出现内部滚动，文本自动换行 */
+.tips-list{ overflow: visible !important; }
+.tips-list li{
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* 根容器 ID（用于测量），保持你的原样式，只确保有这个 id */
+#shareCardRoot{ width: 390px; max-width: 92vw; }
+
+/* 导出时（后端截图）可用更紧凑的间距（可选） */
+body.export-mode .message-section{ padding-top: 10px; padding-bottom: 10px; 
+
     :root{
       --primary:#9d7ea8; --secondary:#6d5675;
       --gold:#e8d4a2; --gold-light:#f4e5c3;
@@ -131,6 +146,78 @@
     .site-url{font-size:9px;color:var(--text-muted)}
   </style>
 </head>
+<script>
+(function(){
+  // 进入嵌入模式（由父页 iframe 打开）
+  if(new URLSearchParams(location.search).get('embed') === '1'){
+    document.body.classList.add('embed-mode');
+  }
+
+  const root = document.getElementById('shareCardRoot');
+
+  // —— 向父页上报尺寸（无滚动 & 自适应）—— //
+  function reportSize(){
+    if(!root) return;
+    // 用 getBoundingClientRect 拿到真实渲染高宽
+    const rect = root.getBoundingClientRect();
+    window.parent?.postMessage({ type:'share:size', width: Math.ceil(rect.width), height: Math.ceil(rect.height) }, '*');
+  }
+  // 初始化与监听
+  const ro = new ResizeObserver(reportSize);
+  if(root) ro.observe(root);
+  window.addEventListener('load', reportSize);
+
+  // —— 收/发消息：数据与二维码 —— //
+  window.parent?.postMessage({ type:'share:ready' }, '*');
+
+  window.addEventListener('message', (e)=>{
+    const data = e.data || {};
+    if(data.type === 'share:set-data' && data.payload){
+      // 根据 payload 更新你的 DOM：
+      // data.payload = { user_name, date, reading, fortune }
+      try{
+        const p = data.payload;
+
+        // 示例：如果你原本就有渲染逻辑，这里只需要把数据塞进去并触发一次重绘
+        // setText('SC_user', p.user_name); setText('SC_date', p.date) ...
+        // 你原先的更新函数如果叫 renderCard(p) 就直接调用：
+        if(typeof window.renderShareCard === 'function'){
+          window.renderShareCard(p);
+        }else{
+          // 如果没有统一函数，也可在此处更新关键字段
+          // 仅示例：请按你页面里的 ID 更新
+          const set = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = val ?? '—'; };
+          set('SC_user', p.user_name);
+          set('SC_date', p.date);
+          // …其余字段略（你自己的填充逻辑保留）
+        }
+        // 更新完成后报告尺寸
+        reportSize();
+      }catch(err){
+        console.warn('share:set-data error', err);
+      }
+    }
+
+    if(data.type === 'share:set-qr'){
+      try{
+        const { qr, url } = data;
+        const img = document.getElementById('SC_qr');
+        const ph  = document.getElementById('SC_qrPh');
+        const site= document.getElementById('SC_site');
+        if(site && url) site.textContent = url;
+        if(img && qr){
+          img.src = qr; img.classList.remove('hidden');
+          if(ph) ph.classList.add('hidden');
+        }
+        reportSize();
+      }catch(err){
+        console.warn('share:set-qr error', err);
+      }
+    }
+  });
+})();
+</script>
+
 <body class="{% if embed %}embed{% endif %} {% if export_mode %}export-mode{% endif %}">
   <div class="share-card" id="shareCardRoot">
     <div class="bg-glow"></div>
