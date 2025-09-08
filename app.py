@@ -7,7 +7,7 @@ import json
 import random
 import traceback
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 import time
 import logging
@@ -77,6 +77,37 @@ def before_request():
         }
     g.user = user
 
+
+# app.py 顶部合适位置
+def flatten_fortune_for_share(f):
+    """把 fortune_data 拍平为前端友好的结构，不改变原字段，只是补充"""
+    import copy
+    f = copy.deepcopy(f or {})
+
+    # 1) 幸运元素拍平
+    lucky = (f.get('lucky_elements') or {})
+    f.setdefault('lucky_color', lucky.get('color', ''))
+    f.setdefault('lucky_number', lucky.get('number', ''))
+    f.setdefault('lucky_hour', lucky.get('hour', ''))
+    f.setdefault('lucky_direction', lucky.get('direction', ''))
+
+    # 2) 维度转换为 map + 文本（兼容 parseDimensions）
+    dims = f.get('dimensions') or []
+    if isinstance(dims, list):
+        f['dimensions_map'] = {d.get('name'): float(d.get('stars') or d.get('score') or 0) 
+                               for d in dims if d.get('name')}
+        f['dimensions'] = "\n".join(
+            f"{d.get('name')}：{d.get('stars', d.get('score'))}星（{d.get('level','')})"
+            for d in dims if d.get('name')
+        )
+
+    # 3) 把 fortune_text 的几个关键字段提升一层，方便前端取用
+    ft = f.get('fortune_text') or {}
+    for k in ('summary', 'dimension_advice', 'do', 'dont'):
+        if k in ft and k not in f:
+            f[k] = ft[k]
+
+    return f
 
 
 def get_current_user():
@@ -1835,20 +1866,19 @@ def get_fortune(date):
             user.get("id")
         )
         
-        # 生成运势文案
+        # 生成运势文案之后：
         fortune_data = FortuneService.generate_fortune_text(fortune_data)
-        
-        # 保存运势数据
+
+        # ★ 在保存与返回前拍平结构
+        fortune_data = flatten_fortune_for_share(fortune_data)
+
+        # 再保存 / 缓存
         if not user["is_guest"]:
             FortuneService.save_fortune(user["id"], target_date, fortune_data)
         else:
-            # 访客缓存
-            session['fortune_data'] = {
-                'date': date,
-                'data': fortune_data
-            }
+            session['fortune_data'] = {'date': date, 'data': fortune_data}
             session.modified = True
-        
+
         return jsonify(fortune_data)
         
     except ValueError as e:
