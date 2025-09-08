@@ -13,7 +13,7 @@ import time
 import logging
 from contextlib import contextmanager
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response
-
+import hashlib
 from config import Config
 from database import DatabaseManager, ChatDAO, SpreadDAO  # 这里如果用到 UserDAO 也只在函数内部 import 了，OK
 from services import (
