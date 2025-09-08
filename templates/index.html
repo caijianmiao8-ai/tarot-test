@@ -3,460 +3,364 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>每日塔罗运势 · 若水占卜</title>
+  <title>每日塔罗运势</title>
 
-  <!-- 本地 Bootstrap / FontAwesome（保留你的依赖路径） -->
+  <!-- 本地化 Bootstrap / Font Awesome -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
 
-  <!-- 与分享卡统一的字体与主题色（可用系统字体回退） -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#2a1e4a"/>
 
   <style>
     :root{
-      /* 统一主题变量（与分享卡一致或相近） */
-      --primary: #9d7ea8;
-      --secondary: #6d5675;
-      --accent: #8e6c88;
-      --gold: #e8d4a2;
-      --gold-light: #f4e5c3;
-      --rose: #e6a8b5;
-
-      --bg-deep-1: #2d1b4e;
-      --bg-deep-2: #1a1625;
-
-      --text: #ffffff;
-      --text-strong: #fff;
-      --text-light: rgba(255,255,255,0.88);
-      --text-muted: rgba(255,255,255,0.65);
-
-      --panel: rgba(255,255,255,0.06);
-      --panel-2: rgba(255,255,255,0.08);
-      --border: rgba(255,255,255,0.12);
-      --glass: rgba(255,255,255,0.06);
-
-      --star-color: #ffd700;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
+      --bg-deep:#1a1625;
+      --bg-deeper:#0f0b18;
+      --primary:#7a5cff;
+      --primary-2:#a786ff;
+      --accent:#e8d4a2;         /* 高雅金 */
+      --accent-soft:#f3e9c8;
+      --mist:#c9b8ff;
+      --text:#eae6f7;
+      --text-dim:#bfb6d6;
+      --text-soft:#dcd2f3;
+      --danger:#ef4444;
+      --success:#10b981;
+      --star:#ffd700;
+      --glass:rgba(255,255,255,.06);
     }
 
-    *{margin:0;padding:0;box-sizing:border-box}
-
+    /* ============ 全局与背景 ============ */
+    html,body{height:100%}
     body{
-      font-family: 'Noto Serif SC', -apple-system, BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
+      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
       color: var(--text);
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      padding: 20px;
-      background: radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,0.18), transparent 60%),
-                  radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,0.12), transparent 60%),
-                  linear-gradient(135deg, var(--bg-deep-1) 0%, var(--bg-deep-2) 100%);
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    /* ===== 神秘背景动态层：星屑 + 旋转黄道环 + 柔光 ===== */
-    .bg-cosmos{ position: fixed; inset: 0; z-index: -2; pointer-events: none; }
-    .bg-stars{
-      position:absolute; inset:0; opacity: .25;
-      background-image:
-        radial-gradient(1px 1px at 12% 25%, #fff, transparent),
-        radial-gradient(1px 1px at 32% 60%, #fff, transparent),
-        radial-gradient(1px 1px at 62% 30%, #fff, transparent),
-        radial-gradient(1px 1px at 82% 70%, #fff, transparent),
-        radial-gradient(1px 1px at 22% 80%, #fff, transparent);
-      background-size: 220px 220px;
-      animation: twinkle 4s ease-in-out infinite alternate;
-    }
-    @keyframes twinkle { from{opacity:.15} to{opacity:.35} }
-
-    .zodiac-ring{
-      position:absolute; width: 820px; height: 820px; left: 50%; top: 50%;
-      transform: translate(-50%, -50%);
-      opacity:.11; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));
-      animation: slow-rotate 90s linear infinite;
-    }
-    @keyframes slow-rotate{ to{ transform: translate(-50%,-50%) rotate(360deg)} }
-    /* SVG 内的线条颜色由 fill/stroke 决定，不额外写 */
-
-    .bg-glow{
-      position:absolute; inset:-10%;
       background:
-        radial-gradient(600px 600px at 20% 10%, rgba(157,126,168,0.15), transparent 60%),
-        radial-gradient(600px 600px at 80% 90%, rgba(232,212,162,0.12), transparent 60%);
-      filter: blur(36px);
-      animation: float 18s ease-in-out infinite alternate;
-    }
-    @keyframes float{
-      from{transform: translateY(-1.2%)}
-      to  {transform: translateY( 1.2%)}
+        radial-gradient(1200px 600px at 10% -10%, rgba(167,134,255,.22), transparent 60%),
+        radial-gradient(1000px 800px at 110% 10%, rgba(122,92,255,.18), transparent 60%),
+        linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-deeper) 100%);
+      min-height:100vh;
+      overflow-x:hidden;
     }
 
-    /* ===== 顶部用户栏 ===== */
+    /* 宇宙/塔罗动态暗纹 */
+    .cosmic{
+      pointer-events:none; position:fixed; inset:0; z-index:0; overflow:hidden;
+    }
+    .cosmic .orb{
+      position:absolute; width:520px;height:520px;border-radius:50%;
+      background:radial-gradient(circle,rgba(122,92,255,.25) 0%, transparent 70%);
+      filter: blur(40px); animation: float 10s ease-in-out infinite;
+    }
+    .cosmic .orb.o1{ top:-120px; left:-120px; animation-delay:0s}
+    .cosmic .orb.o2{ bottom:-140px; right:-160px; background:radial-gradient(circle,rgba(232,212,162,.22) 0%, transparent 70%); animation-delay:2.2s}
+    .cosmic .sigil{
+      position:absolute; width:220px; height:220px; opacity:.06;
+      background:url('data:image/svg+xml;utf8,\
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
+        <circle cx="50" cy="50" r="42" fill="none" stroke="white" stroke-width="1"/>\
+        <circle cx="50" cy="50" r="28" fill="none" stroke="white" stroke-width="1"/>\
+        <polygon points="50,8 63,40 95,40 69,60 80,92 50,72 20,92 31,60 5,40 37,40" fill="none" stroke="white" stroke-width="1"/>\
+      </svg>') center/contain no-repeat;
+      animation: rotate 60s linear infinite;
+    }
+    .cosmic .sigil.s1{ top:8%; right:8%}
+    .cosmic .sigil.s2{ bottom:6%; left:10%; animation-direction:reverse}
+    .cosmic .star{ position:absolute; width:2px;height:2px;border-radius:50%; background:rgba(255,255,255,.7); animation: twinkle 3.5s infinite;}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+    @keyframes rotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    @keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+
+    /* ============ 顶部用户栏 ============ */
     .user-bar{
-      position:fixed; top:0; left:0; right:0; z-index:100;
-      background: rgba(28,22,40,0.6);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
+      position:fixed; top:0; left:0; right:0; z-index:10;
+      background: rgba(17,13,30,.55); backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
     .user-bar-content{
-      max-width: 1200px; margin: 0 auto; padding: 10px 20px;
-      display:flex; justify-content:space-between; align-items:center;
+      max-width:1200px; margin:0 auto; padding:10px 20px;
+      display:flex; align-items:center; justify-content:space-between; color:var(--text);
     }
-    .user-info{ display:flex; align-items:center; gap:12px; }
-    .user-icon{
-      width:36px; height:36px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color:#fff; font-weight:700;
-      border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.2);
+    .user-icon{ width:36px;height:36px;border-radius:50%;
+      background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center; color:#fff; font-weight:700;
     }
-    .user-name{ color: var(--gold-light); font-weight:600; letter-spacing:.5px; }
-
-    .user-actions{ display:flex; gap:10px; }
+    .user-name{ color:var(--accent); font-weight:600 }
+    .user-actions{ display:flex; gap:12px }
     .user-actions a{
-      color: var(--text-light); text-decoration:none; font-size:.95rem;
-      padding:8px 14px; border-radius:18px; border:1px solid transparent;
-      transition: .25s ease; background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(8px);
+      color:var(--mist); text-decoration:none; font-size:.95rem; padding:8px 16px; border-radius:18px;
+      transition:.25s; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02)
     }
-    .user-actions a:hover{
-      color:#fff; border-color: var(--border);
-      transform: translateY(-1px);
-    }
+    .user-actions a:hover{ color:#fff; border-color: rgba(255,255,255,.18) }
 
-    /* ===== flash 消息 ===== */
-    .flash-messages{
-      position:fixed; top:68px; right:20px; z-index:200; max-width: 380px;
-    }
-    .alert{
-      padding: 12px 14px; margin-bottom: 10px; border-radius: 10px;
-      display:flex; align-items:center; justify-content:space-between;
-      box-shadow:0 6px 18px rgba(0,0,0,.18); color:#fff; border:none;
-      animation: slideIn .3s ease-out;
-      backdrop-filter: blur(6px);
-    }
-    .alert-success{ background: rgba(16,185,129,.9); }
-    .alert-info   { background: rgba(59,130,246,.9); }
-    .alert-error  { background: rgba(239,68,68,.9);  }
-    .alert .close{ background:none; border:none; color:#fff; font-size:1.4rem; opacity:.85; }
-    .alert .close:hover{ opacity:1 }
-    @keyframes slideIn{ from{transform: translateX(100%); opacity:0} to{transform: translateX(0); opacity:1} }
+    /* ============ Flash ============ */
+    .flash-messages{ position:fixed; top:72px; right:20px; z-index:11; max-width:420px }
+    .alert{ border:none; border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.28); color:#fff }
+    .alert-success{ background:#16a34a } .alert-info{ background:#3b82f6 } .alert-error{ background:#ef4444 }
+    .alert .close{ color:#fff; opacity:.9 }
 
-    /* ===== 主容器 ===== */
-    .main-container{ max-width: 980px; width:100%; margin: 88px auto 24px; }
+    /* ============ 主容器 ============ */
+    .main-container{ position:relative; z-index:1; max-width:1000px; width:100%; margin:100px auto 32px; padding:0 16px }
 
-    /* ===== 塔罗抽牌容器（统一风格） ===== */
+    /* ============ 抽牌卡片 ============ */
     .tarot-container{
-      position:relative; overflow:hidden; margin-bottom: 30px;
-      padding: 28px; border-radius: 22px;
-      background: rgba(255,255,255,0.06);
-      border:1px solid var(--border);
-      box-shadow: 0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+      padding:28px; background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+      border-radius:22px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      position:relative; overflow:hidden;
     }
     .tarot-container::before{
-      content:""; position:absolute; inset:-2px;
-      background: radial-gradient(500px 300px at -5% -5%, rgba(157,126,168,.18), transparent 50%),
-                  radial-gradient(500px 300px at 105% 105%, rgba(232,212,162,.12), transparent 50%);
-      filter: blur(6px); z-index:-1;
+      content:""; position:absolute; inset:-1px; border-radius:22px;
+      background: linear-gradient(135deg, rgba(122,92,255,.35), rgba(232,212,162,.22));
+      filter: blur(24px); opacity:.18; z-index:0;
     }
-    .header h1{
-      font-size: 2.2rem; color: var(--gold-light); letter-spacing: 1px;
-      text-shadow: 0 2px 8px rgba(0,0,0,.25);
-      display:flex; align-items:center; justify-content:center; gap:10px;
-    }
-    .header h1 i{ color: var(--gold-light) }
-    .header p{ color: var(--text-muted); text-align:center; margin-top: 6px; }
+    .header{ position:relative; z-index:1; text-align:center }
+    .header h1{ font-size:2.4rem; color:#fff; margin-bottom:8px; letter-spacing:.5px }
+    .header p{ color:var(--text-dim); margin:0 auto 8px; max-width:620px }
 
     .tarot-card{
-      width: 220px; height: 340px; margin: 24px auto 10px;
-      border-radius: 14px; overflow:hidden; position:relative;
-      background: linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2));
-      border:1px solid var(--border);
-      box-shadow: 0 12px 30px rgba(0,0,0,.28);
-      transform-style: preserve-3d;
-      transition: transform .8s cubic-bezier(.175,.885,.32,1.275), box-shadow .35s ease;
-      cursor: pointer;
+      width:210px;height:332px;margin:28px auto 16px;border-radius:16px; overflow:hidden;
+      position:relative; background:linear-gradient(135deg,#7250ff,#caa7ff);
+      box-shadow:0 12px 40px rgba(0,0,0,.35); transform-style:preserve-3d; transition:.8s cubic-bezier(.175,.885,.32,1.275);
+      cursor:pointer;
     }
-    .tarot-card:hover{ transform: translateY(-6px) rotate(3deg); box-shadow: 0 16px 36px rgba(0,0,0,.34); }
+    .tarot-card:hover{ transform: translateY(-8px) rotate(4deg) }
     .tarot-card::after{
-      content:""; position:absolute; inset:14px; border-radius: 10px;
-      border:1px solid rgba(255,255,255,0.22);
+      content:""; position:absolute; inset:14px; border-radius:12px; border:1.2px solid rgba(255,255,255,.35)
+    }
+    .tarot-card i{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:4rem; color:rgba(255,255,255,.22) }
+    .card-info{ position:absolute; left:0; right:0; bottom:0;
+      background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.6));
+      color:#fff; padding:18px 14px 14px; font-weight:600; letter-spacing:.3px
     }
 
-    .action-section{ margin:16px 0 6px; text-align:center; }
     .btn-tarot{
       display:inline-flex; align-items:center; justify-content:center; gap:10px;
-      padding:13px 28px; border-radius:24px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color:#fff; font-weight:700; letter-spacing:.4px;
-      box-shadow:0 10px 24px rgba(157,126,168,.32);
-      text-decoration:none; transition:.3s;
+      background:linear-gradient(135deg, var(--primary), var(--primary-2)); color:#fff;
+      padding:14px 28px; border:none; border-radius:28px; font-weight:700; letter-spacing:.3px; text-decoration:none; transition:.28s;
+      box-shadow:0 14px 34px rgba(122,92,255,.35);
     }
-    .btn-tarot:hover{ transform: translateY(-2px); box-shadow:0 14px 28px rgba(157,126,168,.42); color:#fff; }
-    .btn-tarot:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
-
+    .btn-tarot:hover{ transform:translateY(-2px); box-shadow:0 18px 42px rgba(122,92,255,.45) }
     .already-drawn{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:11px 22px; border-radius:22px; color:#fff; text-decoration:none;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border:1px solid var(--border); box-shadow: 0 10px 24px rgba(157,126,168,.32);
-      transition:.3s;
-    }
-    .already-drawn:hover{ transform: translateY(-1px); box-shadow: 0 14px 28px rgba(157,126,168,.42); color:#fff; }
-
-    .guest-tip{
-      max-width:520px; margin: 12px auto 0; padding: 12px 14px;
-      border-radius:12px; background: rgba(255,255,255,.06); border:1px solid var(--border); color: var(--text-light);
+      background:linear-gradient(135deg,#4a6fa5,#2e4578); padding:12px 22px; border-radius:28px; color:#fff; text-decoration:none; box-shadow:0 10px 24px rgba(74,111,165,.35)
     }
 
-    /* ===== 运势卡片（保留你原区块，统一美术） ===== */
-    .fortune-card{
-      background: rgba(255,255,255,0.06);
-      border:1px solid var(--border);
-      border-radius: 22px;
-      padding: 0;
-      box-shadow: 0 16px 36px rgba(0,0,0,.28);
-      overflow:hidden; display:none;
+    .features{ display:flex; justify-content:space-around; flex-wrap:wrap; gap:14px; margin:26px 0 }
+    .feature{
+      flex:0 0 30%; min-width:220px; padding:18px; border-radius:16px; text-align:center;
+      background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); box-shadow:0 8px 24px rgba(0,0,0,.22);
+      transition:.28s; cursor:pointer; text-decoration:none; color:var(--text)
     }
-    .fortune-header{
-      background: linear-gradient(135deg, rgba(157,126,168,.3), rgba(232,212,162,.16));
-      color: var(--text);
-      padding: 26px; text-align:center; position:relative; overflow:hidden;
-      border-bottom: 1px solid var(--border);
-    }
-    .fortune-header::before{
-      content:''; position:absolute; width:340px; height:340px; top:-120px; right:-40px;
-      background: rgba(255,255,255,.08); border-radius:50%;
-    }
-    .fortune-header::after{
-      content:''; position:absolute; width:240px; height:240px; bottom:-120px; left:-40px;
-      background: rgba(255,255,255,.05); border-radius:50%;
-    }
-    .fortune-date{ font-size:.95rem; color: var(--text-muted); margin-bottom:6px; }
-    .fortune-score{ font-size: 3.8rem; font-weight: 800; letter-spacing: 1px; color: var(--gold-light); text-shadow: 0 2px 10px rgba(0,0,0,.22); display:inline-block; }
-    .fortune-score::after{ content:'分'; font-size: 1.2rem; font-weight: 400; margin-left: 6px; color: var(--text-light); }
-    .fortune-label{
-      margin-top:10px; display:inline-block; padding: 6px 18px; border-radius: 18px;
-      background: rgba(255,255,255,.16); color: var(--text); font-weight: 700; letter-spacing:.8px;
-      border:1px solid var(--border);
-    }
-    .fortune-summary{ font-size: 1rem; line-height: 1.7; color: var(--text-light); max-width: 680px; margin: 10px auto 0; }
+    .feature:hover{ transform: translateY(-6px) }
+    .feature i{ font-size:2.2rem; color:var(--mist); margin-bottom:10px }
+    .feature h3{ color:#fff; font-weight:700; margin-bottom:8px; font-size:1.2rem }
+    .feature p{ color:var(--text-dim) }
 
-    .dimensions-section{ padding: 24px; background: rgba(0,0,0,.08); }
-    .section-title{ font-size:1.2rem; color: var(--gold-light); text-align:center; margin-bottom:16px; font-weight:700; }
-    .dimensions-grid{
-      display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px;
-    }
-    .dimension-item{
-      background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 14px; padding: 16px;
-      text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,.12); transition:.25s ease;
-    }
-    .dimension-item:hover{ transform: translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.16); }
-    .dimension-icon{
-      width: 42px; height: 42px; border-radius:12px; margin: 0 auto 8px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.1rem;
-      border:1px solid var(--border);
-    }
-    .dimension-name{ font-weight:700; color: var(--text); margin-bottom: 6px; }
-    .dimension-stars{ font-size:1.05rem; color: var(--star-color); letter-spacing: 2px; margin-bottom: 4px; }
-    .dimension-level{ font-size:.9rem; color: var(--text-muted); background: rgba(255,255,255,.08); border:1px solid var(--border); border-radius: 12px; display:inline-block; padding: 4px 10px; }
+    .footer{ text-align:center; margin:22px 0 10px; color:var(--text-dim); font-size:.92rem }
 
-    .advice-grid{ display:grid; gap:10px; }
-    .advice-item{
-      background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius:12px;
-      padding: 12px 15px; display:flex; align-items:center; gap:12px; box-shadow: 0 2px 8px rgba(0,0,0,.1);
-    }
-    .advice-icon{
-      width: 34px; height: 34px; border-radius:10px; background: rgba(255,255,255,.12);
-      display:flex; align-items:center; justify-content:center; color: var(--gold-light);
-    }
-    .advice-name{ font-weight:700; color: var(--text); font-size: .95rem; margin-bottom: 2px; }
-    .advice-text{ color: var(--text-muted); font-size: .95rem; line-height:1.5; }
+    /* ===== 运势展示卡（保持原有结构） ===== */
+    .fortune-card{ background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 14px 46px rgba(0,0,0,.32); overflow:hidden; display:none }
+    .fortune-header{ background: linear-gradient(135deg, rgba(122,92,255,.44), rgba(232,212,162,.28)); color:#fff; padding:28px; text-align:center; position:relative }
+    .fortune-date{ opacity:.95 }
+    .fortune-score{ font-size:3.8rem; font-weight:800; text-shadow:0 4px 18px rgba(0,0,0,.25) }
+    .fortune-label{ margin-top:8px; display:inline-block; padding:6px 18px; border-radius:18px; background:rgba(0,0,0,.18) }
+    .fortune-summary{ margin-top:10px; color:#f4f0ff }
 
-    .bottom-section{ padding: 24px; display:grid; grid-template-columns: 1fr 1.5fr; gap: 22px; }
-    .lucky-section{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 14px; padding: 16px; }
-    .lucky-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-    .lucky-item{ background: rgba(255,255,255,.08); border:1px solid var(--border); border-radius: 12px; text-align:center; padding: 10px; }
-    .lucky-label{ font-size:.88rem; color: var(--text-muted); margin-bottom: 4px; }
-    .lucky-value{ font-weight:700; color: var(--gold-light); font-size: 1.06rem; }
+    .dimensions-section{ padding:24px; background: rgba(255,255,255,.02) }
+    .section-title{ text-align:center; color:#fff; font-weight:700; margin-bottom:16px }
+    .dimensions-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:14px }
+    .dimension-item{ background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px; text-align:center; transition:.25s; box-shadow:0 6px 18px rgba(0,0,0,.22) }
+    .dimension-item:hover{ transform:translateY(-3px) }
+    .dimension-icon{ width:40px;height:40px;border-radius:12px; display:flex;align-items:center;justify-content:center; color:#fff; background:linear-gradient(135deg, var(--primary), var(--primary-2)); margin:0 auto 8px }
+    .dimension-stars{ color:var(--star) }
 
-    .suggestions-section{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .suggestion-card{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 14px; padding: 16px; }
-    .suggestion-header{ display:flex; align-items:center; gap:10px; margin-bottom: 10px; }
-    .suggestion-icon{
-      width: 30px; height: 30px; border-radius: 8px; color: #fff; display:flex; align-items:center; justify-content:center;
-    }
-    .suggestion-do   .suggestion-icon{ background: var(--success-color); }
-    .suggestion-dont .suggestion-icon{ background: var(--danger-color); }
-    .suggestion-title{ font-weight:700; font-size: 1.02rem; }
-    .suggestion-list{ list-style:none; margin:0; padding:0; }
-    .suggestion-list li{ padding: 6px 0 6px 22px; position:relative; color: var(--text-muted); }
-    .suggestion-list li::before{ content:'•'; position:absolute; left: 8px; top: 2px; font-weight:700; }
-    .suggestion-do   li::before{ color: var(--success-color); }
-    .suggestion-dont li::before{ color: var(--danger-color); }
+    .advice-grid{ display:grid; gap:10px }
+    .advice-item{ background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); padding:14px 16px; border-radius:12px; display:flex; gap:12px; align-items:center }
+    .advice-icon{ width:32px;height:32px;border-radius:8px; background:#2a2344; display:flex;align-items:center;justify-content:center; color:var(--mist) }
 
-    .action-bar{
-      padding: 16px; text-align:center; background: rgba(255,255,255,.06); border-top: 1px solid var(--border);
-    }
-    .btn-refresh{
-      padding: 11px 20px; border-radius: 20px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff;
-      font-weight:700; box-shadow: 0 6px 16px rgba(157,126,168,.3);
-      transition:.25s ease;
-    }
-    .btn-refresh:hover{ transform: translateY(-2px); box-shadow: 0 10px 22px rgba(157,126,168,.4); color:#fff; }
+    .bottom-section{ padding:24px; display:grid; grid-template-columns: 1fr 1.3fr; gap:22px }
+    .lucky-section{ background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px }
+    .lucky-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    .lucky-item{ background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; text-align:center }
+    .lucky-label{ color:var(--text-dim); font-size:.86rem }
+    .lucky-value{ color:var(--accent); font-weight:700; letter-spacing:.3px }
 
-    .btn-ai-chat{
-      margin-left:10px; padding: 11px 20px; border-radius: 20px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--secondary), var(--primary)); color:#fff; font-weight:700;
-      text-decoration:none; display:inline-block; transition:.25s ease;
-    }
-    .btn-ai-chat:hover{ transform:translateY(-2px); box-shadow:0 10px 22px rgba(157,126,168,.4); color:#fff; }
+    .suggestions-section{ display:grid; grid-template-columns: 1fr 1fr; gap:16px }
+    .suggestion-card{ background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px }
+    .suggestion-header{ display:flex; gap:10px; align-items:center; margin-bottom:10px }
+    .suggestion-icon{ width:30px;height:30px;border-radius:8px; display:flex;align-items:center;justify-content:center; color:#fff }
+    .suggestion-do .suggestion-icon{ background: var(--success) } .suggestion-dont .suggestion-icon{ background: var(--danger) }
+    .suggestion-list{ list-style:none; margin:0; padding:0 }
+    .suggestion-list li{ padding:8px 6px 8px 20px; position:relative; color:var(--text-soft) }
+    .suggestion-list li::before{ content:'•'; position:absolute; left:6px; color:var(--mist) }
 
-    /* ===== 右下角悬浮气泡按钮（打开分享卡） ===== */
-    .fab-share{
-      position: fixed; right: 20px; bottom: 20px; z-index: 300;
-      width: 56px; height: 56px; border-radius: 50%;
-      display:flex; align-items:center; justify-content:center;
-      color:#fff; cursor:pointer; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      box-shadow: 0 12px 26px rgba(157,126,168,.32);
-      transition: .25s ease;
+    .action-bar{ background:rgba(255,255,255,.02); border-top:1px solid rgba(255,255,255,.08); text-align:center; padding:16px }
+    .btn-refresh, .btn-ai-chat, .btn-share{
+      display:inline-block; background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:#fff; border:none;
+      padding:10px 18px; border-radius:20px; font-weight:700; text-decoration:none; box-shadow:0 10px 28px rgba(122,92,255,.35); transition:.25s
     }
-    .fab-share:hover{ transform: translateY(-2px); box-shadow: 0 16px 30px rgba(157,126,168,.42); }
-    .fab-share.disabled{ opacity:.55; cursor: not-allowed; transform:none; box-shadow:none; }
-    .fab-tip{
-      position:absolute; right: 70px; bottom: 18px; padding:8px 12px; border-radius:10px;
-      background: rgba(255,255,255,.08); border:1px solid var(--border); color: var(--text-light);
-      backdrop-filter: blur(8px); white-space: nowrap; font-size: .9rem;
+    .btn-ai-chat{ margin-left:10px }
+    .btn-share{ margin-left:10px }
+    .btn-refresh:hover, .btn-ai-chat:hover, .btn-share:hover{ transform:translateY(-2px) }
+
+    /* ============ 悬浮分享按钮 ============ */
+    .float-share{
+      position:fixed; right:20px; bottom:22px; z-index:9;
+      width:54px;height:54px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--primary));
+      box-shadow:0 18px 44px rgba(0,0,0,.38), inset 0 0 24px rgba(255,255,255,.25);
+      display:flex;align-items:center;justify-content:center; color:#1a132c; font-size:22px; cursor:pointer;
+      transition:.28s;
+    }
+    .float-share:hover{ transform: translateY(-3px) scale(1.03) }
+
+    /* ============ Share Card 弹层 ============ */
+    .sc-overlay{ position:fixed; inset:0; background:rgba(4,3,8,.72); backdrop-filter: blur(6px); z-index:20; display:none; align-items:center; justify-content:center; padding:18px }
+    .sc-wrap{ position:relative; display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; justify-content:center }
+
+    .share-card{
+      width:375px;height:667px;background:linear-gradient(180deg,#1a1a2e 0%,#0f0f1e 100%);
+      border-radius:24px; overflow:hidden; position:relative; box-shadow:0 30px 60px rgba(0,0,0,.44); border:1px solid rgba(255,255,255,.1)
+    }
+    .bg-glow-card{ position:absolute; inset:0; pointer-events:none }
+    .bg-glow-card .glow{ position:absolute; width:320px;height:320px;border-radius:50%; filter: blur(42px) }
+    .bg-glow-card .g1{ top:-140px; right:-120px; background:radial-gradient(circle, rgba(122,92,255,.32), transparent 70%) }
+    .bg-glow-card .g2{ bottom:-160px; left:-120px; background:radial-gradient(circle, rgba(232,212,162,.28), transparent 70%) }
+    .sparkles-card .s{ position:absolute; width:2px;height:2px; background:#fff; border-radius:50%; animation: twinkle 3.4s infinite }
+    .sc-content{ position:relative; z-index:2; height:100%; display:flex; flex-direction:column; padding:22px 18px }
+
+    .sc-head{ text-align:center; margin-bottom:14px }
+    .sc-date{ color:rgba(255,255,255,.68); font-size:12px; letter-spacing:2px; margin-bottom:6px }
+    .sc-user{ color:#fff; font-size:18px; font-weight:600; margin-bottom:4px }
+    .sc-type{ color:var(--mist); font-size:13px }
+
+    .sc-tarot{ background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:16px; margin-bottom:14px; backdrop-filter: blur(8px) }
+    .sc-img-box{ width:120px;height:180px;margin:0 auto 12px; position:relative; transform-style:preserve-3d; animation: subtle-rotate 8s ease-in-out infinite }
+    @keyframes subtle-rotate{0%,100%{transform:rotateY(0)}50%{transform:rotateY(10deg)}}
+    .sc-img{ width:100%;height:100%;border-radius:12px; overflow:hidden; position:relative; background:linear-gradient(135deg,#667eea,#764ba2); box-shadow:0 10px 30px rgba(102,126,234,.3) }
+    .sc-img img{ width:100%;height:100%;object-fit:cover; display:block }
+    .sc-img .ph{ position:absolute; inset:0; display:flex;align-items:center;justify-content:center; color:rgba(255,255,255,.85); font-size:40px }
+    .sc-cardname{ color:#fff; font-weight:700; font-size:18px; text-align:center }
+    .sc-direction{ color:var(--mist); font-size:12px; text-align:center }
+
+    .sc-award{ display:flex; align-items:center; justify-content:center; gap:10px; background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:10px; margin-bottom:12px }
+    .sc-ring{ position:relative; width:42px;height:42px }
+    .score-ring{ /* 原 CSS 圆环，仅浏览态用；导出时隐藏，用SVG替代 */ 
+      position:absolute; inset:0; border-radius:50%;
+      background: conic-gradient(var(--accent) calc(var(--p,0)*1%), rgba(255,255,255,.14) 0);
+      mask: radial-gradient(circle 18px at 50% 50%, transparent 98%, #000 100%);
+    }
+    .score-svg{ display:none } /* 导出时切换可见 */
+    .sc-score{ color:#fff; font-weight:800; font-size:22px }
+    .sc-label{ color:var(--text-soft); font-size:12px }
+
+    /* 解析+宜忌区域 */
+    .sc-message{
+      background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px; margin-bottom:12px
+    }
+    .sc-block-title{
+      color: var(--accent); font-weight:800; letter-spacing:.5px; font-size:13px; margin-bottom:6px; text-transform: uppercase
+    }
+    .sc-summary{ color:#f4f0ff; font-size:13px; line-height:1.45;
+      display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; word-break: break-word; hyphens:auto;
     }
 
-    /* ===== 分享卡弹层（overlay，内嵌完整 share card） ===== */
-    .sc-overlay{ position: fixed; inset:0; z-index: 500; display:none; align-items:center; justify-content:center; }
-    .sc-mask{ position:absolute; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+    .sc-duo{
+      display:grid; grid-template-columns: 1fr 1fr; gap:10px;
+    }
+    .sc-card{ background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px }
+    .sc-card h4{ margin:0 0 6px; font-size:12px; color:#fff; font-weight:700; letter-spacing:.3px }
+    .sc-list{ list-style:none; margin:0; padding:0 }
+    .sc-list li{
+      position:relative; padding-left:14px; color:#eae6f7; font-size:12.5px; line-height:1.4;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break: break-word; hyphens:auto;
+    }
+    .sc-list li::before{ content:'•'; position:absolute; left:4px; color:var(--mist) }
+
+    /* 幸运元素（紧凑，防溢出） */
+    .sc-lucky{
+      display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;
+      background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; margin-bottom:10px;
+    }
+    .sc-lucky .itm{ text-align:center }
+    .sc-lucky .lab{ color:var(--text-dim); font-size:10px }
+    .sc-lucky .val{ color:var(--accent); font-size:12px; font-weight:700; letter-spacing:.3px; word-break:break-all }
+
+    /* 底部二维码 & 文案（提高对比度） */
+    .sc-foot{
+      margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .sc-qr{ width:64px;height:64px;border-radius:10px;background:#fff; padding:8px; display:flex;align-items:center;justify-content:center }
+    .sc-qr img{ width:100%;height:100%;display:block }
+    .sc-qr .ph{ width:100%;height:100%; background:repeating-linear-gradient(0deg,#000,#000 2px,#fff 2px,#fff 4px) }
+
+    .sc-invite{ flex:1; margin-left:12px }
+    .sc-invite .t1{ color:#ffffff; font-weight:800; font-size:14px; margin-bottom:2px; letter-spacing:.2px }
+    .sc-invite .t2{ color:#e9e3ff; font-size:11px }
+    .sc-invite .url{ color:var(--accent); font-size:11px; margin-top:4px; word-break:break-all }
+
+    /* 右侧控制面板 */
     .sc-panel{
-      position: relative; z-index:1; max-width: 96vw; max-height: 96vh; padding: 14px;
-      border-radius: 18px; background: rgba(255,255,255,.06); border:1px solid var(--border);
-      box-shadow: 0 18px 42px rgba(0,0,0,.38);
-      display:flex; flex-direction:column; align-items:center; gap:10px;
+      width:290px; padding:14px; border-radius:16px; background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08); color:#fff; box-shadow:0 12px 36px rgba(0,0,0,.34)
     }
-    .sc-close{
-      position:absolute; right:10px; top: 10px; width:34px; height:34px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center; cursor:pointer;
-      color:#fff; background: rgba(255,255,255,.08); border:1px solid var(--border);
+    .sc-panel .row{ display:flex; gap:8px; flex-wrap:wrap }
+    .sc-btn{
+      padding:10px 16px; border-radius:18px; border:none; cursor:pointer; font-weight:700; letter-spacing:.3px;
+      background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:#fff; box-shadow:0 12px 28px rgba(122,92,255,.35); transition:.25s
     }
+    .sc-btn.alt{ background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1) }
+    .sc-btn:hover{ transform: translateY(-2px) }
+    .sc-close{ position:absolute; top:-12px; right:-12px; width:36px;height:36px;border-radius:50%; background:#221a37; color:#fff; display:flex;align-items:center;justify-content:center; cursor:pointer; border:1px solid rgba(255,255,255,.12); box-shadow:0 10px 26px rgba(0,0,0,.45) }
 
-    /* ======= share-card 内嵌（与你定稿版本一致） ======= */
-    .frame{ width:min(400px, 90vw); height:min(711px, 90vh); position:relative;
-            border-radius:20px; overflow:hidden;
-            background: linear-gradient(180deg, #2a2041 0%, #1a1625 100%);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08); }
-    .bg-glow-card{ position:absolute; width:150%; height:150%; top:-25%; left:-25%;
-      background: radial-gradient(circle at 30% 20%, rgba(157,126,168,0.15) 0%, transparent 40%),
-                  radial-gradient(circle at 70% 80%, rgba(232,212,162,0.1) 0%, transparent 40%);
-      filter:blur(40px); animation: float 20s ease-in-out infinite; pointer-events:none; }
-    .sparkles-card{
-      position:absolute; inset:0; opacity:.25;
-      background-image: radial-gradient(1px 1px at 10% 20%, white, transparent),
-                        radial-gradient(1px 1px at 30% 60%, white, transparent),
-                        radial-gradient(1px 1px at 60% 30%, white, transparent);
-      background-size: 200px 200px; animation: twinkle 4s ease-in-out infinite alternate; pointer-events:none;
+    /* —— 导出捕获模式（关闭动画/滤镜、替换效果） —— */
+    .sc-capture, .sc-capture *{
+      animation: none !important; transition: none !important; filter: none !important; backdrop-filter: none !important;
     }
-    .content-card{ position:absolute; inset:0; padding:15px; display:flex; flex-direction:column; z-index:1; overflow:hidden; }
-    .header-card{ text-align:center; padding-bottom:10px; flex-shrink:0; }
-    .brand{ font-size:9px; letter-spacing:3px; color:var(--gold-light); font-weight:300; opacity:.8; }
-    .date-info{ margin-top:4px; font-size:10px; color:var(--text-muted); }
-    .card-section{ display:flex; gap:12px; margin-bottom:12px; flex-shrink:0; }
-    .card-image-wrapper{ width:130px; height:195px; border-radius:10px; overflow:hidden; background:var(--glass); border:1px solid var(--border);
-      box-shadow:0 8px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1); flex-shrink:0; }
-    .card-image-wrapper img{ width:100%; height:100%; object-fit:cover; }
-    .card-placeholder{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-      background:linear-gradient(135deg, rgba(157,126,168,0.3), rgba(232,212,162,0.2));
-      color:var(--text-muted); font-size:48px; font-weight:100; }
-    .card-info{ flex:1; display:flex; flex-direction:column; justify-content:center; }
-    .card-name{ font-size:20px; font-weight:700; margin-bottom:6px; background:linear-gradient(90deg, var(--gold-light), var(--gold));
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1.2; }
-    .card-direction{ display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--text-light); margin-bottom:12px; }
-    .direction-dot{ width:4px; height:4px; border-radius:50%; background:var(--gold); }
-    .score-container{ display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--glass); border-radius:20px; border:1px solid var(--border); }
-    .score-ring{ --progress:.75; width:42px; height:42px; border-radius:50%;
-      background: conic-gradient(from 180deg, var(--gold) calc(var(--progress)*360deg), var(--glass) calc(var(--progress)*360deg));
-      display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; }
-    .score-ring::before{ content:''; position:absolute; inset:4px; border-radius:50%; background:#1a1625; }
-    .score-value{ position:relative; font-size:16px; font-weight:700; color:var(--gold); }
-    .score-text{ flex:1; }
-    .score-label{ font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
-    .score-grade{ font-size:14px; font-weight:500; color:var(--gold-light); }
-    .dimensions-card{ display:flex; justify-content:space-between; padding:10px 8px; background:var(--glass); border-radius:12px; border:1px solid var(--border); margin-bottom:10px; flex-shrink:0; }
-    .dim-item{ flex:1; text-align:center; }
-    .dim-circle{ width:30px; height:30px; margin:0 auto 4px; border-radius:50%; background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; font-size:14px; }
-    .dim-label{ font-size:9px; color:var(--text-muted); margin-bottom:2px; }
-    .dim-rating{ display:flex; justify-content:center; gap:1px; }
-    .star{ width:7px; height:7px; background:var(--glass); clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
-    .star.filled{ background:linear-gradient(135deg, var(--gold-light), var(--gold)); }
-    .message-section{ flex:1; min-height:0; display:flex; flex-direction:column; padding:12px; background:linear-gradient(135deg, rgba(157,126,168,0.08), transparent);
-      border-radius:12px; border:1px solid var(--border); margin-bottom:10px; overflow:hidden; }
-    .message-label{ font-size:10px; color:var(--text-light); letter-spacing:2px; margin-bottom:6px; text-align:center; font-weight:500; }
-    .message-text{ flex:0 0 auto; font-size:12px; line-height:1.6; color:var(--text-light); font-weight:300; text-align:center; padding:2px 4px 6px; }
-    .tips{ margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px; min-height:0; flex:1; }
-    .tip-col{ background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:8px; display:flex; flex-direction:column; min-height:0; }
-    .tips-title{ font-size:10px; color:var(--text-muted); letter-spacing:1px; text-align:center; margin-bottom:6px; }
-    .tips-list{ list-style:none; display:grid; gap:6px; overflow:auto; -webkit-overflow-scrolling: touch; }
-    .tips-list li{ font-size:11px; line-height:1.45; color:var(--text-light); display:flex; align-items:flex-start; gap:6px; }
-    .tips-list li::before{ content:'•'; color:var(--gold-light); font-size:14px; line-height:1; margin-top:1px; }
-    .lucky-bar{ display:flex; justify-content:space-around; padding:8px; background:var(--glass); border-radius:10px; margin-bottom:10px; flex-shrink:0; }
-    .lucky-item{ text-align:center; flex:1; }
-    .lucky-icon{ width:20px; height:20px; margin:0 auto 3px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:10px; }
-    .color-icon{ background:var(--gold); }
-    .lucky-val{ font-size:9px; color:var(--text-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .footer-card{ display:flex; align-items:center; gap:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,.08); flex-shrink:0; }
-    .qr-wrapper{ width:35px; height:35px; padding:3px; background:#fff; border-radius:6px; }
-    .qrph{ width:100%; height:100%; background:repeating-linear-gradient(45deg,#000,#000 2px,#fff 2px,#fff 4px); }
-    .site-info{ flex:1; min-width:0; }
-    .site-name{ font-size:9px; color:var(--text-light); margin-bottom:1px; }
-    .site-url{ font-size:8px; color:var(--text-muted); }
-    .hidden{ display:none !important; }
+    .sc-capture .bg-glow-card, .sc-capture .sparkles-card{ display:none !important }
+    .sc-capture .score-ring{ display:none !important }
+    .sc-capture .score-svg{ display:inline-block !important; width:42px; height:42px }
+    .sc-capture .sc-invite .t1, .sc-capture .sc-invite .t2, .sc-capture .sc-invite .url{ color:#ffffff !important }
 
-    /* 响应 */
+    /* Loading Overlay */
+    .loading-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:100; align-items:center; justify-content:center }
+    .loading-content{ color:#fff; background:rgba(122,92,255,.22); border:1px solid rgba(255,255,255,.12); padding:26px; border-radius:14px; text-align:center }
+    .spinner{ width:48px;height:48px;border:5px solid rgba(255,255,255,.28); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 14px }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* 响应式 */
     @media (max-width: 768px){
-      .main-container{ margin-top: 74px; }
-      .bottom-section{ grid-template-columns: 1fr; }
-      .suggestions-section{ grid-template-columns: 1fr; }
-      .dimensions-grid{ grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-      .fortune-score{ font-size: 3rem; }
-      .lucky-grid{ grid-template-columns: 1fr; }
+      .main-container{ margin-top:84px }
+      .bottom-section{ grid-template-columns:1fr }
+      .suggestions-section{ grid-template-columns:1fr }
+      .dimensions-grid{ grid-template-columns: repeat(auto-fit, minmax(120px,1fr)) }
+      .fortune-score{ font-size:3rem }
+      .lucky-grid{ grid-template-columns:1fr 1fr }
+      .sc-panel{ width:100% }
     }
   </style>
 </head>
+
 <body>
-  <!-- 背景动效层 -->
-  <div class="bg-cosmos" aria-hidden="true">
-    <div class="bg-stars"></div>
-    <svg class="zodiac-ring" viewBox="0 0 100 100">
-      <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".3">
-        <circle cx="50" cy="50" r="44"/>
-        <circle cx="50" cy="50" r="34" stroke-opacity=".4"/>
-        <g stroke-opacity=".25">
-          <line x1="50" y1="6" x2="50" y2="94"/>
-          <line x1="6" y1="50" x2="94" y2="50"/>
-          <line x1="18" y1="18" x2="82" y2="82"/>
-          <line x1="18" y1="82" x2="82" y2="18"/>
-        </g>
-      </g>
-      <g fill="#fff" fill-opacity=".55" font-size="6" font-family="serif">
-        <text x="50" y="10" text-anchor="middle">♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎</text>
-      </g>
-    </svg>
-    <div class="bg-glow"></div>
+  <!-- 背景动态层 -->
+  <div class="cosmic" aria-hidden="true">
+    <div class="orb o1"></div><div class="orb o2"></div>
+    <div class="sigil s1"></div><div class="sigil s2"></div>
+    <!-- 星点 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const host = document.querySelector('.cosmic');
+        for(let i=0;i<90;i++){
+          const st = document.createElement('div'); st.className='star';
+          st.style.left = (Math.random()*100)+'%';
+          st.style.top = (Math.random()*100)+'%';
+          st.style.animationDelay = (Math.random()*3)+'s';
+          host.appendChild(st);
+        }
+      });
+    </script>
   </div>
 
-  <!-- 顶部用户栏 -->
+  <!-- 用户栏 -->
   <div class="user-bar">
     <div class="user-bar-content">
       <div class="user-info">
@@ -493,7 +397,7 @@
 
   <!-- 主容器 -->
   <div class="main-container">
-    <!-- 塔罗抽牌 -->
+    <!-- 抽牌 -->
     <div class="tarot-container">
       <div class="header">
         <h1><i class="fas fa-star"></i> 每日塔罗运势 <i class="fas fa-star"></i></h1>
@@ -503,64 +407,63 @@
       <div class="tarot-card" id="tarot-card-display">
         {% if today_card %}
           {% if today_card.image %}
-            <img src="{{ today_card.image }}" alt="{{ today_card.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">
-            <div class="card-info" style="position:absolute;left:0;right:0;bottom:0;padding:16px;border-radius:0 0 14px 14px;background:linear-gradient(to top, rgba(0,0,0,.65), transparent);color:#fff;">
-              <div style="font-weight:700;font-size:1.08rem;text-shadow:0 2px 6px rgba(0,0,0,.4);">{{ today_card.name }}</div>
-              <div style="font-size:.92rem;opacity:.92;margin-top:4px;">{{ today_card.direction }}</div>
+            <img src="{{ today_card.image }}" alt="{{ today_card.name }}" style="width:100%;height:100%;object-fit:cover;">
+            <div class="card-info">
+              <div style="font-weight:700;font-size:1.05rem">{{ today_card.name }}</div>
+              <div style="font-size:.9rem;opacity:.92">{{ today_card.direction }}</div>
             </div>
           {% else %}
-            <div style="text-align:center;padding: 24px;color:var(--text-light);">
-              <i class="fas fa-sun" style="font-size:3rem;margin-bottom:14px;color: var(--gold-light)"></i>
-              <div style="font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:6px;">{{ today_card.name }}</div>
-              <div style="font-size:.95rem;color:var(--text-muted)">{{ today_card.direction }}</div>
-            </div>
+            <i class="fas fa-sun"></i>
           {% endif %}
         {% else %}
-          <i class="fas fa-question" style="color: var(--text-muted); font-size: 2rem;"></i>
+          <i class="fas fa-question"></i>
         {% endif %}
       </div>
 
       {% if user.is_guest and not has_drawn %}
-        <div class="guest-tip"><i class="fas fa-info-circle"></i>
-          <span>作为访客，解读仅在本次浏览有效。<a href="{{ url_for('register') }}" style="color: var(--gold-light); text-decoration: underline;">注册账号</a>可保存历史记录。</span>
+        <div class="guest-tip" style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:12px; padding:12px 14px; margin-top:6px">
+          <i class="fas fa-info-circle" style="color:var(--mist)"></i>
+          <span>作为访客，解读仅在本次浏览有效。<a href="{{ url_for('register') }}" style="color:var(--accent); text-decoration: underline;">注册账号</a>可保存历史记录。</span>
         </div>
       {% endif %}
 
-      <div class="action-section">
+      <div class="action-section" style="text-align:center; margin-top:12px">
         {% if has_drawn %}
           <a href="{{ url_for('result') }}" class="already-drawn"><i class="fas fa-eye"></i> 查看今日塔罗解读</a>
           <div style="margin-top: 14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background: linear-gradient(135deg, #4a6fa5, #2e4578);">
+            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background: linear-gradient(135deg, #4a6fa5, #2e4578); box-shadow:0 12px 26px rgba(46,69,120,.38);">
               <i class="fas fa-layer-group"></i> 自选牌阵
             </a>
             <a href="{{ url_for('guide_spread') }}" class="btn-tarot">
               <i class="fas fa-magic"></i> 引导选择牌阵
             </a>
           </div>
-          <div class="info-text" style="margin-top:8px;color:var(--text-muted)">您今天已经抽取过塔罗牌了</div>
+          <div class="info-text" style="margin-top:10px; color:var(--text-dim)">您今天已经抽取过塔罗牌了</div>
         {% else %}
           <form id="draw-form" action="{{ url_for('draw_card') }}" method="post">
             <button type="submit" class="btn-tarot" id="draw-btn"><i class="fas fa-hand-sparkles"></i> 抽取今日塔罗牌</button>
           </form>
           <div style="margin-top: 14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background:#6c757d;">
+            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background:#6c757d; box-shadow:0 12px 24px rgba(108,117,125,.34);">
               <i class="fas fa-layer-group"></i> 自选牌阵
             </a>
             <a href="{{ url_for('guide_spread') }}" class="btn-tarot">
               <i class="fas fa-magic"></i> 引导选择牌阵
             </a>
           </div>
-          <div class="info-text" style="margin-top:8px;color:var(--text-muted)">点击按钮开始抽取今日塔罗牌，或直接进入牌阵占卜</div>
+          <div class="info-text" style="margin-top:10px; color:var(--text-dim)">点击按钮开始抽取今日塔罗牌，或直接进入牌阵占卜</div>
         {% endif %}
       </div>
     </div>
 
-    <!-- 运势卡片（保留） -->
+    <!-- 运势卡片（保持你的逻辑） -->
     <div id="fortune-card" class="fortune-card">
       <div class="fortune-header">
         <div class="fortune-date">{{ today }} · 今日运势</div>
-        <div class="fortune-score" id="overall-score">-</div>
-        <div class="fortune-label" id="overall-label">-</div>
+        <div class="fortune-score-wrapper">
+          <div class="fortune-score" id="overall-score">-</div>
+          <div class="fortune-label" id="overall-label">-</div>
+        </div>
         <div class="fortune-summary" id="fortune-summary-text"></div>
       </div>
 
@@ -594,226 +497,202 @@
       </div>
 
       <div class="action-bar">
-        <button class="btn-refresh" onclick="refreshFortune()"><i class="fas fa-sync-alt"></i> 刷新运势</button>
+        <button class="btn-refresh" onclick="refreshFortune()">
+          <i class="fas fa-sync-alt"></i> 刷新运势
+        </button>
         {% if has_drawn %}
-          <a href="{{ url_for('chat_page') }}" class="btn-ai-chat"><i class="fas fa-comments"></i> AI 深度解读</a>
-          <!-- 改为前端弹层方式打开分享卡 -->
-          <button type="button" class="btn-ai-chat" id="openShareBtn"><i class="fas fa-share-alt"></i> 生成分享卡片</button>
+        <a href="{{ url_for('chat_page') }}" class="btn-ai-chat">
+          <i class="fas fa-comments"></i> AI 深度解读
+        </a>
+        <!-- 触发弹层的分享按钮 -->
+        <a href="javascript:void(0)" class="btn-share" onclick="SC_open()">
+          <i class="fas fa-share-alt"></i> 生成分享卡片
+        </a>
         {% endif %}
       </div>
     </div>
 
     <!-- 功能特点 -->
-    <div class="features" style="display:flex;justify-content:space-around;flex-wrap:wrap;margin:28px 0;gap:12px;">
-      <a class="feature" onclick="goHistory()" style="flex:0 0 30%;min-width:220px;padding:18px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.25s;text-decoration:none;color:inherit;">
-        <i class="fas fa-moon" style="font-size:2rem;color:var(--gold-light);margin-bottom:10px;"></i>
-        <h3 style="font-size:1.15rem;color:#fff;margin-bottom:6px;">每日指引</h3>
-        <p style="font-size:.95rem;color:var(--text-muted)">每天抽取一张塔罗牌，获取专属今日的宇宙指引</p>
-      </a>
-      <a class="feature" href="{{ url_for('guide_spread') }}" style="flex:0 0 30%;min-width:220px;padding:18px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.25s;text-decoration:none;color:inherit;">
-        <i class="fas fa-magic" style="font-size:2rem;color:var(--gold-light);margin-bottom:10px;"></i>
-        <h3 style="font-size:1.15rem;color:#fff;margin-bottom:6px;">引导选择牌阵</h3>
-        <p style="font-size:.95rem;color:var(--text-muted)">像和占卜师聊天一样，由系统引导选择最合适的牌阵</p>
-      </a>
-      <a class="feature" onclick="goHistory()" style="flex:0 0 30%;min-width:220px;padding:18px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.25s;text-decoration:none;color:inherit;">
-        <i class="fas fa-history" style="font-size:2rem;color:var(--gold-light);margin-bottom:10px;"></i>
-        <h3 style="font-size:1.15rem;color:#fff;margin-bottom:6px;">历史记录</h3>
-        <p style="font-size:.95rem;color:var(--text-muted)">{{ '查看您的抽卡记录和运势趋势' if not user.is_guest else '注册后可保存历史记录' }}</p>
-      </a>
+    <div class="features">
+      <div class="feature" onclick="goHistory()">
+        <i class="fas fa-moon"></i>
+        <h3>每日指引</h3>
+        <p>每天抽取一张塔罗牌，获取专属今日的宇宙指引和能量提示</p>
+      </div>
+      <div class="feature" onclick="window.location.href='{{ url_for('guide_spread') }}'">
+        <i class="fas fa-magic"></i>
+        <h3>引导选择牌阵</h3>
+        <p>像和占卜师聊天一样，由系统引导选择最合适的牌阵与对话人格</p>
+      </div>
+      <div class="feature" onclick="goHistory()">
+        <i class="fas fa-history"></i>
+        <h3>历史记录</h3>
+        <p>{{ '查看您的抽卡记录和运势趋势' if not user.is_guest else '注册后可保存历史记录' }}</p>
+      </div>
     </div>
 
-    <div class="footer" style="text-align:center;color:var(--text-muted);font-size:.95rem;margin-top: 4px;">
+    <div class="footer">
       © 2025 塔罗运势 | 宇宙能量，智慧指引<br>
-      <small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
+      <small style="opacity:.8">每日凌晨重置，基于北京时间</small>
     </div>
   </div>
 
-  <!-- 分享卡：右下角悬浮气泡 -->
-  <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片">
+  <!-- 悬浮分享按钮（全局） -->
+  <div class="float-share" onclick="SC_open()" title="生成分享卡片">
     <i class="fas fa-share-alt"></i>
-    <div class="fab-tip">生成分享卡片</div>
   </div>
 
-  <!-- 分享卡弹层（内嵌完整 share-card） -->
-  <div class="sc-overlay" id="scOverlay" aria-modal="true" role="dialog">
-    <div class="sc-mask" id="scMask"></div>
-    <div class="sc-panel">
-      <button class="sc-close" id="scClose"><i class="fas fa-times"></i></button>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <h3>正在连接宇宙能量</h3>
+      <p>塔罗牌正在揭示您的今日运势，请稍候...</p>
+    </div>
+  </div>
 
-      <!-- share card 本体 -->
-      <div class="frame" id="SC_card">
-        <div class="bg-glow-card"></div>
-        <div class="sparkles-card"></div>
+  <!-- ================= Share Card 弹层 ================= -->
+  <div id="SC_overlay" class="sc-overlay" aria-hidden="true">
+    <div class="sc-wrap">
+      <!-- 关闭按钮 -->
+      <div class="sc-close" onclick="SC_close()"><i class="fas fa-times"></i></div>
 
-        <div class="content-card">
-          <div class="header-card">
-            <div class="brand">RUOSHUI TAROT</div>
-            <div class="date-info"><span id="SC_date">--</span> · <span id="SC_user">神秘访客</span></div>
+      <!-- 卡片本体 -->
+      <div id="SC_card" class="share-card">
+        <div class="bg-glow-card">
+          <div class="glow g1"></div><div class="glow g2"></div>
+        </div>
+        <div class="sparkles-card" aria-hidden="true"></div>
+        <div class="sc-content">
+          <!-- 头部 -->
+          <div class="sc-head">
+            <div id="SC_date" class="sc-date">--</div>
+            <div id="SC_user" class="sc-user">--</div>
+            <div class="sc-type">✨ 今日塔罗运势 ✨</div>
           </div>
 
-          <div class="card-section">
-            <div class="card-image-wrapper">
-              <img id="SC_img" alt="Tarot" class="hidden"/>
-              <div id="SC_imgPh" class="card-placeholder">✦</div>
-            </div>
-            <div class="card-info">
-              <div>
-                <div class="card-name" id="SC_name">—</div>
-                <div class="card-direction"><span class="direction-dot"></span><span id="SC_dir">—</span></div>
-              </div>
-              <div class="score-container">
-                <div class="score-ring" id="SC_ring"><span class="score-value" id="SC_score">—</span></div>
-                <div class="score-text">
-                  <div class="score-label">Fortune</div>
-                  <div class="score-grade" id="SC_grade">—</div>
-                </div>
+          <!-- 牌面 -->
+          <div class="sc-tarot">
+            <div class="sc-img-box">
+              <div class="sc-img">
+                <img id="SC_img" alt="" class="hidden" />
+                <div id="SC_imgPh" class="ph">🎴</div>
               </div>
             </div>
+            <div class="sc-cardname" id="SC_cardname">--</div>
+            <div class="sc-direction" id="SC_direction">--</div>
           </div>
 
-          <div class="dimensions-card" id="SC_dims"></div>
-
-          <div class="message-section">
-            <div class="message-label">今日运势解读</div>
-            <div class="message-text" id="SC_summary">—</div>
-            <div class="tips">
-              <div class="tip-col">
-                <div class="tips-title">今日宜做</div>
-                <ul class="tips-list" id="SC_do"></ul>
-              </div>
-              <div class="tip-col">
-                <div class="tips-title">今日忌做</div>
-                <ul class="tips-list" id="SC_dont"></ul>
-              </div>
+          <!-- 分数 -->
+          <div class="sc-award">
+            <div id="SC_ring" class="sc-ring">
+              <div class="score-ring" style="--p:0;"></div>
             </div>
-          </div>
-
-          <div class="lucky-bar">
-            <div class="lucky-item">
-              <div class="lucky-icon color-icon" id="SC_swatch"></div>
-              <div class="lucky-val" id="SC_color">—</div>
-            </div>
-            <div class="lucky-item">
-              <div class="lucky-icon">✧</div>
-              <div class="lucky-val" id="SC_number">—</div>
-            </div>
-            <div class="lucky-item">
-              <div class="lucky-icon">☽</div>
-              <div class="lucky-val" id="SC_hour">—</div>
-            </div>
-            <div class="lucky-item">
-              <div class="lucky-icon">◈</div>
-              <div class="lucky-val" id="SC_directionDisplay">—</div>
+            <div style="text-align:center">
+              <div id="SC_score" class="sc-score">--</div>
+              <div id="SC_scoreLabel" class="sc-label">今日运势 · --</div>
             </div>
           </div>
 
-          <div class="footer-card">
-            <div class="qr-wrapper">
+          <!-- 解读 -->
+          <div class="sc-message">
+            <div class="sc-block-title">今日运势解读</div>
+            <div id="SC_summary" class="sc-summary">--</div>
+          </div>
+
+          <!-- 宜/忌 -->
+          <div class="sc-duo">
+            <div class="sc-card">
+              <h4>今日宜做</h4>
+              <ul id="SC_do" class="sc-list"></ul>
+            </div>
+            <div class="sc-card">
+              <h4>今日忌做</h4>
+              <ul id="SC_dont" class="sc-list"></ul>
+            </div>
+          </div>
+
+          <!-- 幸运元素（紧凑） -->
+          <div class="sc-lucky" id="SC_lucky">
+            <div class="itm"><div class="lab">幸运色</div><div id="SC_lucky_color" class="val">--</div></div>
+            <div class="itm"><div class="lab">幸运数</div><div id="SC_lucky_number" class="val">--</div></div>
+            <div class="itm"><div class="lab">幸运时</div><div id="SC_lucky_hour" class="val">--</div></div>
+            <div class="itm"><div class="lab">幸运方</div><div id="SC_lucky_direction" class="val">--</div></div>
+          </div>
+
+          <!-- 底部 -->
+          <div class="sc-foot">
+            <div class="sc-qr">
               <img id="SC_qr" alt="QR" class="hidden"/>
-              <div id="SC_qrPh" class="qrph"></div>
+              <div id="SC_qrPh" class="ph"></div>
             </div>
-            <div class="site-info">
-              <div class="site-name">若水占卜 · 每日指引</div>
-              <div class="site-url" id="SC_site">www.ruoshui.fun</div>
+            <div class="sc-invite">
+              <div class="t1">扫码测试你的运势</div>
+              <div class="t2">探索宇宙能量的指引</div>
+              <div id="SC_url" class="url">www.ruoshui.fun</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 操作栏 -->
-      <div style="display:flex; gap:10px; margin-top:4px;">
-        <button class="btn" id="SC_btnGen">✨ 生成分享</button>
-        <button class="btn ghost hidden" id="SC_btnCopy">🔗 复制链接</button>
-        <button class="btn ghost" id="SC_btnSave">💾 保存图片</button>
+      <!-- 右侧控制面板 -->
+      <div class="sc-panel">
+        <div style="font-weight:800; letter-spacing:.4px; margin-bottom:10px">分享卡片</div>
+        <div class="row" style="margin-bottom:10px">
+          <button id="SC_btnGen" class="sc-btn" onclick="SC_generate()"><i class="fas fa-link"></i>&nbsp;生成分享链接</button>
+          <button id="SC_btnCopy" class="sc-btn alt" onclick="SC_copy()" disabled><i class="fas fa-copy"></i>&nbsp;复制链接</button>
+        </div>
+        <div class="row">
+          <button id="SC_btnSave" class="sc-btn" onclick="SC_savePNG()"><i class="fas fa-download"></i>&nbsp;保存卡片图片</button>
+          <button class="sc-btn alt" onclick="SC_close()"><i class="fas fa-times"></i>&nbsp;关闭</button>
+        </div>
+        <div style="margin-top:10px; font-size:12px; color:var(--text-dim)">
+          二维码将指向 <span style="color:var(--accent)">www.ruoshui.fun</span>，复制的链接为你的专属分享地址。
+        </div>
       </div>
     </div>
   </div>
+  <!-- ================= /Share Card 弹层 ================= -->
 
-  <!-- 数据注入（首页 + 分享卡共用） -->
-  <script id="INDEX_DATA" type="application/json">
-    {
-      "user_name": "{{ user.username if not user.is_guest else '神秘访客' }}",
-      "today": "{{ today }}",
-      "has_drawn": {{ 'true' if has_drawn else 'false' }},
-      "reading": {{ (today_card or {})|tojson }},
-      "fortune": {{ (fortune_data or {})|tojson }}
-    }
-  </script>
-
-  <!-- 依赖：html2canvas（保存分享卡） -->
+  <!-- 依赖：html2canvas & html-to-image -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.min.js" defer></script>
 
   <script>
-    /* ====== 工具 & 共享逻辑 ====== */
-    const $ = (id)=>document.getElementById(id);
-    function generateStars(rating){
-      const full = Math.floor(rating||0); let s = '';
-      for(let i=0;i<5;i++) s += (i<full)?'★':'☆';
-      return s;
-    }
-    function labelScore(s){ s=Number(s)||0; if(s>=85)return'大吉'; if(s>=70)return'中吉'; if(s>=55)return'小吉'; return'平' }
-    function ymd(d){ try{ const t=new Date(d); return `${t.getFullYear()}.${String(t.getMonth()+1).padStart(2,'0')}.${String(t.getDate()).padStart(2,'0')}`}catch{return'--'} }
-
-    /* index 渲染（保留你的逻辑，轻微整理） */
+    /* ========= 页面已有逻辑：渲染运势 ========= */
     const dimensionIcons = {
-      "事业运": "fas fa-briefcase","财富运": "fas fa-coins","爱情运": "fas fa-heart","健康运": "fas fa-heartbeat","贵人运": "fas fa-hands-helping"
+      "事业运": "fas fa-briefcase", "财富运": "fas fa-coins", "爱情运": "fas fa-heart",
+      "健康运": "fas fa-heartbeat", "贵人运": "fas fa-hands-helping"
     };
-    const luckyIcons = {
-      "幸运颜色": "fas fa-palette","幸运数字": "fas fa-hashtag","幸运时辰": "fas fa-clock","幸运方位": "fas fa-compass",
-      "color":"fas fa-palette","number":"fas fa-hashtag","hour":"fas fa-clock","direction":"fas fa-compass"
-    };
-
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const data = JSON.parse($('INDEX_DATA').textContent || '{}');
-      if(data.fortune && Object.keys(data.fortune).length>0){
-        renderFortune(data.fortune);
-      }
-      // 抽牌按钮动画
-      document.getElementById('draw-form')?.addEventListener('submit', function(e){
-        e.preventDefault();
-        const btn = document.getElementById('draw-btn');
-        btn.disabled = true;
-        setTimeout(()=>this.submit(), 900 + Math.random()*900);
-      });
-
-      // 分享卡入口（按钮+悬浮气泡）
-      const openShare = ()=> {
-        if(!data.has_drawn){ alert('请先抽取今日塔罗牌'); return; }
-        SC_open({
-          user_name: data.user_name,
-          date: data.today,
-          reading: data.reading || {},
-          fortune: data.fortune || {}
-        });
-      };
-      $('openShareBtn')?.addEventListener('click', openShare);
-      $('fabShare')?.addEventListener('click', ()=>{ if(!$('fabShare').classList.contains('disabled')) openShare(); });
+    document.addEventListener('DOMContentLoaded', () => {
+      const fortuneData = {{ fortune_data|tojson|safe }};
+      if (fortuneData && Object.keys(fortuneData).length > 0) renderFortune(fortuneData);
     });
 
     function renderFortune(data){
-      $('fortune-card').style.display = 'block';
-      $('overall-score').textContent = data.overall_score || '-';
-      $('overall-label').textContent = data.overall_label || '-';
+      document.getElementById('fortune-card').style.display = 'block';
+      document.getElementById('overall-score').textContent = data.overall_score || '-';
+      document.getElementById('overall-label').textContent = data.overall_label || '-';
       const summaryText = (data.fortune_text && data.fortune_text.summary) || data.summary || '';
-      $('fortune-summary-text').textContent = summaryText;
+      document.getElementById('fortune-summary-text').textContent = summaryText;
 
-      const grid = $('dimensions-grid'); grid.innerHTML = '';
+      const grid = document.getElementById('dimensions-grid'); grid.innerHTML='';
       if (data.dimensions && Array.isArray(data.dimensions)) {
-        data.dimensions.forEach(dim => {
+        data.dimensions.forEach(dim=>{
           const stars = generateStars(dim.stars || 3);
           const icon = dimensionIcons[dim.name] || 'fas fa-star';
-          const html = `
+          grid.insertAdjacentHTML('beforeend', `
             <div class="dimension-item">
               <div class="dimension-icon"><i class="${icon}"></i></div>
               <div class="dimension-name">${dim.name}</div>
               <div class="dimension-stars">${stars}</div>
               <div class="dimension-level">${dim.level || '—'}</div>
-            </div>`;
-          grid.insertAdjacentHTML('beforeend', html);
+            </div>`);
         });
       }
 
-      const adviceGrid = $('advice-grid'); adviceGrid.innerHTML = '';
+      // 维度建议
+      const adviceGrid = document.getElementById('advice-grid'); adviceGrid.innerHTML='';
       if (data.fortune_text && data.fortune_text.dimension_advice) {
         Object.entries(data.fortune_text.dimension_advice).forEach(([name, advice])=>{
           const icon = dimensionIcons[name] || 'fas fa-star';
@@ -828,207 +707,236 @@
         });
       }
 
-      const luckyGrid = $('lucky-grid'); luckyGrid.innerHTML = '';
+      // 幸运元素
+      const luckyGrid = document.getElementById('lucky-grid'); luckyGrid.innerHTML='';
       if (data.lucky_elements) {
+        const map = { 'color': '幸运颜色', 'number': '幸运数字', 'hour': '幸运时辰', 'direction': '幸运方位' };
         if (Array.isArray(data.lucky_elements)) {
           data.lucky_elements.forEach(item=>{
             luckyGrid.insertAdjacentHTML('beforeend', `
-              <div class="lucky-item">
-                <div class="lucky-label">${item.name}</div>
-                <div class="lucky-value">${item.value}</div>
-              </div>`);
+              <div class="lucky-item"><div class="lucky-label">${item.name}</div><div class="lucky-value">${item.value}</div></div>`);
           });
-        } else if (typeof data.lucky_elements === 'object') {
-          const nameMap = { 'color':'幸运颜色','number':'幸运数字','hour':'幸运时辰','direction':'幸运方位' };
+        } else {
           Object.entries(data.lucky_elements).forEach(([k,v])=>{
             luckyGrid.insertAdjacentHTML('beforeend', `
-              <div class="lucky-item">
-                <div class="lucky-label">${nameMap[k] || k}</div>
-                <div class="lucky-value">${v}</div>
-              </div>`);
+              <div class="lucky-item"><div class="lucky-label">${map[k]||k}</div><div class="lucky-value">${v}</div></div>`);
           });
         }
       }
 
-      const doList = $('do-list'); doList.innerHTML = '';
-      if (data.fortune_text && data.fortune_text.do) data.fortune_text.do.forEach(x=> doList.insertAdjacentHTML('beforeend', `<li>${x}</li>`));
-      const dontList = $('dont-list'); dontList.innerHTML = '';
-      if (data.fortune_text && data.fortune_text.dont) data.fortune_text.dont.forEach(x=> dontList.insertAdjacentHTML('beforeend', `<li>${x}</li>`));
+      // 宜忌
+      const doList = document.getElementById('do-list'); doList.innerHTML='';
+      const dontList = document.getElementById('dont-list'); dontList.innerHTML='';
+      if (data.fortune_text?.do) data.fortune_text.do.forEach(t=> doList.insertAdjacentHTML('beforeend', `<li>${t}</li>`));
+      if (data.fortune_text?.dont) data.fortune_text.dont.forEach(t=> dontList.insertAdjacentHTML('beforeend', `<li>${t}</li>`));
     }
+
+    function generateStars(r){ const f=Math.floor(r||0), h=(r%1)>=.5; return '★'.repeat(f)+(h?'☆':'')+'☆'.repeat(5-f-(h?1:0)) }
+
+    // 抽牌表单“仪式感”
+    document.getElementById('draw-form')?.addEventListener('submit', function(e){
+      e.preventDefault(); const btn = document.getElementById('draw-btn');
+      btn.disabled = true; document.getElementById('loading-overlay').style.display = 'flex';
+      setTimeout(()=>{ this.submit() }, 1000 + Math.random()*1000);
+    });
 
     function goHistory(){
       {% if user.is_guest %}
-        if(confirm("查看历史记录需要登录账号，是否前往登录？")){
-          window.location.href = "{{ url_for('login', next=url_for('stats') ) }}";
-        }
-      {% else %}
-        window.location.href = "{{ url_for('stats') }}";
-      {% endif %}
+      if (confirm("查看历史记录需要登录账号，是否前往登录？")) window.location.href = "{{ url_for('login', next=url_for('stats')) }}";
+      {% else %} window.location.href = "{{ url_for('stats') }}"; {% endif %}
     }
 
     function refreshFortune(){
-      const today = "{{ today }}";
-      const btn = event.target.closest('button'); btn.disabled = true;
-      fetch(`{{ url_for('api_fortune', date='') }}${today}`)
-        .then(r=>r.json())
-        .then(d=>{ if(d.error) alert(d.error); else renderFortune(d); })
-        .catch(e=>{ console.error(e); alert('运势刷新失败，请稍后再试'); })
-        .finally(()=>{ btn.disabled=false; });
+      const today="{{ today }}"; const btn=event.target.closest('button'); btn.disabled=true;
+      fetch(`{{ url_for('api_fortune', date='') }}${today}`).then(r=>r.json()).then(d=>{
+        if(d.error) alert(d.error); else renderFortune(d);
+      }).catch(()=>alert('运势刷新失败，请稍后再试')).finally(()=> btn.disabled=false);
     }
 
-    /* ====== 分享卡：逻辑函数（SC_ 前缀） ====== */
-    const SC_COLOR_MAP = {
-      "红":"#e85b70","红色":"#e85b70","玫红":"#ff4d6d","粉":"#f4a5c7","粉色":"#f4a5c7",
-      "橙":"#ffa24d","橙色":"#ffa24d","金":"#d6c3a3","金色":"#d6c3a3",
-      "黄":"#ffd66b","黄色":"#ffd66b","绿":"#65c18c","绿色":"#65c18c",
-      "蓝":"#6aa8ff","蓝色":"#6aa8ff","紫":"#8e6c88","紫色":"#8e6c88",
-      "白":"#f8f4e9","白色":"#f8f4e9","黑":"#222","黑色":"#222"
-    };
-    const SC$ = (id)=>document.getElementById(id);
-    function SC_colorToHex(name){ if(!name) return null; for(const k in SC_COLOR_MAP){ if(name.includes(k)) return SC_COLOR_MAP[k]; } return null; }
-    function SC_parseDimsStr(s){
-      const out={}; if(typeof s!=='string') return out;
-      s.split(/\n+/).forEach(l=>{const m=l.match(/^(.*?)[：:]\s*([\d.]+)\s*星/); if(m){out[m[1].trim()]=parseFloat(m[2])}});
-      return out;
-    }
-    function SC_createStars(v){ v=Number(v)||0; const full=Math.floor(v); let a=''; for(let i=0;i<5;i++) a+=`<span class="star${i<full?' filled':''}"></span>`; return a; }
-
-    function SC_open(payload){
-      const overlay = SC$('scOverlay'); overlay.style.display='flex';
-      SC_render(payload);
-      // 绑定按钮
-      SC$('SC_btnGen').onclick = SC_generate;
-      SC$('SC_btnCopy').onclick = ()=> SC_copy(SC$('SC_site').textContent);
-      SC$('SC_btnSave').onclick = SC_savePNG;
-    }
-    function SC_close(){ SC$('scOverlay').style.display='none'; }
-    SC$('scMask')?.addEventListener('click', SC_close);
-    SC$('scClose')?.addEventListener('click', SC_close);
-
-    function SC_render({user_name, date, reading, fortune}){
-      // header
-      SC$('SC_user').textContent = user_name || '神秘访客';
-      SC$('SC_date').textContent = date || '--';
-
-      // card
-      const name = reading?.card_name || reading?.name || '—';
-      const dir  = reading?.direction || reading?.card_direction || '—';
-      SC$('SC_name').textContent = name;
-      SC$('SC_dir').textContent  = dir;
-
-      const img = reading?.image || reading?.card_image || '';
-      if(img){
-        SC$('SC_img').src = img;
-        SC$('SC_img').onload = ()=>{ SC$('SC_img').classList.remove('hidden'); SC$('SC_imgPh').classList.add('hidden'); };
-      }else{
-        SC$('SC_img').classList.add('hidden'); SC$('SC_imgPh').classList.remove('hidden');
-      }
-
-      const score = Number(fortune?.overall_score ?? fortune?.overall ?? 0);
-      SC$('SC_score').textContent = score ? String(score) : '—';
-      SC$('SC_ring').style.setProperty('--progress', (Math.max(0,Math.min(100,score))/100).toFixed(3));
-      SC$('SC_grade').textContent = labelScore(score);
-
-      // dims
-      const dimsWrap = SC$('SC_dims'); dimsWrap.innerHTML='';
-      let dimsMap = {};
-      if(typeof fortune?.dimensions === 'string') dimsMap = SC_parseDimsStr(fortune.dimensions);
-      else if(Array.isArray(fortune?.dimensions)){ fortune.dimensions.forEach(d=>{ if(d?.name) dimsMap[d.name]=Number(d.stars ?? d.score ?? 0) }) }
-      else if(typeof fortune?.dimensions === 'object' && fortune.dimensions) dimsMap = fortune.dimensions;
-
-      const order = [
-        {k:'事业运', s:'事业', i:'💼'},
-        {k:'财富运', s:'财富', i:'💰'},
-        {k:'爱情运', s:'爱情', i:'💕'},
-        {k:'健康运', s:'健康', i:'🌿'},
-        {k:'贵人运', s:'贵人', i:'✨'}
-      ];
-      order.forEach(o=>{
-        const v = dimsMap[o.k] ?? dimsMap[o.s];
-        if(v==null) return;
-        const node = document.createElement('div');
-        node.className = 'dim-item';
-        node.innerHTML = `
-          <div class="dim-circle">${o.i}</div>
-          <div class="dim-label">${o.s}</div>
-          <div class="dim-rating">${SC_createStars(v)}</div>`;
-        dimsWrap.appendChild(node);
+    /* ===================== Share Card 逻辑 ===================== */
+    function SC$(id){ return document.getElementById(id) }
+    function SC_open(){
+      // 渲染数据
+      const d = {{ fortune_data|tojson|safe }};
+      const reading = {{ (today_card or {})|tojson|safe }};
+      const userName = "{{ user.username if not user.is_guest else '神秘访客' }}";
+      SC_render({
+        user_name: userName,
+        date: "{{ today }}",
+        reading: reading||{},
+        fortune: d||{}
       });
 
-      // summary / do / dont
-      const summary = (fortune?.fortune_text?.summary) || fortune?.summary || '今日气息澄明，随顺而为，温柔接好运。';
+      // 展示
+      const ov = SC$('SC_overlay'); ov.style.display='flex';
+      // 生成少量星点
+      const sp = document.querySelector('.sparkles-card'); if(sp && !sp.dataset.init){
+        for(let i=0;i<40;i++){ const s=document.createElement('div'); s.className='s'; s.style.left=(Math.random()*100)+'%'; s.style.top=(Math.random()*100)+'%'; s.style.animationDelay=(Math.random()*3)+'s'; sp.appendChild(s) }
+        sp.dataset.init='1';
+      }
+    }
+    function SC_close(){ SC$('SC_overlay').style.display='none' }
+
+    function SC_scoreLabel(s){
+      s=Number(s)||0; if(s>=85) return '大吉'; if(s>=70) return '中吉'; if(s>=55) return '小吉'; return '平';
+    }
+
+    // 自动降字号（避免滚动条/截断）
+    function SC_fitText(container, selector, maxLines=2, minSize=11){
+      const els = container.querySelectorAll(selector);
+      els.forEach(el=>{
+        let size = parseFloat(getComputedStyle(el).fontSize)||13;
+        const lineHeight = parseFloat(getComputedStyle(el).lineHeight)||16;
+        const maxH = lineHeight*maxLines + 1;
+        for(let i=0;i<3;i++){
+          if(el.scrollHeight<=maxH) break;
+          size = Math.max(minSize, size-1);
+          el.style.fontSize = size+'px';
+        }
+      });
+    }
+
+    function SC_render({user_name, date, reading, fortune}){
+      SC$('SC_date').textContent = date || '--';
+      SC$('SC_user').textContent = user_name || '神秘访客';
+
+      const cn = reading.card_name || reading.name || '--';
+      const dir = reading.direction || reading.card_direction || '--';
+      SC$('SC_cardname').textContent = cn; SC$('SC_direction').textContent = dir;
+
+      const img = reading.image || reading.card_image || '';
+      const el = SC$('SC_img');
+      if(img){
+        el.crossOrigin = 'anonymous';
+        el.onload = ()=>{ el.classList.remove('hidden'); SC$('SC_imgPh').classList.add('hidden') };
+        el.onerror = ()=>{ el.classList.add('hidden'); SC$('SC_imgPh').classList.remove('hidden') };
+        el.src = img;
+      }else{
+        el.classList.add('hidden'); SC$('SC_imgPh').classList.remove('hidden');
+      }
+
+      const s = fortune.overall_score; const p = Math.max(0, Math.min(100, Number(s)||0));
+      SC$('SC_score').textContent = s ?? '--';
+      SC$('SC_scoreLabel').textContent = '今日运势 · ' + SC_scoreLabel(s);
+      SC$('SC_ring').style.setProperty('--p', p);
+
+      const summary = (fortune.fortune_text && fortune.fortune_text.summary) || fortune.summary || '—';
       SC$('SC_summary').textContent = summary;
 
-      const dos = (fortune?.fortune_text?.do || fortune?.do || []).slice(0,3);
-      const donts = (fortune?.fortune_text?.dont || fortune?.dont || []).slice(0,3);
-      SC$('SC_do').innerHTML   = dos.length   ? dos.map(x=>`<li>${x}</li>`).join('')   : '<li>留白修整，静心自省</li>';
-      SC$('SC_dont').innerHTML = donts.length ? donts.map(x=>`<li>${x}</li>`).join('') : '<li>避免冲动与情绪消费</li>';
+      const doArr = (fortune.fortune_text && fortune.fortune_text.do) || [];
+      const dontArr = (fortune.fortune_text && fortune.fortune_text.dont) || [];
+      const doUL = SC$('SC_do'), dontUL = SC$('SC_dont');
+      doUL.innerHTML=''; dontUL.innerHTML='';
+      (doArr.slice(0,2)).forEach(t=> doUL.insertAdjacentHTML('beforeend', `<li>${t}</li>`));
+      (dontArr.slice(0,2)).forEach(t=> dontUL.insertAdjacentHTML('beforeend', `<li>${t}</li>`));
 
-      // lucky
-      const colorName = fortune?.lucky_color || fortune?.lucky_elements?.color || '';
-      const hex = SC_colorToHex(colorName); if(hex) SC$('SC_swatch').style.background = hex;
-      SC$('SC_color').textContent     = colorName || '—';
-      SC$('SC_number').textContent    = fortune?.lucky_number || fortune?.lucky_elements?.number || '—';
-      SC$('SC_hour').textContent      = fortune?.lucky_hour   || fortune?.lucky_elements?.hour   || '—';
-      const dirLuck = fortune?.lucky_direction || fortune?.lucky_elements?.direction || '—';
-      SC$('SC_directionDisplay').textContent = dirLuck;
+      SC$('SC_lucky_color').textContent = fortune.lucky_color || (fortune.lucky_elements && fortune.lucky_elements.color) || '--';
+      SC$('SC_lucky_number').textContent = fortune.lucky_number || (fortune.lucky_elements && fortune.lucky_elements.number) || '--';
+      SC$('SC_lucky_hour').textContent = fortune.lucky_hour || (fortune.lucky_elements && fortune.lucky_elements.hour) || '--';
+      SC$('SC_lucky_direction').textContent = fortune.lucky_direction || (fortune.lucky_elements && fortune.lucky_elements.direction) || '--';
 
-      // site & qr
-      SC$('SC_site').textContent = 'www.ruoshui.fun';
-      // 如果后端没有返回二维码，这里展示占位（SC_qrPh）
-      SC$('SC_qr').classList.add('hidden'); SC$('SC_qrPh').classList.remove('hidden');
-
-      // 绑定一次性数据用于 generate
-      window.__SC_PAYLOAD__ = { user_name, date, reading, fortune };
+      // 降字号避免滚动条
+      const card = SC$('SC_card');
+      SC_fitText(card, '.sc-summary', 3, 11);
+      SC_fitText(card, '#SC_do li', 2, 11);
+      SC_fitText(card, '#SC_dont li', 2, 11);
     }
 
     async function SC_generate(){
-      const btn = SC$('SC_btnGen'); btn.disabled=true; btn.textContent='生成中…';
+      const btn = SC$('SC_btnGen'); btn.disabled=true; btn.textContent='生成中...';
       try{
-        const r = await fetch('/api/share/create',{ method:'POST' });
+        const r = await fetch('/api/share/create', { method:'POST' });
         const d = await r.json();
         if(!d.success) throw new Error(d.error || '生成失败');
 
-        // 强制二维码/链接指向主页（满足你的需求）
-        const shareUrl = 'https://www.ruoshui.fun';
+        // 复制按钮可用
+        SC$('SC_btnCopy').disabled = false;
+        // 站点文字展示专属链接
+        SC$('SC_url').textContent = d.share_url || 'https://www.ruoshui.fun';
 
-        SC$('SC_site').textContent = shareUrl;
-        if(d.qr_code){ SC$('SC_qr').src = d.qr_code; SC$('SC_qr').classList.remove('hidden'); SC$('SC_qrPh').classList.add('hidden'); }
-        SC$('SC_btnCopy').classList.remove('hidden');
-        SC$('SC_btnCopy').onclick = ()=> SC_copy(shareUrl);
-        btn.textContent = '已生成';
-      }catch(e){ alert(e.message || '生成失败'); btn.textContent='✨ 生成分享'; }
-      finally{ btn.disabled=false; }
+        // 「二维码仅指向主页」
+        const qrTarget = 'https://www.ruoshui.fun';
+        // 若后端已给 qr_code 就用它（假设也是主页）；否则占位保留
+        if (d.qr_code){
+          const img = SC$('SC_qr');
+          img.src = d.qr_code; img.onload=()=>{ img.classList.remove('hidden'); SC$('SC_qrPh').classList.add('hidden') };
+        }
+      }catch(e){
+        alert(e.message || '生成失败');
+      }finally{
+        btn.disabled=false; btn.textContent='生成分享链接';
+      }
     }
 
-    function SC_copy(text){
-      (navigator.clipboard? navigator.clipboard.writeText(text) : Promise.reject())
-      .then(()=>alert('链接已复制'))
-      .catch(()=>{
-        const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制');
+    function SC_copy(){
+      const txt = SC$('SC_url').textContent || '';
+      if(!txt) return;
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : (function(t){const a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove();})(txt))
+      .then(()=> alert('链接已复制'))
+      .catch(()=> alert('复制失败，请手动复制'));
+    }
+
+    // 等待字体/图片
+    function SC_waitReady(node){
+      const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+      const imgs = Array.from(node.querySelectorAll('img'));
+      const imgPromises = imgs.map(img => {
+        if (img.complete && img.naturalWidth) return Promise.resolve();
+        return new Promise(res=>{ img.addEventListener('load', res, {once:true}); img.addEventListener('error', res, {once:true}); });
       });
+      return Promise.all([fontsReady, ...imgPromises]);
+    }
+
+    // 导出捕获模式：注入SVG圆环
+    function SC_beginCapture(){
+      const card = SC$('SC_card'); card.classList.add('sc-capture');
+
+      const score = parseFloat(SC$('SC_score').textContent) || 0;
+      const p = Math.max(0, Math.min(100, score)) / 100;
+      const svgNS='http://www.w3.org/2000/svg';
+      const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox','0 0 42 42'); svg.classList.add('score-svg');
+      const cx=21, cy=21, r=17, len = 2*Math.PI*r;
+      const bg=document.createElementNS(svgNS,'circle'); bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+      bg.setAttribute('stroke','rgba(255,255,255,.15)'); bg.setAttribute('stroke-width','4'); bg.setAttribute('fill','none');
+      const fg=document.createElementNS(svgNS,'circle'); fg.setAttribute('cx',cx); fg.setAttribute('cy',cy); fg.setAttribute('r',r);
+      fg.setAttribute('stroke',getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#e8d4a2');
+      fg.setAttribute('stroke-width','4'); fg.setAttribute('fill','none'); fg.setAttribute('stroke-linecap','round');
+      fg.setAttribute('stroke-dasharray',`${len}`); fg.setAttribute('stroke-dashoffset',String(len*(1-p)));
+      svg.appendChild(bg); svg.appendChild(fg);
+
+      const ring = SC$('SC_ring'); ring.parentNode.insertBefore(svg, ring);
+      return ()=>{ card.classList.remove('sc-capture'); svg.remove() };
     }
 
     async function SC_savePNG(){
-      const panelBtns = [SC$('SC_btnGen'), SC$('SC_btnCopy'), SC$('SC_btnSave')];
-      panelBtns.forEach(b=> b?.classList.add('hidden'));
-      try{
-        const canvas = await html2canvas(SC$('SC_card'), {scale:2.2, useCORS:true, backgroundColor:null});
-        const url = canvas.toDataURL('image/png'); const a=document.createElement('a');
-        a.href=url; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click();
-      }catch(e){ alert('保存失败，请重试'); }
-      finally{ panelBtns.forEach(b=> b?.classList.remove('hidden')); }
-    }
+      const hide = ['SC_btnGen','SC_btnCopy','SC_btnSave'].map(SC$);
+      hide.forEach(b=> b && (b.disabled=true, b.classList.add('alt')));
 
-    /* Flash 自动淡出 */
-    setTimeout(()=>{
-      (document.querySelectorAll('.alert')||[]).forEach(el=>{
-        el.style.transition='transform .3s ease, opacity .3s ease';
-        el.style.transform='translateX(120%)'; el.style.opacity='0';
-        setTimeout(()=> el.remove(), 320);
-      });
-    }, 5000);
+      const card = SC$('SC_card');
+      const end = SC_beginCapture();
+      try{
+        await SC_waitReady(card);
+        if(window.htmlToImage?.toPng){
+          const dataUrl = await htmlToImage.toPng(card, {
+            pixelRatio: 2.6,
+            backgroundColor: '#1a1625',
+            cacheBust: true,
+            filter: node => {
+              const style = window.getComputedStyle(node);
+              return !(style && style.display==='none');
+            }
+          });
+          const a=document.createElement('a'); a.href=dataUrl; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click();
+          end(); hide.forEach(b=> b && (b.disabled=false, b.classList.remove('alt'))); return;
+        }
+        const canvas = await html2canvas(card, { scale:2.4, useCORS:true, backgroundColor:'#1a1625', removeContainer:true, logging:false });
+        const url = canvas.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click();
+      }catch(e){
+        console.error(e); alert('保存失败，请重试');
+      }finally{
+        end(); hide.forEach(b=> b && (b.disabled=false, b.classList.remove('alt')));
+      }
+    }
   </script>
 </body>
 </html>
