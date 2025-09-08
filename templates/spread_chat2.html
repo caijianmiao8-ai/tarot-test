@@ -1400,4 +1400,199 @@
             const layout = document.getElementById('cards-layout');
             layout.innerHTML = '';
             
-            state.drawn.forEach((card, idx)
+            state.drawn.forEach((card, idx) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card-position';
+                cardEl.innerHTML = `
+                    <div class="position-number">${idx + 1}</div>
+                    <div class="position-info">
+                        <div class="position-name">${escapeHtml(card.position_name||`位置 ${idx+1}`)}</div>
+                        <div class="position-meaning">${escapeHtml(state.positions[idx]?.meaning||'')}</div>
+                        <div class="drawn-card">
+                            <div class="card-image ${!card.upright?'reversed':''}">
+                                ${card.image_url ? 
+                                    `<img src="${escapeHtml(card.image_url)}" alt="${escapeHtml(card.card_name)}"/>` :
+                                    '<i class="fas fa-star"></i>'
+                                }
+                            </div>
+                            <div class="card-details">
+                                <div class="card-name">${escapeHtml(card.card_name)}</div>
+                                <div class="card-direction">${card.upright?'正位':'逆位'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                layout.appendChild(cardEl);
+            });
+        }
+
+        function toggleSpreadDisplay(){
+            const panel=document.getElementById('spreadDisplay');
+            const icon=document.getElementById('toggleIcon');
+            panel.classList.toggle('collapsed');
+            icon.className = panel.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+        }
+
+        // ========================= 交互与快捷问 =========================
+        function showQuickQuestions(){
+            const box=document.getElementById('quick-questions'); 
+            box.classList.remove('hidden');
+            box.innerHTML='';
+            const qs=['整体建议','我应该注意什么？','下一步该怎么做？','查看完整牌阵'];
+            qs.forEach(q=>{
+                const el=document.createElement('div'); 
+                el.className='quick-question'; 
+                el.textContent=q;
+                el.onclick=()=>{ 
+                    if(q === '查看完整牌阵'){
+                        openSpreadModal();
+                    } else {
+                        const input=document.getElementById('message-input'); 
+                        input.value=q; 
+                        sendMessage(); 
+                    }
+                };
+                box.appendChild(el);
+            });
+        }
+
+        // ========================= Persona 选择 =========================
+        function openPersonaModal(){ 
+            document.getElementById('persona-modal').classList.add('show'); 
+        }
+        function closePersonaModal(){ 
+            document.getElementById('persona-modal').classList.remove('show'); 
+        }
+        function pickPersona(id){ 
+            state.personaId=id; 
+            // 更新选中状态
+            document.querySelectorAll('.persona-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+        async function confirmPersona(){
+            if(!state.personaId) state.personaId='warm';
+            const v = document.getElementById('pref-question').value.trim();
+            if(v) state.question = v;
+            closePersonaModal();
+
+            const hello = state.question ? `你好，我想咨询：${state.question}` : '你好，我们开始吧。';
+            appendMessage('user', hello, false);
+            await sendFirstHello(hello);
+        }
+
+        async function sendFirstHello(msg){
+            showTyping(); 
+            isTyping=true;
+            try{
+                const r = await fetch(API.GUIDED_CHAT, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        message: msg, 
+                        persona_id: state.personaId,
+                        spread_id: state.spreadId || undefined,
+                        question: state.question || undefined
+                    }),
+                    cache:'no-store'
+                });
+                let data=null; 
+                try{ data=await r.json(); }catch(_){}
+                hideTyping(); 
+                isTyping=false;
+                const text = (data && (data.reply||data.text||data.answer)) || '…';
+                processAssistantReply(text);
+            }catch(e){
+                hideTyping(); 
+                isTyping=false;
+                appendMessage('assistant','抱歉，网络有点忙，请重试。',true);
+            }
+        }
+
+        // ========================= 全牌阵查看与导出 =========================
+        function openSpreadModal(){ 
+            document.getElementById('spread-modal').classList.add('show'); 
+            renderSpreadGrid(); 
+        }
+        function closeSpreadModal(){ 
+            document.getElementById('spread-modal').classList.remove('show'); 
+        }
+        function renderSpreadGrid(){
+            const grid=document.getElementById('spread-grid'); 
+            grid.innerHTML='';
+            state.drawn.forEach(c=>{
+                const cell=document.createElement('div'); 
+                cell.className='spread-cell';
+                cell.innerHTML = `
+                    <div class="position">${escapeHtml(c.position_name||'')}</div>
+                    <img src="${escapeHtml(c.image_url||'')}" alt="${escapeHtml(c.card_name||'')}">
+                    <div class="card-name">${escapeHtml(c.card_name||'')}</div>
+                    <div class="direction">${c.upright?'正位':'逆位'}</div>`;
+                grid.appendChild(cell);
+            });
+        }
+        
+        function downloadReading(){
+            const data = {
+                reading_id: state.readingId,
+                persona: state.personaId,
+                question: state.question,
+                spread_id: state.spreadId,
+                spread_name: state.spreadName,
+                total: state.total,
+                cards: state.drawn
+            };
+            const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+            const a=document.createElement('a'); 
+            a.href=URL.createObjectURL(blob); 
+            a.download=`reading_${state.readingId||'draft'}.json`; 
+            a.click();
+        }
+
+        // ========================= 输入框与初始化 =========================
+        function bindInputEvents(){
+            const input=document.getElementById('message-input');
+            input.addEventListener('input', function(){ 
+                this.style.height='auto'; 
+                this.style.height=Math.min(this.scrollHeight,120)+'px'; 
+            });
+            input.addEventListener('keydown', function(e){ 
+                if(e.key==='Enter' && !e.shiftKey){ 
+                    e.preventDefault(); 
+                    sendMessage(); 
+                }
+            });
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+        }
+        
+        function getQuery(){ 
+            const p = new URLSearchParams(location.search); 
+            return Object.fromEntries(p.entries()); 
+        }
+
+        async function init(){
+            bindInputEvents();
+            const q = getQuery();
+            state.personaId = q.persona_id || null;
+            state.spreadId  = q.spread_id  || null;
+            state.question  = q.question   || null;
+            updatePhase('GUIDE'); 
+            renderSlots();
+
+            if(!state.personaId){ 
+                openPersonaModal(); 
+                return; 
+            }
+
+            appendMessage('assistant','你好，我是你的占卜师～先简单聊聊你的诉求，我会为你推荐合适的牌阵。',true);
+            if(state.question){ 
+                appendMessage('user', `我本次的问题：${state.question}`, false); 
+            }
+            await sendFirstHello(state.question?`我想咨询：${state.question}`:'我们开始吧');
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
