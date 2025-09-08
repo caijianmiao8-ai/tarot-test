@@ -126,74 +126,141 @@ def _resolve_ai_personality(data: dict) -> str:
         (data.get("ai_personality") or data.get("persona_id"))
     )
 
+def generate_qr_code(data: str) -> str:
+    """
+    返回形如 'data:image/png;base64,...' 的 Data URL。
+    若本地缺少 qrcode，则优雅降级为 None。
+    """
+    try:
+        import qrcode
+        from PIL import Image
+        qr = qrcode.QRCode(
+            version=1, error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=6, border=2
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{b64}"
+    except Exception as e:
+        # 不中断主流程，前端可用 share_url 自行渲染第三方二维码（或展示链接）
+        print(f"[generate_qr_code] fallback: {e}")
+        return None
 
 
-@app.route("/api/share/generate", methods=["POST"])
-def generate_share_card():
-    """生成分享卡片数据"""
+# =========================
+# 路由：分享卡片生成页面（本人查看/生成）
+# =========================
+@app.route("/share/card")
+@login_required  # 若允许游客也进来，可去掉该装饰器
+def share_card():
+    """分享卡片生成页面"""
     user = g.user
     today = DateTimeService.get_beijing_date()
-    
-    # 获取今日塔罗数据
-    if not user["is_guest"]:
+
+    # 读取今日抽牌与运势数据（登录用户 vs 访客）
+    if not user.get("is_guest", True):
         reading = TarotService.get_today_reading(user["id"], today)
         fortune_data = FortuneService.get_fortune(user["id"], today)
     else:
         reading = SessionService.get_guest_reading(session, today)
-        fortune_data = session.get('fortune_data', {}).get('data', {})
-    
-    if not reading:
-        return jsonify({"error": "请先抽取今日塔罗牌"}), 404
-    
-    # 生成分享链接和二维码
-    share_id = str(uuid.uuid4())[:8]
-    share_url = f"https://www.ruoshui.fun/share/{share_id}"
-    
-    # 保存分享数据到数据库（可选）
-    share_data = {
-        "share_id": share_id,
-        "user_name": user.get("username", "神秘访客"),
-        "date": today.strftime("%Y.%m.%d"),
-        "card_name": reading["name"],
-        "card_direction": reading["direction"],
-        "overall_score": fortune_data.get("overall_score", 0),
-        "overall_label": fortune_data.get("overall_label", ""),
-        "dimensions": fortune_data.get("dimensions", []),
-        "lucky_elements": fortune_data.get("lucky_elements", {}),
-        "created_at": datetime.now()
-    }
-    
-    # 生成二维码（使用qrcode库）
-    import qrcode
-    import base64
-    from io import BytesIO
-    
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(share_url)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
-    
-    share_data["qr_code"] = f"data:image/png;base64,{qr_base64}"
-    share_data["share_url"] = share_url
-    
-    return jsonify(share_data)
+        # 你之前保存到 session 的结构：session['fortune_data']['data']
+        fortune_data = (session.get('fortune_data') or {}).get('data') or {}
 
-@app.route("/share/<share_id>")
-def share_page(share_id):
-    """分享页面 - 其他人通过链接访问"""
-    # 从数据库获取分享数据
-    share_data = get_share_data(share_id)
-    
+    if not reading:
+        flash("请先抽取今日塔罗牌", "info")
+        return redirect(url_for("index"))
+
+    return render_template(
+        "share_card.html",
+        user=user,
+        reading=reading,
+        fortune_data=fortune_data,
+        today=today.strftime("%Y.%m.%d")
+    )
+
+
+# =========================
+# 路由：他人查看分享（短链接）
+# =========================
+@app.route("/s/<share_id>")
+def view_share(share_id):
+    """查看他人分享的卡片"""
+    share_data = ShareService.get_share_data(share_id)
     if not share_data:
-        return redirect(url_for('index'))
-    
-    return render_template("share_landing.html", 
-                         share_data=share_data,
-                         show_cta=True)  # 显示引导按钮
+        flash("分享链接已失效", "info")
+        return redirect(url_for("index"))
+
+    ShareService.increment_view_count(share_id)
+
+    return render_template(
+        "share_view.html",
+        share_data=share_data,
+        is_viewer=True
+    )
+
+
+# =========================
+# API：创建分享
+# =========================
+@app.route("/api/share/create", methods=["POST"])
+def api_create_share():
+    """创建分享链接API"""
+    user = g.get("user")  # 允许未登录也可分享时，这里可能为 None
+    today = DateTimeService.get_beijing_date()
+
+    # ---- 补齐 reading / fortune_data（与 /share/card 保持一致）----
+    if user and not user.get("is_guest", True):
+        reading = TarotService.get_today_reading(user["id"], today)
+        fortune_data = FortuneService.get_fortune(user["id"], today)
+        user_id = user.get("id")
+        user_name = user.get("username", "神秘访客")
+    else:
+        reading = SessionService.get_guest_reading(session, today)
+        fortune_data = (session.get('fortune_data') or {}).get('data') or {}
+        user_id = None  # 访客不落库用户ID
+        user_name = (session.get("guest_name")
+                     or (user and user.get("username"))
+                     or "神秘访客")
+
+    if not reading:
+        return jsonify({"success": False, "error": "尚未抽取今日卡片"}), 400
+
+    # ---- 生成短链ID（低碰撞 + 可复现性）----
+    salt = os.urandom(4).hex()
+    raw = f"{user_id or 'guest'}_{today.isoformat()}_{datetime.utcnow().isoformat()}_{salt}"
+    share_id = hashlib.md5(raw.encode("utf-8")).hexdigest()[:8]
+
+    # ---- 生成短链 URL（按你的域名来）----
+    # 若生产环境可用 request.url_root 自动推导域名，也可固定为 ruoshui.fun：
+    # base_url = request.url_root.rstrip('/')  # 如 https://www.ruoshui.fun
+    base_url = "https://www.ruoshui.fun"  # 你给的域名
+    share_url = f"{base_url}/s/{share_id}"
+
+    # ---- 生成二维码（Base64 DataURL；若失败返回 None）----
+    qr_code_dataurl = generate_qr_code(share_url)
+
+    # ---- 入库分享数据 ----
+    payload = {
+        "user_id": user_id,
+        "user_name": user_name or "神秘访客",
+        "reading": reading,
+        "fortune": fortune_data,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(days=30),
+    }
+    ShareService.save_share_data(share_id, payload)
+
+    return jsonify({
+        "success": True,
+        "share_id": share_id,
+        "share_url": share_url,
+        "qr_code": qr_code_dataurl  # 前端可 <img src="{{ qr_code }}">
+    })
                          
 @app.route("/api/guided/get_reading", methods=["POST"])
 def api_guided_get_reading():

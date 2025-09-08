@@ -35,6 +35,116 @@ def _normalize_json_list(val):
             return []
     return []
 
+# ==== 使用既有表：share_cards ====
+# 表结构：
+# share_cards(id serial, share_id varchar(20) unique, user_id varchar(50),
+#             share_data jsonb, created_at timestamp, view_count int, expires_at timestamp)
+
+class ShareDAO:
+    @staticmethod
+    def _get_conn():
+        if hasattr(DatabaseManager, "get_conn"):
+            return DatabaseManager.get_conn()
+        if hasattr(DatabaseManager, "get_connection"):
+            return DatabaseManager.get_connection()
+        raise RuntimeError("DatabaseManager 未提供 get_conn/get_connection 方法")
+
+    @staticmethod
+    def save_share(share_id: str, user_id, user_name: str,
+                   reading: dict, fortune: dict,
+                   created_at: datetime, expires_at: datetime):
+        # 将所有内容塞进 share_data(JSONB)
+        share_data = {
+            "user_name": user_name or "神秘访客",
+            "reading": reading or {},
+            "fortune": fortune or {},
+        }
+        sql = """
+        INSERT INTO share_cards (share_id, user_id, share_data, created_at, expires_at)
+        VALUES (%s, %s, %s::jsonb, %s, %s)
+        ON CONFLICT (share_id) DO UPDATE
+        SET user_id    = EXCLUDED.user_id,
+            share_data = EXCLUDED.share_data,
+            created_at = EXCLUDED.created_at,
+            expires_at = EXCLUDED.expires_at
+        """
+        with ShareDAO._get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, [
+                    share_id,
+                    (str(user_id) if user_id is not None else None),
+                    json.dumps(share_data, ensure_ascii=False),
+                    created_at,
+                    expires_at
+                ])
+
+    @staticmethod
+    def get_share(share_id: str):
+        sql = """
+        SELECT share_id, user_id, share_data, created_at, expires_at, view_count
+        FROM share_cards
+        WHERE share_id = %s
+        LIMIT 1
+        """
+        with ShareDAO._get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, [share_id])
+                row = cur.fetchone()
+                if not row:
+                    return None
+                share_data = row[2] or {}
+                user_name = share_data.get("user_name", "神秘访客")
+                reading   = share_data.get("reading", {}) or {}
+                fortune   = share_data.get("fortune", {}) or {}
+                return {
+                    "share_id": row[0],
+                    "user_id": row[1],
+                    "user_name": user_name,
+                    "reading": reading,
+                    "fortune": fortune,
+                    "created_at": row[3],
+                    "expires_at": row[4],
+                    "view_count": row[5],
+                }
+
+    @staticmethod
+    def increment_view(share_id: str):
+        sql = "UPDATE share_cards SET view_count = view_count + 1 WHERE share_id = %s"
+        with ShareDAO._get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, [share_id])
+
+
+class ShareService:
+    @staticmethod
+    def save_share_data(share_id: str, payload: dict):
+        ShareDAO.save_share(
+            share_id=share_id,
+            user_id=payload.get("user_id"),
+            user_name=payload.get("user_name"),
+            reading=payload.get("reading") or {},
+            fortune=payload.get("fortune") or {},
+            created_at=payload.get("created_at") or datetime.utcnow(),
+            expires_at=payload.get("expires_at") or (datetime.utcnow() + timedelta(days=30)),
+        )
+
+    @staticmethod
+    def get_share_data(share_id: str):
+        data = ShareDAO.get_share(share_id)
+        if not data:
+            return None
+        # 过期检查：你的列是 timestamp(无时区)，比较时用 naive 的 utcnow 即可
+        exp = data.get("expires_at")
+        if isinstance(exp, datetime):
+            now = datetime.utcnow() if exp.tzinfo is None else datetime.now(timezone.utc)
+            if exp < now:
+                return None
+        return data
+
+    @staticmethod
+    def increment_view_count(share_id: str):
+        ShareDAO.increment_view(share_id)
+
 
 class DatabaseManager:
     """数据库管理器"""

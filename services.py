@@ -182,7 +182,34 @@ class DateTimeService:
         beijing_tz = timezone(timedelta(hours=Config.TIMEZONE_OFFSET))
         return datetime.now(beijing_tz)
 
+class ShareService:
+    @staticmethod
+    def save_share_data(share_id: str, payload: dict):
+        ShareDAO.save_share(
+            share_id=share_id,
+            user_id=payload.get("user_id"),
+            user_name=payload.get("user_name"),
+            reading=payload.get("reading") or {},
+            fortune=payload.get("fortune") or {},
+            created_at=payload.get("created_at") or datetime.utcnow(),
+            expires_at=payload.get("expires_at") or (datetime.utcnow() + timedelta(days=30)),
+        )
 
+    @staticmethod
+    def get_share_data(share_id: str):
+        data = ShareDAO.get_share(share_id)
+        if not data:
+            return None
+        # 过期检查
+        exp = data.get("expires_at")
+        if isinstance(exp, datetime) and exp < datetime.utcnow():
+            return None
+        return data
+
+    @staticmethod
+    def increment_view_count(share_id: str):
+        ShareDAO.increment_view(share_id)
+        
 class UserService:
     """用户服务"""
 
