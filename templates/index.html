@@ -5,272 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>每日塔罗运势 · 若水占卜</title>
 
-  <!-- 你的本地依赖 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
-
-  <!-- 统一字体 -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --primary: #9d7ea8;
-      --secondary: #6d5675;
-      --accent: #8e6c88;
-      --gold: #e8d4a2;
-      --gold-light: #f4e5c3;
-
-      --bg-deep-1: #2d1b4e;
-      --bg-deep-2: #1a1625;
-
-      --text: #ffffff;
-      --text-strong: #fff;
-      --text-light: rgba(255,255,255,0.88);
-      --text-muted: rgba(255,255,255,0.65);
-
-      --panel: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.12);
-
-      --star-color: #ffd700;
-      --success-color: #10b981;
-      --danger-color: #ef4444;
+      --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
+      --bg1:#2d1b4e; --bg2:#1a1625;
+      --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
+      --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
+      --star:#ffd700; --success:#10b981; --danger:#ef4444;
     }
-
     *{margin:0;padding:0;box-sizing:border-box}
     body{
-      font-family: 'Noto Serif SC', -apple-system, BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
-      color: var(--text);
-      min-height:100vh;
-      display:flex; flex-direction:column; align-items:center;
-      padding: 20px;
+      font-family:'Noto Serif SC',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
+      color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px;
       background:
-        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,0.18), transparent 60%),
-        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,0.12), transparent 60%),
-        linear-gradient(135deg, var(--bg-deep-1) 0%, var(--bg-deep-2) 100%);
+        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
+        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
+        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
       position:relative; overflow-x:hidden;
     }
+    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.25;background-image:
+      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
+      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none;}
+    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
+    .zodiac{position:fixed;width:820px;height:820px;left:50%;top:50%;transform:translate(-50%,-50%);z-index:-2;opacity:.1;filter:drop-shadow(0 0 20px rgba(255,255,255,.1));animation:rot 90s linear infinite;pointer-events:none;}
+    @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
 
-    /* 动态背景元素 */
-    .bg-stars{ position:fixed; inset:0; z-index:-2; opacity:.25;
-      background-image:
-        radial-gradient(1px 1px at 12% 25%, #fff, transparent),
-        radial-gradient(1px 1px at 32% 60%, #fff, transparent),
-        radial-gradient(1px 1px at 62% 30%, #fff, transparent),
-        radial-gradient(1px 1px at 82% 70%, #fff, transparent),
-        radial-gradient(1px 1px at 22% 80%, #fff, transparent);
-      background-size: 220px 220px;
-      animation: twinkle 4s ease-in-out infinite alternate;
-      pointer-events:none;
-    }
-    .zodiac{ position:fixed; width:820px; height:820px; left:50%; top:50%; transform:translate(-50%,-50%);
-      z-index:-2; opacity:.1; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); animation: slow-rotate 90s linear infinite; pointer-events:none; }
-    @keyframes twinkle{ from{opacity:.15} to{opacity:.35} }
-    @keyframes slow-rotate{ to{ transform:translate(-50%,-50%) rotate(360deg)} }
+    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
+    .user-bar-content{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;}
+    .user-info{display:flex;align-items:center;gap:12px}
+    .user-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border)}
+    .user-name{color:var(--gold-light);font-weight:600;letter-spacing:.5px}
+    .user-actions{display:flex;gap:10px}
+    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:rgba(255,255,255,.06);backdrop-filter:blur(8px)}
+    .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
 
-    /* 顶部用户栏 */
-    .user-bar{
-      position:fixed; top:0; left:0; right:0; z-index:100;
-      background: rgba(28,22,40,0.6); backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-    }
-    .user-bar-content{
-      max-width:1200px; margin:0 auto; padding:10px 20px;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .user-info{ display:flex; align-items:center; gap:12px; }
-    .user-icon{ width:36px; height:36px; border-radius:50%;
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff;
-      display:flex; align-items:center; justify-content:center; font-weight:700; border:1px solid var(--border); }
-    .user-name{ color: var(--gold-light); font-weight:600; letter-spacing:.5px; }
-    .user-actions{ display:flex; gap:10px; }
-    .user-actions a{
-      color: var(--text-light); text-decoration:none; font-size:.95rem; padding:8px 14px;
-      border-radius:18px; border:1px solid transparent; transition:.25s ease; background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(8px);
-    }
-    .user-actions a:hover{ color:#fff; border-color:var(--border); transform: translateY(-1px); }
+    .flash-messages{position:fixed;top:68px;right:20px;z-index:200;max-width:380px}
+    .alert{padding:12px 14px;margin-bottom:10px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.18);color:#fff;border:none;animation:in .3s ease-out;backdrop-filter:blur(6px)}
+    .alert-success{background:rgba(16,185,129,.9)} .alert-info{background:rgba(59,130,246,.9)} .alert-error{background:rgba(239,68,68,.9)}
+    .alert .close{background:none;border:none;color:#fff;font-size:1.4rem;opacity:.85}.alert .close:hover{opacity:1}
+    @keyframes in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 
-    /* flash */
-    .flash-messages{
-      position:fixed; top:68px; right:20px; z-index:200; max-width:380px;
-    }
-    .alert{ padding:12px 14px; margin-bottom:10px; border-radius:10px; display:flex; align-items:center; justify-content:space-between;
-      box-shadow:0 6px 18px rgba(0,0,0,.18); color:#fff; border:none; animation: slideIn .3s ease-out; backdrop-filter: blur(6px); }
-    .alert-success{ background: rgba(16,185,129,.9); }
-    .alert-info{ background: rgba(59,130,246,.9); }
-    .alert-error{ background: rgba(239,68,68,.9); }
-    .alert .close{ background:none; border:none; color:#fff; font-size:1.4rem; opacity:.85; }
-    .alert .close:hover{ opacity:1 }
-    @keyframes slideIn{ from{transform:translateX(100%); opacity:0} to{transform:translateX(0); opacity:1} }
+    .main-container{max-width:980px;width:100%;margin:88px auto 24px}
 
-    /* 主容器 */
-    .main-container{ max-width:980px; width:100%; margin:88px auto 24px; }
+    .tarot-container{position:relative;overflow:hidden;margin-bottom:30px;padding:28px;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid var(--border);box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08)}
+    .header h1{font-size:2.2rem;color:var(--gold-light);letter-spacing:1px;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .header p{color:var(--text-muted);text-align:center;margin-top:6px}
+    .tarot-card{width:220px;height:340px;margin:24px auto 10px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2));border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.28);transform-style:preserve-3d;transition:transform .8s cubic-bezier(.175,.885,.32,1.275), box-shadow .35s ease;cursor:pointer}
+    .tarot-card:hover{transform:translateY(-6px) rotate(3deg);box-shadow:0 16px 36px rgba(0,0,0,.34)}
+    .tarot-card::after{content:"";position:absolute;inset:14px;border-radius:10px;border:1px solid rgba(255,255,255,.22)}
+    .action-section{text-align:center;margin:16px 0 6px}
+    .btn-tarot,.already-drawn{display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border-radius:24px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;letter-spacing:.4px;box-shadow:0 10px 24px rgba(157,126,168,.32);text-decoration:none;transition:.3s}
+    .btn-tarot:hover,.already-drawn:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(157,126,168,.42);color:#fff}
+    .btn-tarot:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .guest-tip{max-width:520px;margin:12px auto 0;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-light)}
 
-    /* 塔罗抽牌区 */
-    .tarot-container{
-      position:relative; overflow:hidden; margin-bottom:30px;
-      padding:28px; border-radius:22px;
-      background: rgba(255,255,255,0.06); border:1px solid var(--border);
-      box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
-    }
-    .header h1{ font-size:2.2rem; color:var(--gold-light); letter-spacing:1px; text-align:center; text-shadow:0 2px 8px rgba(0,0,0,.25); }
-    .header p{ color:var(--text-muted); text-align:center; margin-top:6px; }
+    .fortune-card{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:22px;padding:0;box-shadow:0 16px 36px rgba(0,0,0,.28);overflow:hidden;display:none}
+    .fortune-header{background:linear-gradient(135deg, rgba(157,126,168,.3), rgba(232,212,162,.16));color:var(--text);padding:26px;text-align:center;border-bottom:1px solid var(--border)}
+    .fortune-date{font-size:.95rem;color:var(--text-muted);margin-bottom:6px}
+    .fortune-score{font-size:3.8rem;font-weight:800;letter-spacing:1px;color:var(--gold-light);text-shadow:0 2px 10px rgba(0,0,0,.22);display:inline-block}
+    .fortune-score::after{content:'分';font-size:1.2rem;font-weight:400;margin-left:6px;color:var(--text-light)}
+    .fortune-label{margin-top:10px;display:inline-block;padding:6px 18px;border-radius:18px;background:rgba(255,255,255,.16);color:var(--text);font-weight:700;border:1px solid var(--border)}
+    .fortune-summary{font-size:1rem;line-height:1.7;color:var(--text-light);max-width:680px;margin:10px auto 0}
+    .dimensions-section{padding:24px;background:rgba(0,0,0,.08)}
+    .section-title{font-size:1.2rem;color:var(--gold-light);text-align:center;margin-bottom:16px;font-weight:700}
+    .dimensions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+    .dimension-item{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.12);transition:.25s ease}
+    .dimension-item:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.16)}
+    .dimension-icon{width:42px;height:42px;border-radius:12px;margin:0 auto 8px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--border)}
+    .dimension-name{font-weight:700;color:var(--text);margin-bottom:6px}
+    .dimension-stars{font-size:1.05rem;color:var(--star);letter-spacing:2px;margin-bottom:4px}
+    .dimension-level{font-size:.9rem;color:var(--text-muted);background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:12px;display:inline-block;padding:4px 10px}
+    .advice-grid{display:grid;gap:10px}
+    .advice-item{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:12px 15px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+    .advice-icon{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:var(--gold-light)}
+    .advice-name{font-weight:700;color:var(--text);font-size:.95rem;margin-bottom:2px}
+    .advice-text{color:var(--text-muted);font-size:.95rem;line-height:1.5}
+    .bottom-section{padding:24px;display:grid;grid-template-columns:1fr 1.5fr;gap:22px}
+    .lucky-section{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .lucky-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .lucky-item{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:12px;text-align:center;padding:10px}
+    .lucky-label{font-size:.88rem;color:var(--text-muted);margin-bottom:4px}
+    .lucky-value{font-weight:700;color:var(--gold-light);font-size:1.06rem}
+    .suggestions-section{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .suggestion-card{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .suggestion-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .suggestion-icon{width:30px;height:30px;border-radius:8px;color:#fff;display:flex;align-items:center;justify-content:center}
+    .suggestion-do .suggestion-icon{background:var(--success)}
+    .suggestion-dont .suggestion-icon{background:var(--danger)}
+    .suggestion-title{font-weight:700;font-size:1.02rem}
+    .suggestion-list{list-style:none;margin:0;padding:0}
+    .suggestion-list li{padding:6px 0 6px 22px;position:relative;color:var(--text-muted)}
+    .suggestion-list li::before{content:'•';position:absolute;left:8px;top:2px;font-weight:700}
+    .suggestion-do li::before{color:var(--success)} .suggestion-dont li::before{color:var(--danger)}
+    .action-bar{text-align:center;padding:16px;background:rgba(255,255,255,.06);border-top:1px solid var(--border)}
+    .btn-refresh,.btn-ai-chat{padding:11px 20px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;text-decoration:none;display:inline-block;transition:.25s;box-shadow:0 6px 16px rgba(157,126,168,.3)}
+    .btn-refresh:hover,.btn-ai-chat:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(157,126,168,.4);color:#fff}
 
-    .tarot-card{
-      width:220px; height:340px; margin:24px auto 10px; border-radius:14px; overflow:hidden;
-      background: linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2));
-      border:1px solid var(--border); box-shadow:0 12px 30px rgba(0,0,0,.28);
-      transform-style:preserve-3d; transition: transform .8s cubic-bezier(.175,.885,.32,1.275), box-shadow .35s ease;
-      cursor:pointer;
-    }
-    .tarot-card:hover{ transform:translateY(-6px) rotate(3deg); box-shadow:0 16px 36px rgba(0,0,0,.34); }
-    .tarot-card::after{ content:""; position:absolute; inset:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.22); }
+    .fab-share{position:fixed;right:20px;bottom:20px;z-index:300;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 12px 26px rgba(157,126,168,.32);transition:.25s}
+    .fab-share:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(157,126,168,.42)}
+    .fab-share.disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 
-    .action-section{ margin:16px 0 6px; text-align:center; }
-    .btn-tarot{
-      display:inline-flex; align-items:center; justify-content:center; gap:10px;
-      padding:13px 28px; border-radius:24px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color:#fff; font-weight:700; letter-spacing:.4px;
-      box-shadow:0 10px 24px rgba(157,126,168,.32); text-decoration:none; transition:.3s;
-    }
-    .btn-tarot:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(157,126,168,.42); color:#fff; }
-    .btn-tarot:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+    /* 分享卡弹层：无滚动条，由 iframe 尺寸驱动 */
+    .sc-overlay{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center}
+    .sc-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+    .sc-panel{position:relative;z-index:1;padding:14px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid var(--border);box-shadow:0 18px 42px rgba(0,0,0,.38);display:flex;flex-direction:column;align-items:center;gap:10px; /* 不滚动 */ overflow:visible;}
+    .sc-close{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.08);border:1px solid var(--border)}
+    .sc-frame{border:0;border-radius:14px;background:#1a1625;width:400px;height:720px;overflow:hidden}
+    .sc-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+    .sc-btn{padding:10px 16px;border-radius:16px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(157,126,168,.3)}
+    .sc-btn.ghost{background:rgba(255,255,255,.06)}
+    .hidden{display:none !important}
 
-    .already-drawn{
-      display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:22px; color:#fff; text-decoration:none;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border:1px solid var(--border); box-shadow:0 10px 24px rgba(157,126,168,.32); transition:.3s;
-    }
-    .already-drawn:hover{ transform:translateY(-1px); box-shadow:0 14px 28px rgba(157,126,168,.42); color:#fff; }
-
-    .guest-tip{ max-width:520px; margin:12px auto 0; padding:12px 14px; border-radius:12px; background: rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text-light); }
-
-    /* 运势卡片（保留你的原块并统一风格） */
-    .fortune-card{
-      background: rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:22px; padding:0;
-      box-shadow:0 16px 36px rgba(0,0,0,.28); overflow:hidden; display:none;
-    }
-    .fortune-header{ background: linear-gradient(135deg, rgba(157,126,168,.3), rgba(232,212,162,.16)); color: var(--text); padding: 26px; text-align:center; border-bottom:1px solid var(--border); position:relative; }
-    .fortune-date{ font-size:.95rem; color:var(--text-muted); margin-bottom:6px; }
-    .fortune-score{ font-size:3.8rem; font-weight:800; letter-spacing:1px; color:var(--gold-light); text-shadow:0 2px 10px rgba(0,0,0,.22); display:inline-block; }
-    .fortune-score::after{ content:'分'; font-size:1.2rem; font-weight:400; margin-left:6px; color:var(--text-light); }
-    .fortune-label{ margin-top:10px; display:inline-block; padding:6px 18px; border-radius:18px; background: rgba(255,255,255,.16); color:var(--text); font-weight:700; border:1px solid var(--border); }
-    .fortune-summary{ font-size:1rem; line-height:1.7; color:var(--text-light); max-width:680px; margin:10px auto 0; }
-
-    .dimensions-section{ padding:24px; background: rgba(0,0,0,.08); }
-    .section-title{ font-size:1.2rem; color:var(--gold-light); text-align:center; margin-bottom:16px; font-weight:700; }
-    .dimensions-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-bottom:20px; }
-    .dimension-item{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius:14px; padding:16px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,.12); transition:.25s ease; }
-    .dimension-item:hover{ transform: translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.16); }
-    .dimension-icon{ width:42px; height:42px; border-radius:12px; margin:0 auto 8px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border:1px solid var(--border);}
-    .dimension-name{ font-weight:700; color: var(--text); margin-bottom:6px; }
-    .dimension-stars{ font-size:1.05rem; color: var(--star-color); letter-spacing:2px; margin-bottom:4px; }
-    .dimension-level{ font-size:.9rem; color:var(--text-muted); background: rgba(255,255,255,.08); border:1px solid var(--border); border-radius:12px; display:inline-block; padding:4px 10px; }
-
-    .advice-grid{ display:grid; gap:10px; }
-    .advice-item{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius:12px; padding:12px 15px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
-    .advice-icon{ width:34px; height:34px; border-radius:10px; background: rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; color:var(--gold-light); }
-    .advice-name{ font-weight:700; color: var(--text); font-size:.95rem; margin-bottom:2px; }
-    .advice-text{ color:var(--text-muted); font-size:.95rem; line-height:1.5; }
-
-    .bottom-section{ padding:24px; display:grid; grid-template-columns:1fr 1.5fr; gap:22px; }
-    .lucky-section{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius:14px; padding:16px; }
-    .lucky-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
-    .lucky-item{ background: rgba(255,255,255,.08); border:1px solid var(--border); border-radius:12px; text-align:center; padding:10px; }
-    .lucky-label{ font-size:.88rem; color:var(--text-muted); margin-bottom:4px; }
-    .lucky-value{ font-weight:700; color:var(--gold-light); font-size:1.06rem; }
-
-    .suggestions-section{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .suggestion-card{ background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius:14px; padding:16px; }
-    .suggestion-header{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .suggestion-icon{ width:30px; height:30px; border-radius:8px; color:#fff; display:flex; align-items:center; justify-content:center; }
-    .suggestion-do .suggestion-icon{ background:var(--success-color); }
-    .suggestion-dont .suggestion-icon{ background:var(--danger-color); }
-    .suggestion-title{ font-weight:700; font-size:1.02rem; }
-    .suggestion-list{ list-style:none; margin:0; padding:0; }
-    .suggestion-list li{ padding:6px 0 6px 22px; position:relative; color:var(--text-muted); }
-    .suggestion-list li::before{ content:'•'; position:absolute; left:8px; top:2px; font-weight:700; }
-    .suggestion-do li::before{ color:var(--success-color); }
-    .suggestion-dont li::before{ color:var(--danger-color); }
-
-    .action-bar{ padding:16px; text-align:center; background: rgba(255,255,255,.06); border-top:1px solid var(--border); }
-    .btn-refresh, .btn-ai-chat{
-      padding:11px 20px; border-radius:20px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff; font-weight:700;
-      text-decoration:none; display:inline-block; transition:.25s ease; box-shadow: 0 6px 16px rgba(157,126,168,.3);
-    }
-    .btn-refresh:hover, .btn-ai-chat:hover{ transform: translateY(-2px); box-shadow: 0 10px 22px rgba(157,126,168,.4); color:#fff; }
-
-    /* 右下角悬浮按钮 */
-    .fab-share{
-      position: fixed; right: 20px; bottom: 20px; z-index: 300;
-      width: 56px; height: 56px; border-radius: 50%;
-      display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); box-shadow:0 12px 26px rgba(157,126,168,.32); transition:.25s ease;
-    }
-    .fab-share:hover{ transform:translateY(-2px); box-shadow:0 16px 30px rgba(157,126,168,.42); }
-    .fab-share.disabled{ opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
-
-    /* 分享卡弹层（iframe 自适应尺寸） */
-    .sc-overlay{ position:fixed; inset:0; z-index:500; display:none; align-items:center; justify-content:center; }
-    .sc-mask{ position:absolute; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
-    .sc-panel{ position:relative; z-index:1; max-width:96vw; max-height:96vh; padding:14px; border-radius:18px;
-      background: rgba(255,255,255,.06); border:1px solid var(--border); box-shadow:0 18px 42px rgba(0,0,0,.38);
-      display:flex; flex-direction:column; align-items:center; gap:10px; overflow:auto; }
-    .sc-close{ position:absolute; right:10px; top:10px; width:34px; height:34px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff;
-      background: rgba(255,255,255,.08); border:1px solid var(--border); }
-    .sc-frame{ border:0; border-radius:14px; background:#1a1625; width:400px; height:720px; }
-
-    .sc-actions{ display:flex; gap:10px; }
-    .sc-btn{
-      padding:10px 16px; border-radius:16px; border:1px solid var(--border);
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff; font-weight:700; cursor:pointer;
-      box-shadow:0 6px 16px rgba(157,126,168,.3);
-    }
-    .sc-btn.ghost{ background: rgba(255,255,255,.06); }
-    .hidden{ display:none !important; }
-
-    /* 响应 */
-    @media (max-width: 768px){
-      .main-container{ margin-top:74px; }
-      .bottom-section{ grid-template-columns:1fr; }
-      .suggestions-section{ grid-template-columns:1fr; }
-      .dimensions-grid{ grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-      .fortune-score{ font-size:3rem; }
-      .lucky-grid{ grid-template-columns:1fr; }
-      .sc-frame{ max-width: 92vw; }
+    @media (max-width:768px){
+      .main-container{margin-top:74px}
+      .bottom-section{grid-template-columns:1fr}
+      .suggestions-section{grid-template-columns:1fr}
+      .dimensions-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+      .fortune-score{font-size:3rem}
+      .lucky-grid{grid-template-columns:1fr}
+      .sc-frame{max-width:92vw}
     }
   </style>
 </head>
 <body>
-  <!-- 背景动态 -->
   <div class="bg-stars"></div>
   <svg class="zodiac" viewBox="0 0 100 100" aria-hidden="true">
     <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".3">
       <circle cx="50" cy="50" r="44"/>
       <circle cx="50" cy="50" r="34" stroke-opacity=".4"/>
-      <g stroke-opacity=".25">
-        <line x1="50" y1="6" x2="50" y2="94"/>
-        <line x1="6" y1="50" x2="94" y2="50"/>
-        <line x1="18" y1="18" x2="82" y2="82"/>
-        <line x1="18" y1="82" x2="82" y2="18"/>
-      </g>
+      <g stroke-opacity=".25"><line x1="50" y1="6" x2="50" y2="94"/><line x1="6" y1="50" x2="94" y2="50"/><line x1="18" y1="18" x2="82" y2="82"/><line x1="18" y1="82" x2="82" y2="18"/></g>
     </g>
     <g fill="#fff" fill-opacity=".55" font-size="6" font-family="serif">
       <text x="50" y="10" text-anchor="middle">♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎</text>
     </g>
   </svg>
 
-  <!-- 用户栏 -->
   <div class="user-bar">
     <div class="user-bar-content">
       <div class="user-info">
-        <div class="user-icon">
-          {% if not user.is_guest %}{{ user.username[0]|upper }}{% else %}<i class="fas fa-user"></i>{% endif %}
-        </div>
+        <div class="user-icon">{% if not user.is_guest %}{{ user.username[0]|upper }}{% else %}<i class="fas fa-user"></i>{% endif %}</div>
         <span class="user-name">{{ user.username if not user.is_guest else "神秘访客" }}</span>
       </div>
       <div class="user-actions">
@@ -285,23 +166,17 @@
     </div>
   </div>
 
-  <!-- Flash -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-messages">
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">
-            <span>{{ message }}</span>
-            <button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button>
-          </div>
+          <div class="alert alert-{{ category }}"><span>{{ message }}</span><button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button></div>
         {% endfor %}
       </div>
     {% endif %}
   {% endwith %}
 
-  <!-- 主容器 -->
   <div class="main-container">
-    <!-- 抽牌 -->
     <div class="tarot-container">
       <div class="header">
         <h1><i class="fas fa-star"></i> 每日塔罗运势 <i class="fas fa-star"></i></h1>
@@ -318,7 +193,7 @@
             </div>
           {% else %}
             <div style="text-align:center;padding:24px;color:var(--text-light);">
-              <i class="fas fa-sun" style="font-size:3rem;margin-bottom:14px;color: var(--gold-light)"></i>
+              <i class="fas fa-sun" style="font-size:3rem;margin-bottom:14px;color:var(--gold-light)"></i>
               <div style="font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:6px;">{{ today_card.name }}</div>
               <div style="font-size:.95rem;color:var(--text-muted)">{{ today_card.direction }}</div>
             </div>
@@ -338,9 +213,7 @@
         {% if has_drawn %}
           <a href="{{ url_for('result') }}" class="already-drawn"><i class="fas fa-eye"></i> 查看今日塔罗解读</a>
           <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background: linear-gradient(135deg, #4a6fa5, #2e4578);">
-              <i class="fas fa-layer-group"></i> 自选牌阵
-            </a>
+            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background: linear-gradient(135deg, #4a6fa5, #2e4578);"><i class="fas fa-layer-group"></i> 自选牌阵</a>
             <a href="{{ url_for('guide_spread') }}" class="btn-tarot"><i class="fas fa-magic"></i> 引导选择牌阵</a>
           </div>
           <div class="info-text" style="margin-top:8px;color:var(--text-muted)">您今天已经抽取过塔罗牌了</div>
@@ -349,9 +222,7 @@
             <button type="submit" class="btn-tarot" id="draw-btn"><i class="fas fa-hand-sparkles"></i> 抽取今日塔罗牌</button>
           </form>
           <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background:#6c757d;">
-              <i class="fas fa-layer-group"></i> 自选牌阵
-            </a>
+            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background:#6c757d;"><i class="fas fa-layer-group"></i> 自选牌阵</a>
             <a href="{{ url_for('guide_spread') }}" class="btn-tarot"><i class="fas fa-magic"></i> 引导选择牌阵</a>
           </div>
           <div class="info-text" style="margin-top:8px;color:var(--text-muted)">点击按钮开始抽取今日塔罗牌，或直接进入牌阵占卜</div>
@@ -359,7 +230,6 @@
       </div>
     </div>
 
-    <!-- 运势卡片 -->
     <div id="fortune-card" class="fortune-card">
       <div class="fortune-header">
         <div class="fortune-date">{{ today }} · 今日运势</div>
@@ -406,7 +276,6 @@
       </div>
     </div>
 
-    <!-- 功能特点（略，保持原样式与结构可点入） -->
     <div class="features" style="display:flex;justify-content:space-around;flex-wrap:wrap;margin:28px 0;gap:12px;">
       <a class="feature" onclick="goHistory()" style="flex:0 0 30%;min-width:220px;padding:18px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.25s;text-decoration:none;color:inherit;">
         <i class="fas fa-moon" style="font-size:2rem;color:var(--gold-light);margin-bottom:10px;"></i>
@@ -426,22 +295,17 @@
     </div>
 
     <div class="footer" style="text-align:center;color:var(--text-muted);font-size:.95rem;margin-top:4px;">
-      © 2025 塔罗运势 | 宇宙能量，智慧指引<br>
-      <small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
+      © 2025 塔罗运势 | 宇宙能量，智慧指引<br><small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
     </div>
   </div>
 
-  <!-- 悬浮分享按钮 -->
-  <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片">
-    <i class="fas fa-share-alt"></i>
-  </div>
+  <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片"><i class="fas fa-share-alt"></i></div>
 
-  <!-- 分享卡弹层（iframe 方案） -->
   <div class="sc-overlay" id="scOverlay" aria-modal="true" role="dialog">
     <div class="sc-mask" id="scMask"></div>
     <div class="sc-panel">
       <button class="sc-close" id="scClose"><i class="fas fa-times"></i></button>
-      <iframe class="sc-frame" id="scFrame" allow="clipboard-write"></iframe>
+      <iframe class="sc-frame" id="scFrame" allow="clipboard-write" scrolling="no"></iframe>
       <div class="sc-actions">
         <button class="sc-btn" id="scGen">✨ 生成分享</button>
         <button class="sc-btn ghost" id="scCopy">🔗 复制链接</button>
@@ -450,7 +314,6 @@
     </div>
   </div>
 
-  <!-- 数据注入 -->
   <script id="INDEX_DATA" type="application/json">
     {
       "user_name": "{{ user.username if not user.is_guest else '神秘访客' }}",
@@ -463,54 +326,49 @@
 
   <script>
     const $ = (id)=>document.getElementById(id);
-
-    // 维持你原有渲染逻辑
-    const dimensionIcons = {
-      "事业运":"fas fa-briefcase","财富运":"fas fa-coins","爱情运":"fas fa-heart","健康运":"fas fa-heartbeat","贵人运":"fas fa-hands-helping"
-    };
+    const dimensionIcons = {"事业运":"fas fa-briefcase","财富运":"fas fa-coins","爱情运":"fas fa-heart","健康运":"fas fa-heartbeat","贵人运":"fas fa-hands-helping"};
     function generateStars(r){ const full=Math.floor(r||0); let s=''; for(let i=0;i<5;i++) s+=i<full?'★':'☆'; return s; }
 
     document.addEventListener('DOMContentLoaded', ()=>{
       const data = JSON.parse($('INDEX_DATA').textContent || '{}');
       if (data.fortune && Object.keys(data.fortune).length>0) renderFortune(data.fortune);
 
-      // 抽牌提交动效
       document.getElementById('draw-form')?.addEventListener('submit', function(e){
         e.preventDefault(); const btn=$('draw-btn'); btn.disabled=true; setTimeout(()=>this.submit(), 900 + Math.random()*900);
       });
 
-      // 打开分享卡
       const openShare = ()=> openShareOverlay(data);
       $('openShareBtn')?.addEventListener('click', openShare);
       $('fabShare')?.addEventListener('click', ()=>{ if(!$('fabShare').classList.contains('disabled')) openShare(); });
 
-      // 关闭
       $('scMask').addEventListener('click', closeShareOverlay);
       $('scClose').addEventListener('click', closeShareOverlay);
 
-      // iframe 自适应：接收子页尺寸
+      // 子页尺寸 -> 自适应 iframe（无任何滚动条）
+      const PAD_X = 32, PAD_Y = 160;
       window.addEventListener('message', (evt)=>{
         const msg = evt.data || {};
         if(msg.type === 'ruoshui:size' && msg.data){
           const frame = $('scFrame'); if(!frame) return;
-          const PAD_X = 32, PAD_Y = 160; // 面板留白
           frame.style.width  = Math.min(msg.data.w, window.innerWidth - PAD_X) + 'px';
           frame.style.height = Math.min(msg.data.h, window.innerHeight - PAD_Y) + 'px';
         }
       });
 
-      // 按钮功能
+      // 按钮
       $('scGen').addEventListener('click', generateShareId);
       $('scCopy').addEventListener('click', ()=>copyText('https://www.ruoshui.fun'));
       $('scSave').addEventListener('click', saveShareImage);
+
+      // 窗口尺寸变化 -> 将父页可视高度发给子页，子页据此进入 compact
+      window.addEventListener('resize', sendViewportToChild);
     });
 
     function renderFortune(data){
       $('fortune-card').style.display = 'block';
       $('overall-score').textContent = data.overall_score || '-';
       $('overall-label').textContent = data.overall_label || '-';
-      const summaryText = (data.fortune_text && data.fortune_text.summary) || data.summary || '';
-      $('fortune-summary-text').textContent = summaryText;
+      $('fortune-summary-text').textContent = (data.fortune_text && data.fortune_text.summary) || data.summary || '';
 
       const grid = $('dimensions-grid'); grid.innerHTML='';
       if (data.dimensions && Array.isArray(data.dimensions)) {
@@ -545,19 +403,13 @@
         if (Array.isArray(data.lucky_elements)) {
           data.lucky_elements.forEach(item=>{
             luckyGrid.insertAdjacentHTML('beforeend', `
-              <div class="lucky-item">
-                <div class="lucky-label">${item.name}</div>
-                <div class="lucky-value">${item.value}</div>
-              </div>`);
+              <div class="lucky-item"><div class="lucky-label">${item.name}</div><div class="lucky-value">${item.value}</div></div>`);
           });
         } else if (typeof data.lucky_elements === 'object') {
           const nameMap = {color:'幸运颜色',number:'幸运数字',hour:'幸运时辰',direction:'幸运方位'};
           Object.entries(data.lucky_elements).forEach(([k,v])=>{
             luckyGrid.insertAdjacentHTML('beforeend', `
-              <div class="lucky-item">
-                <div class="lucky-label">${nameMap[k] || k}</div>
-                <div class="lucky-value">${v}</div>
-              </div>`);
+              <div class="lucky-item"><div class="lucky-label">${nameMap[k] || k}</div><div class="lucky-value">${v}</div></div>`);
           });
         }
       }
@@ -588,7 +440,7 @@
         .finally(()=>{ btn.disabled=false; });
     }
 
-    // —— 分享卡：iframe 预览 & 导出（后端） ——
+    // —— 分享卡：iframe 预览&通信 ——
     function openShareOverlay(data){
       if(!data.has_drawn){ alert('请先抽取今日塔罗牌'); return; }
       const payload = {
@@ -601,9 +453,19 @@
       const frame = $('scFrame');
       frame.src = url;
       $('scOverlay').style.display = 'flex';
-      // 清理上次生成的 share_id
+
+      // 初次把父页可视范围告诉子页
+      frame.onload = ()=> sendViewportToChild();
       window.__LAST_SHARE_ID__ = null;
+      window.__LAST_SHARE_URL__ = 'https://www.ruoshui.fun';
     }
+
+    function sendViewportToChild(){
+      const frame = $('scFrame');
+      if(!frame || !frame.contentWindow) return;
+      frame.contentWindow.postMessage({type:'ruoshui:viewport', data:{w:window.innerWidth, h:window.innerHeight, padY:160}}, '*');
+    }
+
     function closeShareOverlay(){ $('scOverlay').style.display='none'; }
 
     async function generateShareId(){
@@ -612,33 +474,54 @@
         const r = await fetch('/api/share/create', { method:'POST' });
         const d = await r.json();
         if(!d.success) throw new Error(d.error || '生成失败');
+
+        // 记录 share_id
         window.__LAST_SHARE_ID__ = d.share_id;
+        // 兼容后端字段：qr_code（dataURL）/ qr_base64 / qr_url / share_url
+        const share_url = d.share_url || 'https://www.ruoshui.fun';
+        window.__LAST_SHARE_URL__ = share_url;
+        let qrCode = d.qr_code || null;
+        if(!qrCode && d.qr_base64){ qrCode = `data:image/png;base64,${d.qr_base64}`; }
+        if(!qrCode && d.qr_url){ qrCode = d.qr_url; }
+
+        // 通知子页更新二维码和链接
+        const frame = $('scFrame');
+        frame?.contentWindow?.postMessage({type:'ruoshui:update', data:{qr_code: qrCode, share_url: share_url}}, '*');
+
+        $('scCopy').onclick = ()=> copyText(share_url);
         btn.textContent = '已生成';
       }catch(e){
-        alert(e.message || '生成失败'); btn.textContent = old;
+        alert(e.message || '生成失败');
+        btn.textContent = old;
       }finally{ btn.disabled = false; }
     }
 
     async function saveShareImage(){
+      const btn = $('scSave'); btn.disabled = true; const old = btn.textContent; btn.textContent='导出中…';
       try{
-        // 确保有 share_id
         if(!window.__LAST_SHARE_ID__){
-          const r = await fetch('/api/share/create', { method:'POST' });
-          const d = await r.json();
-          if(!d.success) throw new Error(d.error || '生成失败');
-          window.__LAST_SHARE_ID__ = d.share_id;
+          // 若未生成，则先生成
+          await generateShareId();
+          if(!window.__LAST_SHARE_ID__) throw new Error('生成分享失败');
         }
-        const r2 = await fetch('/api/share/export', {
+        const r = await fetch('/api/share/export', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ share_id: window.__LAST_SHARE_ID__ })
         });
-        if(!r2.ok) throw new Error('导出图片失败');
-        const blob = await r2.blob();
+        if(!r.ok){
+          const t = await r.text();
+          throw new Error(t || '导出图片失败');
+        }
+        const blob = await r.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href=url; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click();
         URL.revokeObjectURL(url);
-      }catch(e){ alert(e.message || '保存失败，请稍后再试'); }
+        btn.textContent='已保存';
+      }catch(e){
+        alert(e.message || '导出图片失败');
+        btn.textContent = old;
+      }finally{ btn.disabled=false; }
     }
 
     function copyText(text){
