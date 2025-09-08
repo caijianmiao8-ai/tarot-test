@@ -10,6 +10,17 @@ import json
 import traceback
 from psycopg2.extras import Json
 import datetime
+import json
+from datetime import date, datetime
+from decimal import Decimal
+
+def _json_default(o):
+    if isinstance(o, (datetime, date)):
+        return o.isoformat()  # 'YYYY-MM-DD' 或 'YYYY-MM-DDTHH:MM:SS'
+    if isinstance(o, Decimal):
+        return float(o)
+    # 其他自定义对象都转成字符串，避免再抛错
+    return str(o)
 
 def _normalize_json_list(val):
     """把 val 归一化为 list，用于 JSON/JSONB/TEXT 混存的字段"""
@@ -73,7 +84,7 @@ class ShareDAO:
                 cur.execute(sql, [
                     share_id,
                     (str(user_id) if user_id is not None else None),
-                    json.dumps(share_data, ensure_ascii=False),
+                    json.dumps(share_data, ensure_ascii=False, default=_json_default),
                     created_at,
                     expires_at
                 ])
