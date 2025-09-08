@@ -17,3 +17,6 @@ psycopg2-binary
 qrcode[pil]==7.4.2
 Pillow>=10.0
 playwright==1.46.0
+beautifulsoup4
+selenium
+webdriver-manager
