@@ -1,355 +1,436 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我的塔罗运势 - 若水占卜</title>
-  <meta name="theme-color" content="#667eea"/>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
-      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-      min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;
-    }
-    .share-card{
-      width:375px;height:667px;background:linear-gradient(180deg,#1a1a2e 0%,#0f0f1e 100%);
-      border-radius:24px;overflow:hidden;position:relative;box-shadow:0 30px 60px rgba(0,0,0,.4)
-    }
-    .celestial-bg{position:absolute;width:100%;height:100%;overflow:hidden}
-    .star{position:absolute;background:white;border-radius:50%;animation:twinkle 3s infinite}
-    @keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
-    .glow-orb{position:absolute;width:300px;height:300px;border-radius:50%;
-      background:radial-gradient(circle,rgba(138,97,255,.3) 0%,transparent 70%);
-      filter:blur(40px);animation:float 6s ease-in-out infinite}
-    .glow-orb:nth-child(1){top:-150px;right:-100px;animation-delay:0s}
-    .glow-orb:nth-child(2){bottom:-150px;left:-100px;background:radial-gradient(circle,rgba(255,97,218,.3) 0%,transparent 70%);animation-delay:3s}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
-    .card-content{position:relative;z-index:10;height:100%;display:flex;flex-direction:column;padding:30px 25px}
-    .header-section{text-align:center;margin-bottom:25px}
-    .date-label{color:rgba(255,255,255,.5);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
-    .user-name{color:#fff;font-size:18px;font-weight:300;margin-bottom:5px}
-    .divination-type{color:#b794f6;font-size:14px;font-weight:500}
-    .tarot-display{background:linear-gradient(135deg,rgba(138,97,255,.1) 0%,rgba(255,97,218,.1) 100%);
-      border-radius:20px;padding:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px)}
-    .card-image-container{width:120px;height:180px;margin:0 auto 15px;position:relative;transform-style:preserve-3d;animation:subtle-rotate 8s ease-in-out infinite}
-    @keyframes subtle-rotate{0%,100%{transform:rotateY(0)}50%{transform:rotateY(10deg)}}
-    .card-image{width:100%;height:100%;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
-      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);box-shadow:0 10px 30px rgba(102,126,234,.3)}
-    .card-image img{width:100%;height:100%;object-fit:cover}
-    .card-image::before{content:'';position:absolute;width:100%;height:100%;
-      background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,255,255,.05) 10px,rgba(255,255,255,.05) 20px)}
-    .card-icon{font-size:48px;color:rgba(255,255,255,.9)}
-    .card-info{text-align:center}
-    .card-name{color:#fff;font-size:20px;font-weight:500;margin-bottom:5px}
-    .card-direction{color:#b794f6;font-size:14px}
-    .fortune-section{flex:1;display:flex;flex-direction:column;gap:15px}
-    .overall-score{background:linear-gradient(135deg,rgba(255,97,218,.1) 0%,rgba(138,97,255,.1) 100%);border-radius:16px;padding:15px;text-align:center;border:1px solid rgba(255,255,255,.1)}
-    .score-number{font-size:36px;font-weight:bold;background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .score-label{color:rgba(255,255,255,.7);font-size:12px;margin-top:5px}
-    .dimensions-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-    .dimension-item{text-align:center}
-    .dimension-icon{width:36px;height:36px;margin:0 auto 5px;background:linear-gradient(135deg,rgba(138,97,255,.2) 0%,rgba(255,97,218,.2) 100%);
-      border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.1)}
-    .dimension-name{color:rgba(255,255,255,.6);font-size:10px;margin-bottom:3px}
-    .dimension-stars{color:#ffd700;font-size:11px;letter-spacing:1px}
-    .lucky-elements{background:rgba(255,255,255,.03);border-radius:12px;padding:12px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    .lucky-item{display:flex;align-items:center;gap:8px}
-    .lucky-label{color:rgba(255,255,255,.5);font-size:11px}
-    .lucky-value{color:#b794f6;font-size:12px;font-weight:500}
-    .footer-section{margin-top:auto;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between}
-    .qr-container{width:60px;height:60px;background:white;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center}
-    .qr-placeholder{width:100%;height:100%;background:repeating-linear-gradient(0deg,#000,#000 2px,#fff 2px,#fff 4px)}
-    .invite-text{flex:1;margin-left:15px}
-    .invite-title{color:#fff;font-size:14px;margin-bottom:3px}
-    .invite-subtitle{color:rgba(255,255,255,.5);font-size:11px}
-    .site-url{color:#b794f6;font-size:10px;margin-top:5px;word-break:break-all}
-    .moon-phase{position:absolute;top:30px;right:30px;width:30px;height:30px;border-radius:50%;background:linear-gradient(90deg,#fff 50%,transparent 50%);opacity:.3}
-    .mystical-symbol{position:absolute;width:100px;height:100px;opacity:.05;
-      background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="white" stroke-width="1"/><polygon points="50,10 61,40 90,40 65,60 76,90 50,70 24,90 35,60 10,40 39,40" fill="none" stroke="white" stroke-width="1"/></svg>');animation:rotate-slow 30s linear infinite}
-    .mystical-symbol:nth-child(1){top:100px;left:-50px}
-    .mystical-symbol:nth-child(2){bottom:100px;right:-50px;animation-direction:reverse}
-    @keyframes rotate-slow{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-    .action-buttons{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:100}
-    .action-btn{padding:12px 24px;border-radius:24px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s ease;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-    .generate-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;box-shadow:0 4px 15px rgba(102,126,234,.3)}
-    .generate-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,.4)}
-    .save-btn{background:rgba(255,255,255,.1);color:white;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2)}
-    .save-btn:hover{background:rgba(255,255,255,.15)}
-    .copy-btn{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2)}
-    .hidden{display:none !important}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>我的塔罗运势 - 若水占卜</title>
+<meta name="theme-color" content="#6d66ea"/>
+
+<style>
+:root{
+  --bg1:#0e0c19; --bg2:#1a1733;
+  --glass:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.14);
+  --soft:white;
+  --muted:rgba(255,255,255,.65);
+  --accent:#b794f6;
+  --gold1:#fde68a; --gold2:#f59e0b;
+  --pink1:#fbcfe8; --vio1:#c4b5fd;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(1200px 600px at 10% 10%, #2a2252 0%, transparent 60%),
+    radial-gradient(1200px 600px at 90% 90%, #4b1d4f 0%, transparent 60%),
+    linear-gradient(135deg, #212139 0%, #0b0b16 100%);
+  padding:24px;
+}
+
+.share{
+  width:390px; height:690px; position:relative; overflow:hidden; border-radius:28px;
+  background:linear-gradient(180deg, var(--bg2), var(--bg1));
+  box-shadow:0 40px 70px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* 星空与装饰 */
+.stars{position:absolute; inset:0; overflow:hidden; z-index:0}
+.star{position:absolute; width:2px; height:2px; background:white; border-radius:50%; opacity:.7; animation:twinkle 3s infinite}
+@keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+.glow{position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(50px); z-index:0}
+.glow.a{top:-120px; right:-120px; background:radial-gradient(circle, rgba(199,125,255,.35), transparent 65%)}
+.glow.b{bottom:-140px; left:-140px; background:radial-gradient(circle, rgba(255,120,198,.30), transparent 65%)}
+.moon{position:absolute; top:28px; right:28px; width:34px; height:34px; border-radius:50%;
+  background:conic-gradient(from 90deg, rgba(255,255,255,.95) 0 50%, transparent 50% 100%); opacity:.45; z-index:1}
+
+/* 内容 */
+.content{position:relative; z-index:2; height:100%; padding:24px 20px; display:flex; flex-direction:column}
+
+/* 顶部 */
+.top{display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:12px}
+.brand{letter-spacing:.18em; font-size:11px; color:var(--muted)}
+.date{font-size:12px; color:var(--muted); letter-spacing:.12em}
+.user{color:#fff; font-weight:600; font-size:18px}
+.badge{color:var(--accent); font-weight:600; font-size:13px}
+
+/* 牌面卡 */
+.cardbox{
+  position:relative; margin:12px 0 16px; padding:16px 16px 14px; border-radius:20px;
+  background:linear-gradient(140deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid var(--line); backdrop-filter:blur(8px);
+}
+.tarot{
+  width:136px; height:204px; margin:0 auto 12px; border-radius:14px; overflow:hidden;
+  background:linear-gradient(135deg, #6d66ea, #8a6ff0 45%, #ef5ea9 100%);
+  box-shadow:0 12px 28px rgba(109,102,234,.35);
+  transform-style:preserve-3d; animation:cardfloat 8s ease-in-out infinite;
+  position:relative;
+}
+@keyframes cardfloat{0%,100%{transform:translateY(0) rotateY(0)}50%{transform:translateY(-6px) rotateY(10deg)}}
+.tarot img{width:100%; height:100%; object-fit:cover}
+.tarot::after{
+  content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 12px, rgba(255,255,255,.06) 12px 24px);
+}
+.dirchip{
+  position:absolute; top:12px; right:12px; padding:6px 10px; border-radius:999px;
+  font-size:12px; font-weight:700; letter-spacing:.1em; color:#1a1330;
+  background:linear-gradient(135deg, var(--gold1), var(--gold2)); box-shadow:0 6px 14px rgba(245,158,11,.28);
+}
+.cardname{color:#fff; text-align:center; font-size:18px; font-weight:700}
+.carddir{color:var(--accent); text-align:center; font-size:13px; margin-top:2px}
+
+/* 得分环 */
+.score{
+  display:flex; align-items:center; justify-content:center; gap:12px; margin:12px 0 4px;
+}
+.ring{
+  --val:72; /* 0-100 */
+  width:86px; height:86px; border-radius:50%;
+  background:
+   conic-gradient(from -90deg, #f890e7 calc(var(--val)*1%), rgba(255,255,255,.14) 0),
+   radial-gradient(circle 36px at 50% 50%, rgba(0,0,0,.0) 98%, rgba(255,255,255,.18) 100%);
+  display:grid; place-items:center; box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.ring b{font-size:20px; color:#fff}
+.scoretxt{display:flex; flex-direction:column; align-items:flex-start}
+.scoretxt .label{font-size:12px; color:var(--muted)}
+.scoretxt .lvl{font-weight:700; color:#fff}
+
+/* 五维度 */
+.dim{
+  margin-top:8px; display:grid; grid-template-columns:repeat(5,1fr); gap:8px;
+}
+.di{ text-align:center }
+.di .ico{ width:36px; height:36px; border-radius:50%; margin:0 auto 6px;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+  background:linear-gradient(135deg, rgba(199,125,255,.22), rgba(255,120,198,.22));
+  border:1px solid var(--line);
+}
+.di .nm{font-size:11px; color:var(--muted); margin-bottom:2px}
+.di .stars{font-size:12px; color:#ffd670; letter-spacing:1px}
+.di .lv{font-size:10px; color:#b9a6ff; margin-top:2px}
+
+/* 幸运元素 */
+.lucky{
+  margin-top:12px; padding:12px; border-radius:14px; border:1px solid var(--line);
+  background:linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+}
+.litem{display:flex; align-items:center; gap:8px}
+.lkey{font-size:12px; color:var(--muted)}
+.lval{font-size:13px; font-weight:700; color:var(--accent);}
+
+/* 宜忌 + 牌义 */
+.section{ margin-top:12px; border-top:1px dashed var(--line); padding-top:12px }
+.row{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.card{
+  padding:12px; border-radius:14px; border:1px solid var(--line);
+  background:linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+}
+.card h4{font-size:13px; color:#fff; letter-spacing:.1em; margin-bottom:8px}
+.ul{ list-style:none; display:flex; flex-direction:column; gap:6px }
+.ul li{ font-size:12px; color:var(--soft) }
+
+.note{ margin-top:10px; padding:12px; border-radius:14px; border:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.02));
+}
+.note h4{font-size:13px; color:#fff; margin-bottom:6px; letter-spacing:.08em}
+.note p{font-size:12px; color:var(--soft); line-height:1.55}
+
+/* 底部二维码 */
+.bottom{
+  margin-top:auto; display:flex; align-items:center; gap:12px; padding-top:12px; border-top:1px solid var(--line);
+}
+.qr{ width:66px; height:66px; border-radius:10px; background:#fff; display:grid; place-items:center; overflow:hidden }
+.qr img{ width:100%; height:100%; object-fit:cover }
+.qrph{ width:100%; height:100%; background:repeating-linear-gradient(0deg,#000,#000 2px,#fff 2px,#fff 4px)}
+.btntxt{flex:1}
+.btntxt .t{ color:#fff; font-size:14px; font-weight:700 }
+.btntxt .s{ color:var(--muted); font-size:11px }
+.btntxt .u{ color:var(--accent); font-size:10px; margin-top:4px; word-break:break-all }
+
+/* 浮动按钮 */
+.actions{
+  position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
+  display:flex; gap:12px; z-index:10;
+}
+.btn{
+  padding:12px 18px; border-radius:22px; border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
+  color:#fff; font-weight:700; font-size:13px; cursor:pointer; backdrop-filter:blur(10px);
+  display:inline-flex; align-items:center; gap:8px; text-decoration:none;
+  transition:.2s transform,.2s box-shadow;
+}
+.btn:hover{ transform:translateY(-2px); box-shadow:0 10px 20px rgba(0,0,0,.25)}
+.btn.primary{ background:linear-gradient(135deg,#6d66ea,#ef5ea9); border-color:transparent; box-shadow:0 10px 20px rgba(239,94,169,.25)}
+.btn.hidden{ display:none !important }
+
+/* 导出时隐藏按钮 */
+.exporting .actions{ display:none !important }
+</style>
 </head>
 <body>
-  <div class="share-card" id="shareCard">
-    <!-- 星空背景 -->
-    <div class="celestial-bg" id="celestialBg"></div>
-    <!-- 光晕效果 -->
-    <div class="glow-orb"></div><div class="glow-orb"></div>
-    <!-- 装饰 -->
-    <div class="mystical-symbol"></div><div class="mystical-symbol"></div>
-    <div class="moon-phase"></div>
+<div class="share" id="shareCard">
+  <div class="stars" id="stars"></div>
+  <div class="glow a"></div><div class="glow b"></div>
+  <div class="moon"></div>
 
-    <!-- 主体内容 -->
-    <div class="card-content">
-      <div class="header-section">
-        <div class="date-label" id="dateLabel">--</div>
-        <div class="user-name" id="userName">--</div>
-        <div class="divination-type">✨ 今日塔罗运势 ✨</div>
+  <div class="content">
+    <div class="top">
+      <div class="brand">RUOSHUI TAROT</div>
+      <div class="date" id="dateLabel">--</div>
+      <div class="user" id="userName">神秘访客</div>
+      <div class="badge">✨ 今日塔罗运势 ✨</div>
+    </div>
+
+    <div class="cardbox">
+      <div class="tarot" id="tarotImg"><span class="dirchip" id="dirChip">--</span></div>
+      <div class="cardname" id="cardName">--</div>
+      <div class="carddir" id="cardDirection">--</div>
+    </div>
+
+    <div class="score">
+      <div class="ring" id="ring"><b id="scoreNum">--</b></div>
+      <div class="scoretxt">
+        <div class="label">总评</div>
+        <div class="lvl" id="scoreLbl">--</div>
       </div>
+    </div>
 
-      <div class="tarot-display">
-        <div class="card-image-container">
-          <div class="card-image" id="cardImage">
-            <div class="card-icon" id="cardIcon">🎴</div>
-            <!-- 若有图片，将以 <img> 填充 -->
-          </div>
+    <div class="dim" id="dimGrid"></div>
+
+    <div class="lucky">
+      <div class="litem"><div class="lkey">幸运色</div><div class="lval" id="lkColor">--</div></div>
+      <div class="litem"><div class="lkey">幸运数</div><div class="lval" id="lkNum">--</div></div>
+      <div class="litem"><div class="lkey">幸运时</div><div class="lval" id="lkHour">--</div></div>
+      <div class="litem"><div class="lkey">幸运方</div><div class="lval" id="lkDir">--</div></div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <div class="card">
+          <h4>今日宜</h4>
+          <ul class="ul" id="todo"></ul>
         </div>
-        <div class="card-info">
-          <div class="card-name" id="cardName">--</div>
-          <div class="card-direction" id="cardDirection">--</div>
+        <div class="card">
+          <h4>今日忌</h4>
+          <ul class="ul" id="dont"></ul>
         </div>
       </div>
-
-      <div class="fortune-section">
-        <div class="overall-score">
-          <div class="score-number" id="scoreNumber">--</div>
-          <div class="score-label" id="scoreLabel">今日运势 · --</div>
-        </div>
-
-        <div class="dimensions-grid" id="dimensionsGrid">
-          <!-- JS 渲染：事业/财富/爱情/健康/贵人 -->
-        </div>
-
-        <div class="lucky-elements" id="luckyElements">
-          <div class="lucky-item"><span class="lucky-label">幸运色：</span><span class="lucky-value" id="luckyColor">--</span></div>
-          <div class="lucky-item"><span class="lucky-label">幸运数：</span><span class="lucky-value" id="luckyNumber">--</span></div>
-          <div class="lucky-item"><span class="lucky-label">幸运时：</span><span class="lucky-value" id="luckyHour">--</span></div>
-          <div class="lucky-item"><span class="lucky-label">幸运方：</span><span class="lucky-value" id="luckyDirection">--</span></div>
-        </div>
+      <div class="note">
+        <h4>牌义精要</h4>
+        <p id="insight">--</p>
+        <h4 style="margin-top:8px;">行动指引</h4>
+        <p id="guide">--</p>
       </div>
+    </div>
 
-      <div class="footer-section">
-        <div class="qr-container">
-          <img id="qrImg" class="hidden" alt="分享二维码" />
-          <div id="qrPlaceholder" class="qr-placeholder"></div>
-        </div>
-        <div class="invite-text">
-          <div class="invite-title" id="inviteTitle">扫码测试你的运势</div>
-          <div class="invite-subtitle">探索宇宙能量的指引</div>
-          <div class="site-url" id="siteUrl">www.ruoshui.fun</div>
-        </div>
+    <div class="bottom">
+      <div class="qr"><img id="qrImg" alt="" style="display:none"/><div id="qrPh" class="qrph"></div></div>
+      <div class="btntxt">
+        <div class="t">扫码查看我的占卜</div>
+        <div class="s">探索宇宙能量的轻声低语</div>
+        <div class="u" id="siteUrl">www.ruoshui.fun</div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- 操作按钮（查看页隐藏“生成”，显示“复制链接”） -->
-  <div class="action-buttons" id="actions">
-    <button class="action-btn generate-btn" id="btnGenerate">
-      <span>🎴</span><span>生成分享卡片</span>
-    </button>
-    <button class="action-btn copy-btn hidden" id="btnCopy">
-      <span>🔗</span><span>复制链接</span>
-    </button>
-    <button class="action-btn save-btn" id="btnSave">
-      <span>💾</span><span>保存图片</span>
-    </button>
-  </div>
+<div class="actions" id="actions">
+  <button class="btn primary" id="btnGen">🎴 生成分享卡片</button>
+  <button class="btn" id="btnCopy" style="display:none">🔗 复制链接</button>
+  <button class="btn" id="btnSave">💾 保存图片</button>
+</div>
 
-  <!-- 服务端数据注入（两种模式兼容）：share_data 优先，否则 user/reading/fortune_data/today -->
-  <script id="__DATA__" type="application/json">
-  {
-    "mode": "{{ 'view' if share_data is defined else 'own' }}",
-    "share_url": "{{ (request.url if share_data is defined else '')|e }}",
-    "user_name": "{{ (share_data['user_name'] if share_data is defined else (user.get('username','神秘访客') if user else '神秘访客'))|e }}",
-    "date_iso": "{{ (share_data['created_at'].isoformat() if share_data is defined and share_data.get('created_at') else '')|e }}",
-    "today_str": "{{ (today if today is defined else '')|e }}",
-    "reading": {{ (share_data['reading'] if share_data is defined else reading)|tojson }},
-    "fortune": {{ (share_data['fortune'] if share_data is defined else fortune_data)|tojson }}
+<!-- 服务端注入的数据（保持你原有格式） -->
+<script id="__DATA__" type="application/json">
+{
+  "mode": "{{ 'view' if share_data is defined else 'own' }}",
+  "share_url": "{{ (request.url if share_data is defined else '')|e }}",
+  "user_name": "{{ (share_data['user_name'] if share_data is defined else (user.get('username','神秘访客') if user else '神秘访客'))|e }}",
+  "date_iso": "{{ (share_data['created_at'].isoformat() if share_data is defined and share_data.get('created_at') else '')|e }}",
+  "today_str": "{{ (today if today is defined else '')|e }}",
+  "reading": {{ (share_data['reading'] if share_data is defined else reading)|tojson }},
+  "fortune": {{ (share_data['fortune'] if share_data is defined else fortune_data)|tojson }},
+  "qr_code": "{{ (share_data.get('qr_code') if share_data is defined else '')|e }}"
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<script>
+const $=id=>document.getElementById(id);
+const ICONS={ "事业运":"💼","财富运":"💰","爱情运":"❤️","健康运":"🌿","贵人运":"🤝" };
+
+function genStars(){
+  const box=$('stars'); for(let i=0;i<60;i++){
+    const s=document.createElement('div'); s.className='star';
+    const size=Math.random()*2+1;
+    Object.assign(s.style,{
+      width:size+'px', height:size+'px',
+      left:(Math.random()*100)+'%', top:(Math.random()*100)+'%',
+      animationDelay:(Math.random()*3)+'s', opacity:.3+Math.random()*.7
+    });
+    box.appendChild(s);
   }
-  </script>
+}
+function labelByScore(s){ s=Number(s)||0; if(s>=85) return '大吉'; if(s>=70) return '中吉'; if(s>=55) return '小吉'; return '平'; }
+function starText(n){ n = Math.max(0, Math.min(5, Number(n)||0)); const full=Math.floor(n), half=(n-full)>=0.5?1:0; return '★'.repeat(full)+(half?'⯪':'')+'☆'.repeat(5-full-half); }
+function to2(v){return (v??'--');}
+function setRing(val){ const ring=$('ring'); ring.style.setProperty('--val', (Math.max(0,Math.min(100,Number(val)||0)))); }
 
-  <!-- 依赖：html2canvas（保存图片用） -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+function fillDims(grid, fortune){
+  grid.innerHTML='';
+  let items = [];
+  if (Array.isArray(fortune?.dimensions)) items = fortune.dimensions;
+  else if (typeof fortune?.dimensions === 'string'){
+    const lines = fortune.dimensions.split(/\n+/);
+    items = lines.map(line=>{
+      const m = line.match(/^(.*?)[：:]\s*([\d.]+)\s*星.*?(（(.+?)）)?/);
+      return m? {name:m[1], stars:parseFloat(m[2]), level:(m[4]||'')} : null
+    }).filter(Boolean);
+  }
+  const order=["事业运","财富运","爱情运","健康运","贵人运"];
+  order.forEach(nm=>{
+    const it = items.find(x => (x.name===nm || x.name===nm.replace('运','')));
+    if(!it) return;
+    const li=document.createElement('div'); li.className='di';
+    li.innerHTML = `
+      <div class="ico">${ICONS[nm]||'✨'}</div>
+      <div class="nm">${nm.replace('运','')}</div>
+      <div class="stars">${starText(it.stars)}</div>
+      <div class="lv">${to2(it.level)}</div>`;
+    grid.appendChild(li);
+  });
+}
 
-  <script>
-    // ===== 工具函数 =====
-    function $(id){return document.getElementById(id)}
-    function fmtDateYMD(d){
+function fillLucky(fortune){
+  const L = fortune?.lucky_elements;
+  const color = fortune?.lucky_color || L?.color;
+  const num = fortune?.lucky_number || L?.number;
+  const hour = fortune?.lucky_hour || L?.hour;
+  const dir = fortune?.lucky_direction || L?.direction;
+  $('lkColor').textContent = to2(color);
+  $('lkNum').textContent = to2(num);
+  $('lkHour').textContent = to2(hour);
+  $('lkDir').textContent = to2(dir);
+}
+
+function fillTodo(fortune){
+  const todo = (fortune?.do) || (fortune?.fortune_text?.do) || [];
+  const dont = (fortune?.dont) || (fortune?.fortune_text?.dont) || [];
+  const ul1=$('todo'), ul2=$('dont'); ul1.innerHTML=''; ul2.innerHTML='';
+  (Array.isArray(todo)?todo:[]).slice(0,4).forEach(t=>{
+    const li=document.createElement('li'); li.textContent='· '+t; ul1.appendChild(li);
+  });
+  (Array.isArray(dont)?dont:[]).slice(0,4).forEach(t=>{
+    const li=document.createElement('li'); li.textContent='· '+t; ul2.appendChild(li);
+  });
+}
+
+function firstNonEmpty(...arr){ for(const t of arr){ if(t && String(t).trim()) return t } return '' }
+
+function init(){
+  genStars();
+  const data = JSON.parse(document.getElementById('__DATA__').textContent || '{}');
+  const mode = data.mode || 'own';
+  const reading = data.reading || {};
+  const fortune = data.fortune || {};
+
+  // 头部
+  const dateStr = (mode==='view' && data.date_iso) ? fmtYMD(data.date_iso) : (data.today_str || '--');
+  $('dateLabel').textContent = dateStr;
+  $('userName').textContent = data.user_name || '神秘访客';
+
+  // 牌面
+  const cardName = reading.card_name || reading.name || '--';
+  const direction = reading.direction || reading.card_direction || '--';
+  $('cardName').textContent = cardName;
+  $('cardDirection').textContent = direction;
+  $('dirChip').textContent = direction;
+  const img = reading.image || reading.card_image;
+  if (img){
+    const image = new Image();
+    image.onload = ()=> { const box=$('tarotImg'); box.style.background = 'none'; box.innerHTML=''; box.appendChild(image); const chip=$('dirChip'); box.appendChild(chip); };
+    image.src = img;
+  }
+
+  // 总分
+  const overall = fortune.overall_score ?? fortune.overall ?? '';
+  $('scoreNum').textContent = overall || '--';
+  $('scoreLbl').textContent = '今日 · ' + (fortune.overall_label || labelByScore(overall));
+  setRing(overall);
+
+  // 维度
+  fillDims($('dimGrid'), fortune);
+
+  // 幸运元素
+  fillLucky(fortune);
+
+  // 宜/忌
+  fillTodo(fortune);
+
+  // 牌义与指引（优先今日洞察与指引，其次 Dify summary 与维度建议，再次卡面含义）
+  const summary = firstNonEmpty(fortune.summary, fortune.fortune_text?.summary, reading.today_insight);
+  $('insight').textContent = summary || firstNonEmpty(
+    reading[direction==='正位'?'meaning_up':'meaning_rev'],
+    '今日从容以对，顺势而为。'
+  );
+  const adv = reading.guidance || (()=> {
+    const advDict = fortune.dimension_advice || fortune.fortune_text?.dimension_advice || {};
+    const keys = Object.keys(advDict); if (!keys.length) return '';
+    return keys.map(k=>`${k}：${advDict[k]}`).join('；');
+  })();
+  $('guide').textContent = adv || '保持节奏，做重要且具体的小事。';
+
+  // 二维码
+  if (data.qr_code) {
+    $('qrImg').src = data.qr_code;
+    $('qrImg').style.display = '';
+    $('qrPh').style.display = 'none';
+  }
+  $('siteUrl').textContent = (mode==='view' ? (data.share_url || 'www.ruoshui.fun') : 'www.ruoshui.fun');
+
+  // 按钮状态
+  const btnGen=$('btnGen'), btnCopy=$('btnCopy'), btnSave=$('btnSave');
+  if (mode==='view'){ btnGen.style.display='none'; btnCopy.style.display='inline-flex'; btnCopy.onclick=()=>copyText(data.share_url||location.href); }
+  else {
+    btnGen.onclick = async ()=>{
+      btnGen.disabled = true; btnGen.textContent = '生成中…';
       try{
-        const dt = (typeof d==='string')? new Date(d) : d;
-        const y = dt.getFullYear(), m = String(dt.getMonth()+1).padStart(2,'0'), day = String(dt.getDate()).padStart(2,'0');
-        return `${y}.${m}.${day}`;
-      }catch{ return '--' }
-    }
-    function scoreLabel(s){
-      s = Number(s)||0;
-      if(s>=85) return '大吉';
-      if(s>=70) return '中吉';
-      if(s>=55) return '小吉';
-      return '平';
-    }
-    function toStars(val){ // 支持 3.5 -> ★★★⯪☆
-      let n = Number(val)||0; n = Math.max(0, Math.min(5, n));
-      const full = Math.floor(n);
-      const half = (n - full)>=0.5 ? 1 : 0;
-      return '★'.repeat(full) + (half?'⯪':'') + '☆'.repeat(5-full-half);
-    }
-    function parseDimensions(dimStr){
-      // 解析形如：
-      // 事业运：3.5星（中吉）\n财富运：4.0星（中吉）...
-      const out = {};
-      if(typeof dimStr !== 'string') return out;
-      dimStr.split(/\n+/).forEach(line=>{
-        const m = line.match(/^(.*?)[：:]\s*([\d.]+)\s*星/);
-        if(m){ out[m[1].trim()] = parseFloat(m[2]); }
-      });
-      return out;
-    }
-    function setText(id, val){ const el=$(id); if(el) el.textContent = (val ?? '--'); }
+        const resp = await fetch('/api/share/create', {method:'POST'});
+        const d = await resp.json();
+        if(!d.success) throw new Error(d.error||'生成失败');
+        $('siteUrl').textContent = d.share_url;
+        if (d.qr_code){ $('qrImg').src=d.qr_code; $('qrImg').style.display=''; $('qrPh').style.display='none'; }
+        btnCopy.style.display='inline-flex'; btnCopy.onclick=()=>copyText(d.share_url);
+        btnGen.textContent='已生成';
+      }catch(e){ alert(e.message||'生成失败'); btnGen.textContent='生成分享卡片'; }
+      finally{ btnGen.disabled=false; }
+    };
+  }
+  btnSave.onclick = ()=>savePng();
+}
 
-    // 星空
-    function generateStars(){
-      const celestialBg = $('celestialBg');
-      if(!celestialBg) return;
-      const starCount = 50;
-      for(let i=0;i<starCount;i++){
-        const s=document.createElement('div');
-        s.className='star';
-        const size = Math.random()*3;
-        s.style.width = size+'px';
-        s.style.height = size+'px';
-        s.style.left = (Math.random()*100)+'%';
-        s.style.top = (Math.random()*100)+'%';
-        s.style.animationDelay = (Math.random()*3)+'s';
-        celestialBg.appendChild(s);
-      }
-    }
+function fmtYMD(s){ try{ const d=new Date(s); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}.${m}.${dd}` }catch{return '--'} }
+function copyText(text){ if(!text) return; (navigator.clipboard? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>alert('链接已复制')).catch(()=>{
+  const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制');
+}); }
 
-    // ===== 页面初始化（两种模式）=====
-    function init(){
-      generateStars();
+async function savePng(){
+  document.body.classList.add('exporting');
+  try{
+    const node=$('shareCard');
+    const canvas=await html2canvas(node,{scale:2,useCORS:true,backgroundColor:null});
+    const url=canvas.toDataURL('image/png');
+    const a=document.createElement('a'); a.href=url; a.download=`tarot_${Date.now()}.png`; a.click();
+  }catch(e){ alert('保存失败，请重试'); }
+  finally{ document.body.classList.remove('exporting'); }
+}
 
-      const data = JSON.parse(document.getElementById('__DATA__').textContent || '{}');
-      const mode = data.mode || 'own';
-      const reading = data.reading || {};
-      const fortune = data.fortune || {};
-
-      // 头部
-      const dateStr = (mode==='view' && data.date_iso) ? fmtDateYMD(data.date_iso) : (data.today_str || '--');
-      setText('dateLabel', dateStr);
-      setText('userName', data.user_name || '神秘访客');
-
-      // 牌面
-      const cardName = reading.card_name || reading.name || '--';
-      const direction = reading.direction || reading.card_direction || '--';
-      setText('cardName', cardName);
-      setText('cardDirection', direction);
-
-      const imgUrl = reading.image || reading.card_image || '';
-      const cardImage = $('cardImage'), cardIcon = $('cardIcon');
-      if(imgUrl){
-        const img = new Image();
-        img.onload = ()=>{ cardImage.innerHTML=''; cardImage.appendChild(img); };
-        img.onerror = ()=>{ /* 保留渐变+icon */ };
-        img.src = imgUrl;
-      } else {
-        if(cardIcon) cardIcon.textContent = '🎴';
-      }
-
-      // 分数与标签
-      const overall = fortune.overall_score ?? fortune.overall ?? '';
-      setText('scoreNumber', overall || '--');
-      setText('scoreLabel', '今日运势 · ' + scoreLabel(overall));
-
-      // 维度
-      const dims = (typeof fortune.dimensions === 'string') ? parseDimensions(fortune.dimensions) : (fortune.dimensions || {});
-      const icons = {'事业运':'💼','事业':'💼','财富运':'💰','财富':'💰','爱情运':'❤️','爱情':'❤️','健康运':'🌿','健康':'🌿','贵人运':'🤝','贵人':'🤝'};
-      const order = ['事业运','财富运','爱情运','健康运','贵人运'];
-      const grid = $('dimensionsGrid');
-      grid.innerHTML='';
-      order.forEach(key=>{
-        const v = (dims[key] ?? dims[key.replace('运','')]);
-        if(v==null) return;
-        const item = document.createElement('div');
-        item.className='dimension-item';
-        item.innerHTML = `
-          <div class="dimension-icon">${icons[key]||'✨'}</div>
-          <div class="dimension-name">${key.replace('运','')}</div>
-          <div class="dimension-stars">${toStars(v)}</div>
-        `;
-        grid.appendChild(item);
-      });
-
-      // 幸运元素
-      setText('luckyColor', fortune.lucky_color || '--');
-      setText('luckyNumber', fortune.lucky_number || '--');
-      setText('luckyHour', fortune.lucky_hour || '--');
-      setText('luckyDirection', fortune.lucky_direction || '--');
-
-      // 查看页：隐藏“生成”，显示“复制链接”；二维码占位维持（可选）
-      const btnGen=$('btnGenerate'), btnCopy=$('btnCopy'), siteUrl=$('siteUrl');
-      if(mode==='view'){
-        if(btnGen) btnGen.classList.add('hidden');
-        if(btnCopy) btnCopy.classList.remove('hidden');
-        if(siteUrl) siteUrl.textContent = data.share_url || 'www.ruoshui.fun';
-      }
-
-      // 按钮事件
-      if(btnGen){
-        btnGen.onclick = async ()=>{
-          btnGen.disabled = true; btnGen.textContent = '生成中...';
-          try{
-            const resp = await fetch('/api/share/create', {method:'POST'});
-            const d = await resp.json();
-            if(!d.success) throw new Error(d.error || '生成失败');
-            // 填充链接与二维码
-            if(d.share_url){ $('siteUrl').textContent = d.share_url; }
-            const qrImg=$('qrImg'), ph=$('qrPlaceholder');
-            if(d.qr_code && qrImg){
-              qrImg.src = d.qr_code;
-              qrImg.classList.remove('hidden');
-              if(ph) ph.classList.add('hidden');
-            }
-            // 切换为“复制链接”
-            if(btnCopy){ btnCopy.classList.remove('hidden'); btnCopy.onclick=()=>copyText(d.share_url); }
-            btnGen.textContent = '已生成';
-          }catch(e){
-            alert(e.message || '生成失败');
-            btnGen.textContent = '生成分享卡片';
-          }finally{
-            btnGen.disabled = false;
-          }
-        };
-      }
-      if(btnCopy && !btnCopy.onclick){
-        btnCopy.onclick = ()=> copyText(siteUrl?.textContent || location.href);
-      }
-      const btnSave=$('btnSave');
-      if(btnSave){
-        btnSave.onclick = async ()=>{
-          const actions = $('actions'); if(actions) actions.classList.add('hidden');
-          try{
-            const node = $('shareCard');
-            const canvas = await html2canvas(node,{scale:2,useCORS:true,backgroundColor:null});
-            const url = canvas.toDataURL('image/png');
-            const a=document.createElement('a');
-            a.href=url; a.download=`tarot_${Date.now()}.png`; a.click();
-          }catch(e){ alert('保存失败，请重试'); }
-          finally{ const actions=$('actions'); if(actions) actions.classList.remove('hidden'); }
-        };
-      }
-    }
-
-    function copyText(text){
-      if(!text) return;
-      navigator.clipboard?.writeText(text).then(()=>alert('链接已复制')).catch(()=>{
-        const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制');
-      });
-    }
-
-    window.addEventListener('load', init);
-  </script>
+window.addEventListener('load', init);
+</script>
 </body>
 </html>

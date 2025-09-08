@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager, SpreadDAO
+from database import UserDAO, ReadingDAO, CardDAO, ChatDAO, DatabaseManager, SpreadDAO, ShareDAO
 import hmac, hashlib, base64, time
 
 def _norm(s):  # 简易归一
@@ -209,7 +209,7 @@ class ShareService:
     @staticmethod
     def increment_view_count(share_id: str):
         ShareDAO.increment_view(share_id)
-        
+
 class UserService:
     """用户服务"""
 

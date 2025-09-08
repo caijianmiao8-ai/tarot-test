@@ -7,6 +7,8 @@ import json
 import random
 import traceback
 import uuid
+import io
+import base64
 from datetime import datetime, timedelta
 from functools import wraps
 import time
@@ -25,7 +27,8 @@ from services import (
     FortuneService,
     ChatService,
     SpreadService, 
-    PersonaService  # ★ 必须补上
+    PersonaService,
+    ShareService # ★ 必须补上
 )
 
 
@@ -1867,7 +1870,14 @@ def get_fortune(date):
         )
         
         # 生成运势文案之后：
-        fortune_data = FortuneService.generate_fortune_text(fortune_data)
+        fortune_text = FortuneService.generate_fortune_text(fortune_data)
+        if isinstance(fortune_text, dict):
+            # 挂在 fortune_text，同时把常用字段扁平到根上方便前端读取
+            fortune_data["fortune_text"] = fortune_text
+            for k in ("summary", "dimension_advice", "do", "dont",
+                      "lucky_color", "lucky_number", "lucky_hour", "lucky_direction"):
+                if k in fortune_text and fortune_text[k]:
+                    fortune_data[k] = fortune_text[k]
 
         # ★ 在保存与返回前拍平结构
         fortune_data = flatten_fortune_for_share(fortune_data)
