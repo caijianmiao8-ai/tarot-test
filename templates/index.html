@@ -645,16 +645,20 @@
             </div>
 
             <!-- 操作栏 -->
-            <div class="action-bar">
-                <button class="btn-refresh" onclick="refreshFortune()">
-                    <i class="fas fa-sync-alt" style="margin-right: 8px;"></i>刷新运势
-                </button>
-                {% if has_drawn %}
-                <a href="{{ url_for('chat_page') }}" class="btn-ai-chat">
-                    <i class="fas fa-comments" style="margin-right: 8px;"></i>AI 深度解读
-                </a>
-                {% endif %}
-            </div>
+<div class="action-bar">
+    <button class="btn-refresh" onclick="refreshFortune()">
+        <i class="fas fa-sync-alt"></i>刷新运势
+    </button>
+    {% if has_drawn %}
+    <a href="{{ url_for('chat_page') }}" class="btn-ai-chat">
+        <i class="fas fa-comments"></i>AI 深度解读
+    </a>
+    <!-- 新增分享按钮 -->
+    <a href="{{ url_for('share_card') }}" class="btn-share">
+        <i class="fas fa-share-alt"></i>生成分享卡片
+    </a>
+    {% endif %}
+</div>
             <style>
             .btn-ai-chat {
                 background: linear-gradient(135deg, var(--accent-color), var(--primary-color));

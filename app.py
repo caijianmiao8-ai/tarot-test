@@ -128,6 +128,73 @@ def _resolve_ai_personality(data: dict) -> str:
 
 
 
+@app.route("/api/share/generate", methods=["POST"])
+def generate_share_card():
+    """生成分享卡片数据"""
+    user = g.user
+    today = DateTimeService.get_beijing_date()
+    
+    # 获取今日塔罗数据
+    if not user["is_guest"]:
+        reading = TarotService.get_today_reading(user["id"], today)
+        fortune_data = FortuneService.get_fortune(user["id"], today)
+    else:
+        reading = SessionService.get_guest_reading(session, today)
+        fortune_data = session.get('fortune_data', {}).get('data', {})
+    
+    if not reading:
+        return jsonify({"error": "请先抽取今日塔罗牌"}), 404
+    
+    # 生成分享链接和二维码
+    share_id = str(uuid.uuid4())[:8]
+    share_url = f"https://www.ruoshui.fun/share/{share_id}"
+    
+    # 保存分享数据到数据库（可选）
+    share_data = {
+        "share_id": share_id,
+        "user_name": user.get("username", "神秘访客"),
+        "date": today.strftime("%Y.%m.%d"),
+        "card_name": reading["name"],
+        "card_direction": reading["direction"],
+        "overall_score": fortune_data.get("overall_score", 0),
+        "overall_label": fortune_data.get("overall_label", ""),
+        "dimensions": fortune_data.get("dimensions", []),
+        "lucky_elements": fortune_data.get("lucky_elements", {}),
+        "created_at": datetime.now()
+    }
+    
+    # 生成二维码（使用qrcode库）
+    import qrcode
+    import base64
+    from io import BytesIO
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(share_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    share_data["qr_code"] = f"data:image/png;base64,{qr_base64}"
+    share_data["share_url"] = share_url
+    
+    return jsonify(share_data)
+
+@app.route("/share/<share_id>")
+def share_page(share_id):
+    """分享页面 - 其他人通过链接访问"""
+    # 从数据库获取分享数据
+    share_data = get_share_data(share_id)
+    
+    if not share_data:
+        return redirect(url_for('index'))
+    
+    return render_template("share_landing.html", 
+                         share_data=share_data,
+                         show_cta=True)  # 显示引导按钮
+                         
 @app.route("/api/guided/get_reading", methods=["POST"])
 def api_guided_get_reading():
     """
