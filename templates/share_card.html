@@ -519,6 +519,27 @@
       .message-section{ min-height:60px; }
       .tips-list{ max-height:64px; }
     }
+
+    /* —— 宜/忌 文案自适应：两行裁切，避免滚动条 —— */
+.tips-list { overflow: hidden; }
+.tips-list li {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;  /* 最多两行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* —— 底部可读性：提升对比度并加轻微投影 —— */
+.footer .site-info .site-name,
+.footer .site-info .site-url {
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
+/* 嵌入模式（通过 ?embed=1 开启）下隐藏自带按钮条，交给父页面控制 */
+:root.embed #actions { display: none !important; }
+
   </style>
 </head>
 <body>
@@ -850,5 +871,108 @@
       $('btnSave').onclick = savePNG;
     });
   </script>
+  <script>
+(function(){
+  const ORIGIN = location.origin;
+  const params = new URLSearchParams(location.search);
+  if (params.get('embed') === '1') document.documentElement.classList.add('embed');
+
+  // 统一为所有 IMG 设跨域，提升 html2canvas 兼容
+  window.addEventListener('load', () => {
+    document.querySelectorAll('img').forEach(img => {
+      try { img.crossOrigin = 'anonymous'; } catch(e){}
+    });
+  });
+
+  // 暴露：渲染 & 生成分享 & 导出 PNG
+  async function exportPNG() {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch(e){}
+    const card = document.getElementById('shareCard');
+    // 临时隐藏操作栏，避免被截进图里
+    const actions = document.getElementById('actions');
+    const prevDisplay = actions ? actions.style.display : null;
+    if (actions) actions.style.display = 'none';
+
+    const canvas = await html2canvas(card, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+      removeContainer: true,
+      windowWidth: card.clientWidth,
+      windowHeight: card.clientHeight
+    });
+
+    if (actions && prevDisplay !== null) actions.style.display = prevDisplay;
+    return canvas.toDataURL('image/png');
+  }
+
+  // 将已有的 render() 包一层，方便父页面直接透传数据
+  function renderShareCard(payload){
+    try {
+      // 复用你现有的渲染流程：把父页 payload 写入 __DATA__，再调用现有 render()
+      const el = document.getElementById('__DATA__');
+      if (el) {
+        const originData = JSON.parse(el.textContent || '{}');
+        const patched = {
+          ...originData,
+          mode: 'own',
+          today_str: payload?.date || originData.today_str || '',
+          user_name: payload?.user_name || originData.user_name || '',
+          reading: payload?.reading || originData.reading || {},
+          fortune: payload?.fortune || originData.fortune || {}
+        };
+        el.textContent = JSON.stringify(patched);
+      }
+      // 你现有的 render()
+      if (typeof render === 'function') render();
+    } catch (e) {
+      console.error('[share_card] renderShareCard failed:', e);
+    }
+  }
+
+  // 调用你页面里已有的“生成分享”按钮逻辑（保持行为一致）
+  async function generateShare(){
+    const btn = document.getElementById('btnGenerate');
+    const btnCopy = document.getElementById('btnCopy');
+    try {
+      btn && (btn.disabled = true, btn.textContent = '生成中…');
+      // 直接触发你原来的事件流程（如果你在按钮上绑定了函数也可直接复用）
+      const resp = await fetch('/api/share/create', { method: 'POST' });
+      const data = await resp.json();
+      // 强制把对外分享地址指向主页（你之前的要求）
+      const shareUrl = 'https://www.ruoshui.fun';
+      // 通知父页面（带分享链接/二维码）
+      window.parent.postMessage({ type: 'ruoshui:generate:done', shareUrl, qr: data?.qr_code || '' }, ORIGIN);
+      if (btnCopy) btnCopy.classList.remove('hidden');
+      if (btn) btn.textContent = '已生成';
+    } catch (e) {
+      console.error(e);
+      window.parent.postMessage({ type: 'ruoshui:generate:error', message: e?.message || '生成失败' }, ORIGIN);
+      if (btn) btn.textContent = '✨ 生成分享';
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  // —— 与父页面的桥接 —— //
+  window.addEventListener('message', async (evt) => {
+    // 允许同源与 file/开发场景（如你本地 file://）
+    if (evt.origin !== ORIGIN && evt.origin !== 'null') return;
+    const { type, payload } = evt.data || {};
+    if (type === 'ruoshui:render') {
+      renderShareCard(payload);
+    } else if (type === 'ruoshui:generate') {
+      await generateShare();
+    } else if (type === 'ruoshui:export') {
+      const dataURL = await exportPNG();
+      window.parent.postMessage({ type: 'ruoshui:export:done', dataURL }, ORIGIN);
+    }
+  });
+
+  // 也把方法挂到 window 以便手动调试
+  window.__shareBridge__ = { renderShareCard, generateShare, exportPNG };
+})();
+</script>
 </body>
 </html>
