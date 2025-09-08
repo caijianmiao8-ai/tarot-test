@@ -9,12 +9,13 @@ import traceback
 import uuid
 import io
 import base64
+from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from functools import wraps
 import time
 import logging
 from contextlib import contextmanager
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response, send_file
 import hashlib
 from config import Config
 from database import DatabaseManager, ChatDAO, SpreadDAO  # 这里如果用到 UserDAO 也只在函数内部 import 了，OK
@@ -46,6 +47,61 @@ except ValueError as e:
 
 # 统一日志格式（生产上可以写到 JSON）
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+# Playwright
+try:
+    from playwright.sync_api import sync_playwright
+except Exception:
+    sync_playwright = None
+
+# --- Playwright 启动器（全局单例） ---
+_browser = None
+_context = None
+
+def get_browser():
+    global _browser, _context
+    if _browser is not None and _context is not None:
+        return _browser, _context
+    if sync_playwright is None:
+        raise RuntimeError("Playwright 未安装，请 pip install playwright 并 playwright install chromium")
+    pw = sync_playwright().start()
+    _browser = pw.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+    _context = _browser.new_context(
+        device_scale_factor=2,  # 高清出图
+        viewport={"width": 420, "height": 760},  # 初始视口，稍后以元素裁剪为准
+        java_script_enabled=True,
+    )
+    return _browser, _context
+
+def screenshot_share_card(url: str, selector: str = "#shareCardRoot") -> bytes:
+    """
+    打开 share_card 页面，等待稳定后，截图卡片根节点（selector），返回 PNG bytes
+    """
+    browser, context = get_browser()
+    page = context.new_page()
+    # 禁止动画可提高稳定性（如需）
+    page.add_style_tag(content="""
+      * { animation: none !important; transition: none !important; }
+    """)
+    # 打开页面
+    page.goto(url, wait_until="networkidle", timeout=20000)
+    # 等待字体与布局稳定
+    try:
+        page.wait_for_function("document.fonts && document.fonts.ready", timeout=8000)
+    except Exception:
+        pass
+    page.wait_for_timeout(300)  # 轻等
+
+    # 选择元素并截图（clip 元素）
+    el = page.query_selector(selector)
+    if not el:
+        # 兜底整页截图
+        png = page.screenshot(type="png", full_page=True)
+    else:
+        png = el.screenshot(type="png")
+    page.close()
+    return png
+
 
 def _rid():
     """生成本次请求内的短 request id，便于串联日志"""
@@ -218,24 +274,62 @@ def share_card():
     )
 
 
-# =========================
-# 路由：他人查看分享（短链接）
-# =========================
+# --- 修改 view_share，使其在 card/embed/export 场景渲染 share_card.html ---
 @app.route("/s/<share_id>")
 def view_share(share_id):
-    """查看他人分享的卡片"""
     share_data = ShareService.get_share_data(share_id)
     if not share_data:
         flash("分享链接已失效", "info")
         return redirect(url_for("index"))
 
+    # 计数
     ShareService.increment_view_count(share_id)
 
-    return render_template(
-        "share_view.html",
-        share_data=share_data,
-        is_viewer=True
-    )
+    use_card = request.args.get("card") == "1" or request.args.get("embed") == "1" or request.args.get("export") == "1"
+    if use_card:
+        # 统一走 share_card.html，传入 share_data，并注入 embed/export 标志
+        return render_template(
+            "share_card.html",
+            share_data=share_data,
+            is_viewer=True,
+            embed=(request.args.get("embed") == "1"),
+            export_mode=(request.args.get("export") == "1"),
+        )
+    else:
+        # 保留原有的查看页
+        return render_template("share_view.html", share_data=share_data, is_viewer=True)
+
+# --- 新增：后端导出接口 ---
+@app.route("/api/share/export", methods=["POST"])
+def api_share_export():
+    """
+    入参：
+      - JSON: { "share_id": "xxxx" }
+        或 { "payload": { user_name, reading, fortune, created_at } }
+    返回：image/png（二进制）
+    """
+    try:
+        base = request.host_url.rstrip("/")
+        data = request.get_json(silent=True) or {}
+
+        # 优先 share_id
+        share_id = data.get("share_id")
+        if share_id:
+            # 用短链渲染 share_card.html（card=1 + export=1）
+            url = f"{base}/s/{share_id}?card=1&export=1"
+        else:
+            # 无 share_id，用 payload 临时渲染（需要你在 share_card.html 能读到 window.name 或 query 注入）
+            # 简单做法：把 payload 用 query 传；若过长可改 POST 到一个临时路由
+            payload = data.get("payload") or {}
+            q = urlencode({"payload": json.dumps(payload, ensure_ascii=False)}, safe=":/?&=")
+            url = f"{base}/share/card?embed=1&export=1&{q}"
+
+        png = screenshot_share_card(url)
+        return send_file(io.BytesIO(png), mimetype="image/png",
+                         as_attachment=True, download_name=f"ruoshui_tarot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+    except Exception as e:
+        # 可补充 logging
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # =========================

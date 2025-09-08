@@ -2,977 +2,406 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>若水占卜 · 分享卡片</title>
-  <meta name="theme-color" content="#8e6c88"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap');
-    
     :root{
       --primary: #9d7ea8;
       --secondary: #6d5675;
       --gold: #e8d4a2;
       --gold-light: #f4e5c3;
-      --rose: #e6a8b5;
-      --glass: rgba(255, 255, 255, 0.06);
-      --glass-light: rgba(255, 255, 255, 0.1);
-      --border: rgba(255, 255, 255, 0.12);
+      --bg1: #2a2041;
+      --bg2: #1a1625;
       --text: #ffffff;
-      --text-light: rgba(255, 255, 255, 0.85);
-      --text-muted: rgba(255, 255, 255, 0.6);
+      --text-light: rgba(255,255,255,0.88);
+      --text-muted: rgba(255,255,255,0.65);
+      --border: rgba(255,255,255,0.12);
+      --glass: rgba(255,255,255,0.06);
+      --star: #ffd86b;
     }
-    
-    *{box-sizing:border-box;margin:0;padding:0}
-    
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;}
     body{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:15px;
-      background: linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
-      font-family: 'Noto Serif SC', -apple-system, serif;
-      color:#fff;
+      font-family: 'Noto Serif SC', -apple-system, BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
-    
-    /* 主卡片容器 - 固定高度 */
-    .frame{
-      width:min(400px, 90vw);
-      height:min(711px, 90vh); /* 9:16 比例 = 400*16/9 */
-      position:relative;
-      border-radius:20px;
-      overflow:hidden;
+
+    /* 主卡片容器（固定 id） */
+    .share-card{
+      width: 400px;
+      max-width: 96vw;
       background: linear-gradient(180deg, #2a2041 0%, #1a1625 100%);
-      box-shadow: 
-        0 20px 40px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.08);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+      overflow: hidden;
+      position: relative;
     }
-    
-    /* 背景装饰 */
+
+    /* 背景柔光与星屑 */
     .bg-glow{
-      position:absolute;
-      width:150%;
-      height:150%;
-      top:-25%;
-      left:-25%;
-      background: 
-        radial-gradient(circle at 30% 20%, rgba(157,126,168,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 70% 80%, rgba(232,212,162,0.1) 0%, transparent 40%);
-      filter:blur(40px);
-      animation: float 20s ease-in-out infinite;
-      pointer-events:none;
+      position:absolute; width:160%; height:160%; left:-30%; top:-30%;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(157,126,168,0.18), transparent 40%),
+        radial-gradient(circle at 75% 80%, rgba(232,212,162,0.12), transparent 40%);
+      filter: blur(40px);
+      animation: float 20s ease-in-out infinite alternate;
+      pointer-events: none;
     }
-    
-    @keyframes float{
-      0%,100%{transform:translate(0,0) rotate(0deg)}
-      33%{transform:translate(-5%,-5%) rotate(120deg)}
-      66%{transform:translate(5%,5%) rotate(240deg)}
-    }
-    
-    /* 星点装饰 */
     .sparkles{
-      position:absolute;
-      inset:0;
-      background-image: 
+      position:absolute; inset:0; pointer-events:none; opacity:.25;
+      background-image:
         radial-gradient(1px 1px at 10% 20%, white, transparent),
         radial-gradient(1px 1px at 30% 60%, white, transparent),
-        radial-gradient(1px 1px at 60% 30%, white, transparent);
-      background-size: 200px 200px;
-      opacity:0.25;
-      animation: sparkle 4s ease-in-out infinite alternate;
-      pointer-events:none;
+        radial-gradient(1px 1px at 60% 30%, white, transparent),
+        radial-gradient(1px 1px at 80% 70%, white, transparent),
+        radial-gradient(1px 1px at 20% 85%, white, transparent);
+      background-size: 220px 220px;
+      animation: twinkle 4s ease-in-out infinite alternate;
     }
-    
-    @keyframes sparkle{
-      0%{opacity:0.15}
-      100%{opacity:0.3}
-    }
-    
-    /* 内容容器 - 固定布局 */
-    .content{
-      position:absolute;
-      inset:0;
-      padding:15px;
-      display:flex;
-      flex-direction:column;
-      z-index:1;
-      overflow:hidden;
-    }
-    
-    /* 顶部品牌 - 精简高度 */
-    .header{
-      text-align:center;
-      padding-bottom:10px;
-      flex-shrink:0;
-    }
-    
-    .brand{
-      font-size:9px;
-      letter-spacing:3px;
-      color:var(--gold-light);
-      font-weight:300;
-      opacity:0.8;
-    }
-    
-    .date-info{
-      margin-top:4px;
-      font-size:10px;
-      color:var(--text-muted);
-    }
-    
-    /* 卡牌展示区 - 压缩高度 */
-    .card-section{
-      display:flex;
-      gap:12px;
-      margin-bottom:12px;
-      flex-shrink:0;
-    }
-    
-    .card-image-wrapper{
-      width:130px;
-      height:195px;
-      border-radius:10px;
-      overflow:hidden;
-      background:var(--glass);
-      border:1px solid var(--border);
-      box-shadow:
-        0 8px 20px rgba(0,0,0,0.3),
-        inset 0 1px 0 rgba(255,255,255,0.1);
-      flex-shrink:0;
-    }
-    
-    .card-image-wrapper img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    }
-    
-    .card-placeholder{
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:linear-gradient(135deg, rgba(157,126,168,0.3), rgba(232,212,162,0.2));
-      color:var(--text-muted);
-      font-size:48px;
-      font-weight:100;
-    }
-    
-    /* 卡牌信息 - 右侧布局 */
-    .card-info{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-    }
-    
-    .card-name{
-      font-size:20px;
-      font-weight:700;
-      margin-bottom:6px;
-      background:linear-gradient(90deg, var(--gold-light), var(--gold));
-      -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;
-      background-clip:text;
-      line-height:1.2;
-    }
-    
-    .card-direction{
-      display:inline-flex;
-      align-items:center;
-      gap:5px;
-      font-size:12px;
-      color:var(--text-light);
-      margin-bottom:12px;
-    }
-    
-    .direction-dot{
-      width:4px;
-      height:4px;
-      border-radius:50%;
-      background:var(--gold);
-    }
-    
-    /* 运势分数 - 紧凑设计 */
-    .score-container{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:10px 14px;
-      background:var(--glass);
-      border-radius:20px;
-      border:1px solid var(--border);
-    }
-    
-    .score-ring{
-      --progress:0.75;
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      background:conic-gradient(
-        from 180deg,
-        var(--gold) calc(var(--progress) * 360deg),
-        var(--glass) calc(var(--progress) * 360deg)
-      );
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-      flex-shrink:0;
-    }
-    
-    .score-ring::before{
-      content:'';
-      position:absolute;
-      inset:4px;
-      border-radius:50%;
-      background:#1a1625;
-    }
-    
-    .score-value{
-      position:relative;
-      font-size:16px;
-      font-weight:700;
-      color:var(--gold);
-    }
-    
-    .score-text{
-      flex:1;
-    }
-    
-    .score-label{
-      font-size:9px;
-      color:var(--text-muted);
-      text-transform:uppercase;
-      letter-spacing:1px;
-    }
-    
-    .score-grade{
-      font-size:14px;
-      font-weight:500;
-      color:var(--gold-light);
-    }
-    
-    /* 五维度评分 - 紧凑布局 */
-    .dimensions{
-      display:flex;
-      justify-content:space-between;
-      padding:10px 8px;
-      background:var(--glass);
-      border-radius:12px;
-      border:1px solid var(--border);
-      margin-bottom:10px;
-      flex-shrink:0;
-    }
-    
-    .dim-item{
-      flex:1;
-      text-align:center;
-    }
-    
-    .dim-circle{
-      width:30px;
-      height:30px;
-      margin:0 auto 4px;
-      border-radius:50%;
-      background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-      border:1px solid rgba(255,255,255,0.15);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:14px;
-    }
-    
-    .dim-label{
-      font-size:9px;
-      color:var(--text-muted);
-      margin-bottom:2px;
-    }
-    
-    .dim-rating{
-      display:flex;
-      justify-content:center;
-      gap:1px;
-    }
-    
-    .star{
-      width:7px;
-      height:7px;
-      background:var(--glass);
-      clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    }
-    
-    .star.filled{
-      background:linear-gradient(135deg, var(--gold-light), var(--gold));
-    }
-    
-    /* 今日运势解读（原 message-section 升级为三段式） */
-    .message-section{
-      flex:1;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      padding:12px;
-      background:linear-gradient(135deg, rgba(157,126,168,0.08), transparent);
-      border-radius:12px;
-      border:1px solid var(--border);
-      margin-bottom:10px;
-      overflow:hidden;
-    }
-    
-    .message-label{
-      font-size:10px;
-      color:var(--text-light);
-      letter-spacing:2px;
-      margin-bottom:6px;
-      text-align:center;
-      font-weight:500;
-    }
-    
-    .message-text{
-      flex:0 0 auto;
-      font-size:12px;
-      line-height:1.6;
-      color:var(--text-light);
-      font-weight:300;
-      text-align:center;
-      padding: 2px 4px 6px;
-    }
+    @keyframes float{ from{transform:translateY(-1%)} to{transform:translateY(1%)} }
+    @keyframes twinkle{ from{opacity:.15} to{opacity:.35} }
 
-    /* 宜 / 忌 双列 */
-    .tips{
-      margin-top:8px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-      min-height:0;
-      flex:1;
-    }
-    .tip-col{
-      background:var(--glass);
+    .content{ position:relative; z-index:1; padding:14px; display:flex; flex-direction:column; gap:10px; }
+
+    /* 头部 */
+    .header{ text-align:center; }
+    .brand{ font-size:10px; letter-spacing:3px; color:var(--gold-light); opacity:.9; }
+    .date-line{ margin-top:4px; font-size:11px; color:var(--text-muted); }
+
+    /* 卡片主区 */
+    .row{
+      display:flex; gap:12px; align-items:stretch;
+      background: var(--glass);
       border:1px solid var(--border);
-      border-radius:10px;
-      padding:8px;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
+      border-radius:14px;
+      padding:10px;
     }
-    .tips-title{
-      font-size:10px;
-      color:var(--text-muted);
-      letter-spacing:1px;
-      text-align:center;
-      margin-bottom:6px;
-    }
-    .tips-list{
-      list-style:none;
-      display:grid;
-      gap:6px;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .tips-list li{
-      font-size:11px;
-      line-height:1.45;
-      color:var(--text-light);
-      display:flex;
-      align-items:flex-start;
-      gap:6px;
-    }
-    .tips-list li::before{
-      content:'•';
-      color:var(--gold-light);
-      font-size:14px;
-      line-height:1;
-      margin-top:1px;
-    }
-    
-    /* 幸运元素 - 极简版 */
-    .lucky-bar{
-      display:flex;
-      justify-content:space-around;
-      padding:8px;
-      background:var(--glass);
-      border-radius:10px;
-      margin-bottom:10px;
+    .cover{
+      width:135px; height:200px; border-radius:12px; overflow:hidden;
+      background: linear-gradient(135deg, rgba(157,126,168,0.3), rgba(232,212,162,0.22));
+      border:1px solid var(--border);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.1);
       flex-shrink:0;
     }
-    
-    .lucky-item{
-      text-align:center;
-      flex:1;
+    .cover img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .cover-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:42px; }
+
+    .info{ flex:1; display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+    .title{ font-size:20px; font-weight:700; line-height:1.2;
+      background: linear-gradient(90deg, var(--gold-light), var(--gold));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .dir{ margin-top:6px; font-size:12px; color:var(--text-light); display:inline-flex; align-items:center; gap:6px; }
+    .dot{ width:5px; height:5px; border-radius:50%; background: var(--gold); display:inline-block; }
+
+    .score{
+      margin-top:10px; display:flex; align-items:center; gap:12px;
+      padding:10px 12px; border-radius:14px; background: rgba(255,255,255,0.06); border:1px solid var(--border);
     }
-    
-    .lucky-icon{
-      width:20px;
-      height:20px;
-      margin:0 auto 3px;
-      border-radius:50%;
-      background:var(--glass-light);
-      border:1px solid var(--border);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:10px;
+    .ring{
+      width:44px; height:44px; border-radius:50%;
+      background: radial-gradient(circle, rgba(232,212,162,.65), rgba(232,212,162,.2));
+      display:flex; align-items:center; justify-content:center;
+      position:relative;
     }
-    
-    .color-icon{ background:var(--gold); }
-    
-    .lucky-val{
-      font-size:9px;
-      color:var(--text-light);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .score-val{ font-weight:800; font-size:15px; color:var(--gold-light); }
+    .score-text{ line-height:1.1; }
+    .score-label{ font-size:10px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
+    .score-grade{ font-size:14px; color:var(--gold-light); font-weight:600; }
+
+    /* 维度 */
+    .dims{
+      display:flex; justify-content:space-between; gap:8px;
+      background: var(--glass); border:1px solid var(--border); border-radius:12px; padding:8px;
     }
-    
-    /* 底部 - 精简 */
+    .dim{ flex:1; text-align:center; }
+    .dim-ico{
+      width:28px; height:28px; border-radius:50%;
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,0.15);
+      display:flex; align-items:center; justify-content:center; font-size:14px; margin:0 auto 4px;
+    }
+    .dim-name{ font-size:10px; color:var(--text-muted); margin-bottom:2px; }
+    .stars{ display:flex; justify-content:center; gap:1px; }
+    .star{ width:7px; height:7px; background: rgba(255,255,255,0.1);
+      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+    .star.filled{ background: linear-gradient(135deg, var(--gold-light), var(--gold)); }
+
+    /* 解读 + 宜忌 */
+    .message{
+      background: linear-gradient(135deg, rgba(157,126,168,0.08), transparent);
+      border:1px solid var(--border); border-radius:12px; padding:12px;
+      display:flex; flex-direction:column; gap:8px; min-height:0;
+    }
+    .section-label{ text-align:center; font-size:10px; letter-spacing:2px; color:var(--text-light); }
+    .summary{ font-size:12px; line-height:1.7; color:var(--text-light); text-align:center; padding:2px 6px; }
+
+    .tips{ display:grid; grid-template-columns:1fr 1fr; gap:8px; min-height:0; }
+    .tip-col{ background: var(--glass); border:1px solid var(--border); border-radius:10px; padding:8px; display:flex; flex-direction:column; min-height:0; }
+    .tip-title{ text-align:center; font-size:10px; color:var(--text-muted); letter-spacing:1px; margin-bottom:6px; }
+    .tip-list{ list-style:none; display:grid; gap:6px; overflow:auto; -webkit-overflow-scrolling: touch; }
+    .tip-list::-webkit-scrollbar{ display:none; }
+    .tip-list li{ font-size:11px; line-height:1.45; color:var(--text-light); display:flex; gap:6px; align-items:flex-start; }
+    .tip-list li::before{ content:'•'; color:var(--gold-light); font-size:14px; line-height:1; margin-top:1px; }
+
+    /* 幸运元素 */
+    .lucky{
+      display:flex; justify-content:space-around; gap:6px;
+      background: var(--glass); border:1px solid var(--border); border-radius:10px; padding:8px;
+    }
+    .lucky-item{ text-align:center; flex:1; min-width:0; }
+    .lucky-ico{ width:20px; height:20px; border-radius:50%; border:1px solid var(--border); background: rgba(255,255,255,0.1);
+      display:flex; align-items:center; justify-content:center; font-size:10px; margin:0 auto 3px; }
+    .swatch{ background: var(--gold); }
+    .lucky-val{ font-size:10px; color:var(--text-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* 底部：二维码与站点 */
     .footer{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding-top:8px;
-      border-top:1px solid rgba(255,255,255,0.08);
-      flex-shrink:0;
+      display:flex; align-items:center; gap:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);
     }
-    
-    .qr-wrapper{
-      width:35px;
-      height:35px;
-      padding:3px;
-      background:white;
-      border-radius:6px;
-      flex-shrink:0;
-    }
-    
-    .qr-wrapper img{ width:100%; height:100%; }
-    
-    .qrph{
-      width:100%;
-      height:100%;
-      background:repeating-linear-gradient(45deg, #000, #000 2px, #fff 2px, #fff 4px);
-    }
-    
-    .site-info{
-      flex:1;
-      min-width:0;
-    }
-    
-    .site-name{
-      font-size:9px;
-      color:var(--text-light);
-      margin-bottom:1px;
-    }
-    
-    .site-url{
-      font-size:8px;
-      color:var(--text-muted);
-    }
-    
-    /* 工具类 */
-    .hidden{ display:none !important; }
-    
-    /* 隐藏的数据容器（保留兼容） */
-    #doList, #dontList, #analysisText, #luckyDirection { display: none; }
-    
-    /* 操作按钮 */
-    .actions{
-      position:fixed;
-      bottom:25px;
-      left:50%;
-      transform:translateX(-50%);
-      display:flex;
-      gap:10px;
-      z-index:100;
-    }
-    
-    .btn{
-      padding:10px 18px;
-      border:none;
-      border-radius:20px;
-      font-size:13px;
-      font-weight:500;
-      cursor:pointer;
-      transition:all 0.3s;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      font-family:inherit;
-      background:linear-gradient(135deg, var(--primary), var(--secondary));
-      color:white;
-      box-shadow:0 4px 12px rgba(157,126,168,0.3);
-    }
-    .btn:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(157,126,168,0.4); }
-    .btn.ghost{
-      background:rgba(255,255,255,0.1);
-      backdrop-filter:blur(10px);
-      border:1px solid rgba(255,255,255,0.15);
-    }
-    .btn.ghost:hover{ background:rgba(255,255,255,0.15); }
-    
-    /* 小屏幕优化 */
-    @media (max-height:650px){
-      .content{ padding:12px; }
-      .card-section{ margin-bottom:10px; }
-      .card-image-wrapper{ width:110px; height:165px; }
-      .message-section{ min-height:60px; }
-      .tips-list{ max-height:64px; }
-    }
+    .qr{ width:36px; height:36px; background:#fff; border-radius:6px; padding:3px; }
+    .qr img{ width:100%; height:100%; display:block; }
+    .qr-ph{ width:100%; height:100%; background: repeating-linear-gradient(45deg, #000, #000 2px, #fff 2px, #fff 4px); }
+    .site{ flex:1; min-width:0; }
+    .site-name{ font-size:10px; color:var(--text-light); }
+    .site-url{ font-size:9px; color:var(--text-muted); }
 
-    /* —— 宜/忌 文案自适应：两行裁切，避免滚动条 —— */
-.tips-list { overflow: hidden; }
-.tips-list li {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;  /* 最多两行 */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-}
+    /* —— 嵌入模式：防止父层缩放导致裁切 —— */
+    body.embed .summary{
+      display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;
+    }
+    body.embed .tips{ min-height:0; }
+    body.embed .tip-col{ min-height:0; }
+    body.embed .tip-list{ flex:1; min-height:0; overflow:auto; }
+    body.embed .footer .site-url{ color:rgba(255,255,255,0.8); }
 
-/* —— 底部可读性：提升对比度并加轻微投影 —— */
-.footer .site-info .site-name,
-.footer .site-info .site-url {
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-}
-
-/* 嵌入模式（通过 ?embed=1 开启）下隐藏自带按钮条，交给父页面控制 */
-:root.embed #actions { display: none !important; }
-
+    /* —— 导出模式：降低复杂滤镜，保证后端截图稳定 —— */
+    body.export-mode .bg-glow{ filter:none; opacity:.9; }
+    body.export-mode .ring{ background: radial-gradient(circle, rgba(232,212,162,.7), rgba(232,212,162,.28)); }
   </style>
 </head>
-<body>
-  <div class="frame" id="shareCard">
+<body class="{% if embed %}embed{% endif %} {% if export_mode %}export-mode{% endif %}">
+  <div class="share-card" id="shareCardRoot">
     <div class="bg-glow"></div>
     <div class="sparkles"></div>
-    
+
     <div class="content">
-      <!-- 顶部品牌 -->
       <div class="header">
         <div class="brand">RUOSHUI TAROT</div>
-        <div class="date-info">
-          <span id="dateTag">--</span> · <span id="userTag">神秘访客</span>
-        </div>
+        <div class="date-line"><span id="scDate">—</span> · <span id="scUser">神秘访客</span></div>
       </div>
-      
-      <!-- 卡牌展示 -->
-      <div class="card-section">
-        <div class="card-image-wrapper">
-          <img id="cardImg" alt="Tarot" class="hidden"/>
-          <div id="cardPh" class="card-placeholder">✦</div>
+
+      <div class="row">
+        <div class="cover">
+          <img id="scImg" alt="Tarot" style="display:none"/>
+          <div class="cover-ph" id="scImgPh">✦</div>
         </div>
-        
-        <div class="card-info">
+        <div class="info">
           <div>
-            <div class="card-name" id="cardName">—</div>
-            <div class="card-direction">
-              <span class="direction-dot"></span>
-              <span id="cardDirection">—</span>
-            </div>
+            <div class="title" id="scName">—</div>
+            <div class="dir"><span class="dot"></span><span id="scDir">—</span></div>
           </div>
-          
-          <div class="score-container">
-            <div class="score-ring" id="ring">
-              <span class="score-value" id="scoreNum">—</span>
-            </div>
+          <div class="score">
+            <div class="ring"><div class="score-val" id="scScore">—</div></div>
             <div class="score-text">
-              <div class="score-label">Fortune</div>
-              <div class="score-grade" id="scoreBadge">—</div>
+              <div class="score-label">FORTUNE</div>
+              <div class="score-grade" id="scGrade">—</div>
             </div>
           </div>
         </div>
       </div>
-      
-      <!-- 五维度评分 -->
-      <div class="dimensions" id="dims">
-        <!-- JS动态渲染 -->
-      </div>
-      
-      <!-- 今日运势解读（三段式） -->
-      <div class="message-section">
-        <div class="message-label">今日运势解读</div>
-        <div class="message-text" id="summaryText">—</div>
+
+      <div class="dims" id="scDims"></div>
+
+      <div class="message">
+        <div class="section-label">今日运势解读</div>
+        <div class="summary" id="scSummary">—</div>
         <div class="tips">
           <div class="tip-col">
-            <div class="tips-title">今日宜做</div>
-            <ul class="tips-list" id="doListV"></ul>
+            <div class="tip-title">今日宜做</div>
+            <ul class="tip-list" id="scDo"></ul>
           </div>
           <div class="tip-col">
-            <div class="tips-title">今日忌做</div>
-            <ul class="tips-list" id="dontListV"></ul>
+            <div class="tip-title">今日忌做</div>
+            <ul class="tip-list" id="scDont"></ul>
           </div>
         </div>
       </div>
-      
-      <!-- 幸运元素 -->
-      <div class="lucky-bar">
+
+      <div class="lucky">
         <div class="lucky-item">
-          <div class="lucky-icon color-icon" id="swatch"></div>
-          <div class="lucky-val" id="luckyColor">—</div>
+          <div class="lucky-ico swatch" id="scSwatch"></div>
+          <div class="lucky-val" id="scColor">—</div>
         </div>
         <div class="lucky-item">
-          <div class="lucky-icon">✧</div>
-          <div class="lucky-val" id="luckyNumber">—</div>
+          <div class="lucky-ico">✧</div>
+          <div class="lucky-val" id="scNumber">—</div>
         </div>
         <div class="lucky-item">
-          <div class="lucky-icon">☽</div>
-          <div class="lucky-val" id="luckyHour">—</div>
+          <div class="lucky-ico">☽</div>
+          <div class="lucky-val" id="scHour">—</div>
         </div>
         <div class="lucky-item">
-          <div class="lucky-icon">◈</div>
-          <div class="lucky-val" id="luckyDirectionDisplay">—</div>
+          <div class="lucky-ico">◈</div>
+          <div class="lucky-val" id="scDirection">—</div>
         </div>
       </div>
-      
-      <!-- 底部 -->
+
       <div class="footer">
-        <div class="qr-wrapper">
-          <img id="qrImg" alt="QR" class="hidden"/>
-          <div id="qrPh" class="qrph"></div>
-        </div>
-        <div class="site-info">
+        <div class="qr"><img id="scQR" alt="QR" style="display:none"/><div id="scQRPh" class="qr-ph"></div></div>
+        <div class="site">
           <div class="site-name">若水占卜 · 每日指引</div>
-          <div class="site-url" id="siteUrl">www.ruoshui.fun</div>
+          <div class="site-url" id="scSite">www.ruoshui.fun</div>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- 隐藏的数据容器（保留） -->
-  <ul id="doList"></ul>
-  <ul id="dontList"></ul>
-  <div id="analysisText"></div>
-  <div id="luckyDirection"></div>
-  
-  <!-- 操作栏 -->
-  <div class="actions" id="actions">
-    <button class="btn" id="btnGenerate">✨ 生成分享</button>
-    <button class="btn ghost hidden" id="btnCopy">🔗 复制链接</button>
-    <button class="btn ghost" id="btnSave">💾 保存图片</button>
-  </div>
-  
-  <!-- 服务端数据注入 -->
+
+  <!-- 数据注入（优先 share_data，其次 ?payload=） -->
   <script id="__DATA__" type="application/json">
   {
-    "mode": "{{ 'view' if share_data is defined else 'own' }}",
-    "share_url": "{{ (request.url if share_data is defined else '')|e }}",
-    "user_name": "{{ (share_data['user_name'] if share_data is defined else (user.get('username','神秘访客') if user else '神秘访客'))|e }}",
-    "date_iso": "{{ (share_data['created_at'].isoformat() if share_data is defined and share_data.get('created_at') else '')|e }}",
-    "today_str": "{{ (today if today is defined else '')|e }}",
-    "reading": {{ (share_data['reading'] if share_data is defined else reading)|tojson }},
-    "fortune": {{ (share_data['fortune'] if share_data is defined else fortune_data)|tojson }}
+    "share_data": {{ share_data|tojson if share_data is defined else 'null' }},
+    "embed": {{ 'true' if embed else 'false' }},
+    "export_mode": {{ 'true' if export_mode else 'false' }}
   }
   </script>
-  
-  <!-- 前端导出依赖 -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-  
+
   <script>
-    /* ======= 工具函数 ======= */
-    function $(id){return document.getElementById(id)}
-    function ymd(d){try{const t=typeof d==='string'?new Date(d):d;return `${t.getFullYear()}.${String(t.getMonth()+1).padStart(2,'0')}.${String(t.getDate()).padStart(2,'0')}`}catch{return '--'}}
-    function labelScore(s){s=Number(s)||0; if(s>=85)return'大吉'; if(s>=70)return'中吉'; if(s>=55)return'小吉'; return'平'}
-    function parseDimsStr(s){
-      const out={}; if(typeof s!=='string') return out;
-      s.split(/\n+/).forEach(l=>{const m=l.match(/^(.*?)[：:]\s*([\d.]+)\s*星(?:（(.*?)）)?/); if(m){out[m[1].trim()]={v:parseFloat(m[2]), tag:(m[3]||'').trim()}}});
-      return out;
-    }
-    
-    /* 颜色映射 */
-    const COLOR_MAP = {
-      "红":"#e85b70","红色":"#e85b70","玫红":"#ff4d6d","粉":"#f4a5c7","粉色":"#f4a5c7",
-      "橙":"#ffa24d","橙色":"#ffa24d","金":"#d6c3a3","金色":"#d6c3a3",
-      "黄":"#ffd66b","黄色":"#ffd66b","绿":"#65c18c","绿色":"#65c18c",
-      "蓝":"#6aa8ff","蓝色":"#6aa8ff","紫":"#8e6c88","紫色":"#8e6c88",
-      "白":"#f8f4e9","白色":"#f8f4e9","黑":"#222","黑色":"#222"
-    };
-    function colorToHex(name){ if(!name) return null; for(const k in COLOR_MAP){ if(name.includes(k)) return COLOR_MAP[k]; } return null; }
-    
-    /* 数据扁平化 */
-    function flattenFortune(f0){
-      const f = JSON.parse(JSON.stringify(f0||{}));
-      const ft = f.fortune_text || {};
-      if(ft.summary && !f.summary) f.summary = ft.summary;
-      if(ft.do && !f.do) f.do = ft.do;
-      if(ft.dont && !f.dont) f.dont = ft.dont;
-      if(ft.dimension_advice && !f.dimension_advice) f.dimension_advice = ft.dimension_advice;
-      
-      const lucky = f.lucky_elements || {};
-      f.lucky_color = f.lucky_color || lucky.color || '';
-      f.lucky_number = f.lucky_number || lucky.number || '';
-      f.lucky_hour = f.lucky_hour || lucky.hour || '';
-      f.lucky_direction = f.lucky_direction || lucky.direction || '';
-      
-      if(Array.isArray(f.dimensions)){
-        const map={}; f.dimensions.forEach(d=>{ if(d && d.name) map[d.name] = Number(d.stars ?? d.score ?? 0) });
-        f.dimensions_map = map;
-        if(!f.dimensions_text){
-          f.dimensions_text = f.dimensions.map(d=>`${d.name}：${d.stars ?? d.score}星（${d.level||''}）`).join("\n");
+    (function(){
+      const $ = (id)=>document.getElementById(id);
+      const COLOR_MAP = {
+        "红":"#e85b70","红色":"#e85b70","玫红":"#ff4d6d","粉":"#f4a5c7","粉色":"#f4a5c7",
+        "橙":"#ffa24d","橙色":"#ffa24d","金":"#d6c3a3","金色":"#d6c3a3",
+        "黄":"#ffd66b","黄色":"#ffd66b","绿":"#65c18c","绿色":"#65c18c",
+        "蓝":"#6aa8ff","蓝色":"#6aa8ff","紫":"#8e6c88","紫色":"#8e6c88",
+        "白":"#f8f4e9","白色":"#f8f4e9","黑":"#222","黑色":"#222"
+      };
+      function hexByName(n){ if(!n) return null; for(const k in COLOR_MAP){ if(n.includes(k)) return COLOR_MAP[k]; } return null; }
+      function labelScore(s){ s=Number(s)||0; if(s>=85)return"大吉"; if(s>=70)return"中吉"; if(s>=55)return"小吉"; return"平"; }
+      function parseDimsStr(s){
+        const out={}; if(typeof s!=='string') return out;
+        s.split(/\n+/).forEach(l=>{ const m=l.match(/^(.*?)[：:]\s*([\d.]+)\s*星/); if(m){ out[m[1].trim()] = parseFloat(m[2]) }});
+        return out;
+      }
+      function starsHTML(v){ v=Number(v)||0; const full=Math.floor(v); let h=''; for(let i=0;i<5;i++) h+=`<span class="star${i<full?' filled':''}"></span>`; return h; }
+      function ymd(dt){ try{ const d=new Date(dt); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`}catch{return'--'} }
+
+      function readInjected(){
+        let injected = {};
+        try{ injected = JSON.parse(document.getElementById('__DATA__').textContent||'{}') }catch(e){}
+        // 优先 share_data；否则尝试 URL payload
+        if(!injected.share_data){
+          const usp = new URLSearchParams(location.search);
+          if(usp.get('payload')){
+            try{ injected.share_data = JSON.parse(usp.get('payload')) }catch(e){}
+          }
         }
-      }else if(typeof f.dimensions==='string'){
-        f.dimensions_text = f.dimensions;
-      }else if(typeof f.dimensions==='object' && f.dimensions){
-        f.dimensions_map = f.dimensions_map || f.dimensions;
+        return injected;
       }
-      return f;
-    }
-    
-    /* 创建星星评分 */
-    function createStars(rating){
-      const stars = [];
-      const fullStars = Math.floor(rating);
-      for(let i = 0; i < 5; i++){
-        stars.push(`<span class="star${i < fullStars ? ' filled' : ''}"></span>`);
+
+      function postSize(){
+        const root = $('shareCardRoot');
+        if(!root || !parent) return;
+        const r = root.getBoundingClientRect();
+        parent.postMessage({type:'ruoshui:size', data:{w:Math.round(r.width), h:Math.round(r.height)}}, '*');
       }
-      return stars.join('');
-    }
-    
-    function render(){
-      const data = JSON.parse(('__DATA__' in window ? document.getElementById('__DATA__').textContent : '{}') || '{}');
-      const mode = data.mode || 'own';
-      const reading = data.reading || {};
-      const fortune = flattenFortune(data.fortune);
-      
-      // 顶部
-      const dateStr = (mode==='view' && data.date_iso) ? ymd(data.date_iso) : (data.today_str || '--');
-      $('dateTag').textContent = dateStr;
-      $('userTag').textContent = data.user_name || '神秘访客';
-      
-      // 牌面
-      const name = reading.card_name || reading.name || '—';
-      const dir = reading.direction || reading.card_direction || '—';
-      $('cardName').textContent = name;
-      $('cardDirection').textContent = dir;
-      
-      const imgUrl = reading.image || reading.card_image || '';
-      if(imgUrl){
-        const img=$('cardImg'); img.src=imgUrl;
-        img.onload = ()=>{ img.classList.remove('hidden'); $('cardPh').classList.add('hidden'); };
-      }
-      
-      // 总分
-      const s = Number(fortune.overall_score ?? fortune.overall ?? 0);
-      $('scoreNum').textContent = s ? String(s) : '—';
-      $('ring').style.setProperty('--progress', (Math.max(0,Math.min(100,s))/100).toFixed(3));
-      $('scoreBadge').textContent = labelScore(s);
-      
-      // 维度
-      const dimsEl = $('dims'); 
-      dimsEl.innerHTML='';
-      
-      const dimsMap = (function(){
-        if(fortune.dimensions_text) return parseDimsStr(fortune.dimensions_text);
-        if(fortune.dimensions_map) {
-          const o={}; for(const k in fortune.dimensions_map){ o[k]={v:Number(fortune.dimensions_map[k])} } return o;
+
+      async function fontsReady(){ try{ await (document.fonts && document.fonts.ready) }catch{} }
+
+      function render(data){
+        const user = data.user_name || '神秘访客';
+        const created = data.created_at || new Date().toISOString();
+        const reading = data.reading || {};
+        const fortune = data.fortune || {};
+
+        // header
+        $('scUser').textContent = user;
+        $('scDate').textContent = ymd(created);
+
+        // cover
+        const img = reading.image || reading.card_image || '';
+        if(img){
+          const el = $('scImg'); el.src = img;
+          el.onload = ()=>{ el.style.display='block'; $('scImgPh').style.display='none'; postSize(); };
+          el.onerror = ()=>{ el.style.display='none'; $('scImgPh').style.display='flex'; postSize(); };
+        }else{
+          $('scImg').style.display='none'; $('scImgPh').style.display='flex';
         }
-        return {};
+
+        // name & direction
+        $('scName').textContent = reading.card_name || reading.name || '—';
+        $('scDir').textContent  = reading.direction || reading.card_direction || '—';
+
+        // score
+        const score = Number(fortune.overall_score ?? fortune.overall ?? 0);
+        $('scScore').textContent = score ? String(score) : '—';
+        $('scGrade').textContent = labelScore(score);
+
+        // dims
+        const dimsWrap = $('scDims'); dimsWrap.innerHTML='';
+        let dimsMap = {};
+        if(typeof fortune.dimensions === 'string') dimsMap = parseDimsStr(fortune.dimensions);
+        else if(Array.isArray(fortune.dimensions)) fortune.dimensions.forEach(d=>{ if(d?.name) dimsMap[d.name] = Number(d.stars ?? d.score ?? 0) });
+        else if(typeof fortune.dimensions === 'object' && fortune.dimensions) dimsMap = fortune.dimensions;
+
+        const order = [
+          {k:'事业运', s:'事业', i:'💼'}, {k:'财富运', s:'财富', i:'💰'},
+          {k:'爱情运', s:'爱情', i:'💕'}, {k:'健康运', s:'健康', i:'🌿'},
+          {k:'贵人运', s:'贵人', i:'✨'}
+        ];
+        order.forEach(o=>{
+          const v = dimsMap[o.k] ?? dimsMap[o.s];
+          if(v==null) return;
+          const node = document.createElement('div');
+          node.className = 'dim';
+          node.innerHTML = `
+            <div class="dim-ico">${o.i}</div>
+            <div class="dim-name">${o.s}</div>
+            <div class="stars">${starsHTML(v)}</div>`;
+          dimsWrap.appendChild(node);
+        });
+
+        // message + tips
+        const summary = (fortune.fortune_text && fortune.fortune_text.summary) || fortune.summary || '今日气息澄明，随顺而为，温柔接好运。';
+        $('scSummary').textContent = summary;
+
+        const dos = (fortune.fortune_text && fortune.fortune_text.do) || fortune.do || [];
+        const donts = (fortune.fortune_text && fortune.fortune_text.dont) || fortune.dont || [];
+        $('scDo').innerHTML   = (dos.length? dos: ['留白修整，静心自省']).slice(0,6).map(x=>`<li>${x}</li>`).join('');
+        $('scDont').innerHTML = (donts.length? donts: ['避免冲动与情绪消费']).slice(0,6).map(x=>`<li>${x}</li>`).join('');
+
+        // lucky
+        const colorName = fortune.lucky_color || (fortune.lucky_elements && fortune.lucky_elements.color) || '';
+        const hex = hexByName(colorName);
+        if(hex) $('scSwatch').style.background = hex;
+        $('scColor').textContent = colorName || '—';
+        $('scNumber').textContent = fortune.lucky_number || (fortune.lucky_elements && fortune.lucky_elements.number) || '—';
+        $('scHour').textContent = fortune.lucky_hour || (fortune.lucky_elements && fortune.lucky_elements.hour) || '—';
+        $('scDirection').textContent = fortune.lucky_direction || (fortune.lucky_elements && fortune.lucky_elements.direction) || '—';
+
+        // site & qr（embed/export 默认占位；若服务端注入了 base64，可显示）
+        $('scSite').textContent = 'www.ruoshui.fun';
+        if(data.qr_code){
+          $('scQR').src = data.qr_code;
+          $('scQR').style.display='block'; $('scQRPh').style.display='none';
+        }else{
+          $('scQR').style.display='none'; $('scQRPh').style.display='block';
+        }
+      }
+
+      (async function init(){
+        const injected = readInjected();
+        const payload = injected.share_data || {};
+        await fontsReady();
+        render(payload);
+        // 首次测量
+        setTimeout(postSize, 50);
+        setTimeout(postSize, 400); // 字体回流后再测一次
       })();
-      
-      const dimConfig = [
-        {key:'事业运', short:'事业', icon:'💼'},
-        {key:'财富运', short:'财富', icon:'💰'},
-        {key:'爱情运', short:'爱情', icon:'💕'},
-        {key:'健康运', short:'健康', icon:'🌿'},
-        {key:'贵人运', short:'贵人', icon:'✨'}
-      ];
-      
-      dimConfig.forEach(config => {
-        const d = dimsMap[config.key] || dimsMap[config.short];
-        if(!d) return;
-        const item = document.createElement('div');
-        item.className = 'dim-item';
-        item.innerHTML = `
-          <div class="dim-circle">${config.icon}</div>
-          <div class="dim-label">${config.short}</div>
-          <div class="dim-rating">${createStars(d.v)}</div>
-        `;
-        dimsEl.appendChild(item);
-      });
-      
-      // 总评
-      $('summaryText').textContent = fortune.summary || '今日运势温和清澈，顺势而行，心怀澄净，足以接住温柔好运。';
-      
-      // 宜 / 忌（三条内，自动滚动承载）
-      const dos = (fortune.do || []).slice(0,3);
-      const donts = (fortune.dont || []).slice(0,3);
-      const doV = $('doListV'), dontV = $('dontListV');
-      doV.innerHTML = dos.length ? dos.map(t=>`<li>${t}</li>`).join('') : '<li>—</li>';
-      dontV.innerHTML = donts.length ? donts.map(t=>`<li>${t}</li>`).join('') : '<li>—</li>';
-      
-      // 同步保留隐藏容器（兼容已有逻辑）
-      $('doList').innerHTML = dos.length ? dos.map(t=>`<li>✅ ${t}</li>`).join('') : '<li>—</li>';
-      $('dontList').innerHTML = donts.length ? donts.map(t=>`<li>⛔ ${t}</li>`).join('') : '<li>—</li>';
-      
-      // 幸运元素
-      const luckyColorName = fortune.lucky_color || (fortune.lucky_elements && fortune.lucky_elements.color) || '';
-      const luckyHex = colorToHex(luckyColorName);
-      const swatch = $('swatch'); 
-      if(luckyHex) swatch.style.background = luckyHex;
-      $('luckyColor').textContent = luckyColorName || '—';
-      $('luckyNumber').textContent = fortune.lucky_number || (fortune.lucky_elements && fortune.lucky_elements.number) || '—';
-      $('luckyHour').textContent = fortune.lucky_hour || (fortune.lucky_elements && fortune.lucky_elements.hour) || '—';
-      const luckyDir = fortune.lucky_direction || (fortune.lucky_elements && fortune.lucky_elements.direction) || '—';
-      $('luckyDirection').textContent = luckyDir;
-      $('luckyDirectionDisplay').textContent = luckyDir;
-      
-      // 牌义解析（保留数据但不显示）
-      const isRev = (dir||'').includes('逆');
-      const meaning = isRev ? (reading.meaning_rev || reading.meaning_reverse) : (reading.meaning_up || reading.meaning_upright);
-      $('analysisText').textContent = meaning || '—';
-      
-      // 链接 & 模式
-      const site = mode==='view' ? (data.share_url || 'www.ruoshui.fun') : 'www.ruoshui.fun';
-      $('siteUrl').textContent = site;
-      if(mode==='view'){ $('btnGenerate').classList.add('hidden'); $('btnCopy').classList.remove('hidden'); }
-    }
-    
-    /* ======= 交互 ======= */
-    async function genShare(){
-      const btn=$('btnGenerate'); btn.disabled=true; btn.textContent='生成中…';
-      try{
-        const r = await fetch('/api/share/create',{method:'POST'});
-        const d = await r.json();
-        if(!d.success) throw new Error(d.error || '生成失败');
-        $('siteUrl').textContent = d.share_url || $('siteUrl').textContent;
-        if(d.qr_code){ $('qrImg').src = d.qr_code; $('qrImg').classList.remove('hidden'); $('qrPh').classList.add('hidden'); }
-        $('btnCopy').classList.remove('hidden');
-        $('btnCopy').onclick = ()=>copyText(d.share_url);
-        btn.textContent='已生成';
-      }catch(e){ alert(e.message||'生成失败'); btn.textContent='✨ 生成分享'; }
-      finally{ btn.disabled=false; }
-    }
-    
-    function copyText(t){
-      if(!t) t = $('siteUrl').textContent;
-      (navigator.clipboard? navigator.clipboard.writeText(t) : Promise.reject()).then(
-        ()=>alert('链接已复制'),
-        ()=>{
-          const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
-          ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制');
-        }
-      );
-    }
-    
-    async function savePNG(){
-      const actions=$('actions'); actions.classList.add('hidden');
-      try{
-        const canvas = await html2canvas($('shareCard'),{scale:2.2,useCORS:true,backgroundColor:null});
-        const url = canvas.toDataURL('image/png'); const a=document.createElement('a');
-        a.href=url; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click();
-      }catch(e){ alert('保存失败，请重试'); }
-      finally{ actions.classList.remove('hidden'); }
-    }
-    
-    window.addEventListener('load', ()=>{
-      render();
-      $('btnGenerate').onclick = genShare;
-      $('btnCopy').onclick = ()=>copyText();
-      $('btnSave').onclick = savePNG;
-    });
+    })();
   </script>
-  <script>
-(function(){
-  const ORIGIN = location.origin;
-  const params = new URLSearchParams(location.search);
-  if (params.get('embed') === '1') document.documentElement.classList.add('embed');
-
-  // 统一为所有 IMG 设跨域，提升 html2canvas 兼容
-  window.addEventListener('load', () => {
-    document.querySelectorAll('img').forEach(img => {
-      try { img.crossOrigin = 'anonymous'; } catch(e){}
-    });
-  });
-
-  // 暴露：渲染 & 生成分享 & 导出 PNG
-  async function exportPNG() {
-    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch(e){}
-    const card = document.getElementById('shareCard');
-    // 临时隐藏操作栏，避免被截进图里
-    const actions = document.getElementById('actions');
-    const prevDisplay = actions ? actions.style.display : null;
-    if (actions) actions.style.display = 'none';
-
-    const canvas = await html2canvas(card, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null,
-      logging: false,
-      removeContainer: true,
-      windowWidth: card.clientWidth,
-      windowHeight: card.clientHeight
-    });
-
-    if (actions && prevDisplay !== null) actions.style.display = prevDisplay;
-    return canvas.toDataURL('image/png');
-  }
-
-  // 将已有的 render() 包一层，方便父页面直接透传数据
-  function renderShareCard(payload){
-    try {
-      // 复用你现有的渲染流程：把父页 payload 写入 __DATA__，再调用现有 render()
-      const el = document.getElementById('__DATA__');
-      if (el) {
-        const originData = JSON.parse(el.textContent || '{}');
-        const patched = {
-          ...originData,
-          mode: 'own',
-          today_str: payload?.date || originData.today_str || '',
-          user_name: payload?.user_name || originData.user_name || '',
-          reading: payload?.reading || originData.reading || {},
-          fortune: payload?.fortune || originData.fortune || {}
-        };
-        el.textContent = JSON.stringify(patched);
-      }
-      // 你现有的 render()
-      if (typeof render === 'function') render();
-    } catch (e) {
-      console.error('[share_card] renderShareCard failed:', e);
-    }
-  }
-
-  // 调用你页面里已有的“生成分享”按钮逻辑（保持行为一致）
-  async function generateShare(){
-    const btn = document.getElementById('btnGenerate');
-    const btnCopy = document.getElementById('btnCopy');
-    try {
-      btn && (btn.disabled = true, btn.textContent = '生成中…');
-      // 直接触发你原来的事件流程（如果你在按钮上绑定了函数也可直接复用）
-      const resp = await fetch('/api/share/create', { method: 'POST' });
-      const data = await resp.json();
-      // 强制把对外分享地址指向主页（你之前的要求）
-      const shareUrl = 'https://www.ruoshui.fun';
-      // 通知父页面（带分享链接/二维码）
-      window.parent.postMessage({ type: 'ruoshui:generate:done', shareUrl, qr: data?.qr_code || '' }, ORIGIN);
-      if (btnCopy) btnCopy.classList.remove('hidden');
-      if (btn) btn.textContent = '已生成';
-    } catch (e) {
-      console.error(e);
-      window.parent.postMessage({ type: 'ruoshui:generate:error', message: e?.message || '生成失败' }, ORIGIN);
-      if (btn) btn.textContent = '✨ 生成分享';
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-
-  // —— 与父页面的桥接 —— //
-  window.addEventListener('message', async (evt) => {
-    // 允许同源与 file/开发场景（如你本地 file://）
-    if (evt.origin !== ORIGIN && evt.origin !== 'null') return;
-    const { type, payload } = evt.data || {};
-    if (type === 'ruoshui:render') {
-      renderShareCard(payload);
-    } else if (type === 'ruoshui:generate') {
-      await generateShare();
-    } else if (type === 'ruoshui:export') {
-      const dataURL = await exportPNG();
-      window.parent.postMessage({ type: 'ruoshui:export:done', dataURL }, ORIGIN);
-    }
-  });
-
-  // 也把方法挂到 window 以便手动调试
-  window.__shareBridge__ = { renderShareCard, generateShare, exportPNG };
-})();
-</script>
 </body>
 </html>
