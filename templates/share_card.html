@@ -6,17 +6,18 @@
   <title>若水占卜 · 分享卡片</title>
   <meta name="theme-color" content="#8e6c88"/>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&display=swap');
     
     :root{
-      --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --gold: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-      --pink: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --glass: rgba(255, 255, 255, 0.1);
-      --glass-border: rgba(255, 255, 255, 0.2);
+      --primary: #8e6c88;
+      --secondary: #6d4c67;
+      --gold: #e8d9b6;
+      --gold-dark: #d6c3a3;
+      --glass: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.15);
       --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.85);
-      --text-muted: rgba(255, 255, 255, 0.6);
+      --text-secondary: rgba(255, 255, 255, 0.9);
+      --text-muted: rgba(255, 255, 255, 0.65);
     }
     
     *{box-sizing:border-box;margin:0;padding:0}
@@ -28,497 +29,476 @@
       justify-content:center;
       padding:20px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      font-family: 'Noto Serif SC', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", serif;
+      font-family: 'Noto Serif SC', -apple-system, "PingFang SC", serif;
       color:#fff;
-      position: relative;
-      overflow: hidden;
     }
     
-    /* 动态背景星星 */
-    body::before {
-      content: '';
-      position: fixed;
-      width: 200%;
-      height: 200%;
-      top: -50%;
-      left: -50%;
+    /* 主卡片 - 9:16比例 */
+    .frame{
+      width:min(420px, 95vw);
+      aspect-ratio:9/16;
+      position:relative;
+      border-radius:24px;
+      overflow:hidden;
+      background: linear-gradient(180deg, #1a1625 0%, #2d1b4e 100%);
+      box-shadow: 
+        0 25px 50px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    
+    /* 装饰性背景 */
+    .bg-decoration{
+      position:absolute;
+      inset:0;
+      opacity:0.3;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(142,108,136,0.4) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(232,217,182,0.3) 0%, transparent 50%);
+      pointer-events:none;
+    }
+    
+    /* 星星背景 */
+    .stars{
+      position:absolute;
+      inset:0;
       background-image: 
         radial-gradient(2px 2px at 20% 30%, white, transparent),
         radial-gradient(2px 2px at 60% 70%, white, transparent),
-        radial-gradient(1px 1px at 50% 50%, white, transparent),
-        radial-gradient(1px 1px at 80% 10%, white, transparent),
-        radial-gradient(2px 2px at 90% 60%, white, transparent);
+        radial-gradient(1px 1px at 50% 50%, white, transparent);
       background-size: 200px 200px;
-      animation: stars 200s linear infinite;
-      opacity: 0.3;
+      opacity:0.2;
+      animation: twinkle 3s ease-in-out infinite alternate;
+      pointer-events:none;
     }
     
-    @keyframes stars {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* 主卡片 */
-    .frame{
-      width:min(440px, 95vw);
-      aspect-ratio:9/16;
-      position:relative;
-      border-radius:30px;
-      overflow:hidden;
-      background: linear-gradient(135deg, rgba(18, 15, 26, 0.95) 0%, rgba(44, 31, 74, 0.95) 100%);
-      backdrop-filter: blur(20px);
-      box-shadow: 
-        0 30px 60px rgba(0,0,0,0.4),
-        inset 0 0 0 1px rgba(255,255,255,0.1);
-      z-index: 1;
-    }
-    
-    /* 顶部装饰光晕 */
-    .frame::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle at center, rgba(250, 112, 154, 0.1) 0%, transparent 50%);
-      animation: glow 8s ease-in-out infinite alternate;
-    }
-    
-    @keyframes glow {
-      0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-      100% { transform: translate(-10%, -10%) scale(1.1); opacity: 0.3; }
+    @keyframes twinkle{
+      0%{opacity:0.1}
+      100%{opacity:0.3}
     }
     
     /* 内容容器 */
-    .content {
-      position: relative;
-      height: 100%;
-      padding: 25px;
-      display: flex;
-      flex-direction: column;
-      z-index: 2;
+    .content{
+      position:relative;
+      height:100%;
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      z-index:1;
     }
     
-    /* 顶部品牌区 */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 25px;
+    /* 顶部 */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
     }
     
-    .brand {
-      font-size: 11px;
-      letter-spacing: 3px;
-      font-weight: 400;
-      opacity: 0.7;
-      text-transform: uppercase;
+    .brand{
+      font-size:10px;
+      letter-spacing:2px;
+      color:var(--gold);
+      font-weight:600;
     }
     
-    .date-badge {
-      padding: 5px 12px;
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      font-size: 11px;
-      backdrop-filter: blur(10px);
+    .date-user{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-size:11px;
+      color:var(--text-muted);
     }
     
-    /* 卡牌展示区 */
-    .card-showcase {
-      position: relative;
-      margin-bottom: 25px;
-      text-align: center;
+    /* 卡牌区域 */
+    .card-section{
+      display:flex;
+      gap:15px;
+      margin-bottom:20px;
     }
     
-    .card-image-wrapper {
-      position: relative;
-      width: 200px;
-      height: 320px;
-      margin: 0 auto 20px;
-      perspective: 1000px;
+    .card-image-box{
+      width:140px;
+      height:210px;
+      border-radius:12px;
+      overflow:hidden;
+      background:var(--glass);
+      border:1px solid var(--glass-border);
+      position:relative;
+      flex-shrink:0;
     }
     
-    .card-image-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transform: rotateY(5deg) rotateX(-5deg);
-      transition: transform 0.6s;
+    .card-image-box img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
     }
     
-    .card-image-wrapper:hover .card-image-container {
-      transform: rotateY(0deg) rotateX(0deg);
+    .card-placeholder{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg, var(--primary), var(--secondary));
+      color:rgba(255,255,255,0.3);
+      font-size:48px;
     }
     
-    .art {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 15px;
-      overflow: hidden;
-      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-      backdrop-filter: blur(10px);
-      box-shadow: 
-        0 20px 40px rgba(0,0,0,0.3),
-        inset 0 0 0 1px rgba(255,255,255,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .card-info-box{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
     }
     
-    .art img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .card-name{
+      font-size:22px;
+      font-weight:600;
+      margin-bottom:8px;
+      background:linear-gradient(90deg, var(--gold), var(--gold-dark));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
     }
     
-    .ph {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      color: rgba(255,255,255,0.3);
-      letter-spacing: 8px;
+    .card-direction{
+      display:inline-block;
+      padding:4px 12px;
+      background:var(--glass);
+      border:1px solid var(--glass-border);
+      border-radius:12px;
+      font-size:12px;
+      color:var(--text-secondary);
+      margin-bottom:15px;
     }
     
-    /* 卡牌信息 */
-    .card-info {
-      text-align: center;
-      margin-bottom: 30px;
+    /* 运势分数 */
+    .score-box{
+      display:flex;
+      align-items:center;
+      gap:12px;
     }
     
-    .card-name {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .card-direction {
-      display: inline-block;
-      padding: 6px 20px;
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      font-size: 13px;
-      backdrop-filter: blur(10px);
-    }
-    
-    /* 运势总分 */
-    .fortune-score {
-      text-align: center;
-      margin-bottom: 30px;
-      position: relative;
-    }
-    
-    .score-circle {
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 15px;
-      position: relative;
-    }
-    
-    .score-ring {
-      --p: 0.66;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: conic-gradient(
-        from 0deg,
-        #ffd89b 0deg,
-        #19547b calc(var(--p) * 360deg),
-        rgba(255,255,255,0.1) calc(var(--p) * 360deg)
+    .score-ring{
+      --p:0.75;
+      width:60px;
+      height:60px;
+      border-radius:50%;
+      background:conic-gradient(
+        var(--gold) calc(var(--p) * 360deg),
+        var(--glass) calc(var(--p) * 360deg)
       );
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
     }
     
-    .score-ring::before {
-      content: '';
-      position: absolute;
-      inset: 8px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(18, 15, 26, 0.95) 0%, rgba(44, 31, 74, 0.95) 100%);
+    .score-ring::before{
+      content:'';
+      position:absolute;
+      inset:5px;
+      border-radius:50%;
+      background:#1a1625;
     }
     
-    .score-number {
-      position: relative;
-      font-size: 36px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .score-number{
+      position:relative;
+      font-size:20px;
+      font-weight:600;
+      color:var(--gold);
     }
     
-    .score-label {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 5px;
+    .score-text{
+      flex:1;
     }
     
-    .score-badge {
-      display: inline-block;
-      padding: 8px 24px;
-      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-      border-radius: 25px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      box-shadow: 0 5px 15px rgba(253, 160, 133, 0.3);
+    .score-label{
+      font-size:11px;
+      color:var(--text-muted);
+      margin-bottom:2px;
     }
     
-    /* 维度展示 - 简化版 */
-    .dimensions {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: var(--glass);
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
+    .score-badge{
+      font-size:14px;
+      color:var(--gold);
+      font-weight:600;
     }
     
-    .dim {
-      text-align: center;
-      flex: 1;
+    /* 维度展示 */
+    .dimensions{
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:8px;
+      padding:15px;
+      background:var(--glass);
+      border-radius:16px;
+      margin-bottom:15px;
     }
     
-    .dim-icon {
-      font-size: 24px;
-      margin-bottom: 5px;
+    .dim{
+      text-align:center;
     }
     
-    .dim-name {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 3px;
+    .dim-icon{
+      font-size:20px;
+      margin-bottom:4px;
     }
     
-    .dim-stars {
-      font-size: 12px;
-      color: #ffd700;
+    .dim-name{
+      font-size:10px;
+      color:var(--text-muted);
+      margin-bottom:2px;
     }
     
-    /* 今日寄语 - 核心内容 */
-    .message-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      text-align: center;
-      padding: 20px;
-      background: var(--glass);
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      margin-bottom: 20px;
+    .dim-stars{
+      font-size:11px;
+      color:#ffd700;
+      letter-spacing:1px;
     }
     
-    .message-title {
-      font-size: 12px;
-      letter-spacing: 2px;
-      color: var(--text-muted);
-      margin-bottom: 15px;
-      text-transform: uppercase;
+    /* 今日寄语 */
+    .message-card{
+      flex:1;
+      padding:15px;
+      background:var(--glass);
+      border-radius:16px;
+      margin-bottom:15px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
     }
     
-    .message-content {
-      font-size: 16px;
-      line-height: 1.8;
-      color: var(--text-secondary);
-      font-style: italic;
+    .message-title{
+      font-size:11px;
+      color:var(--text-muted);
+      margin-bottom:10px;
+      text-align:center;
+      letter-spacing:1px;
     }
     
-    /* 幸运元素 - 极简展示 */
-    .lucky-elements {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 25px;
+    .message-text{
+      font-size:14px;
+      line-height:1.6;
+      color:var(--text-secondary);
+      text-align:center;
     }
     
-    .lucky-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: var(--glass);
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      font-size: 13px;
+    /* 幸运元素 */
+    .lucky-grid{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:10px;
+      margin-bottom:15px;
     }
     
-    .lucky-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    .lucky-card{
+      padding:12px;
+      background:var(--glass);
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    
+    .lucky-icon{
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      background:linear-gradient(135deg, var(--gold), var(--gold-dark));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      flex-shrink:0;
+    }
+    
+    .color-dot{
+      background:#fff;
+    }
+    
+    .lucky-text{
+      flex:1;
+      min-width:0;
+    }
+    
+    .lucky-label{
+      font-size:10px;
+      color:var(--text-muted);
+      margin-bottom:1px;
+    }
+    
+    .lucky-value{
+      font-size:12px;
+      color:var(--text-secondary);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     
     /* 底部 */
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+    .footer{
+      margin-top:auto;
+      padding-top:15px;
+      border-top:1px solid rgba(255,255,255,0.1);
+      display:flex;
+      align-items:center;
+      gap:12px;
     }
     
-    .qr-wrapper {
-      width: 60px;
-      height: 60px;
-      padding: 8px;
-      background: white;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .qr-box{
+      width:50px;
+      height:50px;
+      padding:5px;
+      background:white;
+      border-radius:8px;
+      flex-shrink:0;
     }
     
-    .qr-wrapper img {
-      width: 100%;
-      height: 100%;
+    .qr-box img{
+      width:100%;
+      height:100%;
     }
     
-    .qrph {
-      width: 100%;
-      height: 100%;
-      background: repeating-linear-gradient(0deg, #000, #000 2px, #fff 2px, #fff 4px);
+    .qrph{
+      width:100%;
+      height:100%;
+      background:repeating-linear-gradient(
+        0deg,
+        #000,
+        #000 2px,
+        #fff 2px,
+        #fff 4px
+      );
     }
     
-    .footer-text {
-      flex: 1;
-      margin-left: 15px;
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.4;
+    .footer-info{
+      flex:1;
+      min-width:0;
     }
     
-    .site-url {
-      color: var(--text-secondary);
-      margin-top: 3px;
+    .footer-title{
+      font-size:11px;
+      color:var(--text-secondary);
+      margin-bottom:2px;
     }
     
-    /* 操作按钮 */
-    .actions {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 100;
+    .footer-url{
+      font-size:10px;
+      color:var(--text-muted);
     }
     
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 25px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-    }
-    
-    .primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
-    }
-    
-    .ghost {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .ghost:hover {
-      background: rgba(255,255,255,0.15);
-    }
-    
-    .hidden {
-      display: none !important;
+    /* 隐藏元素 */
+    .hidden{
+      display:none !important;
     }
     
     /* 隐藏的数据容器 */
-    #doList, #dontList, #analysisText {
+    #doList, #dontList, #analysisText, #luckyDirection {
       display: none;
     }
     
-    @media (max-width: 380px) {
-      .frame {
-        width: 100%;
+    /* 操作按钮 */
+    .actions{
+      position:fixed;
+      bottom:30px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      gap:12px;
+      z-index:100;
+    }
+    
+    .btn{
+      padding:12px 20px;
+      border:none;
+      border-radius:20px;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.3s;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-family:inherit;
+    }
+    
+    .primary{
+      background:linear-gradient(135deg, var(--primary), var(--secondary));
+      color:white;
+      box-shadow:0 4px 12px rgba(142,108,136,0.4);
+    }
+    
+    .primary:hover{
+      transform:translateY(-2px);
+      box-shadow:0 6px 16px rgba(142,108,136,0.5);
+    }
+    
+    .ghost{
+      background:rgba(255,255,255,0.1);
+      color:white;
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,0.2);
+    }
+    
+    .ghost:hover{
+      background:rgba(255,255,255,0.15);
+    }
+    
+    @media (max-width:380px){
+      .content{
+        padding:15px;
       }
-      .card-image-wrapper {
-        width: 160px;
-        height: 256px;
+      .card-section{
+        gap:12px;
       }
-      .score-circle {
-        width: 100px;
-        height: 100px;
+      .card-image-box{
+        width:120px;
+        height:180px;
       }
-      .score-number {
-        font-size: 30px;
+      .card-name{
+        font-size:18px;
       }
     }
   </style>
 </head>
 <body>
   <div class="frame" id="shareCard">
+    <div class="bg-decoration"></div>
+    <div class="stars"></div>
+    
     <div class="content">
       <!-- 顶部 -->
       <div class="header">
         <div class="brand">RUOSHUI TAROT</div>
-        <div class="date-badge" id="dateTag">--</div>
+        <div class="date-user">
+          <span id="dateTag">--</span>
+          <span>·</span>
+          <span id="userTag">神秘访客</span>
+        </div>
       </div>
       
-      <!-- 卡牌展示 -->
-      <div class="card-showcase">
-        <div class="card-image-wrapper">
-          <div class="card-image-container">
-            <div class="art">
-              <img id="cardImg" alt="Tarot" class="hidden"/>
-              <div id="cardPh" class="ph">✦</div>
+      <!-- 卡牌区域 -->
+      <div class="card-section">
+        <div class="card-image-box">
+          <img id="cardImg" alt="Tarot" class="hidden"/>
+          <div id="cardPh" class="card-placeholder">✦</div>
+        </div>
+        
+        <div class="card-info-box">
+          <div class="card-name" id="cardName">—</div>
+          <div class="card-direction" id="cardDirection">—</div>
+          
+          <div class="score-box">
+            <div class="score-ring" id="ring">
+              <span class="score-number" id="scoreNum">—</span>
+            </div>
+            <div class="score-text">
+              <div class="score-label">今日运势</div>
+              <div class="score-badge" id="scoreBadge">—</div>
             </div>
           </div>
         </div>
-        
-        <div class="card-info">
-          <div class="card-name" id="cardName">—</div>
-          <div class="card-direction" id="cardDirection">—</div>
-        </div>
-      </div>
-      
-      <!-- 运势总分 -->
-      <div class="fortune-score">
-        <div class="score-circle">
-          <div class="score-ring" id="ring">
-            <span class="score-number" id="scoreNum">—</span>
-          </div>
-        </div>
-        <div class="score-label">今日运势</div>
-        <div class="score-badge" id="scoreBadge">—</div>
       </div>
       
       <!-- 维度 -->
@@ -527,30 +507,52 @@
       </div>
       
       <!-- 今日寄语 -->
-      <div class="message-section">
-        <div class="message-title">今日寄语</div>
-        <div class="message-content" id="summaryText">—</div>
+      <div class="message-card">
+        <div class="message-title">✦ 今日寄语 ✦</div>
+        <div class="message-text" id="summaryText">—</div>
       </div>
       
       <!-- 幸运元素 -->
-      <div class="lucky-elements">
-        <div class="lucky-item">
-          <div class="lucky-dot" id="swatch"></div>
-          <span id="luckyColor">—</span>
+      <div class="lucky-grid">
+        <div class="lucky-card">
+          <div class="lucky-icon color-dot" id="swatch"></div>
+          <div class="lucky-text">
+            <div class="lucky-label">幸运色</div>
+            <div class="lucky-value" id="luckyColor">—</div>
+          </div>
         </div>
-        <div class="lucky-item" id="luckyNumber">—</div>
-        <div class="lucky-item" id="luckyHour">—</div>
+        <div class="lucky-card">
+          <div class="lucky-icon">✨</div>
+          <div class="lucky-text">
+            <div class="lucky-label">幸运数</div>
+            <div class="lucky-value" id="luckyNumber">—</div>
+          </div>
+        </div>
+        <div class="lucky-card">
+          <div class="lucky-icon">🌙</div>
+          <div class="lucky-text">
+            <div class="lucky-label">幸运时</div>
+            <div class="lucky-value" id="luckyHour">—</div>
+          </div>
+        </div>
+        <div class="lucky-card">
+          <div class="lucky-icon">🧭</div>
+          <div class="lucky-text">
+            <div class="lucky-label">幸运方</div>
+            <div class="lucky-value" id="luckyDirectionDisplay">—</div>
+          </div>
+        </div>
       </div>
       
       <!-- 底部 -->
       <div class="footer">
-        <div class="qr-wrapper">
+        <div class="qr-box">
           <img id="qrImg" alt="QR" class="hidden"/>
           <div id="qrPh" class="qrph"></div>
         </div>
-        <div class="footer-text">
-          <div>若水占卜 · <span id="userTag">神秘访客</span></div>
-          <div class="site-url" id="siteUrl">www.ruoshui.fun</div>
+        <div class="footer-info">
+          <div class="footer-title">若水占卜 · 每日指引</div>
+          <div class="footer-url" id="siteUrl">www.ruoshui.fun</div>
         </div>
       </div>
     </div>
@@ -560,13 +562,13 @@
   <ul id="doList"></ul>
   <ul id="dontList"></ul>
   <div id="analysisText"></div>
-  <div id="luckyDirection" style="display:none"></div>
+  <div id="luckyDirection"></div>
   
   <!-- 操作栏 -->
   <div class="actions" id="actions">
     <button class="btn primary" id="btnGenerate">✨ 生成分享</button>
     <button class="btn ghost hidden" id="btnCopy">🔗 复制链接</button>
-    <button class="btn ghost" id="btnSave">💫 保存图片</button>
+    <button class="btn ghost" id="btnSave">💾 保存图片</button>
   </div>
   
   <!-- 服务端数据注入 -->
@@ -708,12 +710,14 @@
       const luckyHex = colorToHex(luckyColorName);
       const swatch = $('swatch'); 
       if(luckyHex) {
-        swatch.style.background = `linear-gradient(135deg, ${luckyHex}, ${luckyHex}dd)`;
+        swatch.style.background = luckyHex;
       }
       $('luckyColor').textContent = luckyColorName || '—';
-      $('luckyNumber').textContent = '数字 ' + (fortune.lucky_number || (fortune.lucky_elements && fortune.lucky_elements.number) || '—');
-      $('luckyHour').textContent = '时辰 ' + (fortune.lucky_hour || (fortune.lucky_elements && fortune.lucky_elements.hour) || '—');
-      $('luckyDirection').textContent = '方位 ' + (fortune.lucky_direction || (fortune.lucky_elements && fortune.lucky_elements.direction) || '—');
+      $('luckyNumber').textContent = fortune.lucky_number || (fortune.lucky_elements && fortune.lucky_elements.number) || '—';
+      $('luckyHour').textContent = fortune.lucky_hour || (fortune.lucky_elements && fortune.lucky_elements.hour) || '—';
+      const luckyDir = fortune.lucky_direction || (fortune.lucky_elements && fortune.lucky_elements.direction) || '—';
+      $('luckyDirection').textContent = luckyDir;
+      $('luckyDirectionDisplay').textContent = luckyDir;
       
       // 牌义解析（保留数据但不显示）
       const isRev = (dir||'').includes('逆');

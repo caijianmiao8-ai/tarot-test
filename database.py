@@ -91,32 +91,47 @@ class ShareDAO:
 
     @staticmethod
     def get_share(share_id: str):
-        sql = """
-        SELECT share_id, user_id, share_data, created_at, expires_at, view_count
-        FROM share_cards
-        WHERE share_id = %s
-        LIMIT 1
-        """
-        with ShareDAO._get_conn() as conn:
+        with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute(sql, [share_id])
+                cur.execute("""
+                    SELECT share_id, user_id, share_data, created_at, view_count, expires_at
+                    FROM share_cards
+                    WHERE share_id = %s
+                """, (share_id,))
                 row = cur.fetchone()
                 if not row:
                     return None
-                share_data = row[2] or {}
-                user_name = share_data.get("user_name", "神秘访客")
-                reading   = share_data.get("reading", {}) or {}
-                fortune   = share_data.get("fortune", {}) or {}
-                return {
-                    "share_id": row[0],
-                    "user_id": row[1],
-                    "user_name": user_name,
-                    "reading": reading,
-                    "fortune": fortune,
-                    "created_at": row[3],
-                    "expires_at": row[4],
-                    "view_count": row[5],
+
+                # 既支持 dict-like 也支持 tuple-like
+                def get(rowobj, name, idx):
+                    try:
+                        return rowobj[name]     # 字典/RealDictRow
+                    except Exception:
+                        try:
+                            return rowobj[idx]  # 元组/NamedTuple
+                        except Exception:
+                            return None
+
+                share_data = get(row, 'share_data', 2) or {}
+                if isinstance(share_data, str):
+                    try:
+                        share_data = json.loads(share_data)
+                    except Exception:
+                        share_data = {}
+
+                result = {
+                    "share_id":   get(row, 'share_id',   0),
+                    "user_id":    get(row, 'user_id',    1),
+                    "created_at": get(row, 'created_at', 3),
+                    "view_count": get(row, 'view_count', 4) or 0,
+                    "expires_at": get(row, 'expires_at', 5),
                 }
+
+                # 合并业务数据（reading/fortune 等）到结果字典
+                if isinstance(share_data, dict):
+                    result = {**share_data, **result}
+
+                return result
 
     @staticmethod
     def increment_view(share_id: str):
