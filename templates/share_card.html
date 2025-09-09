@@ -541,6 +541,10 @@ async function exportWithCanvas() {
   const card = document.getElementById('shareCard');
   const actions = document.getElementById('actions');
   
+  console.log('=== Canvas Export Debug Start ===');
+  console.log('Card element:', card);
+  console.log('Card dimensions:', card.offsetWidth, 'x', card.offsetHeight);
+  
   try {
     // 隐藏操作按钮
     if (actions) actions.style.display = 'none';
@@ -550,52 +554,84 @@ async function exportWithCanvas() {
     await new Promise(resolve => setTimeout(resolve, 100));
     
     // 设置导出参数
-    const scale = 2.5; // 高分辨率
+    const scale = 2.5;
     const width = 400;
     const height = 711;
     
-    // 步骤1：先导出卡片内容（保持透明背景）
+    // 步骤1：先导出卡片内容
     console.log('Step 1: Capturing card content...');
+    console.log('Available libraries:', {
+      domtoimage: typeof domtoimage !== 'undefined',
+      html2canvas: typeof html2canvas !== 'undefined'
+    });
+    
     let cardDataUrl;
     
     if (typeof domtoimage !== 'undefined') {
-      // 使用 dom-to-image-more
-      cardDataUrl = await domtoimage.toPng(card, {
-        quality: 0.98,
-        width: width * scale,
-        height: height * scale,
-        style: {
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: width + 'px',
-          height: height + 'px'
-        },
-        bgcolor: null, // 保持透明
-        cacheBust: true,
-        copyStyles: true
-      });
+      console.log('Using dom-to-image-more...');
+      try {
+        cardDataUrl = await domtoimage.toPng(card, {
+          quality: 0.98,
+          width: width * scale,
+          height: height * scale,
+          style: {
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            width: width + 'px',
+            height: height + 'px'
+          },
+          bgcolor: null, // 保持透明
+          cacheBust: true,
+          copyStyles: true
+        });
+        console.log('dom-to-image success, dataUrl length:', cardDataUrl.length);
+      } catch (domError) {
+        console.error('dom-to-image failed:', domError);
+        throw domError;
+      }
     } else if (typeof html2canvas !== 'undefined') {
-      // 降级到 html2canvas
-      const canvas = await html2canvas(card, {
-        scale: scale,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null, // 保持透明
-        logging: false
-      });
-      cardDataUrl = canvas.toDataURL('image/png', 0.98);
+      console.log('Using html2canvas...');
+      try {
+        const canvas = await html2canvas(card, {
+          scale: scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: null,
+          logging: true // 开启html2canvas的日志
+        });
+        cardDataUrl = canvas.toDataURL('image/png', 0.98);
+        console.log('html2canvas success, dataUrl length:', cardDataUrl.length);
+      } catch (h2cError) {
+        console.error('html2canvas failed:', h2cError);
+        throw h2cError;
+      }
     } else {
+      console.error('No export library available!');
       throw new Error('No export library available');
     }
     
+    // 验证导出的数据
+    if (!cardDataUrl || cardDataUrl.length < 100) {
+      console.error('Invalid card data URL:', cardDataUrl?.substring(0, 100));
+      throw new Error('Failed to capture card content');
+    }
+    
     // 步骤2：创建Canvas并绘制背景
-    console.log('Step 2: Creating canvas with background...');
+    console.log('Step 2: Creating canvas...');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      console.error('Failed to get canvas context');
+      throw new Error('Canvas context not available');
+    }
+    
     canvas.width = width * scale;
     canvas.height = height * scale;
+    console.log('Canvas size:', canvas.width, 'x', canvas.height);
     
-    // 绘制渐变背景（匹配body的背景）
+    // 绘制渐变背景
+    console.log('Drawing gradient background...');
     const gradient = ctx.createLinearGradient(
       0, 0, 
       canvas.width * 0.8, canvas.height * 0.8
@@ -605,67 +641,84 @@ async function exportWithCanvas() {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // 可选：添加微妙的光晕效果
+    // 添加光晕效果
+    console.log('Adding glow effects...');
+    ctx.globalAlpha = 0.15;
     const glowGradient1 = ctx.createRadialGradient(
       canvas.width * 0.3, canvas.height * 0.2, 0,
       canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5
     );
-    glowGradient1.addColorStop(0, 'rgba(157, 126, 168, 0.15)');
+    glowGradient1.addColorStop(0, 'rgba(157, 126, 168, 0.5)');
     glowGradient1.addColorStop(1, 'transparent');
     ctx.fillStyle = glowGradient1;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    const glowGradient2 = ctx.createRadialGradient(
-      canvas.width * 0.7, canvas.height * 0.8, 0,
-      canvas.width * 0.7, canvas.height * 0.8, canvas.width * 0.5
-    );
-    glowGradient2.addColorStop(0, 'rgba(232, 212, 162, 0.1)');
-    glowGradient2.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGradient2;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0; // 重置透明度
     
-    // 步骤3：将卡片绘制到Canvas上
-    console.log('Step 3: Compositing card onto background...');
+    // 步骤3：加载并绘制卡片
+    console.log('Step 3: Loading card image...');
     const img = new Image();
+    img.crossOrigin = 'anonymous'; // 处理跨域
     
-    // 返回Promise以处理异步加载
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.error('Image load timeout');
+        reject(new Error('Image load timeout'));
+      }, 10000); // 10秒超时
+      
       img.onload = function() {
-        // 绘制卡片图像
-        ctx.drawImage(img, 0, 0);
+        clearTimeout(timeout);
+        console.log('Image loaded successfully:', img.width, 'x', img.height);
         
-        // 步骤4：导出最终图像
-        console.log('Step 4: Exporting final image...');
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error('Failed to create blob'));
-            return;
-          }
+        try {
+          // 绘制卡片图像
+          ctx.drawImage(img, 0, 0);
+          console.log('Card drawn on canvas');
           
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `ruoshui_tarot_${Date.now()}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          
-          // 清理
-          setTimeout(() => URL.revokeObjectURL(url), 100);
-          resolve(true);
-        }, 'image/png', 0.98);
+          // 步骤4：导出最终图像
+          console.log('Step 4: Creating blob...');
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              console.error('Failed to create blob');
+              reject(new Error('Failed to create blob'));
+              return;
+            }
+            
+            console.log('Blob created, size:', blob.size);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ruoshui_tarot_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            console.log('=== Canvas Export Success ===');
+            resolve(true);
+          }, 'image/png', 0.98);
+        } catch (drawError) {
+          console.error('Error during drawing/export:', drawError);
+          reject(drawError);
+        }
       };
       
-      img.onerror = function() {
+      img.onerror = function(e) {
+        clearTimeout(timeout);
+        console.error('Image load error:', e);
+        console.error('Failed URL preview:', cardDataUrl.substring(0, 200));
         reject(new Error('Failed to load card image'));
       };
       
       // 开始加载图像
+      console.log('Setting image source...');
       img.src = cardDataUrl;
     });
     
   } catch (error) {
-    console.error('Canvas export failed:', error);
+    console.error('=== Canvas Export Failed ===');
+    console.error('Error details:', error);
+    console.error('Stack:', error.stack);
     throw error;
   } finally {
     // 恢复UI状态
@@ -674,8 +727,9 @@ async function exportWithCanvas() {
   }
 }
 
-// 备用方案：如果Canvas失败，使用带背景的dom-to-image
-async function exportWithBackgroundFallback() {
+// 简化的备用方案（直接填充背景）
+async function exportSimpleWithBackground() {
+  console.log('=== Simple Export Start ===');
   const card = document.getElementById('shareCard');
   const actions = document.getElementById('actions');
   
@@ -685,7 +739,14 @@ async function exportWithBackgroundFallback() {
     
     await new Promise(resolve => setTimeout(resolve, 100));
     
+    if (typeof domtoimage === 'undefined') {
+      console.error('dom-to-image not loaded!');
+      throw new Error('dom-to-image library not available');
+    }
+    
     const scale = 2.5;
+    console.log('Exporting with simple background fill...');
+    
     const dataUrl = await domtoimage.toPng(card, {
       quality: 0.98,
       width: card.offsetWidth * scale,
@@ -694,19 +755,23 @@ async function exportWithBackgroundFallback() {
         transform: `scale(${scale})`,
         transformOrigin: 'top left'
       },
-      bgcolor: '#1a1625', // 使用深色背景填充
+      bgcolor: '#1a1625', // 直接填充深色背景
       cacheBust: true,
       copyStyles: true
     });
+    
+    console.log('Export successful, dataUrl length:', dataUrl.length);
     
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = `ruoshui_tarot_${Date.now()}.png`;
     a.click();
     
+    console.log('=== Simple Export Success ===');
     return true;
   } catch (error) {
-    console.error('Background fallback failed:', error);
+    console.error('=== Simple Export Failed ===');
+    console.error('Error:', error);
     return false;
   } finally {
     document.body.classList.remove('export-mode');
@@ -760,21 +825,24 @@ async function smartExport() {
   btn.disabled = true;
   btn.innerHTML = '⏳ 正在导出...';
   
+  // 打开浏览器控制台查看详细日志
+  console.log('===== EXPORT PROCESS START =====');
+  console.log('Browser:', navigator.userAgent);
+  console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
+  
   try {
     let success = false;
     
-    // 优先使用Canvas合成方案
+    // 先尝试Canvas合成
     try {
-      console.log('Using Canvas composition export...');
+      console.log('Attempting Canvas export...');
       success = await exportWithCanvas();
-      console.log('Canvas export success:', success);
     } catch (canvasError) {
-      console.warn('Canvas export failed, trying fallback...', canvasError);
+      console.warn('Canvas export failed:', canvasError.message);
+      console.log('Falling back to simple export...');
       
-      // 降级到带背景的dom-to-image
-      if (typeof domtoimage !== 'undefined') {
-        success = await exportWithBackgroundFallback();
-      }
+      // 降级到简单导出
+      success = await exportSimpleWithBackground();
     }
     
     if (success) {
@@ -787,11 +855,13 @@ async function smartExport() {
     }
     
   } catch (error) {
-    console.error('Export failed:', error);
-    alert('导出失败，请尝试浏览器截图功能');
+    console.error('===== EXPORT PROCESS FAILED =====');
+    console.error('Final error:', error);
+    alert('导出失败，请打开浏览器控制台查看详细错误信息');
     btn.innerHTML = originalText;
   } finally {
     btn.disabled = false;
+    console.log('===== EXPORT PROCESS END =====');
   }
 }
 
