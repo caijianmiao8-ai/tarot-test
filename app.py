@@ -34,7 +34,9 @@ from services import (
 
 
 # 初始化 Flask 应用
-app = Flask(__name__)
+app = Flask(__name__, 
+            static_folder='static',
+            static_url_path='/static')
 app.config.from_object(Config)
 
 # 验证配置
@@ -51,10 +53,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 from flask import Flask, send_from_directory, render_template
 import os
 
-# 重要：确保静态文件夹路径正确
-app = Flask(__name__, 
-            static_folder='static',
-            static_url_path='/static')
+
 
 # 添加调试信息
 print(f"Static folder path: {app.static_folder}")
