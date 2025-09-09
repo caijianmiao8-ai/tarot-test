@@ -3,282 +3,172 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>每日塔罗运势 - {{ card.name }}</title>
+  <title>每日塔罗运势 · {{ card.name }} · 若水占卜</title>
 
-  <!-- iOS 全屏 & 状态栏（与 index 对齐） -->
+  <!-- iOS 全屏 & 状态栏样式 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="若水占卜">
 
-  <!-- Android / Chrome 主题色（与 index 对齐） -->
+  <!-- Android / Chrome 主题色 -->
   <meta name="theme-color" content="#1a1625" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#2d1b4e" media="(prefers-color-scheme: light)">
 
-  <!-- PWA 清单 / 图标（与 index 一致） -->
+  <!-- PWA 清单 / 主屏图标（保持与 index 一致） -->
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- 依赖（与 index 同源） -->
+  <!-- 统一的本地资源（Bootstrap / FontAwesome / 字体） -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== 设计系统（与 index 同步） ===== */
+    /* ===== 主题令牌（与 index 完全一致） ===== */
     :root{
       --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
       --bg1:#2d1b4e; --bg2:#1a1625;
       --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
       --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
-      --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --star:#ffd700;
+      --star:#ffd700; --success:#10b981; --danger:#ef4444;
     }
-    *{box-sizing:border-box}
-    html,body{
-      min-height:100dvh;
-      min-height:calc(var(--vh,1vh)*100);
-    }
-    html{ background:#120c1d; } /* 避免 iOS 底层白闪（与 index 一致） */
+    *{margin:0;padding:0;box-sizing:border-box}
     body{
-      margin:0;
       font-family:'Noto Serif SC',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
-      color:var(--text);
+      color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px;
       background:
         radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
         radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
         linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
       position:relative; overflow-x:hidden;
-      padding:20px;
-      padding-top: calc(20px + env(safe-area-inset-top,0px));
-      padding-bottom: calc(20px + env(safe-area-inset-bottom,0px));
-      display:flex; flex-direction:column; align-items:center;
     }
 
-    /* ===== 背景分层（与 index 对齐） ===== */
-    .bg-stars{
-      position:fixed; inset:0; z-index:0; pointer-events:none;
+    /* 背景层（与 index 同款） */
+    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.25;background-image:
+      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
+      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none;}
+    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
+    .zodiac{position:fixed;width:820px;height:820px;left:50%;top:50%;transform:translate(-50%,-50%);z-index:-2;opacity:.1;filter:drop-shadow(0 0 20px rgba(255,255,255,.1));animation:rot 90s linear infinite;pointer-events:none;}
+    @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+    .bg-veil{position:fixed; inset:-10% -10% 0 -10%; z-index:-5; pointer-events:none; opacity:.9; filter:blur(2px);
       background:
-        radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,.22), transparent 60%),
-        radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,.18), transparent 60%),
-        radial-gradient(920px 580px at 58% 12%, rgba(157,126,168,.14), transparent 72%),
+        radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
+        radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
+        radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%);
+      animation:veilDrift 50s linear infinite alternate;}
+    @keyframes veilDrift{ to{ transform:translate3d(-10px,8px,0) } }
 
-        radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,.9), transparent),
+    .bg-constellations{position:fixed; inset:0; z-index:-4; pointer-events:none; opacity:.18; mix-blend-mode:screen;}
+    .bg-constellations line{ stroke:rgba(255,255,255,.18); stroke-width:.6 }
+    .bg-constellations circle{ fill:rgba(255,255,255,.7); r:1.2; animation:starBlink 4.6s ease-in-out infinite }
+    @keyframes starBlink{ 0%,100%{opacity:.25} 50%{opacity:.85} }
 
-        /* 线性星座（浅白连线网） */
-        url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'>\
-<g stroke='rgba(255,255,255,0.28)' stroke-width='1' fill='none'>\
-<line x1='90' y1='120' x2='160' y2='160'/><line x1='160' y1='160' x2='210' y2='110'/><line x1='160' y1='160' x2='110' y2='200'/>\
-<line x1='780' y1='120' x2='840' y2='160'/><line x1='840' y1='160' x2='900' y2='180'/><line x1='900' y1='180' x2='950' y2='150'/>\
-<line x1='760' y1='740' x2='820' y2='780'/><line x1='820' y1='780' x2='880' y2='740'/><line x1='820' y1='780' x2='840' y2='840'/>\
-</g>\
-<g fill='rgba(255,255,255,0.9)'>\
-<circle cx='90' cy='120' r='1.2'/><circle cx='160' cy='160' r='1.2'/><circle cx='210' cy='110' r='1.2'/><circle cx='110' cy='200' r='1.2'/>\
-<circle cx='780' cy='120' r='1.2'/><circle cx='840' cy='160' r='1.2'/><circle cx='900' cy='180' r='1.2'/><circle cx='950' cy='150' r='1.2'/>\
-<circle cx='760' cy='740' r='1.2'/><circle cx='820' cy='780' r='1.2'/><circle cx='880' cy='740' r='1.2'/><circle cx='840' cy='840' r='1.2'/>\
-</g></svg>"),
-
-        /* 四元素 glyph */
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"),
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"),
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>"),
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
-
-        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
-      background-repeat:no-repeat,no-repeat,no-repeat,
-                       repeat,repeat,repeat,repeat,repeat,
-                       no-repeat,
-                       no-repeat,no-repeat,no-repeat,no-repeat,
-                       no-repeat;
-      background-size:cover,cover,cover,
-                      220px 220px,220px 220px,220px 220px,220px 220px,220px 220px,
-                      cover,
-                      68px 68px,76px 76px,64px 64px,76px 76px,
-                      cover;
-      background-position:12% 14%,82% 72%,58% 12%,
-                          12% 25%,32% 60%,62% 30%,82% 70%,22% 80%,
-                          center,
-                          8% 24%,86% 22%,12% 78%,88% 68%,
-                          center;
-      filter: saturate(1.05);
-    }
-    .bg-veil{
-      position:fixed; inset:0; z-index:1; pointer-events:none;
-      background:
-        radial-gradient(40% 35% at 30% 40%, rgba(241,228,183,.18), transparent 70%),
-        conic-gradient(from 0deg at 50% 50%, rgba(241,228,183,.08), rgba(157,126,168,.05), rgba(241,228,183,.08), rgba(157,126,168,.05), rgba(241,228,183,.08));
-      filter: blur(20px) saturate(1.05);
-      animation: aurora 95s linear infinite;
-    }
-    @keyframes aurora{to{transform:rotate(370deg)}}
-
-    .bg-constellations{
-      position:fixed; inset:0; z-index:1; pointer-events:none;
-      opacity:.18; mix-blend-mode:screen;
-    }
-    .bg-constellations line{stroke:rgba(255,255,255,.18);stroke-width:.6}
-    .bg-constellations circle{fill:rgba(255,255,255,.7);r:1.2;animation:starBlink 4.6s ease-in-out infinite}
-    @keyframes starBlink{0%,100%{opacity:.25}50%{opacity:.85}}
-
-    .bg-glyphs{
-      position:fixed; inset:0; z-index:1; pointer-events:none;
-      opacity:.13; filter:drop-shadow(0 0 20px rgba(232,212,162,.06));
+    .bg-glyphs{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.13; filter:drop-shadow(0 0 20px rgba(232,212,162,.06));
       background-repeat:no-repeat;
-      background-size:68px 68px, 76px 76px, 64px 64px, 72px 72px;
-      background-position:8% 24%, 86% 22%, 12% 78%, 88% 68%;
+      background-size: 68px 68px, 76px 76px, 64px 64px, 72px 72px, 60px 60px, 70px 70px;
+      background-position: 8% 24%, 86% 22%, 12% 78%, 88% 68%, 42% 88%, 34% 34%;
+      animation:glyphFloat 40s ease-in-out infinite alternate;
       background-image:
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>"),
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>");
+        url("data:image/svg+xml;utf8;<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>");
     }
+    @keyframes glyphFloat{ to{ transform:translate3d(0,-8px,0) rotate(-0.5deg) } }
 
-    .zodiac{
-      position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-      width:min(88vmin,720px); height:min(88vmin,720px);
-      z-index:1; opacity:.18; pointer-events:none; animation:zspin 110s linear infinite;
-      filter:drop-shadow(0 0 20px rgba(255,255,255,.1));
-    }
-    @keyframes zspin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-
-    /* 低运动偏好：禁用动画 */
-    @media (prefers-reduced-motion: reduce){
-      .bg-veil,.bg-glyphs,.bg-constellations,.zodiac{ animation:none }
-    }
-
-    /* ===== iOS 背景“钉住”策略（与 index 对齐） ===== */
-    :root{ --sy:0px; }
-    .bg-veil, .bg-constellations, .bg-glyphs, .zodiac{ will-change: transform, opacity; }
-    .ios-pin .bg-stars,
-    .ios-pin .bg-veil,
-    .ios-pin .bg-constellations,
-    .ios-pin .bg-glyphs,
-    .ios-pin .zodiac{
-      position:absolute !important; top:0; left:0; right:0; height:100vh; width:100%;
-      transform: translate3d(0, var(--sy), 0);
-      z-index:0; pointer-events:none; backface-visibility:hidden; will-change:transform;
-    }
-    .ios-pin .main-container{ position:relative; z-index:2; }
-
-    /* ===== 顶部用户栏（与 index 一致风格） ===== */
-    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
+    /* 顶栏（与 index 一致） */
+    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
     .user-bar-content{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;}
     .user-info{display:flex;align-items:center;gap:12px}
     .user-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border)}
     .user-name{color:var(--gold-light);font-weight:600;letter-spacing:.5px}
-    .user-actions{display:flex;gap:10px;flex-wrap:wrap}
-    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:rgba(255,255,255,.06);backdrop-filter:blur(8px)}
+    .user-actions{display:flex;gap:10px}
+    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:var(--panel);backdrop-filter:blur(8px)}
     .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
 
-    /* Flash 消息（引入与 index 相同结构） */
-    .flash-messages{position:fixed;top:68px;right:20px;z-index:200;max-width:380px}
-    .alert{padding:12px 14px;margin-bottom:10px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.18);color:#fff;border:none;animation:in .3s ease-out;backdrop-filter:blur(6px)}
-    .alert-success{background:rgba(16,185,129,.9)} .alert-info{background:rgba(59,130,246,.9)} .alert-error{background:rgba(239,68,68,.9)}
-    .alert .close{background:none;border:none;color:#fff;font-size:1.4rem;opacity:.85}.alert .close:hover{opacity:1}
-    @keyframes in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    /* 主容器与卡片容器（沿用 index 样式体系） */
+    .main-container{max-width:980px;width:100%;margin:88px auto 24px}
+    .tarot-container{position:relative;overflow:hidden;margin-bottom:30px;padding:28px;border-radius:22px;background:var(--panel);border:1px solid var(--border);box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08)}
+    .header h1{font-size:2.0rem;color:var(--gold-light);letter-spacing:1px;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .header .date{color:var(--text-muted);text-align:center;margin-top:6px}
 
-    /* ===== 主容器 ===== */
-    .main-container{max-width:980px;width:100%;margin:calc(88px + env(safe-area-inset-top,0px)) auto 24px}
-    @media (max-width:768px){ .main-container{margin:calc(74px + env(safe-area-inset-top,0px)) auto 16px} }
-
-    /* ===== 结果卡片布局 ===== */
-    .tarot-card-wrap{
-      background:var(--panel); border:1px solid var(--border); border-radius:22px;
-      box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
-      overflow:hidden; padding:22px;
-    }
-    .header{text-align:center;margin-bottom:10px}
-    .header h1{font-size:2rem;color:var(--gold-light);letter-spacing:.8px;margin:0 0 8px}
-    .date-display{display:inline-block;padding:6px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text-muted);}
-
-    .result-card{display:grid;grid-template-columns:1fr 1.2fr;gap:22px;align-items:start;margin-top:16px}
-    @media (max-width:980px){ .result-card{grid-template-columns:1fr;gap:18px} }
-
-    /* ===== 卡牌 3D 翻转 ===== */
-    .card-visual{margin:0 auto; width: clamp(200px, 44vw, 280px); aspect-ratio: 2 / 3; perspective: 1000px; position:relative}
-    .card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.175,.885,.32,1.275)}
+    /* Result 主区块布局 */
+    .result-wrap{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;justify-content:center;margin-top:16px}
+    .card-visual{width:260px;height:400px;perspective:1000px;position:relative;border-radius:14px}
+    .card-inner{width:100%;height:100%;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.175,.885,.32,1.275)}
     .card-visual.flipped .card-inner{transform:rotateY(180deg)}
-    .card-front,.card-back{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;overflow:hidden;border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.28);}
-    .card-front{ background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2)); }
-    .card-front::after{content:"";position:absolute;inset:14px;border-radius:10px;border:1px solid rgba(255,255,255,.22)}
-    .card-back{ transform:rotateY(180deg); background:none; }
+    .card-front,.card-back{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;overflow:hidden;border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.28)}
 
-    .card-back-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-    .mystical-border{width:58%;aspect-ratio:1/1;border:2px solid rgba(255,255,255,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:spin2 20s linear infinite}
-    .mystical-border::before{content:"";position:absolute;width:120%;height:120%;border:1px solid rgba(255,255,255,.18);border-radius:50%}
-    .mystical-symbol{font-size:min(14vmin,54px);color:rgba(255,255,255,.8);text-shadow:0 0 18px rgba(255,255,255,.35)}
-    @keyframes spin2{to{transform:rotate(360deg)}}
+    /* 牌背：与 index 的紫金渐变统一 */
+    .card-front{background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.20));position:relative}
+    .card-back-pattern{position:absolute;inset:0;opacity:.18;background-image:
+      radial-gradient(circle at 20% 20%, transparent 30%, rgba(255,255,255,.12) 30.5%, rgba(255,255,255,.12) 31%, transparent 31.5%),
+      radial-gradient(circle at 80% 80%, transparent 30%, rgba(255,255,255,.12) 30.5%, rgba(255,255,255,.12) 31%, transparent 31.5%),
+      radial-gradient(circle at 50% 50%, transparent 40%, rgba(255,255,255,.12) 40.5%, rgba(255,255,255,.12) 41%, transparent 41.5%);
+      background-size:200px 200px,200px 200px,300px 300px;}
+    .mystical-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70%;height:70%;display:flex;align-items:center;justify-content:center}
+    .mystical-ring{width:150px;height:150px;border:2px solid rgba(255,255,255,.28);border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;animation:rot 20s linear infinite}
+    .mystical-ring::before{content:'';position:absolute;width:120%;height:120%;border:1px solid rgba(255,255,255,.18);border-radius:50%}
 
-    .tarot-image-wrapper{position:absolute; inset:0; background: linear-gradient(135deg, #2f2343 0%, #241c33 100%);}
+    /* 牌面 */
+    .card-back{background:#0f0b18;transform:rotateY(180deg)}
+    .tarot-image-wrapper{position:absolute;inset:0;background:rgba(0,0,0,.1)}
     .tarot-image{width:100%;height:100%;object-fit:contain;transition:transform .6s ease}
     .tarot-image.reversed{transform:rotate(180deg)}
+    .direction-badge{position:absolute;top:12px;right:12px;z-index:2;background:rgba(0,0,0,.35);padding:6px 12px;border-radius:16px;border:1px solid var(--border);font-weight:700}
 
-    .direction-badge{
-      position:absolute;top:12px;right:12px;z-index:2;
-      background:rgba(255,255,255,.9); color:#1a1a1a; padding:6px 12px; border-radius:18px; font-weight:700; font-size:.85rem;
-      border:2px solid transparent;
+    /* 右侧信息块 */
+    .info{flex:1;min-width:300px;max-width:560px}
+    .card-name{font-size:1.8rem;font-weight:800;color:#fff;text-align:left;margin:6px 0 10px}
+    .section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-top:12px;box-shadow:0 6px 16px rgba(0,0,0,.18)}
+    .section-title{font-size:1.06rem;color:var(--gold-light);font-weight:700;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+    .section p{color:var(--text-light);line-height:1.75;margin:0}
+
+    /* 访客导出区域（统一视觉） */
+    .export{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .export p{color:var(--text-muted);margin:0 0 10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;text-decoration:none;font-weight:700;transition:.25s;box-shadow:0 8px 20px rgba(157,126,168,.32)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(157,126,168,.4);color:#fff}
+    .btn.ghost{background:var(--panel)}
+
+    /* 动作区（按钮与分隔） */
+    .divider{height:1px;background:var(--border);margin:22px 0}
+    .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:10px 0 0}
+
+    /* 底部版权 */
+    .footer{text-align:center;color:var(--text-muted);font-size:.95rem;margin-top:8px}
+
+    /* 加载小圆圈 */
+    .loading{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-radius:50%;border-top-color:#fff;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* —— 移动端 & iOS 适配补丁 —— */
+    html, body{min-height:100dvh;min-height:calc(var(--vh,1vh)*100)}
+    .user-bar{padding-top:calc(env(safe-area-inset-top,0px)+10px)}
+    .main-container{margin-top:calc(88px + env(safe-area-inset-top,0px))}
+    @media (max-width:768px){
+      .main-container{margin-top:calc(74px + env(safe-area-inset-top,0px))}
+      .card-visual{width:clamp(180px,64vw,260px);height:auto;aspect-ratio:260/400}
     }
-    .direction-badge.upright{ border-color: var(--success); color: var(--success); background: rgba(16,185,129,.12) }
-    .direction-badge.reversed{ border-color: var(--warning); color: var(--warning); background: rgba(245,158,11,.12) }
+    .bg-veil,.bg-constellations,.bg-glyphs,.zodiac{will-change:transform,opacity}
 
-    /* ===== 右侧信息卡 ===== */
-    .card-info{max-width:640px;margin:0 auto;width:100%}
-    .card-name{text-align:center;font-size:1.8rem;color:#fff;font-weight:800;letter-spacing:.6px;margin:6px 0 10px;text-shadow:0 2px 8px rgba(0,0,0,.25)}
-    .section{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:12px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
-    .section .title{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--gold-light);margin-bottom:8px}
-    .section .content{color:var(--text-light); line-height:1.8; text-align:left; text-wrap:pretty; word-break:break-word; hyphens:auto;}
+    /* iOS 背景“钉住”模式 */
+    :root{--sy:0px}
+    .ios-pin .bg-stars,.ios-pin .bg-veil,.ios-pin .bg-constellations,.ios-pin .bg-glyphs,.ios-pin .zodiac{
+      position:absolute !important; top:0; left:0; right:0; height:100vh; width:100%; transform:translate3d(0,var(--sy),0); z-index:0; pointer-events:none; backface-visibility:hidden; will-change:transform;
+    }
 
-    /* ===== 访客导出 ===== */
-    .export-section{margin:18px 0;padding:14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border);text-align:center}
-    .export-section p{color:var(--text-light);margin:4px 0 10px}
-    .export-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-    .btn-export{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;transition:.25s}
-    .btn-export:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(157,126,168,.35)}
-
-    /* ===== 解锁区块 ===== */
-    .unlock-section{margin:18px 0;padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--border);position:relative;overflow:hidden}
-    .unlock-section::before{content:"";position:absolute;inset:-50%;background:radial-gradient(circle, rgba(232,212,162,.12) 0%, transparent 70%);animation:pulse 4s ease-in-out infinite}
-    @keyframes pulse{0%,100%{transform:scale(.9);opacity:.6}50%{transform:scale(1.15);opacity:1}}
-    .btn-unlock{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;text-decoration:none;box-shadow:0 10px 24px rgba(157,126,168,.32);transition:.25s}
-    .btn-unlock:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(157,126,168,.42)}
-
-    /* ===== 深层含义 ===== */
-    .meaning{margin-top:16px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:16px}
-    .meaning .title{display:flex;align-items:center;gap:10px;color:var(--gold-light);font-weight:800;margin-bottom:10px}
-    .meaning-item{background:rgba(255,255,255,.05);border-left:3px solid var(--primary);border-radius:10px;padding:12px 12px 12px 14px;margin:10px 0;color:var(--text-light)}
-    .meaning-item strong{color:#fff;display:block;margin-bottom:6px}
-
-    /* ===== 操作按钮 ===== */
-    .action-buttons{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px 0 6px}
-    .btn-tarot{display:inline-flex;align-items:center;gap:10px;padding:11px 20px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;text-decoration:none;box-shadow:0 10px 24px rgba(157,126,168,.32);transition:.25s}
-    .btn-tarot:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(157,126,168,.42)}
-    .btn-tarot.secondary{background:rgba(255,255,255,.06);color:#fff}
-
-    .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);margin:16px 0}
-    .footer{text-align:center;color:var(--text-muted);font-size:.95rem;margin-top:6px}
-
-    /* 复制成功提示 */
-    .copy-success{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:12px 22px;border-radius:999px;box-shadow:0 10px 24px rgba(16,185,129,.35);opacity:0;transition:.25s;z-index:200}
-    .copy-success.show{opacity:1}
-
-    .loading{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin3 1s linear infinite}
-    @keyframes spin3{to{transform:rotate(360deg)}}
-
-    /* 触控优化（与 index 对齐） */
-    button,.btn-tarot,.btn-export,.btn-unlock{touch-action:manipulation}
   </style>
 </head>
-
 <body>
-  <!-- 背景分层（顺序与 index 保持一致） -->
-  <div class="bg-stars" aria-hidden="true"></div>
+  <!-- 背景层（与 index 一致） -->
+  <div class="bg-stars"></div>
   <div class="bg-veil" aria-hidden="true"></div>
-
   <svg class="bg-constellations" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
     <g>
       <line x1="90" y1="120" x2="160" y2="160"/><line x1="160" y1="160" x2="210" y2="110"/><line x1="160" y1="160" x2="110" y2="200"/>
@@ -293,22 +183,10 @@
       <circle cx="760" cy="740"/><circle cx="820" cy="780" style="animation-delay:.7s"/><circle cx="880" cy="740" style="animation-delay:1.3s"/><circle cx="840" cy="840" style="animation-delay:1.9s"/>
     </g>
   </svg>
-
   <div class="bg-glyphs" aria-hidden="true"></div>
+  <div class="zodiac" aria-hidden="true"></div>
 
-  <!-- 中央旋转星盘 -->
-  <svg class="zodiac" viewBox="0 0 100 100" aria-hidden="true">
-    <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".3">
-      <circle cx="50" cy="50" r="44"/>
-      <circle cx="50" cy="50" r="34" stroke-opacity=".4"/>
-      <g stroke-opacity=".25"><line x1="50" y1="6" x2="50" y2="94"/><line x1="6" y1="50" x2="94" y2="50"/><line x1="18" y1="18" x2="82" y2="82"/><line x1="18" y1="82" x2="82" y2="18"/></g>
-    </g>
-    <g fill="#fff" fill-opacity=".55" font-size="6" font-family="serif">
-      <text x="50" y="10" text-anchor="middle">♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎</text>
-    </g>
-  </svg>
-
-  <!-- 顶部用户栏 -->
+  <!-- 顶部用户栏（复用 index 语义与类名） -->
   <div class="user-bar">
     <div class="user-bar-content">
       <div class="user-info">
@@ -318,7 +196,6 @@
         <span class="user-name">{{ user.username if not user.is_guest else "神秘访客" }}</span>
       </div>
       <div class="user-actions">
-        <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 首页</a>
         {% if user.is_guest %}
           <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
           <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
@@ -330,49 +207,39 @@
     </div>
   </div>
 
-  <!-- Flash 消息（与 index 一致） -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="flash-messages">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }}"><span>{{ message }}</span><button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button></div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
-  <main class="main-container">
-    <section class="tarot-card-wrap">
+  <div class="main-container">
+    <div class="tarot-container">
       <div class="header">
         <h1><i class="fas fa-star"></i> 今日塔罗运势 <i class="fas fa-star"></i></h1>
-        <div class="date-display"><i class="fas fa-calendar-day"></i> {{ today_date }}</div>
+        <div class="date">{{ today_date }}</div>
       </div>
 
-      <div class="result-card">
-        <!-- 卡牌 -->
+      <div class="result-wrap">
+        <!-- 左：可翻转卡牌 -->
         <div class="card-visual {% if direction == '逆位' %}reversed{% endif %}" id="cardVisual">
           <div class="card-inner">
             <!-- 牌背 -->
             <div class="card-front">
-              <div class="card-back-center">
-                <div class="mystical-border">
-                  <i class="fas fa-moon mystical-symbol"></i>
+              <div class="card-back-pattern"></div>
+              <div class="mystical-center">
+                <div class="mystical-ring">
+                  <i class="fas fa-moon" style="color:rgba(255,255,255,.75);font-size:2.2rem;"></i>
                 </div>
               </div>
             </div>
             <!-- 牌面 -->
             <div class="card-back">
-              <div class="direction-badge {{ 'upright' if direction=='正位' else 'reversed' }}">
-                {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction=='正位' else 'fa-arrow-down' }}"></i>
+              <div class="direction-badge" style="color:{{ 'var(--success)' if direction == '正位' else 'var(--danger)' }};">
+                {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
               </div>
               <div class="tarot-image-wrapper">
                 {% if card.image %}
                   <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" src="{{ card.image }}" alt="{{ card.name }}">
                 {% else %}
-                  <div style="width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, rgba(157,126,168,.14), rgba(232,212,162,.12));">
-                    <div style="text-align:center;">
-                      <i class="fas fa-sparkles" style="font-size: 3.4rem; color: var(--gold-light); opacity:.8"></i>
-                      <h3 style="margin-top: 10px; color:#fff">{{ card.name }}</h3>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(157,126,168,.16), rgba(232,212,162,.12));">
+                    <div style="text-align:center;color:var(--text-light)">
+                      <i class="fas fa-sparkles" style="font-size:3rem;color:var(--gold-light);"></i>
+                      <div style="margin-top:10px;font-weight:700">{{ card.name }}</div>
                     </div>
                   </div>
                 {% endif %}
@@ -381,145 +248,110 @@
           </div>
         </div>
 
-        <!-- 文案 -->
-        <div class="card-info">
+        <!-- 右：文本信息 -->
+        <div class="info">
           <div class="card-name">{{ card.name }}</div>
 
           <div class="section">
-            <div class="title"><i class="fas fa-compass"></i> 今日运势解读</div>
-            <div class="content">
+            <div class="section-title"><i class="fas fa-compass"></i> 今日运势解读</div>
+            <p>
               {% if today_insight %}
                 {{ today_insight }}
               {% else %}
                 <span class="loading"></span> 解读正在生成中...
               {% endif %}
-            </div>
+            </p>
           </div>
 
           <div class="section">
-            <div class="title"><i class="fas fa-hands-helping"></i> 运势指引</div>
-            <div class="content">
+            <div class="section-title"><i class="fas fa-hands-helping"></i> 运势指引</div>
+            <p>
               {% if guidance %}
                 {{ guidance }}
               {% else %}
                 <span class="loading"></span> 指引正在生成中...
               {% endif %}
+            </p>
+          </div>
+
+          {% if user.is_guest %}
+          <div class="export">
+            <p><i class="fas fa-info-circle"></i> 作为访客，您的解读仅在本次浏览期间有效</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn" href="{{ url_for('export_reading') }}"><i class="fas fa-download"></i> 下载解读</a>
+              <button class="btn ghost" type="button" onclick="copyToClipboard()"><i class="fas fa-copy"></i> 复制内容</button>
             </div>
           </div>
+          {% endif %}
         </div>
-      </div>
-
-      {% if user.is_guest %}
-      <div class="export-section">
-        <p><i class="fas fa-info-circle"></i> 作为访客，您的解读仅在本次浏览期间有效</p>
-        <div class="export-buttons">
-          <a href="{{ url_for('export_reading') }}" class="btn-export"><i class="fas fa-download"></i> 下载解读</a>
-          <button type="button" onclick="copyToClipboard()" class="btn-export"><i class="fas fa-copy"></i> 复制内容</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <div class="divider"></div>
-
-      <div class="unlock-section">
-        <a href="{{ url_for('index') }}" class="btn-unlock"><i class="fas fa-unlock-alt"></i> 点击解锁今日运势指数</a>
       </div>
 
       <div class="divider"></div>
 
-      <div class="meaning">
-        <div class="title"><i class="fas fa-book-open"></i> {{ card.name }} 的深层含义</div>
-        <div class="meaning-item">
-          <strong><i class="fas fa-arrow-up"></i> 正位含义</strong>
-          {{ card.meaning_up if card.meaning_up else "正位解释暂未提供" }}
-        </div>
-        <div class="meaning-item">
-          <strong><i class="fas fa-arrow-down"></i> 逆位含义</strong>
-          {{ card.meaning_rev if card.meaning_rev else "逆位解释暂未提供" }}
-        </div>
+      <!-- 深层含义（统一视觉） -->
+      <div class="section">
+        <div class="section-title"><i class="fas fa-book-open"></i> {{ card.name }} 的深层含义</div>
+        <p style="margin-bottom:10px"><strong style="color:var(--gold-light)"><i class="fas fa-arrow-up"></i> 正位含义</strong><br>{{ card.meaning_up if card.meaning_up else '正位解释暂未提供' }}</p>
+        <p><strong style="color:var(--gold-light)"><i class="fas fa-arrow-down"></i> 逆位含义</strong><br>{{ card.meaning_rev if card.meaning_rev else '逆位解释暂未提供' }}</p>
       </div>
 
-      <div class="action-buttons">
-        <button class="btn-tarot" type="button" onclick="shareResult()"><i class="fas fa-share-alt"></i> 分享结果</button>
+      <div class="actions">
+        <a href="{{ url_for('spread') }}" class="btn"><i class="fas fa-layer-group"></i> 牌阵占卜</a>
+        <a href="{{ url_for('guide_spread') }}" class="btn"><i class="fas fa-magic"></i> 引导选阵</a>
+        <button class="btn ghost" type="button" onclick="shareResult()"><i class="fas fa-share-alt"></i> 分享结果</button>
       </div>
 
       <div class="footer">
         © 2025 塔罗运势 | 宇宙能量，智慧指引<br><small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <!-- 复制成功提示 -->
-  <div class="copy-success" id="copySuccess"><i class="fas fa-check-circle"></i> 复制成功！</div>
+  <!-- 复制成功提示（轻量） -->
+  <div id="copyToast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(16,185,129,.92);color:#fff;padding:10px 16px;border-radius:18px;border:1px solid var(--border);box-shadow:0 10px 26px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;">已复制到剪贴板</div>
 
   <script>
-    // 1) 视口高度修复（--vh，与 index 同步）
-    (function(){
-      const setVh=()=>document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px');
-      setVh(); addEventListener('resize',setVh); addEventListener('orientationchange',setVh);
-    })();
+    const $ = (s)=>document.querySelector(s);
 
-    // 2) iOS 背景固定 fallback：滚动时用 transform 抵消（与 index 同步）
-    (function(){
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      const isIOS = /iPad|iPhone|iPod/.test(ua);
-      if(isIOS){
-        document.documentElement.classList.add('ios-pin');
-        const sync = ()=> document.documentElement.style.setProperty('--sy', window.scrollY + 'px');
-        sync(); addEventListener('scroll', sync, {passive:true});
-      }
-    })();
+    // 卡牌自动翻转
+    setTimeout(()=>{ $('#cardVisual')?.classList.add('flipped'); }, 800);
 
-    // 3) PWA SW（与 index 一致；失败忽略）
-    if ('serviceWorker' in navigator) {
-      addEventListener('load', ()=> navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+    // 复制到剪贴板
+    function copyToClipboard(){
+      const content = `塔罗每日指引 - {{ today_date }}\n━━━━━━━━━━━━━━━━━━━━━\n抽到的牌：{{ card.name }}（{{ direction }}）\n\n【今日洞察】\n{{ today_insight if today_insight else '解读生成中...' }}\n\n【指引建议】\n{{ guidance if guidance else '指引生成中...' }}\n\n【牌面含义】\n正位：{{ card.meaning_up if card.meaning_up else '暂无' }}\n逆位：{{ card.meaning_rev if card.meaning_rev else '暂无' }}\n━━━━━━━━━━━━━━━━━━━━━\n生成自：塔罗每日指引`;
+      if(navigator.clipboard){ navigator.clipboard.writeText(content).then(showToast).catch(fallback); }
+      else{ fallback(); }
+      function fallback(){ const ta=document.createElement('textarea'); ta.value=content; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); showToast(); }
+      function showToast(){ const t=$('#copyToast'); t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 1800); }
     }
 
-    // 4) 翻牌动画
-    setTimeout(()=>{ document.getElementById('cardVisual')?.classList.add('flipped'); }, 800);
-
-    // 5) 复制到剪贴板（保留原功能）
-    function copyToClipboard() {
-      const content = `塔罗每日指引 - {{ today_date }}
-━━━━━━━━━━━━━━━━━━━━━
-抽到的牌：{{ card.name }}（{{ direction }}）
-
-【今日洞察】
-{{ today_insight if today_insight else '解读正在生成中...' }}
-
-【指引建议】
-{{ guidance if guidance else '指引正在生成中...' }}
-
-【牌面含义】
-正位：{{ card.meaning_up if card.meaning_up else '暂无' }}
-逆位：{{ card.meaning_rev if card.meaning_rev else '暂无' }}
-━━━━━━━━━━━━━━━━━━━━━
-生成自：塔罗每日指引`;
-      (navigator.clipboard
-        ? navigator.clipboard.writeText(content)
-        : new Promise((res,rej)=>{ try{ const ta=document.createElement('textarea'); ta.value=content; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); res(); }catch(e){ rej(e) } }))
-      .then(showCopySuccess)
-      .catch(showCopySuccess);
-    }
-    function showCopySuccess(){
-      const el=document.getElementById('copySuccess');
-      el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800);
-    }
-
-    // 6) 原生分享（降级到复制）
+    // 分享：优先 Web Share API
     function shareResult(){
-      const shareData={ title:'我的每日塔罗运势', text:`我抽到了{{ card.name }}（{{ direction }}）`, url:location.href };
-      if(navigator.share){
-        navigator.share(shareData).catch(err=>{ if(err?.name!=='AbortError') copyToClipboard(); });
-      }else{
-        copyToClipboard();
-      }
+      const text = `我抽到了${'{{ card.name }}'}（{{ direction }}）`;
+      const data = { title:'我的每日塔罗运势', text, url: window.location.href };
+      if(navigator.share){ navigator.share(data).catch(()=>copyToClipboard()); }
+      else{ copyToClipboard(); }
     }
 
-    // 7) 缺内容自动刷新（兜底，不影响性能）
+    // 若解读/指引为空，轻量轮询刷新
     {% if not today_insight or not guidance %}
-      setTimeout(()=>location.reload(), 5000);
+    setTimeout(()=>{ location.reload(); }, 5000);
     {% endif %}
+
+    // 视口高度变量 --vh（iOS 适配）
+    function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px'); }
+    setVh(); window.addEventListener('resize', setVh);
+
+    // iOS 背景“钉住”策略（可选）
+    const ua = navigator.userAgent || '';
+    const isIOS = /iP(hone|od|ad)/.test(ua);
+    if(isIOS){
+      document.documentElement.classList.add('ios-pin');
+      let sy = 0; window.addEventListener('scroll', ()=>{
+        const y = Math.round(window.scrollY || window.pageYOffset || 0);
+        if(y !== sy){ sy=y; document.documentElement.style.setProperty('--sy', sy+'px'); }
+      }, {passive:true});
+    }
   </script>
 </body>
 </html>
