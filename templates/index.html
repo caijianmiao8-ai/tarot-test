@@ -1,79 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  {% include 'partials/_meta_pwa.html' %}
+  {% block title %}<title>每日塔罗运势 · 若水占卜</title>{% endblock %}
 
-<!-- iOS 全屏 & 状态栏样式（黑色半透明，沉浸感更强） -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="若水占卜">
-
-<!-- Android / Chrome 主题色 -->
-<meta name="theme-color" content="#1a1625" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#2d1b4e" media="(prefers-color-scheme: light)">
-
-<!-- PWA 清单 -->
-<link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-
-<!-- 主屏幕图标（可先放一张 180x180 PNG 到 /static/icons/） -->
-<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <title>每日塔罗运势 · 若水占卜</title>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
-
+  <!-- 页面专属样式：保留你原有视觉（必要的部分） -->
   <style>
-    :root{
-      --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
-      --bg1:#2d1b4e; --bg2:#1a1625;
-      --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
-      --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
-      --star:#ffd700; --success:#10b981; --danger:#ef4444;
-    }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      font-family:'Noto Serif SC',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
-      color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px;
-      background:
-        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
-        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
-        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
-      position:relative; overflow-x:hidden;
-    }
-    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.25;background-image:
-      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
-      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
-      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
-      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
-      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
-      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none;}
-    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
-    .zodiac{position:fixed;width:820px;height:820px;left:50%;top:50%;transform:translate(-50%,-50%);z-index:-2;opacity:.1;filter:drop-shadow(0 0 20px rgba(255,255,255,.1));animation:rot 90s linear infinite;pointer-events:none;}
-    @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
-
-    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
-    .user-bar-content{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;}
-    .user-info{display:flex;align-items:center;gap:12px}
-    .user-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border)}
-    .user-name{color:var(--gold-light);font-weight:600;letter-spacing:.5px}
-    .user-actions{display:flex;gap:10px}
-    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:rgba(255,255,255,.06);backdrop-filter:blur(8px)}
-    .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
-
-    .flash-messages{position:fixed;top:68px;right:20px;z-index:200;max-width:380px}
-    .alert{padding:12px 14px;margin-bottom:10px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.18);color:#fff;border:none;animation:in .3s ease-out;backdrop-filter:blur(6px)}
-    .alert-success{background:rgba(16,185,129,.9)} .alert-info{background:rgba(59,130,246,.9)} .alert-error{background:rgba(239,68,68,.9)}
-    .alert .close{background:none;border:none;color:#fff;font-size:1.4rem;opacity:.85}.alert .close:hover{opacity:1}
-    @keyframes in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-
-    .main-container{max-width:980px;width:100%;margin:88px auto 24px}
-
-    .tarot-container{position:relative;overflow:hidden;margin-bottom:30px;padding:28px;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid var(--border);box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08)}
+    .tarot-container{position:relative;overflow:hidden;margin-bottom:30px;padding:28px;border-radius:22px;background:var(--panel);border:1px solid var(--border);box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08)}
     .header h1{font-size:2.2rem;color:var(--gold-light);letter-spacing:1px;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.25)}
     .header p{color:var(--text-muted);text-align:center;margin-top:6px}
     .tarot-card{width:220px;height:340px;margin:24px auto 10px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2));border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.28);transform-style:preserve-3d;transition:transform .8s cubic-bezier(.175,.885,.32,1.275), box-shadow .35s ease;cursor:pointer}
@@ -131,161 +64,21 @@
     .fab-share:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(157,126,168,.42)}
     .fab-share.disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 
-/* ========= Tarot 背景增强（仅视觉层；不改动任何业务逻辑） ========= */
-
-/* 1) 柔雾：更有层次的神秘氛围 */
-.bg-veil{
-  position:fixed; inset:-10% -10% 0 -10%;
-  z-index:-5; pointer-events:none;
-  opacity:.9; filter:blur(2px);
-  background:
-    radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
-    radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
-    radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%);
-  animation:veilDrift 50s linear infinite alternate;
-}
-@keyframes veilDrift{ to{ transform:translate3d(-10px,8px,0) } }
-
-/* 2) 细线星座：与原有星点互补，保持轻盈 */
-.bg-constellations{
-  position:fixed; inset:0; z-index:-4; pointer-events:none;
-  opacity:.18; mix-blend-mode:screen;
-}
-.bg-constellations line{ stroke:rgba(255,255,255,.18); stroke-width:.6 }
-.bg-constellations circle{ fill:rgba(255,255,255,.7); r:1.2; animation:starBlink 4.6s ease-in-out infinite }
-@keyframes starBlink{ 0%,100%{opacity:.25} 50%{opacity:.85} }
-
-/* 3) 塔罗四元素轻浮层：权杖/圣杯/宝剑/星币（低饱和、低不透明度） */
-.bg-glyphs{
-  position:fixed; inset:0; z-index:-1; pointer-events:none;
-  opacity:.13; filter:drop-shadow(0 0 20px rgba(232,212,162,.06));
-  background-repeat:no-repeat;
-  background-size: 68px 68px, 76px 76px, 64px 64px, 72px 72px, 60px 60px, 70px 70px;
-  background-position: 8% 24%, 86% 22%, 12% 78%, 88% 68%, 42% 88%, 34% 34%;
-  animation:glyphFloat 40s ease-in-out infinite alternate;
-  /* 六个点位的 SVG（四个图案复用） */
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"), /* Wand */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"), /* Cup */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>"), /* Sword */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"), /* Pentacle */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"), /* Wand(复用) */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"); /* Cup(复用) */
-}
-@keyframes glyphFloat{ to{ transform:translate3d(0,-8px,0) rotate(-0.5deg) } }
-
-/* 低运动偏好：禁用动画，保证沉静质感 */
-@media (prefers-reduced-motion: reduce){
-  .bg-veil,.bg-glyphs,.bg-constellations,.zodiac{ animation:none }
-}
-
-.sc-overlay{
-  position:fixed;
-  inset:0;
-  z-index:500;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
-.sc-mask{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  backdrop-filter:blur(4px);
-}
-.sc-panel{
-  position:relative;
-  z-index:1;
-  max-width:480px;
-  max-height:90vh;
-  width:100%;
-  padding:16px;
-  border-radius:20px;
-  background:rgba(255,255,255,.08);
-  border:1px solid var(--border);
-  box-shadow:0 24px 48px rgba(0,0,0,.4);
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-.sc-close{
-  position:absolute;
-  right:14px;
-  top:14px;
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  color:#fff;
-  background:rgba(255,255,255,.1);
-  border:1px solid var(--border);
-  transition:.2s;
-}
-.sc-close:hover{
-  background:rgba(255,255,255,.15);
-  transform:scale(1.1);
-}
-.sc-frame-wrapper{
-  flex:1;
-  min-height:0;
-  border-radius:16px;
-  overflow:hidden;
-  background:#1a1625;
-  position:relative;
-}
-.sc-frame{
-  width:100%;
-  height:100%;
-  border:0;
-  display:block;
-}
-.sc-actions{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
-  padding-top:8px;
-}
-.sc-btn{
-  padding:12px 20px;
-  border-radius:20px;
-  border:1px solid var(--border);
-  background:linear-gradient(135deg,var(--primary),var(--secondary));
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-  transition:.25s;
-  font-size:14px;
-}
-.sc-btn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(157,126,168,.35);
-}
-.sc-btn.ghost{
-  background:rgba(255,255,255,.08);
-}
-.sc-btn:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-  transform:none;
-}
-.loading-spinner{
-  display:inline-block;
-  width:14px;
-  height:14px;
-  border:2px solid rgba(255,255,255,.3);
-  border-radius:50%;
-  border-top-color:#fff;
-  animation:spin .6s linear infinite;
-  margin-right:6px;
-}
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
+    /* 分享弹层 */
+    .sc-overlay{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+    .sc-mask{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}
+    .sc-panel{position:relative;z-index:1;max-width:480px;max-height:90vh;width:100%;padding:16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid var(--border);box-shadow:0 24px 48px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:12px}
+    .sc-close{position:absolute;right:14px;top:14px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.1);border:1px solid var(--border);transition:.2s}
+    .sc-close:hover{background:rgba(255,255,255,.15);transform:scale(1.1)}
+    .sc-frame-wrapper{flex:1;min-height:0;border-radius:16px;overflow:hidden;background:#1a1625;position:relative}
+    .sc-frame{width:100%;height:100%;border:0;display:block}
+    .sc-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding-top:8px}
+    .sc-btn{padding:12px 20px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:600;cursor:pointer;transition:.25s;font-size:14px}
+    .sc-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(157,126,168,.35)}
+    .sc-btn.ghost{background:rgba(255,255,255,.08)}
+    .sc-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .loading-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin .6s linear infinite;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
     @media (max-width:768px){
       .main-container{margin-top:74px}
@@ -295,293 +88,22 @@
       .fortune-score{font-size:3rem}
       .lucky-grid{grid-template-columns:1fr}
       .sc-frame{max-width:92vw}
+      .tarot-card{aspect-ratio:220/340;width:clamp(180px,64vw,260px);height:auto}
     }
-
-  /* ===== 移动端 & iOS 适配补丁（不触碰业务逻辑） ===== */
-
-/* 让页面高度在 iOS 上可靠：优先使用 100dvh，降级到自定义 --vh */
-html, body{
-  min-height: 100dvh;
-  min-height: calc(var(--vh, 1vh) * 100);
-}
-
-/* 顶部固定栏与内容区：为刘海留白 */
-.user-bar{
-  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
-}
-.main-container{
-  margin-top: calc(88px + env(safe-area-inset-top, 0px));
-}
-@media (max-width:768px){
-  .main-container{
-    margin-top: calc(74px + env(safe-area-inset-top, 0px));
-  }
-}
-
-/* 底部浮动按钮与弹层操作区：为 Home 指示条留白 */
-.fab-share{
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-}
-.sc-actions{
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-}
-
-/* iOS 点击优化（避免双击缩放、触控更灵敏） */
-button, .btn-tarot, .already-drawn, .sc-btn, .fab-share{
-  touch-action: manipulation;
-}
-
-/* 防止 iOS 因输入字小于 16px 自动放大（如后续有输入框） */
-input, select, textarea{
-  font-size: 16px;
-}
-
-/* Tarot 卡片在小屏的自适应比例（不改桌面布局） */
-@media (max-width:768px){
-  .tarot-card{
-    /* 使用纵横比，自动算高 */
-    aspect-ratio: 220 / 340;
-    width: clamp(180px, 64vw, 260px);
-    height: auto;
-  }
-}
-
-/* 背景动效在移动端更稳（可选） */
-.bg-veil, .bg-constellations, .bg-glyphs, .zodiac{
-  will-change: transform, opacity;
-}
-
-/* ===== iOS 专用：用 transform “钉住”背景，替代 position:fixed（避免白屏） ===== */
-
-:root { --sy: 0px; }  /* 当前滚动位置（像素） */
-
-.ios-pin .bg-stars,
-.ios-pin .bg-veil,
-.ios-pin .bg-constellations,
-.ios-pin .bg-glyphs,
-.ios-pin .zodiac{
-  position: absolute !important;    /* 替代 fixed */
-  top: 0; left: 0; right: 0;
-  height: 100vh; width: 100%;
-  transform: translate3d(0, var(--sy), 0);  /* 随 scrollY 抵消滚动 */
-  z-index: 0;                        /* 在内容下方、但不为负，避免被 body 背景盖住 */
-  pointer-events: none;
-  backface-visibility: hidden;
-  will-change: transform;            /* GPU 合成，不卡顿 */
-}
-
-/* 确保主体内容在背景之上（不影响你的 fixed 顶栏与弹层） */
-.ios-pin .main-container,
-.ios-pin .features,
-.ios-pin .footer{
-  position: relative;
-  z-index: 2;
-}
-
-
-/* ===== iOS 背景增强 v3：提亮、提色、提高可见度（仅 iOS 生效） ===== */
-@supports (-webkit-touch-callout: none) {
-
-  /* 仍走单层背景，避免 iOS 多层 fixed 白屏；但我们把色彩和对比度拉高 */
-  .bg-veil, .bg-constellations, .bg-glyphs, .zodiac { display: none !important; }
-
-  :root{
-    /* 你已有色板的延续：略微更亮、更“金”一些 */
-    --ios-gold: #f1e4b7;                 /* 比 --gold-light 更亮一点 */
-    --ios-gold-alpha: .30;               /* 金色图案不透明度 */
-    --ios-fog-a: .26;                    /* 柔雾层强度（原 .18 左右 → .26） */
-    --ios-fog-b: .20;
-    --ios-fog-c: .16;
-    --ios-stars: .95;                    /* 细星点亮度（原 .8 → .95） */
-    --ios-lines: .28;                    /* 星座连线对比（原 .18 → .28） */
-    --ios-disc: .18;                     /* 旋转星盘可见度（原 .12 → .18） */
-  }
-
-  .bg-stars{
-    position: fixed !important;
-    inset: 0;
-    height: 100dvh;
-    z-index: 0;
-    pointer-events: none;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-    animation: none;
-
-    /* —— 提亮后的单层合成背景 —— */
-    background:
-      /* 柔雾层（提升强度与层次） */
-      radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,var(--ios-fog-a)), transparent 60%),
-      radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,var(--ios-fog-b)), transparent 60%),
-      radial-gradient(920px 580px at 58% 12%, rgba(157,126,168,var(--ios-fog-c)), transparent 72%),
-
-      /* 细星点（更亮） */
-      radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,var(--ios-stars)), transparent),
-      radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,var(--ios-stars)), transparent),
-      radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,var(--ios-stars)), transparent),
-      radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,var(--ios-stars)), transparent),
-      radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,var(--ios-stars)), transparent),
-
-      /* 线性星座（提高线与节点对比） */
-      url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'>\
-<g stroke='rgba(255,255,255,0.28)' stroke-width='1' fill='none'>\
-<line x1='90' y1='120' x2='160' y2='160'/><line x1='160' y1='160' x2='210' y2='110'/><line x1='160' y1='160' x2='110' y2='200'/>\
-<line x1='780' y1='120' x2='840' y2='160'/><line x1='840' y1='160' x2='900' y2='180'/><line x1='900' y1='180' x2='950' y2='150'/>\
-<line x1='760' y1='740' x2='820' y2='780'/><line x1='820' y1='780' x2='880' y2='740'/><line x1='820' y1='780' x2='840' y2='840'/>\
-</g>\
-<g fill='rgba(255,255,255,0.9)'>\
-<circle cx='90' cy='120' r='1.2'/><circle cx='160' cy='160' r='1.2'/><circle cx='210' cy='110' r='1.2'/><circle cx='110' cy='200' r='1.2'/>\
-<circle cx='780' cy='120' r='1.2'/><circle cx='840' cy='160' r='1.2'/><circle cx='900' cy='180' r='1.2'/><circle cx='950' cy='150' r='1.2'/>\
-<circle cx='760' cy='740' r='1.2'/><circle cx='820' cy='780' r='1.2'/><circle cx='880' cy='740' r='1.2'/><circle cx='840' cy='840' r='1.2'/>\
-</g></svg>"),
-
-      /* 四元素 glyph（更显眼一些） */
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
-
-      /* 品牌底色保留 */
-      linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
-
-    background-repeat: no-repeat, no-repeat, no-repeat,
-                       repeat, repeat, repeat, repeat, repeat,
-                       no-repeat,
-                       no-repeat, no-repeat, no-repeat, no-repeat,
-                       no-repeat;
-    background-size:
-      cover, cover, cover,                 /* 柔雾 */
-      220px 220px, 220px 220px, 220px 220px, 220px 220px, 220px 220px, /* 星点 */
-      cover,                               /* 线性星座 */
-      68px 68px, 76px 76px, 64px 64px, 76px 76px,                     /* glyph */
-      cover;                               /* 渐变底 */
-    background-position:
-      12% 14%, 82% 72%, 58% 12%,
-      12% 25%, 32% 60%, 62% 30%, 82% 70%, 22% 80%,
-      center,
-      8% 24%, 86% 22%, 12% 78%, 88% 68%,
-      center;
-  }
-
-  /* 星盘（含文字）更亮一些，并加一层“金色极光”做层次 */
-  .bg-stars::after{
-    content: "";
-    position: absolute; left: 50%; top: 50%;
-    width: 680px; height: 680px;                   /* iOS 可见区域更大一些 */
-    transform: translate(-50%, -50%);
-    opacity: var(--ios-disc);
-    pointer-events: none;
-    background: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>\
-<g fill='none' stroke='%23ffffff' stroke-opacity='.78' stroke-width='.3'>\
-<circle cx='50' cy='50' r='44'/>\
-<circle cx='50' cy='50' r='34' stroke-opacity='.5'/>\
-<g stroke-opacity='.35'>\
-<line x1='50' y1='6'  x2='50' y2='94'/>\
-<line x1='6'  y1='50' x2='94' y2='50'/>\
-<line x1='18' y1='18' x2='82' y2='82'/>\
-<line x1='18' y1='82' x2='82' y2='18'/>\
-</g>\
-</g>\
-<text x='50' y='10' text-anchor='middle' fill='%23ffffff' fill-opacity='.7' font-size='6' font-family='serif'>\
-♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎\
-</text>\
-</svg>") center/100% 100% no-repeat;
-    animation: iosZodiacSpin 110s linear infinite;
-    will-change: transform;
-  }
-
-  /* 金色极光（更“女友风”的柔亮感） */
-  .bg-stars::before{
-    content: "";
-    position: absolute; left: 50%; top: 50%;
-    width: 120vmax; height: 120vmax;
-    transform: translate(-50%, -50%) rotate(10deg);
-    pointer-events: none;
-    opacity: var(--ios-gold-alpha);
-    background:
-      radial-gradient(40% 35% at 30% 40%, rgba(241,228,183,.38), transparent 70%),
-      conic-gradient(from 0deg at 50% 50%, rgba(241,228,183,.18), rgba(157,126,168,.08), rgba(241,228,183,.18), rgba(157,126,168,.08), rgba(241,228,183,.18));
-    animation: auroraSlow 95s linear infinite;
-    will-change: transform, opacity;
-  }
-
-  @keyframes iosZodiacSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-  @keyframes auroraSlow   { to { transform: translate(-50%, -50%) rotate(370deg); } }
-
-  /* 内容层在背景之上 + iOS 橡皮筋回弹时避免白底 */
-  .main-container, .features, .footer { position: relative; z-index: 2; }
-  html{ background:#120c1d; }
-}
-
-/* 可选：用户开启“高对比度”时，再加一点点亮度 */
-@media (prefers-contrast: more) {
-  @supports (-webkit-touch-callout: none) {
-    :root{ --ios-fog-a:.30; --ios-fog-b:.24; --ios-gold-alpha:.34; --ios-disc:.22; }
-  }
-}
-
   </style>
-
 </head>
 <body>
-  <div class="bg-stars"></div>
-  <div class="bg-veil" aria-hidden="true"></div>
-
-<svg class="bg-constellations" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
-  <!-- 左上角小星群 -->
-  <g>
-    <line x1="90" y1="120" x2="160" y2="160"/><line x1="160" y1="160" x2="210" y2="110"/><line x1="160" y1="160" x2="110" y2="200"/>
-    <circle cx="90" cy="120"/><circle cx="160" cy="160" style="animation-delay:.6s"/><circle cx="210" cy="110" style="animation-delay:1.2s"/><circle cx="110" cy="200" style="animation-delay:1.8s"/>
-  </g>
-  <!-- 右上角长链 -->
-  <g>
-    <line x1="780" y1="120" x2="840" y2="160"/><line x1="840" y1="160" x2="900" y2="180"/><line x1="900" y1="180" x2="950" y2="150"/>
-    <circle cx="780" cy="120"/><circle cx="840" cy="160" style="animation-delay:.8s"/><circle cx="900" cy="180" style="animation-delay:1.4s"/><circle cx="950" cy="150" style="animation-delay:2s"/>
-  </g>
-  <!-- 右下角折线 -->
-  <g>
-    <line x1="760" y1="740" x2="820" y2="780"/><line x1="820" y1="780" x2="880" y2="740"/><line x1="820" y1="780" x2="840" y2="840"/>
-    <circle cx="760" cy="740"/><circle cx="820" cy="780" style="animation-delay:.7s"/><circle cx="880" cy="740" style="animation-delay:1.3s"/><circle cx="840" cy="840" style="animation-delay:1.9s"/>
-  </g>
-</svg>
-
-<div class="bg-glyphs" aria-hidden="true"></div>
-
-  <svg class="zodiac" viewBox="0 0 100 100" aria-hidden="true">
-    <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".3">
-      <circle cx="50" cy="50" r="44"/>
-      <circle cx="50" cy="50" r="34" stroke-opacity=".4"/>
-      <g stroke-opacity=".25"><line x1="50" y1="6" x2="50" y2="94"/><line x1="6" y1="50" x2="94" y2="50"/><line x1="18" y1="18" x2="82" y2="82"/><line x1="18" y1="82" x2="82" y2="18"/></g>
-    </g>
-    <g fill="#fff" fill-opacity=".55" font-size="6" font-family="serif">
-      <text x="50" y="10" text-anchor="middle">♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎</text>
-    </g>
-  </svg>
-
-  <div class="user-bar">
-    <div class="user-bar-content">
-      <div class="user-info">
-        <div class="user-icon">{% if not user.is_guest %}{{ user.username[0]|upper }}{% else %}<i class="fas fa-user"></i>{% endif %}</div>
-        <span class="user-name">{{ user.username if not user.is_guest else "神秘访客" }}</span>
-      </div>
-      <div class="user-actions">
-        {% if user.is_guest %}
-          <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
-          <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
-        {% else %}
-          <a href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
-          <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  {% include 'partials/_bg_layers.html' %}
+  {% include 'partials/_user_bar.html' %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="flash-messages">
+      <div class="flash-messages" style="position:fixed;top:68px;right:20px;z-index:200;max-width:380px">
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }}"><span>{{ message }}</span><button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button></div>
+          <div class="alert alert-{{ category }}" style="padding:12px 14px;margin-bottom:10px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.18);color:#fff;border:none;animation:in .3s ease-out;backdrop-filter:blur(6px)">
+            <span>{{ message }}</span>
+            <button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button>
+          </div>
         {% endfor %}
       </div>
     {% endif %}
@@ -679,7 +201,7 @@ input, select, textarea{
       </div>
 
       <div class="action-bar">
-        <button class="btn-refresh" onclick="refreshFortune()"><i class="fas fa-sync-alt"></i> 刷新运势</button>
+        <button class="btn-refresh" onclick="refreshFortune(event)"><i class="fas fa-sync-alt"></i> 刷新运势</button>
         {% if has_drawn %}
           <a href="{{ url_for('chat_page') }}" class="btn-ai-chat"><i class="fas fa-comments"></i> AI 深度解读</a>
           <button type="button" class="btn-ai-chat" id="openShareBtn"><i class="fas fa-share-alt"></i> 生成分享卡片</button>
@@ -705,39 +227,30 @@ input, select, textarea{
       </a>
     </div>
 
-    <div class="footer" style="text-align:center;color:var(--text-muted);font-size:.95rem;margin-top:4px;">
+    <div class="footer">
       © 2025 塔罗运势 | 宇宙能量，智慧指引<br><small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
     </div>
   </div>
 
   <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片"><i class="fas fa-share-alt"></i></div>
 
-<div class="sc-overlay" id="scOverlay">
-  <div class="sc-mask" onclick="closeShareOverlay()"></div>
-  <div class="sc-panel">
-    <button class="sc-close" onclick="closeShareOverlay()">
-      <i class="fas fa-times"></i>
-    </button>
-    
-    <div class="sc-frame-wrapper">
-      <iframe id="shareFrame" class="sc-frame" title="分享卡片"></iframe>
-    </div>
-    
-    <div class="sc-actions">
-      <button class="sc-btn" id="btnGenShare" onclick="generateShare()">
-        ✨ 生成分享链接
-      </button>
-      <button class="sc-btn ghost" id="btnCopyLink" style="display:none" onclick="copyShareLink()">
-        🔗 复制链接
-      </button>
-      <button class="sc-btn ghost" id="btnSaveImg" onclick="saveShareImage()">
-        💾 保存图片
-      </button>
+  <!-- 分享弹层 -->
+  <div class="sc-overlay" id="scOverlay">
+    <div class="sc-mask" onclick="closeShareOverlay()"></div>
+    <div class="sc-panel">
+      <button class="sc-close" onclick="closeShareOverlay()"><i class="fas fa-times"></i></button>
+      <div class="sc-frame-wrapper">
+        <iframe id="shareFrame" class="sc-frame" title="分享卡片"></iframe>
+      </div>
+      <div class="sc-actions">
+        <button class="sc-btn" id="btnGenShare" onclick="generateShare()">✨ 生成分享链接</button>
+        <button class="sc-btn ghost" id="btnCopyLink" style="display:none" onclick="copyShareLink()">🔗 复制链接</button>
+        <button class="sc-btn ghost" id="btnSaveImg" onclick="saveShareImage()">💾 保存图片</button>
+      </div>
     </div>
   </div>
-</div>
 
-
+  <!-- 页面数据 -->
   <script id="INDEX_DATA" type="application/json">
     {
       "user_name": "{{ user.username if not user.is_guest else '神秘访客' }}",
@@ -748,6 +261,7 @@ input, select, textarea{
     }
   </script>
 
+  <!-- 页面逻辑：保留 + 小修复（?. 防 NPE；补 sendViewportToChild；刷新按钮 event 兼容） -->
   <script>
     const $ = (id)=>document.getElementById(id);
     const dimensionIcons = {"事业运":"fas fa-briefcase","财富运":"fas fa-coins","爱情运":"fas fa-heart","健康运":"fas fa-heartbeat","贵人运":"fas fa-hands-helping"};
@@ -765,28 +279,32 @@ input, select, textarea{
       $('openShareBtn')?.addEventListener('click', openShare);
       $('fabShare')?.addEventListener('click', ()=>{ if(!$('fabShare').classList.contains('disabled')) openShare(); });
 
-      $('scMask').addEventListener('click', closeShareOverlay);
-      $('scClose').addEventListener('click', closeShareOverlay);
+      // 这些元素原本没有 id，用可选链避免报错（你也可以给它们加 id）
+      document.querySelector('.sc-mask')?.addEventListener('click', closeShareOverlay);
+      document.querySelector('.sc-close')?.addEventListener('click', closeShareOverlay);
 
-      // 子页尺寸 -> 自适应 iframe（无任何滚动条）
+      // 子页尺寸 -> 自适应 iframe（无滚动）
       const PAD_X = 32, PAD_Y = 160;
       window.addEventListener('message', (evt)=>{
         const msg = evt.data || {};
         if(msg.type === 'ruoshui:size' && msg.data){
-          const frame = $('scFrame'); if(!frame) return;
+          const frame = $('shareFrame'); if(!frame) return;
           frame.style.width  = Math.min(msg.data.w, window.innerWidth - PAD_X) + 'px';
           frame.style.height = Math.min(msg.data.h, window.innerHeight - PAD_Y) + 'px';
         }
       });
 
-      // 按钮
-      $('scGen').addEventListener('click', generateShareId);
-      $('scCopy').addEventListener('click', ()=>copyText('https://www.ruoshui.fun'));
-      $('scSave').addEventListener('click', saveShareImage);
-
-      // 窗口尺寸变化 -> 将父页可视高度发给子页，子页据此进入 compact
+      // 窗口尺寸变化 -> 将父页可视高度发给子页（补齐你代码里引用未定义的函数）
       window.addEventListener('resize', sendViewportToChild);
+      window.addEventListener('orientationchange', sendViewportToChild);
     });
+
+    function sendViewportToChild(){
+      const frame = $('shareFrame');
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type:'ruoshui:viewport', data:{ w:window.innerWidth, h:window.innerHeight } }, '*');
+      }
+    }
 
     function renderFortune(data){
       $('fortune-card').style.display = 'block';
@@ -854,274 +372,125 @@ input, select, textarea{
       {% endif %}
     }
 
-    function refreshFortune(){
+    function refreshFortune(ev){
       const today = "{{ today }}";
-      const btn = event.target.closest('button'); btn.disabled = true;
+      const btn = (ev && ev.target) ? ev.target.closest('button') : document.querySelector('.btn-refresh');
+      if (btn) btn.disabled = true;
       fetch(`{{ url_for('api_fortune', date='') }}${today}`)
         .then(r=>r.json())
         .then(d=>{ if(d.error) alert(d.error); else renderFortune(d); })
         .catch(e=>{ console.error(e); alert('运势刷新失败，请稍后再试'); })
-        .finally(()=>{ btn.disabled=false; });
+        .finally(()=>{ if (btn) btn.disabled=false; });
     }
 
-    // —— 分享卡：iframe 预览&通信 ——
-let shareState = {
-  shareId: null,
-  shareUrl: null,
-  qrCode: null
-};
+    // —— 分享卡 ——（原样 + 健壮性）
+    let shareState = { shareId: null, shareUrl: null, qrCode: null };
 
-// 打开分享弹层
-function openShareOverlay() {
-  const data = JSON.parse(document.getElementById('INDEX_DATA').textContent || '{}');
-  if (!data.has_drawn) {
-    alert('请先抽取今日塔罗牌');
-    return;
-  }
-  
-  // 显示弹层
-  document.getElementById('scOverlay').style.display = 'flex';
-  
-  // 加载预览页面
-  const frame = document.getElementById('shareFrame');
-  frame.src = '/share/card?embed=1';
-  
-  // 等待页面加载完成后发送数据
-  frame.onload = function() {
-    // 发送数据到 iframe
-    frame.contentWindow.postMessage({
-      type: 'share:init',
-      data: {
-        user_name: data.user_name,
-        today: data.today,
-        reading: data.reading,
-        fortune: data.fortune
-      }
-    }, '*');
-  };
-  
-  // 重置状态
-  shareState = { shareId: null, shareUrl: null, qrCode: null };
-  document.getElementById('btnCopyLink').style.display = 'none';
-}
-
-// 关闭分享弹层
-function closeShareOverlay() {
-  document.getElementById('scOverlay').style.display = 'none';
-  document.getElementById('shareFrame').src = 'about:blank';
-}
-
-// 生成分享链接
-async function generateShare() {
-  const btn = document.getElementById('btnGenShare');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span>生成中...';
-  
-  try {
-    const response = await fetch('/api/share/create', { method: 'POST' });
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || '生成失败');
+    function openShareOverlay() {
+      const data = JSON.parse(document.getElementById('INDEX_DATA').textContent || '{}');
+      if (!data.has_drawn) { alert('请先抽取今日塔罗牌'); return; }
+      document.getElementById('scOverlay').style.display = 'flex';
+      const frame = document.getElementById('shareFrame');
+      frame.src = '/share/card?embed=1';
+      frame.onload = function() {
+        frame.contentWindow.postMessage({
+          type: 'share:init',
+          data: { user_name: data.user_name, today: data.today, reading: data.reading, fortune: data.fortune }
+        }, '*');
+      };
+      shareState = { shareId: null, shareUrl: null, qrCode: null };
+      document.getElementById('btnCopyLink').style.display = 'none';
     }
-    
-    // 保存状态
-    shareState.shareId = data.share_id;
-    shareState.shareUrl = data.share_url || 'https://www.ruoshui.fun';
-    shareState.qrCode = data.qr_code;
-    
-    // 更新 iframe 中的二维码
-    const frame = document.getElementById('shareFrame');
-    frame.contentWindow.postMessage({
-      type: 'share:update',
-      qrCode: shareState.qrCode,
-      shareUrl: shareState.shareUrl
-    }, '*');
-    
-    // 显示复制按钮
-    document.getElementById('btnCopyLink').style.display = 'inline-block';
-    
-    btn.innerHTML = '✅ 已生成';
-    setTimeout(() => {
-      btn.innerHTML = '✨ 生成分享链接';
-    }, 2000);
-    
-  } catch (error) {
-    alert(error.message || '生成失败，请重试');
-    btn.innerHTML = '✨ 生成分享链接';
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-// 复制分享链接
-function copyShareLink() {
-  const text = shareState.shareUrl || 'https://www.ruoshui.fun';
-  
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('链接已复制到剪贴板');
-    }).catch(() => {
-      fallbackCopy(text);
-    });
-  } else {
-    fallbackCopy(text);
-  }
-  
-  function fallbackCopy(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    textarea.remove();
-    alert('链接已复制');
-  }
-}
-
-// 保存分享图片
-async function saveShareImage() {
-  const btn = document.getElementById('btnSaveImg');
-  
-  // 如果还没有生成分享ID，先生成
-  if (!shareState.shareId) {
-    await generateShare();
-    if (!shareState.shareId) {
-      alert('请先生成分享链接');
-      return;
+    function closeShareOverlay() {
+      document.getElementById('scOverlay').style.display = 'none';
+      document.getElementById('shareFrame').src = 'about:blank';
     }
-  }
-  
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span>导出中...';
-  
-  try {
-    // 尝试服务端导出
-    const response = await fetch('/api/share/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ share_id: shareState.shareId })
-    });
-    
-    if (response.ok) {
-      // 检查是否返回图片
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('image')) {
-        // 服务端返回了图片
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ruoshui_tarot_${Date.now()}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        btn.innerHTML = '✅ 已保存';
-      } else {
-        // 服务端提示使用客户端方案
+    async function generateShare() {
+      const btn = document.getElementById('btnGenShare');
+      btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span>生成中...';
+      try {
+        const response = await fetch('/api/share/create', { method: 'POST' });
         const data = await response.json();
-        if (data.fallback === 'client') {
+        if (!data.success) throw new Error(data.error || '生成失败');
+        shareState.shareId = data.share_id;
+        shareState.shareUrl = data.share_url || 'https://www.ruoshui.fun';
+        shareState.qrCode = data.qr_code;
+        const frame = document.getElementById('shareFrame');
+        frame.contentWindow.postMessage({ type:'share:update', qrCode: shareState.qrCode, shareUrl: shareState.shareUrl }, '*');
+        document.getElementById('btnCopyLink').style.display = 'inline-block';
+        btn.innerHTML = '✅ 已生成';
+        setTimeout(()=>{ btn.innerHTML = '✨ 生成分享链接'; }, 2000);
+      } catch (error) {
+        alert(error.message || '生成失败，请重试');
+        btn.innerHTML = '✨ 生成分享链接';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    function copyShareLink() {
+      const text = shareState.shareUrl || 'https://www.ruoshui.fun';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(()=>alert('链接已复制到剪贴板')).catch(()=>fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+      function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('链接已复制'); }
+    }
+    async function saveShareImage() {
+      const btn = document.getElementById('btnSaveImg');
+      if (!shareState.shareId) { await generateShare(); if (!shareState.shareId) { alert('请先生成分享链接'); return; } }
+      btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span>导出中...';
+      try {
+        const response = await fetch('/api/share/export', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ share_id: shareState.shareId })
+        });
+        if (response.ok) {
+          const ct = response.headers.get('content-type');
+          if (ct && ct.includes('image')) {
+            const blob = await response.blob(); const url = URL.createObjectURL(blob);
+            const a=document.createElement('a'); a.href=url; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click(); URL.revokeObjectURL(url); btn.innerHTML='✅ 已保存';
+          } else {
+            const data = await response.json();
+            if (data.fallback === 'client') await clientSideExport();
+            else throw new Error(data.error || '导出失败');
+          }
+        } else {
           await clientSideExport();
-        } else {
-          throw new Error(data.error || '导出失败');
         }
-      }
-    } else {
-      // 降级到客户端导出
-      await clientSideExport();
-    }
-    
-  } catch (error) {
-    console.error('Export error:', error);
-    // 最后的降级：客户端导出
-    await clientSideExport();
-  } finally {
-    setTimeout(() => {
-      btn.innerHTML = '💾 保存图片';
-      btn.disabled = false;
-    }, 2000);
-  }
-}
-
-// 客户端导出（降级方案）
-async function clientSideExport() {
-  // 通知 iframe 准备导出
-  const frame = document.getElementById('shareFrame');
-  
-  return new Promise((resolve, reject) => {
-    // 设置一次性消息监听器
-    function handleMessage(event) {
-      if (event.data && event.data.type === 'share:export-ready') {
-        window.removeEventListener('message', handleMessage);
-        
-        if (event.data.success && event.data.dataUrl) {
-          // 下载图片
-          const a = document.createElement('a');
-          a.href = event.data.dataUrl;
-          a.download = `ruoshui_tarot_${Date.now()}.png`;
-          a.click();
-          resolve();
-        } else {
-          alert('客户端导出失败，请使用截图工具');
-          reject(new Error('Client export failed'));
-        }
+      } catch (e) {
+        console.error('Export error:', e);
+        await clientSideExport();
+      } finally {
+        setTimeout(()=>{ btn.innerHTML='💾 保存图片'; btn.disabled=false; }, 2000);
       }
     }
-    
-    window.addEventListener('message', handleMessage);
-    
-    // 发送导出请求到 iframe
-    frame.contentWindow.postMessage({ type: 'share:export' }, '*');
-    
-    // 超时处理
-    setTimeout(() => {
-      window.removeEventListener('message', handleMessage);
-      alert('导出超时，请使用截图工具');
-      reject(new Error('Export timeout'));
-    }, 10000);
-  });
-}
-
-// 绑定事件
-document.addEventListener('DOMContentLoaded', function() {
-  // 分享按钮点击事件
-  document.getElementById('openShareBtn')?.addEventListener('click', openShareOverlay);
-  document.getElementById('fabShare')?.addEventListener('click', function() {
-    if (!this.classList.contains('disabled')) {
-      openShareOverlay();
+    async function clientSideExport() {
+      const frame = document.getElementById('shareFrame');
+      return new Promise((resolve, reject) => {
+        function handleMessage(event) {
+          if (event.data && event.data.type === 'share:export-ready') {
+            window.removeEventListener('message', handleMessage);
+            if (event.data.success && event.data.dataUrl) {
+              const a=document.createElement('a'); a.href=event.data.dataUrl; a.download=`ruoshui_tarot_${Date.now()}.png`; a.click(); resolve();
+            } else { alert('客户端导出失败，请使用截图工具'); reject(new Error('Client export failed')); }
+          }
+        }
+        window.addEventListener('message', handleMessage);
+        frame.contentWindow.postMessage({ type: 'share:export' }, '*');
+        setTimeout(()=>{ window.removeEventListener('message', handleMessage); alert('导出超时，请使用截图工具'); reject(new Error('Export timeout')); }, 10000);
+      });
     }
-  });
-});
 
-</script>
-<script>
-  // 1) iOS 视口高度修复：计算 --vh 单位
-  (function fixIOSVh(){
-    const setVh = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    };
-    setVh();
-    window.addEventListener('resize', setVh);
-    window.addEventListener('orientationchange', setVh);
-  })();
-
-  // 2) PWA：注册 Service Worker（可选，但强烈建议）
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(()=>{ /* 静默失败即可 */ });
+    // 再次绑定按钮（以防 DOM 动态变化）
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('openShareBtn')?.addEventListener('click', openShareOverlay);
+      document.getElementById('fabShare')?.addEventListener('click', function() {
+        if (!this.classList.contains('disabled')) openShareOverlay();
+      });
     });
-  }
+  </script>
 
-  // 3) 独立模式检测（iOS：navigator.standalone；其他：display-mode）
-  (function detectStandalone(){
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) {
-      document.documentElement.classList.add('standalone');
-      // 你可以在这里做些仅主屏模式下的 UI 微调（如隐藏页脚等）
-      // document.querySelector('.footer')?.classList.add('hidden');
-    }
-  })();
-</script>
-
+  <script src="{{ url_for('static', filename='js/cosmos.js') }}"></script>
 </body>
 </html>

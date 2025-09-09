@@ -1073,6 +1073,200 @@
                 max-height:60px;
             }
         }
+        /* =========================
+   Cosmic Glass Unify Patch
+   （追加到样式末尾即可）
+   ========================= */
+
+/* 统一 Token（与其它页保持一致） */
+:root{
+  --bg-ivory: #f8f4e9;
+  --ink: #333333;
+  --muted: #7a707a;
+
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --shadow-sm: 0 4px 16px rgba(30,20,35,0.08);
+  --shadow-md: 0 10px 28px rgba(30,20,35,0.12);
+  --shadow-lg: 0 16px 44px rgba(30,20,35,0.16);
+
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+}
+
+/* 背景丝绒渐变 + 星尘光辉（不影响内容层 z-index） */
+body{
+  background:
+    radial-gradient(1000px 800px at 10% 0%, #fbf9f3 0%, rgba(251,249,243,0) 60%),
+    radial-gradient(1200px 900px at 90% 10%, #f3ece1 0%, rgba(243,236,225,0) 60%),
+    linear-gradient(135deg, #f8f4e9 0%, #efe7db 100%);
+  position: relative;
+}
+body::before{
+  content:"";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.25) 0 40%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 70% 80%, rgba(255,255,255,.15) 0 40%, transparent 60%),
+    radial-gradient(2px 2px at 40% 70%, rgba(255,255,255,.12) 0 40%, transparent 60%);
+  opacity: .35; mix-blend-mode: screen;
+}
+
+/* 顶部栏 → 玻璃态 */
+.chat-header{
+  background: rgba(255,255,255,0.82);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  z-index: 5;
+}
+
+/* 阶段胶囊更通透 */
+.phase-pill{
+  background: rgba(255,255,255,.6);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+.phase-DRAWING{ border-color: var(--primary-color); color: var(--primary-color); }
+.phase-INTERPRET{ border-style: dashed; }
+
+/* 进度圆点发光完成态 */
+.slot{
+  background: rgba(255,255,255,.85);
+  border-color: var(--border);
+}
+.slot.done{
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(142,108,136,.18), 0 8px 18px rgba(142,108,136,.28);
+}
+
+/* 左侧牌阵面板 → 玻璃态（DEEP_CHAT 才显示，保持逻辑不变） */
+.spread-display{
+  background: rgba(255,255,255,0.78);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  position: relative;
+  z-index: 1;
+}
+.spread-question{
+  background: rgba(142,108,136,.08);
+  border: 1px dashed rgba(142,108,136,.25);
+}
+
+/* 面板开关按钮 → 玻璃胶囊 */
+.toggle-spread{
+  background: rgba(255,255,255,0.85);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+
+/* 牌位卡片更细致 */
+.card-position{
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.card-position:hover{
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+}
+
+/* 聊天区域：快捷问/打字泡泡 → 玻璃态（消息正文仍纯白以保证可读性） */
+.quick-question{
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+.typing-dots{
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+/* 输入区 → 玻璃态 */
+.input-area{
+  background: rgba(255,255,255,0.82);
+  border-top: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+.message-input{ border: 2px solid var(--border); }
+
+/* 系统卡片 / 单牌泡泡 → 玻璃渐变 */
+.sys-card{
+  background: linear-gradient(135deg, rgba(142,108,136,.05), rgba(209,191,167,.05));
+  border: 1px dashed rgba(142,108,136,.25);
+  box-shadow: var(--shadow-sm);
+}
+.card-bubble{
+  background: linear-gradient(135deg, rgba(142,108,136,.05), rgba(209,191,167,.06));
+  border: 1px solid rgba(142,108,136,.18);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Modal：幕布半透明+面板玻璃，层级不变 */
+.modal-backdrop-custom{
+  background: radial-gradient(60% 50% at 50% 30%, rgba(10,8,16,.45), rgba(10,8,16,.6));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.modal-panel{
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+/* 人格卡片 → 玻璃态；选中态更突出 */
+.persona-card{
+  background: rgba(255,255,255,.9);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.persona-card:hover{
+  background: rgba(255,255,255,1);
+}
+.persona-card.selected{
+  border-color: var(--primary-color);
+  background: linear-gradient(180deg, rgba(255,255,255,1), #fdf8f2);
+  box-shadow: 0 0 0 3px rgba(142,108,136,.12), var(--shadow-md);
+}
+
+/* 全牌阵网格 → 玻璃卡片 */
+.spread-cell{
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 减少动态时，降低星尘与阴影，保可读性 */
+@media (prefers-reduced-motion: reduce){
+  body::before{ opacity:.25; }
+  .quick-question, .typing-dots, .persona-card, .spread-cell, .sys-card, .card-bubble{
+    box-shadow: none;
+  }
+}
+
     </style>
 </head>
 <body>

@@ -6,10 +6,10 @@
   "display": "standalone",
   "background_color": "#1a1625",
   "theme_color": "#1a1625",
-  "description": "每日一抽、牌阵占卜、AI 深度解读。神秘而温暖的塔罗指引。",
   "icons": [
-    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/static/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/static/icons/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

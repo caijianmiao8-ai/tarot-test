@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>智能牌阵推荐 - 塔罗占卜</title>
 
   <!-- 本地化资源（与 spread.html 保持一致） -->
@@ -32,8 +32,7 @@
       --radius-sm: 10px;
     }
 
-    /* 背景：细腻的丁香渐变 + 微微纹理感 */
-    html,body{ height:100% }
+    html,body{ height:100dvh; height:calc(var(--vh,1vh)*100) }
     body{
       margin:0;
       color:var(--ink);
@@ -45,7 +44,8 @@
         linear-gradient(135deg, #f8f4e9 0%, #ece4d7 100%);
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      min-height: calc(var(--vh,1vh)*100);
+      overflow-x: hidden;
     }
 
     /* ============= 顶部导航（与 spread.html 统一） ============= */
@@ -56,6 +56,7 @@
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       border-bottom: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
+      padding-top: env(safe-area-inset-top, 0px);
     }
     .navbar-content{
       max-width:1200px; margin:0 auto; padding:14px 20px;
@@ -65,8 +66,11 @@
       display:flex; align-items:center; gap:8px;
       color:var(--accent-color); text-decoration:none; font-weight:700;
       transition: color .2s ease, transform .2s ease;
+      border: 1px solid transparent;
+      padding: 6px 10px;
+      border-radius: 999px;
     }
-    .back-link:hover{ color:var(--primary-color); transform: translateX(-2px); }
+    .back-link:hover{ color:var(--primary-color); transform: translateX(-2px); background: rgba(0,0,0,0.02); }
     .nav-title{
       font-size:18px; font-weight:800; color:var(--accent-color);
     }
@@ -190,7 +194,9 @@
       position: relative;
       overflow: hidden;
       min-height: 64px;            /* ✅ 统一高度，紧凑但不拥挤 */
+      outline: none;
     }
+    .opt:focus{ border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(142,108,136,0.15); }
     .opt::before {
       content: '';
       position: absolute;
@@ -288,7 +294,9 @@
       position: relative;
       overflow: hidden;
       min-height: 82px;
+      outline: none;
     }
+    .personality-card:focus{ border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(142,108,136,0.15); }
     .personality-card::before {
       content: '';
       position: absolute;
@@ -314,6 +322,7 @@
       justify-content: space-between;
       align-items: center;
       gap:12px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     }
     .ghost-btn{
       border:2px solid var(--border);
@@ -374,29 +383,30 @@
         animation: none !important;
       }
       .opt::before, .personality-card::before { display: none !important; }
+      .msgs{ scroll-behavior: auto; }
     }
   </style>
 </head>
 <body>
   <!-- 顶部导航 -->
-  <nav class="navbar">
+  <nav class="navbar" role="navigation" aria-label="主导航">
     <div class="navbar-content">
       <a class="back-link" href="{{ url_for('spread') }}">
-        <i class="fas fa-chevron-left"></i>
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
         <span>返回</span>
       </a>
       <div class="nav-title">智能牌阵推荐</div>
-      <div style="width:80px;"></div>
+      <div style="width:80px;" aria-hidden="true"></div>
     </div>
   </nav>
 
-  <main class="main">
-    <section class="guide">
-      <div class="decor"></div>
+  <main class="main" role="main">
+    <section class="guide" aria-label="引导对话">
+      <div class="decor" aria-hidden="true"></div>
 
       <div class="stage">
         <!-- 进度 -->
-        <div class="progress" id="progress">
+        <div class="progress" id="progress" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-label="选择进度">
           <div class="dot active"></div>
           <div class="dot"></div>
           <div class="dot"></div>
@@ -404,11 +414,11 @@
         </div>
 
         <!-- 对话区 -->
-        <div class="msgs" id="msgs"></div>
+        <div class="msgs" id="msgs" aria-live="polite" aria-label="对话内容"></div>
 
         <!-- 结果区 -->
-        <div class="result" id="result">
-          <div class="result-icon">🎯</div>
+        <div class="result" id="result" aria-live="polite">
+          <div class="result-icon" aria-hidden="true">🎯</div>
           <div class="r-title">找到最适合你的牌阵！</div>
           <div class="r-desc">根据你的选项，我们为你推荐：</div>
 
@@ -419,17 +429,17 @@
           </div>
 
           <div class="personality-section">
-            <label class="personality-label">选择对话人格（只影响语气，不改变解读结论）</label>
-            <div class="personality-grid" id="personaList"></div>
+            <label class="personality-label" for="personaList">选择对话人格（只影响语气，不改变解读结论）</label>
+            <div class="personality-grid" id="personaList" role="listbox" aria-label="人格列表"></div>
           </div>
 
           <div class="footer">
-            <button class="ghost-btn" id="resetBtn">
-              <i class="fas fa-redo"></i>
+            <button class="ghost-btn" id="resetBtn" type="button" aria-label="重新选择">
+              <i class="fas fa-redo" aria-hidden="true"></i>
               重新选择
             </button>
-            <button class="btn-primary" id="goBtn" disabled>
-              <i class="fas fa-sparkles"></i>
+            <button class="btn-primary" id="goBtn" type="button" disabled aria-disabled="true" aria-label="开始占卜">
+              <i class="fas fa-sparkles" aria-hidden="true"></i>
               开始占卜
             </button>
           </div>
@@ -439,6 +449,17 @@
   </main>
 
   <script>
+    /* ===== iOS 100dvh 修复 ===== */
+    (function fixIOSVh(){
+      const setVh = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+      setVh();
+      window.addEventListener('resize', setVh);
+      window.addEventListener('orientationchange', setVh);
+    })();
+
     /***************
      * 决策树（与 DB spreads.id 对齐的 spread_id）
      ***************/
@@ -524,18 +545,20 @@
     let aiPersonality = null;  // 提交给后端的 ai_personality
     let personaDelegationBound = false;
 
-    // 工具：简单转义
+    // 工具：简单转义 + 选择器转义
     const escapeHTML = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const escapeAttr = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function cssEscape(str){
+      if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(str);
+      return String(str).replace(/[^a-zA-Z0-9_-]/g, m => '\\' + m.charCodeAt(0).toString(16) + ' ');
+    }
 
     // 平滑滚动到最新 & 折叠历史，减少手动下滑
     function scrollToLatest(el){
       const msgs = window.__msgs || document.getElementById('msgs');
       if (!msgs) return;
       requestAnimationFrame(()=>{
-        if (el && el.scrollIntoView) {
-          el.scrollIntoView({ behavior:'smooth', block:'nearest' });
-        }
+        if (el && el.scrollIntoView) { el.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
         msgs.scrollTo({ top: msgs.scrollHeight, behavior:'smooth' });
       });
     }
@@ -552,7 +575,7 @@
         window.__msgs = document.getElementById('msgs') || document.querySelector('.msgs');
         if (!window.__msgs) { console.error('[guide] 未找到 #msgs 容器'); return; }
 
-        // 绑定按钮事件（移除 inline onclick，兼容 CSP）
+        // 绑定按钮事件（无内联）
         const resetBtn = document.getElementById('resetBtn');
         const goBtn = document.getElementById('goBtn');
         if (resetBtn) resetBtn.addEventListener('click', resetGuide);
@@ -597,33 +620,37 @@
         const text = escapeHTML(node.message || '');
 
         const optsHTML = Array.isArray(node.options) ? node.options.map((o,i)=>`
-          <div class="opt" data-idx="${i}">
-            <div class="emoji">${o.emoji || ''}</div>
+          <div class="opt" data-idx="${i}" role="button" tabindex="0" aria-label="${escapeAttr(o.title || '')}">
+            <div class="emoji" aria-hidden="true">${o.emoji || ''}</div>
             <div class="content">
               <div class="ttl">${escapeHTML(o.title || '')}</div>
               <div class="desc">${escapeHTML(o.desc || '')}</div>
             </div>
-            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="arrow" aria-hidden="true"><i class="fas fa-chevron-right"></i></div>
           </div>
         `).join('') : '';
 
         block.innerHTML = `
-          <div class="ava"><i class="fas fa-sparkles"></i></div>
+          <div class="ava" aria-hidden="true"><i class="fas fa-sparkles"></i></div>
           <div class="bubble">
             ${text}
-            <div class="options">
+            <div class="options" role="group" aria-label="选项列表">
               ${optsHTML}
             </div>
           </div>`;
 
         msgs.appendChild(block);
 
-        // 仅给当前块的选项绑定点击
+        // 仅给当前块的选项绑定点击 + 键盘操作
         block.querySelectorAll('.opt').forEach(el=>{
-          el.addEventListener('click', ()=>{
-            const idx = parseInt(el.dataset.idx, 10);
-            selectOption(idx, block);
-          }, { once:true });
+          const handler = ()=> {
+            el.style.pointerEvents='none';
+            selectOption(parseInt(el.dataset.idx,10), block);
+          };
+          el.addEventListener('click', handler, { once:true });
+          el.addEventListener('keydown', (e)=>{
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+          });
         });
 
         collapseHistory(2);   // ✅ 折叠旧消息
@@ -637,6 +664,8 @@
         block.querySelectorAll('.opt').forEach(el=>{
           el.style.pointerEvents='none';
           el.style.opacity='.6';
+          el.setAttribute('tabindex','-1');
+          el.setAttribute('aria-disabled','true');
         });
 
         const node = decision[current];
@@ -649,13 +678,13 @@
         (window.__msgs || document.getElementById('msgs')).appendChild(me);
         history.push({ step: current, choice: index });
 
-        collapseHistory(2);    // ✅ 选择后也折叠旧消息
-        scrollToLatest(me);    // ✅ 拉到选择位置
+        collapseHistory(2);
+        scrollToLatest(me);
 
         setTimeout(()=>{
           if (opt.result){ showResult(opt.result); }
           else if (opt.next){ showStep(opt.next); }
-          scrollToLatest();    // ✅ 再次确保看到下一步
+          scrollToLatest();
         }, 250);
         updateProgress();
       }catch(e){ console.error('[guide] selectOption 失败：', e); }
@@ -668,6 +697,8 @@
         d.classList.toggle('done', i < idx);
         d.classList.toggle('active', i === idx);
       });
+      const prog = document.getElementById('progress');
+      if (prog) prog.setAttribute('aria-valuenow', Math.min(idx+1, dots.length));
     }
 
     // ====== 结果 & 人格选择 ======
@@ -695,16 +726,17 @@
       const data = await ensurePersonasLoaded();
       list.innerHTML = data.map((p, idx)=>`
         <div class="personality-card ${idx === 0 ? 'selected' : ''}"
+             role="option" tabindex="0" aria-selected="${idx===0?'true':'false'}"
              data-personality="${escapeAttr(p.id)}"
              data-name="${escapeAttr(p.name || p.id)}">
-          <div class="personality-emoji">${getPersonalityEmoji(p.id)}</div>
+          <div class="personality-emoji" aria-hidden="true">${getPersonalityEmoji(p.id)}</div>
           <div class="personality-name">${escapeHTML(p.name || p.id)}</div>
           <div class="personality-trait">${escapeHTML(p.desc || '')}</div>
         </div>
       `).join('');
 
       // 默认选中第一个人格
-      if (data.length > 0) { aiPersonality = data[0].id; updateGoButton(); }
+      if (data.length > 0) { aiPersonality = data[0].id; updateGoButton(); showPersonalityConfirmation(data[0].name || data[0].id); }
 
       bindPersonaDelegation();
       resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
@@ -718,6 +750,11 @@
         const card = e.target.closest('.personality-card');
         if (!card) return;
         pickPersona(card.dataset.personality, card.dataset.name);
+      });
+      list.addEventListener('keydown', (e)=>{
+        const card = e.target.closest('.personality-card');
+        if (!card) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickPersona(card.dataset.personality, card.dataset.name); }
       });
     }
 
@@ -743,9 +780,13 @@
     }
 
     function pickPersona(id, name){
-      document.querySelectorAll('.personality-card').forEach(card => card.classList.remove('selected'));
-      const selectedCard = document.querySelector(`.personality-card[data-personality="${CSS.escape(id)}"]`);
-      if (selectedCard) selectedCard.classList.add('selected');
+      document.querySelectorAll('.personality-card').forEach(card => {
+        card.classList.remove('selected');
+        card.setAttribute('aria-selected','false');
+      });
+      const selector = `.personality-card[data-personality="${cssEscape(id)}"]`;
+      const selectedCard = document.querySelector(selector);
+      if (selectedCard) { selectedCard.classList.add('selected'); selectedCard.setAttribute('aria-selected','true'); }
 
       aiPersonality = id;
       updateGoButton();
@@ -772,7 +813,10 @@
 
     function updateGoButton() {
       const btn = document.getElementById('goBtn');
-      if (btn) btn.disabled = !(chosenSpread && aiPersonality);
+      if (!btn) return;
+      const ok = Boolean(chosenSpread && aiPersonality);
+      btn.disabled = !ok;
+      btn.setAttribute('aria-disabled', String(!ok));
     }
 
     function generateQuestion(){
@@ -795,6 +839,7 @@
       const btn = document.getElementById('goBtn');
       const oldHTML = btn.innerHTML;
       btn.disabled = true;
+      btn.setAttribute('aria-disabled','true');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 准备中…';
 
       try{
@@ -814,11 +859,12 @@
           window.location.href = data.redirect; // /spread/chat/<reading_id>
           return;
         }
-        throw new Error(data?.error || '抽牌失败，请稍后重试');
+        throw new Error(data?.error || '占卜失败，请稍后重试');
       }catch(err){
         console.error(err);
         alert(err.message || '网络错误，请稍后重试');
         btn.disabled = false;
+        btn.setAttribute('aria-disabled','false');
         btn.innerHTML = oldHTML;
       }
     }

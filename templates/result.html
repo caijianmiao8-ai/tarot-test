@@ -1,713 +1,160 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日塔罗运势 - {{ card.name }}</title>
-    
-    <!-- 本地化 Bootstrap -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
-    <!-- 本地化 Font Awesome -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
-    
-    <style>
-        :root {
-            --primary-color: #8e6c88;
-            --secondary-color: #d1bfa7;
-            --accent-color: #6d4c67;
-            --light-color: #f8f4e9;
-            --dark-color: #333333;
-            --success-color: #5cb85c;
-            --warning-color: #f0ad4e;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
-            color: var(--dark-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-
-        /* 用户栏 */
-        .user-bar { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            background: rgba(255,255,255,0.9); 
-            backdrop-filter: blur(10px); 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            padding: 10px 20px; 
-            z-index: 100; 
-        }
-        .user-bar-content { 
-            max-width: 1200px; 
-            margin:0 auto; 
-            display:flex; 
-            justify-content:space-between; 
-            align-items:center; 
-        }
-        .user-info { 
-            display:flex; 
-            align-items:center; 
-            gap:15px; 
-        }
-        .user-icon { 
-            width:36px; 
-            height:36px; 
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); 
-            border-radius:50%; 
-            display:flex; 
-            align-items:center; 
-            justify-content:center; 
-            color:white; 
-            font-weight:bold; 
-        }
-        .user-name { 
-            font-weight:600; 
-            color:var(--accent-color); 
-        }
-        .user-actions { 
-            display:flex; 
-            gap:15px; 
-        }
-        .user-actions a { 
-            color:var(--primary-color); 
-            text-decoration:none; 
-            font-size:0.95rem; 
-            padding:8px 16px; 
-            border-radius:20px; 
-            transition: all 0.3s; 
-        }
-        .user-actions a:hover { 
-            background: rgba(142,108,136,0.1); 
-            color: var(--accent-color); 
-        }
-
-        .tarot-container {
-            max-width: 900px;
-            width: 100%;
-            margin: 80px auto 20px;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .tarot-container::before {
-            content: "";
-            position: absolute;
-            top: -10px; left: -10px; right: -10px; bottom: -10px;
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            z-index: -1;
-            border-radius: 25px;
-        }
-
-        .header { margin-bottom: 30px; position: relative; }
-        .header h1 { font-size: 2.5rem; font-weight: 700; color: var(--accent-color); margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); }
-        .date-display { font-size: 1.1rem; color: var(--accent-color); margin-bottom: 30px; padding: 8px 20px; background: rgba(142, 108, 136, 0.1); border-radius: 50px; display: inline-block; }
-
-        .result-card { 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 40px; 
-            margin-bottom: 40px; 
-            align-items: center; 
-        }
-        
-        /* 卡牌3D效果容器 */
-        .card-visual {
-            width: 280px;
-            height: 420px;
-            perspective: 1000px;
-            margin: 0 auto;
-            position: relative;
-            display: inline-block;
-        }
-        
-        .card-inner {
-            width: 100%;
-            height: 100%;
-            transform-style: preserve-3d;
-            transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform-origin: center center;
-            display: flex;               /* 保证内容垂直居中 */
-            flex-direction: column;
-        }
-        
-        /* 卡牌翻转 */
-        .card-visual.flipped .card-inner {
-            transform: rotateY(180deg);
-        }
-
-        .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            backface-visibility: hidden;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* 牌背设计 */
-        .card-front {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-            position: relative;
-        }
-        
-        .card-back-pattern {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0.15;
-            background-image: 
-                radial-gradient(circle at 20% 20%, transparent 30%, rgba(255,255,255,0.1) 30.5%, rgba(255,255,255,0.1) 31%, transparent 31.5%),
-                radial-gradient(circle at 80% 80%, transparent 30%, rgba(255,255,255,0.1) 30.5%, rgba(255,255,255,0.1) 31%, transparent 31.5%),
-                radial-gradient(circle at 50% 50%, transparent 40%, rgba(255,255,255,0.1) 40.5%, rgba(255,255,255,0.1) 41%, transparent 41.5%);
-            background-size: 200px 200px, 200px 200px, 300px 300px;
-        }
-        
-        .card-back-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 70%;
-            height: 70%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .mystical-border {
-            width: 150px;
-            height: 150px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: rotate-slow 20s linear infinite;
-        }
-        
-        .mystical-border::before {
-            content: '';
-            position: absolute;
-            width: 120%;
-            height: 120%;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-        }
-        
-        .mystical-symbol {
-            font-size: 3rem;
-            color: rgba(255, 255, 255, 0.7);
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-        }
-        
-        @keyframes rotate-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        /* 牌面 */
-        .card-back {
-            transform: rotateY(180deg);
-            background: white;
-            position: relative;
-        }
-        
-        .tarot-image-wrapper {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: #f9f9f9;
-        }
-        
-        /* 图片正逆位处理 */
-        .tarot-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 0.6s ease;
-        }
-        .tarot-image.reversed {
-            transform: rotate(180deg);
-        }
-
-        /* 方向标记 */
-        .direction-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 10;
-            background: white;
-            color: var(--direction-color);
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            border: 2px solid var(--direction-color);
-        }
-
-        /* 牌面信息 */
-        .card-info { 
-            flex: 1; 
-            max-width: 500px;
-            text-align: left; 
-        }
-
-        .card-name { 
-            font-size: 2.5rem; 
-            color: var(--accent-color); 
-            margin-bottom: 25px; 
-            font-weight: 700; 
-            text-align: center; 
-        }
-
-        .interpretation-section {
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease;
-        }
-        .interpretation-section:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        }
-        .interpretation-title { 
-            font-size: 1.3rem; 
-            color: var(--primary-color); 
-            margin-bottom: 15px;
-            font-weight: 600; 
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .interpretation-content { 
-            font-size: 1.1rem; 
-            line-height: 1.8; 
-            color: var(--dark-color);
-        }
-
-        /* 访客导出区域 */
-        .export-section {
-            background: rgba(142, 108, 136, 0.1);
-            border: 2px solid var(--primary-color);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 30px 0;
-            text-align: center;
-        }
-        .export-section p {
-            color: var(--accent-color);
-            margin-bottom: 15px;
-            font-weight: 500;
-        }
-        .export-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn-export {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-export:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        /* 解锁运势指数按钮区域 */
-        .unlock-section {
-            text-align: center;
-            margin: 40px 0;
-            padding: 30px;
-            background: linear-gradient(135deg, rgba(142, 108, 136, 0.05), rgba(109, 76, 103, 0.05));
-            border-radius: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-        .unlock-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(142, 108, 136, 0.1) 0%, transparent 70%);
-            animation: pulse 3s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-        }
-        .btn-unlock {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-            color: white;
-            padding: 16px 40px;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 25px rgba(142, 108, 136, 0.4);
-            position: relative;
-            z-index: 1;
-        }
-        .btn-unlock:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(142, 108, 136, 0.5);
-            color: white;
-        }
-        .btn-unlock i {
-            font-size: 1.2rem;
-        }
-
-        .action-buttons { 
-            display: flex; 
-            justify-content: center; 
-            gap: 15px; 
-            margin-top: 30px; 
-            flex-wrap: wrap; 
-        }
-        .btn-tarot {
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-            color: white; 
-            padding: 12px 30px; 
-            border: none; 
-            border-radius: 50px; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            cursor: pointer; 
-            text-decoration: none; 
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 16px rgba(142, 108, 136, 0.3);
-        }
-        .btn-tarot:hover { 
-            transform: translateY(-3px); 
-            box-shadow: 0 12px 20px rgba(142, 108, 136, 0.4); 
-            color: white;
-        }
-        .btn-tarot.secondary { 
-            background: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-        }
-        .btn-tarot.secondary:hover {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .divider { 
-            height: 2px; 
-            background: linear-gradient(90deg, transparent, var(--secondary-color), transparent); 
-            margin: 40px 0; 
-        }
-
-        .meaning-explanation {
-            text-align: left; 
-            margin-bottom: 30px; 
-            background: rgba(255, 255, 255, 0.7); 
-            border-radius: 15px; 
-            padding: 30px; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05); 
-        }
-        .meaning-title { 
-            font-size: 1.5rem; 
-            color: var(--accent-color); 
-            text-align: center; 
-            margin-bottom: 25px; 
-            font-weight: 600; 
-        }
-        .meaning-item {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(142, 108, 136, 0.05);
-            border-radius: 10px;
-            border-left: 4px solid var(--primary-color);
-        }
-        .meaning-item strong {
-            color: var(--primary-color);
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        /* 复制成功提示 */
-        .copy-success {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--success-color);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 1000;
-        }
-        .copy-success.show {
-            opacity: 1;
-        }
-
-        .footer { 
-            text-align: center; 
-            margin-top: 40px; 
-            padding-top: 20px;
-            border-top: 1px solid rgba(142, 108, 136, 0.2);
-            color: var(--accent-color); 
-            font-size: 0.9rem; 
-        }
-
-        /* 加载动画 */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(142, 108, 136, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .tarot-container { padding: 20px; margin-top: 70px; }
-            .header h1 { font-size: 2rem; }
-            .card-name { font-size: 1.8rem; }
-            .card-visual { width: 240px; height: 360px; }
-            .btn-tarot { padding: 10px 20px; font-size: 0.95rem; }
-            .btn-unlock { padding: 14px 30px; font-size: 1rem; }
-            .action-buttons { gap: 10px; }
-            .card-info { min-width: 100%; }
-            .result-card { gap: 30px; }
-        }
-    </style>
+  {% include 'partials/_meta_pwa.html' %}
+  {% block title %}<title>每日塔罗运势 - {{ card.name }}</title>{% endblock %}
+  <style>
+    .tarot-container{max-width:900px;width:100%;margin:calc(88px + env(safe-area-inset-top,0px)) auto 20px;padding:26px;background:var(--panel);border:1px solid var(--border);border-radius:20px;box-shadow:0 15px 30px rgba(0,0,0,0.25);text-align:center;overflow:hidden}
+    .header h1{font-size:2rem;color:var(--gold-light);letter-spacing:.6px;margin:0}
+    .date-display{font-size:1rem;color:var(--text-light);margin:10px auto 18px;padding:6px 16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid var(--border);display:inline-block}
+    .result-card{display:flex;flex-wrap:wrap;justify-content:center;gap:28px;margin:18px 0 24px;align-items:center}
+    .card-visual{width:280px;height:420px;perspective:1000px}
+    .card-inner{width:100%;height:100%;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.175,.885,.32,1.275)}
+    .card-visual.flipped .card-inner{transform:rotateY(180deg)}
+    .card-front,.card-back{position:absolute;width:100%;height:100%;top:0;left:0;backface-visibility:hidden;border-radius:15px;display:flex;align-items:center;justify-content:center}
+    .card-front{background:linear-gradient(135deg,var(--primary),var(--secondary));position:relative;box-shadow:0 12px 30px rgba(0,0,0,.28)}
+    .card-back-pattern{position:absolute;inset:0;opacity:.18;background-image:
+      radial-gradient(circle at 20% 20%, transparent 30%, rgba(255,255,255,0.18) 30.5%, rgba(255,255,255,0.18) 31%, transparent 31.5%),
+      radial-gradient(circle at 80% 80%, transparent 30%, rgba(255,255,255,0.18) 30.5%, rgba(255,255,255,0.18) 31%, transparent 31.5%),
+      radial-gradient(circle at 50% 50%, transparent 40%, rgba(255,255,255,0.18) 40.5%, rgba(255,255,255,0.18) 41%, transparent 41.5%);
+      background-size:200px 200px,200px 200px,300px 300px}
+    .mystical-border{width:150px;height:150px;border:3px solid rgba(255,255,255,.35);border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;animation:spinSlow 20s linear infinite}
+    .mystical-border::before{content:'';position:absolute;width:120%;height:120%;border:2px solid rgba(255,255,255,.2);border-radius:50%}
+    .mystical-symbol{font-size:3rem;color:rgba(255,255,255,.8);text-shadow:0 0 18px rgba(255,255,255,.45)}
+    @keyframes spinSlow{to{transform:rotate(360deg)}}
+    .card-back{transform:rotateY(180deg);background:#fff;position:relative;box-shadow:0 12px 30px rgba(0,0,0,.28)}
+    .tarot-image-wrapper{position:absolute;inset:0;background:#f9f9f9}
+    .tarot-image{width:100%;height:100%;object-fit:contain;transition:transform .6s ease}
+    .tarot-image.reversed{transform:rotate(180deg)}
+    .direction-badge{position:absolute;top:15px;right:15px;z-index:10;background:#fff;color:var(--direction-color);padding:6px 15px;border-radius:20px;font-weight:600;font-size:.85rem;box-shadow:0 3px 10px rgba(0,0,0,.1);border:2px solid var(--direction-color)}
+    .card-info{flex:1;max-width:520px;text-align:left}
+    .card-name{font-size:2rem;color:var(--gold-light);margin:0 0 14px;text-align:center;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.25)}
+    .interpretation-section{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,.12);transition:.25s}
+    .interpretation-section:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.18)}
+    .interpretation-title{font-size:1.05rem;color:var(--gold-light);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+    .interpretation-content{font-size:1rem;line-height:1.8;color:var(--text-light)}
+    .export-section{background:rgba(142,108,136,.12);border:1px solid var(--border);border-radius:14px;padding:16px;margin:18px 0;text-align:center}
+    .export-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn-export{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:#fff;color:#333;border-radius:22px;text-decoration:none;border:2px solid var(--primary);transition:.25s}
+    .btn-export:hover{background:var(--primary);color:#fff;transform:translateY(-2px)}
+    .unlock-section{margin:24px 0;padding:22px;background:linear-gradient(135deg,rgba(142,108,136,.08),rgba(109,76,103,.08));border-radius:16px;position:relative;overflow:hidden}
+    .btn-unlock{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:700;box-shadow:0 10px 25px rgba(157,126,168,.35)}
+    .btn-unlock:hover{transform:translateY(-2px)}
+    .meaning-explanation{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:left}
+    .meaning-title{font-size:1.2rem;color:var(--gold-light);text-align:center;margin-bottom:12px;font-weight:800}
+    .meaning-item{margin-bottom:12px;padding:12px;background:rgba(142,108,136,.08);border-radius:10px;border-left:4px solid var(--primary)}
+    .meaning-item strong{color:var(--gold-light);display:block;margin-bottom:6px}
+    .action-buttons{display:flex;justify-content:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+    .btn-tarot{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;box-shadow:0 8px 16px rgba(157,126,168,.3)}
+    .btn-tarot:hover{transform:translateY(-2px)}
+    .btn-tarot.secondary{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+    .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);margin:14px 0}
+    .copy-success{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:12px 22px;border-radius:999px;box-shadow:0 5px 15px rgba(0,0,0,.2);opacity:0;transition:.3s;z-index:1000}
+    .copy-success.show{opacity:1}
+    @media (max-width:768px){ .card-visual{width:240px;height:360px} .card-name{font-size:1.6rem} }
+  </style>
 </head>
 <body>
-<!-- 用户栏 -->
-<div class="user-bar">
-    <div class="user-bar-content">
-        <div class="user-info">
-            <div class="user-icon">
-                {% if not user.is_guest %}
-                    {{ user.username[0]|upper }}
-                {% else %}
-                    <i class="fas fa-user"></i>
-                {% endif %}
-            </div>
-            <span class="user-name">{{ user.username if not user.is_guest else "神秘访客" }}</span>
-        </div>
-        <div class="user-actions">
-            <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 首页</a>
-            {% if user.is_guest %}
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
-                <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
-            {% else %}
-                <a href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
-                <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
-            {% endif %}
-        </div>
-    </div>
-</div>
+  {% include 'partials/_bg_layers.html' %}
+  {% include 'partials/_user_bar.html' %}
 
-<div class="tarot-container">
+  <div class="tarot-container">
     <div class="header">
-        <h1><i class="fas fa-stars"></i> 今日塔罗运势 <i class="fas fa-stars"></i></h1>
-        <div class="date-display">
-            <i class="fas fa-calendar-day"></i> {{ today_date }}
-        </div>
+      <h1><i class="fas fa-stars"></i> 今日塔罗运势 <i class="fas fa-stars"></i></h1>
+      <div class="date-display"><i class="fas fa-calendar-day"></i> {{ today_date }}</div>
     </div>
 
     <div class="result-card">
-        <div class="card-visual {% if direction == '逆位' %}reversed{% endif %}" id="cardVisual">
-            <div class="card-inner">
-                <!-- 牌背 -->
-                <div class="card-front">
-                    <div class="card-back-pattern"></div>
-                    <div class="card-back-center">
-                        <div class="mystical-border">
-                            <i class="fas fa-moon mystical-symbol"></i>
-                        </div>
-                    </div>
-                </div>
+      <div class="card-visual {% if direction == '逆位' %}reversed{% endif %}" id="cardVisual">
+        <div class="card-inner">
+          <div class="card-front">
+            <div class="card-back-pattern"></div>
+            <div class="mystical-border"><i class="fas fa-moon mystical-symbol"></i></div>
+          </div>
 
-                <!-- 牌面 -->
-                <div class="card-back">
-                    <div class="direction-badge" style="--direction-color: {{ 'var(--success-color)' if direction == '正位' else 'var(--warning-color)' }}">
-                        {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
-                    </div>
-                
-                    <div class="tarot-image-wrapper">
-                        {% if card.image %}
-                            <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" 
-                                 src="{{ card.image }}" 
-                                 alt="{{ card.name }}" 
-                                 style="width:100%; height:100%; object-fit:contain;">
-                        {% else %}
-                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1));">
-                                <div style="text-align: center;">
-                                    <i class="fas fa-sparkles" style="font-size: 4rem; color: var(--primary-color); opacity: 0.5;"></i>
-                                    <h3 style="margin-top: 20px; color: var(--accent-color); font-size: 1.5rem;">{{ card.name }}</h3>
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
+          <div class="card-back">
+            <div class="direction-badge" style="--direction-color: {{ 'var(--success)' if direction == '正位' else 'var(--warning)' }}">
+              {{ direction }} <i class="fas {{ 'fa-arrow-up' if direction == '正位' else 'fa-arrow-down' }}"></i>
             </div>
+            <div class="tarot-image-wrapper">
+              {% if card.image %}
+                <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" src="{{ card.image }}" alt="{{ card.name }}">
+              {% else %}
+                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(142,108,136,0.1), rgba(109,76,103,0.1));">
+                  <div style="text-align:center">
+                    <i class="fas fa-sparkles" style="font-size:4rem;color:var(--primary);opacity:.6"></i>
+                    <h3 style="margin-top:20px;color:var(--gold-light);font-size:1.4rem">{{ card.name }}</h3>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-info">
+        <div class="card-name">{{ card.name }}</div>
+
+        <div class="interpretation-section">
+          <div class="interpretation-title"><i class="fas fa-compass"></i> 今日运势解读</div>
+          <div class="interpretation-content">
+            {% if today_insight %}{{ today_insight }}{% else %}<span class="loading"></span> 解读正在生成中...{% endif %}
+          </div>
         </div>
 
-        <div class="card-info">
-            <div class="card-name">{{ card.name }}</div>
-
-            <div class="interpretation-section">
-                <div class="interpretation-title">
-                    <i class="fas fa-compass"></i> 今日运势解读
-                </div>
-                <div class="interpretation-content">
-                    {% if today_insight %}
-                        {{ today_insight }}
-                    {% else %}
-                        <span class="loading"></span> 解读正在生成中...
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="interpretation-section">
-                <div class="interpretation-title">
-                    <i class="fas fa-hands-helping"></i> 运势指引
-                </div>
-                <div class="interpretation-content">
-                    {% if guidance %}
-                        {{ guidance }}
-                    {% else %}
-                        <span class="loading"></span> 指引正在生成中...
-                    {% endif %}
-                </div>
-            </div>
+        <div class="interpretation-section">
+          <div class="interpretation-title"><i class="fas fa-hands-helping"></i> 运势指引</div>
+          <div class="interpretation-content">
+            {% if guidance %}{{ guidance }}{% else %}<span class="loading"></span> 指引正在生成中...{% endif %}
+          </div>
         </div>
+      </div>
     </div>
 
     {% if user.is_guest %}
-    <div class="export-section">
-        <p><i class="fas fa-info-circle"></i> 作为访客，您的解读仅在本次浏览期间有效</p>
+      <div class="export-section">
+        <p style="color:var(--gold-light);margin-bottom:10px"><i class="fas fa-info-circle"></i> 作为访客，您的解读仅在本次浏览期间有效</p>
         <div class="export-buttons">
-            <a href="{{ url_for('export_reading') }}" class="btn-export">
-                <i class="fas fa-download"></i> 下载解读
-            </a>
-            <button onclick="copyToClipboard()" class="btn-export">
-                <i class="fas fa-copy"></i> 复制内容
-            </button>
+          <a href="{{ url_for('export_reading') }}" class="btn-export"><i class="fas fa-download"></i> 下载解读</a>
+          <button onclick="copyToClipboard()" class="btn-export"><i class="fas fa-copy"></i> 复制内容</button>
         </div>
-    </div>
+      </div>
     {% endif %}
 
     <div class="divider"></div>
 
-    <!-- 解锁运势指数按钮 -->
     <div class="unlock-section">
-        <a href="{{ url_for('index') }}" class="btn-unlock">
-            <i class="fas fa-unlock-alt"></i> 点击解锁今日运势指数
-        </a>
+      <a href="{{ url_for('index') }}" class="btn-unlock"><i class="fas fa-unlock-alt"></i> 点击解锁今日运势指数</a>
     </div>
 
     <div class="divider"></div>
 
     <div class="meaning-explanation">
-        <div class="meaning-title">
-            <i class="fas fa-book-open"></i> {{ card.name }} 的深层含义
-        </div>
-        <div class="meaning-item">
-            <strong><i class="fas fa-arrow-up"></i> 正位含义</strong>
-            {{ card.meaning_up if card.meaning_up else "正位解释暂未提供" }}
-        </div>
-        <div class="meaning-item">
-            <strong><i class="fas fa-arrow-down"></i> 逆位含义</strong>
-            {{ card.meaning_rev if card.meaning_rev else "逆位解释暂未提供" }}
-        </div>
+      <div class="meaning-title"><i class="fas fa-book-open"></i> {{ card.name }} 的深层含义</div>
+      <div class="meaning-item"><strong><i class="fas fa-arrow-up"></i> 正位含义</strong>{{ card.meaning_up if card.meaning_up else "正位解释暂未提供" }}</div>
+      <div class="meaning-item"><strong><i class="fas fa-arrow-down"></i> 逆位含义</strong>{{ card.meaning_rev if card.meaning_rev else "逆位解释暂未提供" }}</div>
     </div>
 
     <div class="action-buttons">
-        <!-- 
-        {% if not user.is_guest %}
-        <a href="{{ url_for('clear_cache') }}" class="btn-tarot secondary" onclick="return confirm('确定要清除今日记录吗？清除后可以重新抽牌。')">
-            <i class="fas fa-redo"></i> 重新抽牌
-        </a>
-        {% endif %}
-        -->
-        <button class="btn-tarot" onclick="shareResult()">
-            <i class="fas fa-share-alt"></i> 分享结果
-        </button>
+      <button class="btn-tarot" onclick="shareResult()"><i class="fas fa-share-alt"></i> 分享结果</button>
+      <!-- 如需恢复重抽按钮，按你的注释解开即可 -->
     </div>
 
-    <div class="footer">
-        <p>© 2025 塔罗运势 | 宇宙能量，智慧指引</p>
-        <small style="opacity: 0.7;">每日凌晨重置，基于北京时间</small>
+    <div class="footer" style="margin-top:18px">
+      <p>© 2025 塔罗运势 | 宇宙能量，智慧指引</p>
+      <small style="opacity:.7;">每日凌晨重置，基于北京时间</small>
     </div>
-</div>
+  </div>
 
-<!-- 复制成功提示 -->
-<div class="copy-success" id="copySuccess">
-    <i class="fas fa-check-circle"></i> 复制成功！
-</div>
+  <div class="copy-success" id="copySuccess"><i class="fas fa-check-circle"></i> 复制成功！</div>
 
-<script>
-    // 卡牌翻转动画
-    setTimeout(() => {
-        document.getElementById('cardVisual').classList.add('flipped');
-    }, 800);
+  <script>
+    // 翻牌动画
+    setTimeout(()=>{ document.getElementById('cardVisual')?.classList.add('flipped'); }, 800);
 
-    // 复制到剪贴板
+    // 复制
     function copyToClipboard() {
-        const content = `塔罗每日指引 - {{ today_date }}
+      const content = `塔罗每日指引 - {{ today_date }}
 ━━━━━━━━━━━━━━━━━━━━━
 抽到的牌：{{ card.name }}（{{ direction }}）
 
@@ -722,53 +169,29 @@
 逆位：{{ card.meaning_rev if card.meaning_rev else '暂无' }}
 ━━━━━━━━━━━━━━━━━━━━━
 生成自：塔罗每日指引`;
-        
-        navigator.clipboard.writeText(content).then(() => {
-            showCopySuccess();
-        }).catch(err => {
-            console.error('复制失败:', err);
-            const textarea = document.createElement('textarea');
-            textarea.value = content;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showCopySuccess();
-        });
+      const show=()=>{ const el=document.getElementById('copySuccess'); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(content).then(show).catch(()=>fallback());
+      else fallback();
+      function fallback(){ const ta=document.createElement('textarea'); ta.value=content; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); show(); }
     }
 
-    function showCopySuccess() {
-        const successEl = document.getElementById('copySuccess');
-        successEl.classList.add('show');
-        setTimeout(() => {
-            successEl.classList.remove('show');
-        }, 2000);
-    }
-
+    // 分享（降级到复制）
     function shareResult() {
-        const shareData = {
-            title: '我的每日塔罗运势',
-            text: `我抽到了${document.querySelector('.card-name').textContent}（{{ direction }}）`,
-            url: window.location.href
-        };
-
-        if (navigator.share) {
-            navigator.share(shareData).catch((error) => {
-                if (error.name !== 'AbortError') {
-                    copyToClipboard();
-                }
-            });
-        } else {
-            copyToClipboard();
-        }
+      const shareData = {
+        title: '我的每日塔罗运势',
+        text: `我抽到了{{ card.name }}（{{ direction }}）`,
+        url: window.location.href
+      };
+      if (navigator.share) navigator.share(shareData).catch(err=>{ if (err?.name!=='AbortError') copyToClipboard(); });
+      else copyToClipboard();
     }
 
-    // 如果解读内容为空，定时刷新
+    // 若内容仍在生成，轻量自动刷新
     {% if not today_insight or not guidance %}
-    setTimeout(() => {
-        location.reload();
-    }, 5000);
+      setTimeout(()=>location.reload(), 5000);
     {% endif %}
-</script>
+  </script>
+
+  <script src="{{ url_for('static', filename='js/cosmos.js') }}"></script>
 </body>
 </html>
