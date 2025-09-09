@@ -1,50 +1,11 @@
 {
   "version": 2,
-  "builds": [{ "src": "app.py", "use": "@vercel/python" }],
+  "builds": [
+    { "src": "app.py", "use": "@vercel/python" },
+    { "src": "static/**", "use": "@vercel/static" }
+  ],
   "routes": [
-    {
-      "src": "/static/manifest.webmanifest",
-      "dest": "/static/manifest.webmanifest",
-      "headers": {
-        "Content-Type": "application/manifest+json",
-        "Cache-Control": "public, max-age=3600"
-      }
-    },
-    {
-      "src": "/static/sw.js",
-      "dest": "/static/sw.js",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate"
-      }
-    },
-    {
-      "src": "/static/CSS/(.*)",
-      "dest": "/static/CSS/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/static/js/(.*)",
-      "dest": "/static/js/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/static/icons/(.*)\\.png",
-      "dest": "/static/icons/$1.png",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "app.py"
-    }
+    { "src": "/static/(.*)", "dest": "/static/$1" },
+    { "src": "/(.*)", "dest": "/app.py" }
   ]
 }
