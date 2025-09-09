@@ -1178,6 +1178,32 @@ document.addEventListener('DOMContentLoaded', function() {
   // 若你想彻底停用旧的弹层（overlay），可强行隐藏它（可选）
  const css = document.createElement('style'); css.innerHTML = '.sc-overlay{display:none!important}'; document.head.appendChild(css);
 
+(function forceShareRedirect(){
+  // 是否已抽牌：沿用你 index 里的数据注入方式
+  const data = JSON.parse(document.getElementById('INDEX_DATA')?.textContent || '{}');
+  const hasDrawn = !!data.has_drawn;
+
+  function gotoShare(e){
+    if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+    if (!hasDrawn) { alert('请先抽取今日塔罗牌'); return; }
+    location.assign('/share/card');
+  }
+
+  // 覆盖旧的全局函数，防止其他地方调用打开弹层
+  window.openShareOverlay = gotoShare;
+  window.closeShareOverlay = function(){};
+
+  // 捕获阶段绑定（比旧监听更早执行），统一改为跳转
+  ['openShareBtn','fabShare'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', gotoShare, true); // capture=true
+    // 移动端点击体验优化
+    el.style.touchAction = 'manipulation';
+    el.style.webkitTapHighlightColor = 'transparent';
+  });
+})();
+
 </script>
 
 </body>
