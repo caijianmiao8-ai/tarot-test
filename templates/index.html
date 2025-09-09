@@ -411,6 +411,66 @@ html, body{
 }
 
 /* 其余你已有的安全区/触控优化保留原样 */
+/* ===== 背景可见性修复（最小改动版） ===== */
+
+/* 让混合有稳定的背板：把整页做成一个独立混合容器 */
+body { isolation: isolate; }
+
+/* 背景层放到内容之下、但在 body 背景之上（改为非负层级） */
+.bg-stars,
+.bg-veil,
+.bg-constellations,
+.bg-glyphs,
+.zodiac {
+  z-index: 0 !important;          /* 从 -n 提到 0 */
+  pointer-events: none;            /* 继续不挡交互 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  /* 注意：不要对混合层使用 contain: paint（会看不到背板） */
+  contain: initial !important;
+}
+
+/* 确保主体内容在背景之上 */
+.main-container,
+.features,
+.footer {
+  position: relative;
+  z-index: 2;
+}
+/* 你的 .user-bar 本身 z-index 已经很高，保持即可 */
+
+/* 修正“滚动降档”时的透明度值（0~1）与暂停策略，避免看起来像消失 */
+body.scrolling .bg-veil,
+body.scrolling .bg-constellations,
+body.scrolling .zodiac {
+  animation-play-state: paused;
+  opacity: 0.95;                   /* 原来 calc(100% - 0.05) 是无效的 */
+}
+
+/* iOS 下仍然轻降昂贵滤镜，但不要把它们“清零” */
+@supports (-webkit-touch-callout: none) {
+  .zodiac      { filter: none; opacity: .14; }
+  .bg-glyphs   { filter: none; opacity: .12; }
+  .bg-veil     { filter: blur(1.5px); opacity: .87; }
+  /* 如果弹窗开着时仍有闪白，再为 .sc-mask 移除毛玻璃即可： */
+  /* .sc-mask { backdrop-filter:none; -webkit-backdrop-filter:none; background:rgba(0,0,0,.72); } */
+}
+
+/* 移动端背景布局（保留你之前的，但再略微优化尺寸/位置） */
+@media (max-width:768px){
+  .zodiac{
+    width: 560px; height: 560px;
+    opacity:.14;
+    animation-duration: 110s;
+  }
+  .bg-constellations{ opacity:.18; }
+  .bg-glyphs{
+    background-size: 50px 50px, 58px 58px, 46px 46px, 54px 54px, 44px 44px, 52px 52px;
+    background-position: 10% 22%, 88% 18%, 12% 82%, 86% 74%, 48% 92%, 30% 36%;
+    opacity:.12;
+  }
+}
 
 
   </style>
