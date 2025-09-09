@@ -682,7 +682,9 @@ input, select, textarea{
         <button class="btn-refresh" onclick="refreshFortune()"><i class="fas fa-sync-alt"></i> 刷新运势</button>
         {% if has_drawn %}
           <a href="{{ url_for('chat_page') }}" class="btn-ai-chat"><i class="fas fa-comments"></i> AI 深度解读</a>
-          <button type="button" class="btn-ai-chat" id="openShareBtn"><i class="fas fa-share-alt"></i> 生成分享卡片</button>
+          <a class="btn-ai-chat" id="openShareBtn" href="/share/card">
+  <i class="fas fa-share-alt"></i> 生成分享卡片
+</a>
         {% endif %}
       </div>
     </div>
@@ -710,7 +712,9 @@ input, select, textarea{
     </div>
   </div>
 
-  <div class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" title="生成分享卡片"><i class="fas fa-share-alt"></i></div>
+  <a class="fab-share {% if not has_drawn %}disabled{% endif %}" id="fabShare" href="/share/card" title="生成分享卡片">
+  <i class="fas fa-share-alt"></i>
+</a>
 
 <div class="sc-overlay" id="scOverlay">
   <div class="sc-mask" onclick="closeShareOverlay()"></div>
@@ -1121,6 +1125,62 @@ document.addEventListener('DOMContentLoaded', function() {
       // document.querySelector('.footer')?.classList.add('hidden');
     }
   })();
+
+  // 小气泡提示（复用你暗色宇宙风）
+  (function ensureShareToast(){
+    if (document.getElementById('shareToast')) return;
+    const toast = document.createElement('div');
+    toast.id = 'shareToast';
+    toast.style.cssText = `
+      position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+      background:rgba(16,185,129,.95);color:#fff;padding:10px 16px;
+      border-radius:18px;border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 10px 26px rgba(0,0,0,.25);opacity:0;pointer-events:none;
+      transition:.25s;z-index:1000;font-weight:700;`;
+    toast.textContent = '正在打开分享卡片…';
+    document.body.appendChild(toast);
+    window.showShareToast = function(msg){
+      toast.textContent = msg || '正在打开分享卡片…';
+      toast.style.opacity = 1;
+      setTimeout(()=> toast.style.opacity = 0, 1200);
+    };
+  })();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const data = JSON.parse((document.getElementById('INDEX_DATA')?.textContent)||'{}');
+    const hasDrawn = !!data.has_drawn;
+
+    // 顶部“生成分享卡片”按钮
+    const openShareBtn = document.getElementById('openShareBtn');
+    if (openShareBtn) {
+      openShareBtn.addEventListener('click', (e) => {
+        if (!hasDrawn) {
+          e.preventDefault();
+          alert('请先抽取今日塔罗牌');
+          return;
+        }
+        // 可选：给点反馈
+        window.showShareToast && showShareToast('正在打开分享卡片…');
+      });
+    }
+
+    // 右下角悬浮分享气泡
+    const fabShare = document.getElementById('fabShare');
+    if (fabShare) {
+      fabShare.addEventListener('click', (e) => {
+        if (!hasDrawn || fabShare.classList.contains('disabled')) {
+          e.preventDefault();
+          alert('请先抽取今日塔罗牌');
+          return;
+        }
+        window.showShareToast && showShareToast('正在打开分享卡片…');
+      });
+    }
+  });
+
+  // 若你想彻底停用旧的弹层（overlay），可强行隐藏它（可选）
+  // const css = document.createElement('style'); css.innerHTML = '.sc-overlay{display:none!important}'; document.head.appendChild(css);
+
 </script>
 
 </body>
