@@ -2,7 +2,25 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+
+<!-- iOS 全屏 & 状态栏样式（黑色半透明，沉浸感更强） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="若水占卜">
+
+<!-- Android / Chrome 主题色 -->
+<meta name="theme-color" content="#1a1625" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#2d1b4e" media="(prefers-color-scheme: light)">
+
+<!-- PWA 清单 -->
+<link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+
+<!-- 主屏幕图标（可先放一张 180x180 PNG 到 /static/icons/） -->
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <title>每日塔罗运势 · 若水占卜</title>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
@@ -278,6 +296,61 @@
       .lucky-grid{grid-template-columns:1fr}
       .sc-frame{max-width:92vw}
     }
+
+  /* ===== 移动端 & iOS 适配补丁（不触碰业务逻辑） ===== */
+
+/* 让页面高度在 iOS 上可靠：优先使用 100dvh，降级到自定义 --vh */
+html, body{
+  min-height: 100dvh;
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* 顶部固定栏与内容区：为刘海留白 */
+.user-bar{
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+.main-container{
+  margin-top: calc(88px + env(safe-area-inset-top, 0px));
+}
+@media (max-width:768px){
+  .main-container{
+    margin-top: calc(74px + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* 底部浮动按钮与弹层操作区：为 Home 指示条留白 */
+.fab-share{
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.sc-actions{
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+/* iOS 点击优化（避免双击缩放、触控更灵敏） */
+button, .btn-tarot, .already-drawn, .sc-btn, .fab-share{
+  touch-action: manipulation;
+}
+
+/* 防止 iOS 因输入字小于 16px 自动放大（如后续有输入框） */
+input, select, textarea{
+  font-size: 16px;
+}
+
+/* Tarot 卡片在小屏的自适应比例（不改桌面布局） */
+@media (max-width:768px){
+  .tarot-card{
+    /* 使用纵横比，自动算高 */
+    aspect-ratio: 220 / 340;
+    width: clamp(180px, 64vw, 260px);
+    height: auto;
+  }
+}
+
+/* 背景动效在移动端更稳（可选） */
+.bg-veil, .bg-constellations, .bg-glyphs, .zodiac{
+  will-change: transform, opacity;
+}
+
   </style>
 </head>
 <body>
@@ -848,6 +921,35 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+</script>
+<script>
+  // 1) iOS 视口高度修复：计算 --vh 单位
+  (function fixIOSVh(){
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+  })();
+
+  // 2) PWA：注册 Service Worker（可选，但强烈建议）
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(()=>{ /* 静默失败即可 */ });
+    });
+  }
+
+  // 3) 独立模式检测（iOS：navigator.standalone；其他：display-mode）
+  (function detectStandalone(){
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) {
+      document.documentElement.classList.add('standalone');
+      // 你可以在这里做些仅主屏模式下的 UI 微调（如隐藏页脚等）
+      // document.querySelector('.footer')?.classList.add('hidden');
+    }
+  })();
 </script>
 
 </body>
