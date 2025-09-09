@@ -186,6 +186,7 @@
     .actions{
       position:fixed; bottom:25px; left:50%; transform:translateX(-50%);
       display:flex; gap:10px; z-index:100;
+      touch-action: manipulation; /* ★ 新增：移动端点按响应更快 */
     }
     .btn{
       padding:10px 18px; border:none; border-radius:20px; font-size:13px; font-weight:500; cursor:pointer; transition:all .3s;
@@ -200,6 +201,13 @@
     /* 小屏优化 */
     @media (max-width: 420px){
       .frame{ width:100%; max-width:400px; }
+      /* ★ 新增：移动端底部操作栏自适应、安全区留白与大按钮 */
+      .actions{
+        left:0; right:0; bottom: max(12px, env(safe-area-inset-bottom));
+        transform:none; padding:0 12px;
+        display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:48px;
+      }
+      .actions .btn{ width:100%; justify-content:center; border-radius:14px; font-size:14px; padding:0 12px; }
     }
     @media (max-height:650px){
       .content{ padding:12px; }
@@ -207,6 +215,9 @@
       .card-image-wrapper{ width:110px; height:165px; }
       .message-section{ min-height:60px; }
       .tips-list{ max-height:64px; }
+    }
+    @media (prefers-reduced-motion: reduce){ /* ★ 新增：无障碍优化，导出时也会禁动效 */
+      .bg-glow, .sparkles{ animation: none !important; }
     }
   </style>
 </head>
@@ -225,7 +236,8 @@
       <!-- 卡牌展示 -->
       <div class="card-section">
         <div class="card-image-wrapper">
-          <img id="cardImg" alt="Tarot" class="hidden" crossorigin="anonymous"/>
+          <!-- ★ 保持 crossOrigin，同时增加 decoding 属性，提升移动端可见性 -->
+          <img id="cardImg" alt="Tarot" class="hidden" crossorigin="anonymous" decoding="sync"/>
           <div id="cardPh" class="card-placeholder">✦</div>
         </div>
         <div class="card-info">
@@ -285,7 +297,7 @@
       <!-- 底部 -->
       <div class="footer">
         <div class="qr-wrapper">
-          <img id="qrImg" alt="QR" class="hidden" crossorigin="anonymous"/>
+          <img id="qrImg" alt="QR" class="hidden" crossorigin="anonymous" decoding="sync"/>
           <div id="qrPh" class="qrph"></div>
         </div>
         <div class="site-info">
@@ -325,38 +337,43 @@
 
   <!-- 导出库：DOM-to-Image-More（主方案） -->
   <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.1.0/dist/dom-to-image-more.min.js"></script>
-  
   <!-- 备用：html2canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
 
   <script>
     // ============ 工具函数 ============
     const $ = (id)=>document.getElementById(id);
-    
-    function ymd(d){ 
-      try{ 
-        const t = typeof d === 'string' ? new Date(d) : d; 
+
+    // ★ 新增：平台判断
+    const UA = navigator.userAgent || '';
+    const isIOS = () => /iP(hone|od|ad)/i.test(UA);
+    const isAndroid = () => /Android/i.test(UA);
+    const isWeChat = () => /MicroMessenger/i.test(UA);
+
+    function ymd(d){
+      try{
+        const t = typeof d === 'string' ? new Date(d) : d;
         return `${t.getFullYear()}.${String(t.getMonth()+1).padStart(2,'0')}.${String(t.getDate()).padStart(2,'0')}`;
-      } catch { 
-        return '--'; 
-      } 
+      } catch {
+        return '--';
+      }
     }
-    
-    function labelScore(s){ 
-      s = Number(s) || 0; 
-      if(s >= 85) return '大吉'; 
-      if(s >= 70) return '中吉'; 
-      if(s >= 55) return '小吉'; 
-      return '平'; 
+
+    function labelScore(s){
+      s = Number(s) || 0;
+      if(s >= 85) return '大吉';
+      if(s >= 70) return '中吉';
+      if(s >= 55) return '小吉';
+      return '平';
     }
-    
+
     function parseDimsStr(s){
-      const out = {}; 
+      const out = {};
       if(typeof s !== 'string') return out;
       s.split(/\n+/).forEach(l => {
         const m = l.match(/^(.*?)[：:]\s*([\d.]+)\s*星(?:（(.*?)）)?/);
-        if(m) { 
-          out[m[1].trim()] = {v: parseFloat(m[2]), tag: (m[3]||'').trim()}; 
+        if(m) {
+          out[m[1].trim()] = {v: parseFloat(m[2]), tag: (m[3]||'').trim()};
         }
       });
       return out;
@@ -369,19 +386,19 @@
       "蓝":"#6aa8ff","蓝色":"#6aa8ff","紫":"#8e6c88","紫色":"#8e6c88",
       "白":"#f8f4e9","白色":"#f8f4e9","黑":"#222","黑色":"#222"
     };
-    
-    function colorToHex(name){ 
-      if(!name) return null; 
-      for(const k in COLOR_MAP){ 
-        if(name.includes(k)) return COLOR_MAP[k]; 
-      } 
-      return null; 
+
+    function colorToHex(name){
+      if(!name) return null;
+      for(const k in COLOR_MAP){
+        if(name.includes(k)) return COLOR_MAP[k];
+      }
+      return null;
     }
 
     function flattenFortune(f0){
       const f = JSON.parse(JSON.stringify(f0 || {}));
       const ft = f.fortune_text || {};
-      
+
       if(ft.summary && !f.summary) f.summary = ft.summary;
       if(ft.do && !f.do) f.do = ft.do;
       if(ft.dont && !f.dont) f.dont = ft.dont;
@@ -394,10 +411,8 @@
       f.lucky_direction = f.lucky_direction || lucky.direction || '';
 
       if(Array.isArray(f.dimensions)){
-        const map = {}; 
-        f.dimensions.forEach(d => { 
-          if(d && d.name) map[d.name] = Number(d.stars ?? d.score ?? 0); 
-        });
+        const map = {};
+        f.dimensions.forEach(d => { if(d && d.name) map[d.name] = Number(d.stars ?? d.score ?? 0); });
         f.dimensions_map = map;
         if(!f.dimensions_text){
           f.dimensions_text = f.dimensions.map(d => `${d.name}：${d.stars ?? d.score}星（${d.level||''}）`).join("\n");
@@ -407,15 +422,15 @@
       } else if(typeof f.dimensions === 'object' && f.dimensions){
         f.dimensions_map = f.dimensions_map || f.dimensions;
       }
-      
+
       return f;
     }
 
     function createStars(rating){
       const stars = [];
       const full = Math.floor(rating || 0);
-      for(let i = 0; i < 5; i++){ 
-        stars.push(`<span class="star${i < full ? ' filled' : ''}"></span>`); 
+      for(let i = 0; i < 5; i++){
+        stars.push(`<span class="star${i < full ? ' filled' : ''}"></span>`);
       }
       return stars.join('');
     }
@@ -442,13 +457,13 @@
       if(imgUrl){
         const img = $('cardImg');
         img.crossOrigin = 'anonymous';
-        img.onload = () => { 
-          img.classList.remove('hidden'); 
-          $('cardPh').classList.add('hidden'); 
+        img.onload = () => {
+          img.classList.remove('hidden');
+          $('cardPh').classList.add('hidden');
         };
-        img.onerror = () => { 
-          img.classList.add('hidden'); 
-          $('cardPh').classList.remove('hidden'); 
+        img.onerror = () => {
+          img.classList.add('hidden');
+          $('cardPh').classList.remove('hidden');
         };
         img.src = imgUrl;
       }
@@ -460,20 +475,14 @@
       $('scoreBadge').textContent = labelScore(s);
 
       // 维度
-      const dimsEl = $('dims'); 
+      const dimsEl = $('dims');
       dimsEl.innerHTML = '';
       const dimsMap = (function(){
         if(fortune.dimensions_text) return parseDimsStr(fortune.dimensions_text);
-        if(fortune.dimensions_map){ 
-          const o = {}; 
-          for(const k in fortune.dimensions_map){ 
-            o[k] = {v: Number(fortune.dimensions_map[k])}; 
-          } 
-          return o; 
-        }
+        if(fortune.dimensions_map){ const o = {}; for(const k in fortune.dimensions_map){ o[k] = {v: Number(fortune.dimensions_map[k])}; } return o; }
         return {};
       })();
-      
+
       const dimConfig = [
         {key:'事业运', short:'事业', icon:'💼'},
         {key:'财富运', short:'财富', icon:'💰'},
@@ -481,7 +490,7 @@
         {key:'健康运', short:'健康', icon:'🌿'},
         {key:'贵人运', short:'贵人', icon:'✨'}
       ];
-      
+
       dimConfig.forEach(c => {
         const d = dimsMap[c.key] || dimsMap[c.short];
         if(!d) return;
@@ -503,7 +512,7 @@
       const donts = (fortune.dont || []).slice(0, 3);
       $('doListV').innerHTML = dos.length ? dos.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
       $('dontListV').innerHTML = donts.length ? donts.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
-      
+
       // 兼容隐藏容器
       $('doList').innerHTML = dos.length ? dos.map(t => `<li>✅ ${t}</li>`).join('') : '<li>—</li>';
       $('dontList').innerHTML = donts.length ? donts.map(t => `<li>⛔ ${t}</li>`).join('') : '<li>—</li>';
@@ -534,253 +543,60 @@
         $('btnCopy').classList.remove('hidden');
         $('btnCopy').onclick = ()=>copyText(site);
       }
+
+      // ★ 新增：移动端把“保存图片”按钮文案更贴近系统分享
+      if (isIOS() || isAndroid()) {
+        const saveBtn = $('btnSave');
+        if (saveBtn) saveBtn.innerHTML = '📲 保存/分享到相册';
+      }
     }
 
-    // ============ 高质量导出方案 ============
-    
-async function exportWithCanvas() {
-  const card = document.getElementById('shareCard');
-  const actions = document.getElementById('actions');
-  
-  console.log('=== Canvas Export Debug Start ===');
-  console.log('Card element:', card);
-  console.log('Card dimensions:', card.offsetWidth, 'x', card.offsetHeight);
-  
-  try {
-    // 隐藏操作按钮
-    if (actions) actions.style.display = 'none';
-    document.body.classList.add('export-mode');
-    
-    // 等待DOM稳定
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // 设置导出参数
-    const scale = 2.5;
-    const width = 400;
-    const height = 711;
-    
-    // 步骤1：先导出卡片内容
-    console.log('Step 1: Capturing card content...');
-    console.log('Available libraries:', {
-      domtoimage: typeof domtoimage !== 'undefined',
-      html2canvas: typeof html2canvas !== 'undefined'
-    });
-    
-    let cardDataUrl;
-    
-    if (typeof domtoimage !== 'undefined') {
-      console.log('Using dom-to-image-more...');
-      try {
-        cardDataUrl = await domtoimage.toPng(card, {
-          quality: 0.98,
-          width: width * scale,
-          height: height * scale,
-          style: {
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            width: width + 'px',
-            height: height + 'px'
-          },
-          bgcolor: null, // 保持透明
-          cacheBust: true,
-          copyStyles: true
-        });
-        console.log('dom-to-image success, dataUrl length:', cardDataUrl.length);
-      } catch (domError) {
-        console.error('dom-to-image failed:', domError);
-        throw domError;
-      }
-    } else if (typeof html2canvas !== 'undefined') {
-      console.log('Using html2canvas...');
-      try {
-        const canvas = await html2canvas(card, {
-          scale: scale,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: null,
-          logging: true // 开启html2canvas的日志
-        });
-        cardDataUrl = canvas.toDataURL('image/png', 0.98);
-        console.log('html2canvas success, dataUrl length:', cardDataUrl.length);
-      } catch (h2cError) {
-        console.error('html2canvas failed:', h2cError);
-        throw h2cError;
-      }
-    } else {
-      console.error('No export library available!');
-      throw new Error('No export library available');
-    }
-    
-    // 验证导出的数据
-    if (!cardDataUrl || cardDataUrl.length < 100) {
-      console.error('Invalid card data URL:', cardDataUrl?.substring(0, 100));
-      throw new Error('Failed to capture card content');
-    }
-    
-    // 步骤2：创建Canvas并绘制背景
-    console.log('Step 2: Creating canvas...');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      console.error('Failed to get canvas context');
-      throw new Error('Canvas context not available');
-    }
-    
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    console.log('Canvas size:', canvas.width, 'x', canvas.height);
-    
-    // 绘制渐变背景
-    console.log('Drawing gradient background...');
-    const gradient = ctx.createLinearGradient(
-      0, 0, 
-      canvas.width * 0.8, canvas.height * 0.8
-    );
-    gradient.addColorStop(0, '#2d1b4e');
-    gradient.addColorStop(1, '#1a1625');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 添加光晕效果
-    console.log('Adding glow effects...');
-    ctx.globalAlpha = 0.15;
-    const glowGradient1 = ctx.createRadialGradient(
-      canvas.width * 0.3, canvas.height * 0.2, 0,
-      canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5
-    );
-    glowGradient1.addColorStop(0, 'rgba(157, 126, 168, 0.5)');
-    glowGradient1.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGradient1;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.globalAlpha = 1.0; // 重置透明度
-    
-    // 步骤3：加载并绘制卡片
-    console.log('Step 3: Loading card image...');
-    const img = new Image();
-    img.crossOrigin = 'anonymous'; // 处理跨域
-    
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        console.error('Image load timeout');
-        reject(new Error('Image load timeout'));
-      }, 10000); // 10秒超时
-      
-      img.onload = function() {
-        clearTimeout(timeout);
-        console.log('Image loaded successfully:', img.width, 'x', img.height);
-        
-        try {
-          // 绘制卡片图像
-          ctx.drawImage(img, 0, 0);
-          console.log('Card drawn on canvas');
-          
-          // 步骤4：导出最终图像
-          console.log('Step 4: Creating blob...');
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              console.error('Failed to create blob');
-              reject(new Error('Failed to create blob'));
-              return;
-            }
-            
-            console.log('Blob created, size:', blob.size);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ruoshui_tarot_${Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-            console.log('=== Canvas Export Success ===');
-            resolve(true);
-          }, 'image/png', 0.98);
-        } catch (drawError) {
-          console.error('Error during drawing/export:', drawError);
-          reject(drawError);
-        }
-      };
-      
-      img.onerror = function(e) {
-        clearTimeout(timeout);
-        console.error('Image load error:', e);
-        console.error('Failed URL preview:', cardDataUrl.substring(0, 200));
-        reject(new Error('Failed to load card image'));
-      };
-      
-      // 开始加载图像
-      console.log('Setting image source...');
-      img.src = cardDataUrl;
-    });
-    
-  } catch (error) {
-    console.error('=== Canvas Export Failed ===');
-    console.error('Error details:', error);
-    console.error('Stack:', error.stack);
-    throw error;
-  } finally {
-    // 恢复UI状态
-    document.body.classList.remove('export-mode');
-    if (actions) actions.style.display = '';
-  }
-}
+    // ============ 图像内联 & 导出增强（移动端关键修复） ============
 
-// 简化的备用方案（直接填充背景）
-async function exportSimpleWithBackground() {
-  console.log('=== Simple Export Start ===');
-  const card = document.getElementById('shareCard');
-  const actions = document.getElementById('actions');
-  
-  try {
-    if (actions) actions.style.display = 'none';
-    document.body.classList.add('export-mode');
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    if (typeof domtoimage === 'undefined') {
-      console.error('dom-to-image not loaded!');
-      throw new Error('dom-to-image library not available');
+    // ★ 新增：把 <img> 的 src 转为 dataURL，避免 iOS/WebKit 在导出时丢图
+    async function toDataURL(url){
+      const res = await fetch(url, { credentials: 'same-origin', cache: 'force-cache' });
+      const blob = await res.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
     }
-    
-    const scale = 2.5;
-    console.log('Exporting with simple background fill...');
-    
-    const dataUrl = await domtoimage.toPng(card, {
-      quality: 0.98,
-      width: card.offsetWidth * scale,
-      height: card.offsetHeight * scale,
-      style: {
-        transform: `scale(${scale})`,
-        transformOrigin: 'top left'
-      },
-      bgcolor: '#1a1625', // 直接填充深色背景
-      cacheBust: true,
-      copyStyles: true
-    });
-    
-    console.log('Export successful, dataUrl length:', dataUrl.length);
-    
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `ruoshui_tarot_${Date.now()}.png`;
-    a.click();
-    
-    console.log('=== Simple Export Success ===');
-    return true;
-  } catch (error) {
-    console.error('=== Simple Export Failed ===');
-    console.error('Error:', error);
-    return false;
-  } finally {
-    document.body.classList.remove('export-mode');
-    if (actions) actions.style.display = '';
-  }
-}
-    
-    // 将计算样式内联化
+
+    async function inlineImageElement(img){
+      if (!img || img.classList.contains('hidden')) return;
+      if (!img.src || img.src.startsWith('data:')) return;
+      try{
+        const dataUrl = await toDataURL(img.src);
+        await new Promise((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => res(); // 忽略错误，继续导出
+          img.src = dataUrl;
+          if (img.complete && img.naturalWidth) res();
+        });
+      }catch(e){
+        console.warn('inline image failed:', e);
+      }
+    }
+
+    async function ensureInlineCardAssets(){
+      await Promise.all([
+        inlineImageElement($('cardImg')),
+        inlineImageElement($('qrImg'))
+      ]);
+    }
+
+    async function waitForVisibleImages(root){
+      const imgs = Array.from(root.querySelectorAll('img')).filter(i => !i.classList.contains('hidden'));
+      await Promise.all(imgs.map(i => new Promise(res => {
+        if (i.complete && i.naturalWidth) return res();
+        i.onload = () => res();
+        i.onerror = () => res();
+      })));
+    }
+
+    // 将计算样式内联化（保留你的函数）
     function inlineComputedStyles(element) {
       const computed = window.getComputedStyle(element);
       const important = [
@@ -790,97 +606,225 @@ async function exportSimpleWithBackground() {
         'text-shadow', 'transform', 'opacity',
         'filter', 'backdrop-filter', 'padding', 'margin'
       ];
-      
       important.forEach(prop => {
         const value = computed[prop];
         if (value && value !== 'none' && value !== 'initial') {
           element.style[prop] = value;
         }
       });
-      
-      // 递归处理子元素
       Array.from(element.children).forEach(child => {
-        if (child instanceof HTMLElement) {
-          inlineComputedStyles(child);
-        }
+        if (child instanceof HTMLElement) inlineComputedStyles(child);
       });
     }
-    
-    // 增强导出效果
+
+    // 导出前把 backdrop-filter 等转换为实体背景（保留并启用）
     function enhanceForExport(element) {
-      // 将 backdrop-filter 转换为实体背景
       const elements = element.querySelectorAll('*');
       elements.forEach(el => {
         const style = window.getComputedStyle(el);
         if (style.backdropFilter && style.backdropFilter !== 'none') {
-          // 用半透明背景替代
           el.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
           el.style.backdropFilter = 'none';
         }
       });
     }
-    
-async function smartExport() {
-  const btn = document.getElementById('btnSave');
-  const originalText = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '⏳ 正在导出...';
-  
-  // 打开浏览器控制台查看详细日志
-  console.log('===== EXPORT PROCESS START =====');
-  console.log('Browser:', navigator.userAgent);
-  console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
-  
-  try {
-    let success = false;
-    
-    // 先尝试Canvas合成
-    try {
-      console.log('Attempting Canvas export...');
-      success = await exportWithCanvas();
-    } catch (canvasError) {
-      console.warn('Canvas export failed:', canvasError.message);
-      console.log('Falling back to simple export...');
-      
-      // 降级到简单导出
-      success = await exportSimpleWithBackground();
-    }
-    
-    if (success) {
-      btn.innerHTML = '✅ 已保存';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-      }, 2000);
-    } else {
-      throw new Error('All export methods failed');
-    }
-    
-  } catch (error) {
-    console.error('===== EXPORT PROCESS FAILED =====');
-    console.error('Final error:', error);
-    alert('导出失败，请打开浏览器控制台查看详细错误信息');
-    btn.innerHTML = originalText;
-  } finally {
-    btn.disabled = false;
-    console.log('===== EXPORT PROCESS END =====');
-  }
-}
 
-    // ============ iframe 通信支持 ============
+    // ★ 新增：移动端“直接存相册/分享”封装
+    async function saveBlobMobile(blob, filename){
+      try{
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files:[file] })) {
+          await navigator.share({ files:[file], title: '若水占卜 · 分享卡片' });
+          return true;
+        }
+      }catch(err){
+        // 某些 Android 浏览器可能抛异常，继续走降级
+        console.warn('Web Share with file failed:', err);
+      }
+
+      // iOS Safari 对 <a download> 支持不佳：改为新标签打开 → 长按保存
+      const url = URL.createObjectURL(blob);
+      if (isIOS()) {
+        window.open(url, '_blank');
+        setTimeout(()=>URL.revokeObjectURL(url), 30000);
+        return true;
+      }
+
+      // 其它浏览器走普通下载
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 100);
+      return true;
+    }
+
+    // ============ 高质量导出方案（保留你的主流程，插入关键修复） ============
+
+    async function exportWithCanvas() {
+      const card = document.getElementById('shareCard');
+      const actions = document.getElementById('actions');
+
+      try {
+        if (actions) actions.style.display = 'none';
+        document.body.classList.add('export-mode');
+
+        // ★ 关键：等待可见图片加载 & 内联卡图/二维码，避免导出丢图
+        await waitForVisibleImages(card);
+        await ensureInlineCardAssets();
+        enhanceForExport(card); // 移除 backdrop-filter 等
+
+        // 小延时保证布局稳定
+        await new Promise(resolve => setTimeout(resolve, 80));
+
+        // 移动端内存更敏感：iOS 降低 scale
+        const baseScale = 2.5;
+        const scale = isIOS() ? 2 : baseScale; // ★ 新增：iOS 稳定优先
+        const width = 400;
+        const height = 711;
+
+        // 优先 dom-to-image-more
+        let cardDataUrl;
+        if (typeof domtoimage !== 'undefined') {
+          cardDataUrl = await domtoimage.toPng(card, {
+            quality: 0.98,
+            width: width * scale,
+            height: height * scale,
+            style: {
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+              width: width + 'px',
+              height: height + 'px'
+            },
+            bgcolor: null,
+            cacheBust: true,
+            copyStyles: true
+          });
+        } else if (typeof html2canvas !== 'undefined') {
+          const canvas = await html2canvas(card, {
+            scale: scale,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null
+          });
+          cardDataUrl = canvas.toDataURL('image/png', 0.98);
+        } else {
+          throw new Error('No export library available');
+        }
+
+        if (!cardDataUrl || cardDataUrl.length < 100) {
+          throw new Error('Failed to capture card content');
+        }
+
+        // 合成最终图层（保留你的渐变背景）
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width * 0.8, canvas.height * 0.8);
+        gradient.addColorStop(0, '#2d1b4e');
+        gradient.addColorStop(1, '#1a1625');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => { ctx.drawImage(img, 0, 0); resolve(); };
+          img.onerror = (e) => reject(e);
+          img.src = cardDataUrl;
+        });
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.98));
+        if (!blob) throw new Error('Failed to build PNG');
+
+        // ★ 新增：移动端优先系统分享到相册；不支持则自动降级
+        await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
+        return true;
+
+      } finally {
+        document.body.classList.remove('export-mode');
+        if (actions) actions.style.display = '';
+      }
+    }
+
+    // 简化的备用方案（直接填充背景） —— 保留你的实现
+    async function exportSimpleWithBackground() {
+      const card = document.getElementById('shareCard');
+      const actions = document.getElementById('actions');
+      try {
+        if (actions) actions.style.display = 'none';
+        document.body.classList.add('export-mode');
+
+        await waitForVisibleImages(card);
+        await ensureInlineCardAssets();
+        enhanceForExport(card);
+        await new Promise(resolve => setTimeout(resolve, 60));
+
+        if (typeof domtoimage === 'undefined') throw new Error('dom-to-image library not available');
+
+        const scale = isIOS() ? 2 : 2.5; // ★ iOS 稳定优先
+        const dataUrl = await domtoimage.toPng(card, {
+          quality: 0.98,
+          width: card.offsetWidth * scale,
+          height: card.offsetHeight * scale,
+          style: { transform: `scale(${scale})`, transformOrigin: 'top left' },
+          bgcolor: '#1a1625',
+          cacheBust: true,
+          copyStyles: true
+        });
+
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
+        return true;
+      } catch (error) {
+        console.error('Simple export failed:', error);
+        return false;
+      } finally {
+        document.body.classList.remove('export-mode');
+        if (actions) actions.style.display = '';
+      }
+    }
+
+    async function smartExport() {
+      const btn = document.getElementById('btnSave');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 正在导出...';
+
+      try {
+        let success = false;
+        try {
+          success = await exportWithCanvas();
+        } catch (e) {
+          console.warn('Canvas export failed, fallback...', e);
+          success = await exportSimpleWithBackground();
+        }
+        if (!success) throw new Error('All export methods failed');
+        btn.innerHTML = '✅ 已保存';
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      } catch (error) {
+        alert('导出失败，请检查网络或稍后重试');
+        btn.innerHTML = originalText;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ============ iframe 通信支持（保持你的逻辑，修复未定义函数） ============
     window.addEventListener('message', async function(event) {
       const message = event.data;
       if (!message || !message.type) return;
-      
+
       switch(message.type) {
         case 'share:init':
-          // 初始化数据
-          if (message.data) {
-            renderFromData(message.data);
-          }
+          if (message.data) { renderFromData(message.data); }
           break;
-          
         case 'share:update':
-          // 更新二维码和链接
           if (message.qrCode) {
             const qrImg = document.getElementById('qrImg');
             const qrPh = document.getElementById('qrPh');
@@ -889,34 +833,28 @@ async function smartExport() {
             qrPh.classList.add('hidden');
           }
           if (message.shareUrl) {
-            document.getElementById('siteUrl').textContent = 
-              message.shareUrl.replace(/^https?:\/\//, '');
+            document.getElementById('siteUrl').textContent = message.shareUrl.replace(/^https?:\/\//, '');
           }
           break;
-          
         case 'share:export':
-          // 客户端导出请求
-          await performClientExport();
+          // ★ 修复：原来调用了不存在的 exportWithDomToImage；改为走 smartExport
+          await smartExport();
           break;
       }
     });
-    
-    // 从外部数据渲染（iframe 模式）
+
     function renderFromData(data) {
-      // 更新日期和用户名
-      document.getElementById('dateTag').textContent = 
+      document.getElementById('dateTag').textContent =
         data.today || new Date().toLocaleDateString('zh-CN').replace(/\//g, '.');
-      document.getElementById('userTag').textContent = 
+      document.getElementById('userTag').textContent =
         data.user_name || '神秘访客';
-      
-      // 更新卡牌信息
+
       const reading = data.reading || {};
-      document.getElementById('cardName').textContent = 
+      document.getElementById('cardName').textContent =
         reading.name || reading.card_name || '—';
-      document.getElementById('cardDirection').textContent = 
+      document.getElementById('cardDirection').textContent =
         reading.direction || '—';
-      
-      // 更新卡牌图片
+
       if (reading.image) {
         const img = document.getElementById('cardImg');
         img.src = reading.image;
@@ -925,34 +863,28 @@ async function smartExport() {
           document.getElementById('cardPh').classList.add('hidden');
         };
       }
-      
-      // 更新运势数据
+
       const fortune = flattenFortune(data.fortune || {});
       updateFortuneDisplay(fortune);
     }
-    
-    // 更新运势显示
+
     function updateFortuneDisplay(fortune) {
-      // 使用现有的渲染逻辑
       const s = Number(fortune.overall_score || 0);
       document.getElementById('scoreNum').textContent = s || '—';
-      document.getElementById('ring').style.setProperty('--progress', 
+      document.getElementById('ring').style.setProperty('--progress',
         (Math.max(0, Math.min(100, s)) / 100).toFixed(3));
       document.getElementById('scoreBadge').textContent = labelScore(s);
-      
-      // 总评
-      document.getElementById('summaryText').textContent = 
+
+      document.getElementById('summaryText').textContent =
         fortune.summary || '今日运势温和清澈，顺势而行。';
-      
-      // 宜忌
+
       const dos = (fortune.do || []).slice(0, 3);
       const donts = (fortune.dont || []).slice(0, 3);
-      document.getElementById('doListV').innerHTML = 
+      document.getElementById('doListV').innerHTML =
         dos.length ? dos.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
-      document.getElementById('dontListV').innerHTML = 
+      document.getElementById('dontListV').innerHTML =
         donts.length ? donts.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
-      
-      // 幸运元素
+
       const luckyColorName = fortune.lucky_color || '';
       const luckyHex = colorToHex(luckyColorName);
       if(luckyHex) document.getElementById('swatch').style.background = luckyHex;
@@ -960,73 +892,44 @@ async function smartExport() {
       document.getElementById('luckyNumber').textContent = fortune.lucky_number || '—';
       document.getElementById('luckyHour').textContent = fortune.lucky_hour || '—';
       document.getElementById('luckyDirectionDisplay').textContent = fortune.lucky_direction || '—';
-      
-      // 更新五维度
+
       if (fortune.dimensions && Array.isArray(fortune.dimensions)) {
         updateDimensions(fortune.dimensions);
       }
     }
-    
-    // 更新五维度显示
+
     function updateDimensions(dimensions) {
       const dimsEl = document.getElementById('dims');
       if (!dimsEl) return;
-      
       dimsEl.innerHTML = '';
       const icons = {
-        '事业运': '💼', '财富运': '💰', 
-        '爱情运': '💕', '健康运': '🌿', 
+        '事业运': '💼', '财富运': '💰',
+        '爱情运': '💕', '健康运': '🌿',
         '贵人运': '✨'
       };
-      
       dimensions.forEach(dim => {
         const stars = Math.floor(dim.stars || dim.score || 0);
         let starsHtml = '';
         for (let i = 0; i < 5; i++) {
           starsHtml += `<span class="star${i < stars ? ' filled' : ''}"></span>`;
         }
-        
         const item = document.createElement('div');
         item.className = 'dim-item';
         item.innerHTML = `
           <div class="dim-circle">${icons[dim.name] || '⭐'}</div>
-          <div class="dim-label">${dim.name.replace('运', '')}</div>
+          <div class="dim-label">${String(dim.name || '').replace('运', '')}</div>
           <div class="dim-rating">${starsHtml}</div>
         `;
         dimsEl.appendChild(item);
       });
     }
-    
-    // 执行客户端导出（iframe 模式）
-    async function performClientExport() {
-      try {
-        const success = await exportWithDomToImage() || await exportWithHtml2Canvas();
-        
-        // 通知父页面导出结果
-        if (window.parent !== window) {
-          window.parent.postMessage({
-            type: 'share:export-ready',
-            success: success
-          }, '*');
-        }
-      } catch (error) {
-        console.error('Client export error:', error);
-        if (window.parent !== window) {
-          window.parent.postMessage({
-            type: 'share:export-ready',
-            success: false,
-            error: error.message
-          }, '*');
-        }
-      }
-    }
 
-    // ============ 分享生成 ============
+    // ============ 分享生成（保持你的逻辑不变） ============
     async function genShare(){
-      const btn = document.getElementById('btnGenerate'); 
-      btn.disabled = true; 
+      const btn = document.getElementById('btnGenerate');
+      btn.disabled = true;
       btn.textContent = '生成中…';
-      
+
       try {
         const r = await fetch('/api/share/create', {method: 'POST'});
         const d = await r.json();
@@ -1035,7 +938,6 @@ async function smartExport() {
         const showUrl = d.share_url || 'https://www.ruoshui.fun';
         document.getElementById('siteUrl').textContent = showUrl.replace(/^https?:\/\//, '');
 
-        // 显示二维码
         if (d.qr_code) {
           document.getElementById('qrImg').src = d.qr_code;
           document.getElementById('qrImg').classList.remove('hidden');
@@ -1058,12 +960,12 @@ async function smartExport() {
       (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
         .then(() => alert('链接已复制'))
         .catch(() => {
-          const ta = document.createElement('textarea'); 
-          ta.value = t; 
+          const ta = document.createElement('textarea');
+          ta.value = t;
           document.body.appendChild(ta);
-          ta.select(); 
-          document.execCommand('copy'); 
-          ta.remove(); 
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
           alert('链接已复制');
         });
     }
@@ -1074,11 +976,9 @@ async function smartExport() {
       document.getElementById('btnGenerate').onclick = genShare;
       document.getElementById('btnCopy').onclick = () => copyText();
       document.getElementById('btnSave').onclick = smartExport;
-      
-      // 如果在 iframe 中，通知父页面已准备就绪
+
       if (window.parent !== window) {
         window.parent.postMessage({ type: 'share:ready' }, '*');
-        // 隐藏操作按钮（iframe 模式下）
         const actions = document.getElementById('actions');
         if (actions) actions.style.display = 'none';
       }
