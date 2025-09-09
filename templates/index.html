@@ -287,16 +287,15 @@
   to{transform:rotate(360deg)}
 }
 
-@media (max-width:768px){
-  .zodiac{ width:560px; height:560px; animation-duration:110s; opacity:.14; }
-  .bg-constellations{ opacity:.18; }
-  .bg-glyphs{
-    background-size: 50px 50px, 58px 58px, 46px 46px, 54px 54px, 44px 44px, 52px 52px;
-    background-position: 10% 22%, 88% 18%, 12% 82%, 86% 74%, 48% 92%, 30% 36%;
-    opacity:.12;
-  }
-}
-
+    @media (max-width:768px){
+      .main-container{margin-top:74px}
+      .bottom-section{grid-template-columns:1fr}
+      .suggestions-section{grid-template-columns:1fr}
+      .dimensions-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+      .fortune-score{font-size:3rem}
+      .lucky-grid{grid-template-columns:1fr}
+      .sc-frame{max-width:92vw}
+    }
 
   /* ===== 移动端 & iOS 适配补丁（不触碰业务逻辑） ===== */
 
@@ -977,30 +976,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // 你可以在这里做些仅主屏模式下的 UI 微调（如隐藏页脚等）
       // document.querySelector('.footer')?.classList.add('hidden');
     }
-  })();
-</script>
-<script>
-  (function pinBackgroundOnIOS(){
-    // —— 粗略判断 iOS Safari（含 iPadOS 桌面 UA）——
-    const isiOS = /iP(hone|od|ad)/.test(navigator.platform)
-               || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-    if (!isiOS) return;
-
-    // 开启 iOS 模式样式
-    document.documentElement.classList.add('ios-pin');
-
-    // 用 rAF 把滚动位置写进 CSS 变量，驱动 transform 抵消滚动
-    let ticking = false;
-    const apply = () => {
-      document.documentElement.style.setProperty('--sy', (window.scrollY || window.pageYOffset) + 'px');
-      ticking = false;
-    };
-    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(apply); } };
-
-    // 初始化与监听
-    apply();
-    window.addEventListener('scroll', onScroll, {passive:true});
-    window.addEventListener('touchmove', onScroll, {passive:true});
   })();
 </script>
 
