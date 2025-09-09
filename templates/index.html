@@ -287,15 +287,16 @@
   to{transform:rotate(360deg)}
 }
 
-    @media (max-width:768px){
-      .main-container{margin-top:74px}
-      .bottom-section{grid-template-columns:1fr}
-      .suggestions-section{grid-template-columns:1fr}
-      .dimensions-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
-      .fortune-score{font-size:3rem}
-      .lucky-grid{grid-template-columns:1fr}
-      .sc-frame{max-width:92vw}
-    }
+@media (max-width:768px){
+  .zodiac{ width:560px; height:560px; animation-duration:110s; opacity:.14; }
+  .bg-constellations{ opacity:.18; }
+  .bg-glyphs{
+    background-size: 50px 50px, 58px 58px, 46px 46px, 54px 54px, 44px 44px, 52px 52px;
+    background-position: 10% 22%, 88% 18%, 12% 82%, 86% 74%, 48% 92%, 30% 36%;
+    opacity:.12;
+  }
+}
+
 
   /* ===== 移动端 & iOS 适配补丁（不触碰业务逻辑） ===== */
 
@@ -351,67 +352,32 @@ input, select, textarea{
   will-change: transform, opacity;
 }
 
-/* —— iOS 白屏抖动修复基础：确保永远有底色 —— */
-html{ background:#120c1d; }        /* 比 body 渐变更深一号，作为兜底 */
-body{ background-color: transparent; }
+/* ===== iOS 专用：用 transform “钉住”背景，替代 position:fixed（避免白屏） ===== */
 
-/* —— 防抖：固定层独立合成、避免大面积重绘 —— */
-.bg-stars,
-.bg-veil,
-.bg-constellations,
-.bg-glyphs,
-.zodiac{
-  transform: translateZ(0);          /* GPU 合成层 */
+:root { --sy: 0px; }  /* 当前滚动位置（像素） */
+
+.ios-pin .bg-stars,
+.ios-pin .bg-veil,
+.ios-pin .bg-constellations,
+.ios-pin .bg-glyphs,
+.ios-pin .zodiac{
+  position: absolute !important;    /* 替代 fixed */
+  top: 0; left: 0; right: 0;
+  height: 100vh; width: 100%;
+  transform: translate3d(0, var(--sy), 0);  /* 随 scrollY 抵消滚动 */
+  z-index: 0;                        /* 在内容下方、但不为负，避免被 body 背景盖住 */
+  pointer-events: none;
   backface-visibility: hidden;
-  will-change: transform, opacity;
-  contain: paint;                    /* 限定重绘范围（Safari 支持良好） */
+  will-change: transform;            /* GPU 合成，不卡顿 */
 }
 
-/* —— Safari/iOS 专项：在设备特征下轻降动效强度，去掉昂贵阴影 —— */
-@supports (-webkit-touch-callout: none) {
-  .zodiac{ filter: none; opacity:.12; }               /* 去掉大 drop-shadow */
-  .bg-glyphs{ filter: none; opacity:.11; }            /* 同上 */
-  .bg-veil{ filter: blur(1.5px); opacity:.85; }       /* 降低 blur 强度 */
-  .alert{ backdrop-filter: none; -webkit-backdrop-filter: none; } /* 提示条去 blur 防闪 */
+/* 确保主体内容在背景之上（不影响你的 fixed 顶栏与弹层） */
+.ios-pin .main-container,
+.ios-pin .features,
+.ios-pin .footer{
+  position: relative;
+  z-index: 2;
 }
-
-/* —— 滑动中暂时“降档”：暂停背景动画、降低模糊，提升流畅度 —— */
-body.scrolling .bg-veil,
-body.scrolling .bg-constellations,
-body.scrolling .zodiac{
-  animation-play-state: paused;
-  opacity: calc(100% - 0.05); /* 轻微降透明度，减压合成 */
-}
-body.scrolling .user-bar{
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  background: rgba(28,22,40,.72); /* 滑动中用纯色替代毛玻璃，避免白闪 */
-}
-
-/* —— 关闭（或显著减弱）橡皮筋连带的浏览器级回弹 —— */
-html, body{
-  overscroll-behavior-y: contain;   /* Safari 16.4+ 支持，向下兼容不报错 */
-}
-
-/* —— 移动端背景布局优化（尺寸/位置/透明度） —— */
-@media (max-width: 768px){
-  .zodiac{
-    width: 560px; height: 560px;
-    opacity:.12;                    /* 稍轻，避免遮挡内容 */
-    animation-duration: 110s;       /* 慢转，减少重绘 */
-  }
-  .bg-glyphs{
-    /* 缩小图案，重排位置，避免与正文冲突 */
-    background-size: 48px 48px, 56px 56px, 46px 46px, 52px 52px, 42px 42px, 50px 50px;
-    background-position: 10% 22%, 88% 18%, 12% 82%, 86% 74%, 48% 92%, 30% 36%;
-    opacity:.11;
-  }
-  .bg-constellations{ opacity:.16; }
-  .bg-veil{ opacity:.85; }
-}
-
-/* 其余你已有的安全区/触控优化保留原样 */
-
 
   </style>
 </head>
@@ -1011,6 +977,30 @@ document.addEventListener('DOMContentLoaded', function() {
       // 你可以在这里做些仅主屏模式下的 UI 微调（如隐藏页脚等）
       // document.querySelector('.footer')?.classList.add('hidden');
     }
+  })();
+</script>
+<script>
+  (function pinBackgroundOnIOS(){
+    // —— 粗略判断 iOS Safari（含 iPadOS 桌面 UA）——
+    const isiOS = /iP(hone|od|ad)/.test(navigator.platform)
+               || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+    if (!isiOS) return;
+
+    // 开启 iOS 模式样式
+    document.documentElement.classList.add('ios-pin');
+
+    // 用 rAF 把滚动位置写进 CSS 变量，驱动 transform 抵消滚动
+    let ticking = false;
+    const apply = () => {
+      document.documentElement.style.setProperty('--sy', (window.scrollY || window.pageYOffset) + 'px');
+      ticking = false;
+    };
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(apply); } };
+
+    // 初始化与监听
+    apply();
+    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('touchmove', onScroll, {passive:true});
   })();
 </script>
 
