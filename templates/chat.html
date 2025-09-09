@@ -5,1054 +5,646 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 塔罗解读</title>
     
-    <!-- 本地化资源 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
-    
-    <style>
-        :root {
-            --primary-color: #8e6c88;
-            --secondary-color: #d1bfa7;
-            --accent-color: #6d4c67;
-            --light-color: #f8f4e9;
-            --dark-color: #333333;
-            --chat-bg: #f5f3f0;
-            --user-msg-bg: #8e6c88;
-            --ai-msg-bg: #ffffff;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* 顶部导航栏 */
-        .chat-header {
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .back-button {
-            color: var(--accent-color);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .back-button:hover {
-            color: var(--primary-color);
-            transform: translateX(-3px);
-        }
-        
-        .card-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .card-mini {
-            width: 40px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--secondary-color), #c0a58d);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-        
-        .card-details {
-            text-align: center;
-        }
-        
-        .card-name {
-            font-weight: 600;
-            color: var(--accent-color);
-            margin-bottom: 2px;
-        }
-        
-        .card-direction {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .chat-limit {
-            background: var(--light-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--accent-color);
-        }
-        
-        .chat-limit .count {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        
-        /* 聊天容器 */
-        .chat-container {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            max-width: 800px;
-            width: 100%;
-            margin: 0 auto;
-            background: var(--chat-bg);
-        }
-        
-        /* 消息区域 */
-        .messages-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scroll-behavior: smooth;
-        }
-        
-        /* 自定义滚动条 */
-        .messages-area::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .messages-area::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .messages-area::-webkit-scrollbar-thumb {
-            background: rgba(142, 108, 136, 0.3);
-            border-radius: 3px;
-        }
-        
-        .messages-area::-webkit-scrollbar-thumb:hover {
-            background: rgba(142, 108, 136, 0.5);
-        }
-        
-        /* 人格选择界面 */
-        .personality-selection {
-            display: none;
-            text-align: center;
-            padding: 40px 20px;
-            animation: fadeIn 0.5s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .personality-title {
-            font-size: 1.8rem;
-            color: var(--accent-color);
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        
-        .personality-subtitle {
-            font-size: 1.1rem;
-            color: #666;
-            margin-bottom: 40px;
-        }
-        
-        .personality-cards {
-            display: flex;
-            gap: 30px;
-            justify-content: center;
-            flex-wrap: wrap;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .personality-card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px 25px;
-            width: 220px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        }
-        
-        .personality-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            border-color: var(--primary-color);
-        }
-        
-        .personality-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            display: block;
-            height: 60px;
-        }
-        
-        .personality-card.mystic .personality-icon {
-            background: linear-gradient(135deg, #8e6c88, #6d4c67);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .personality-card.wisdom .personality-icon {
-            background: linear-gradient(135deg, #4a6fa5, #2e4578);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .personality-card.warm .personality-icon {
-            background: linear-gradient(135deg, #d4a574, #b8956a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .personality-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--dark-color);
-            margin-bottom: 10px;
-        }
-        
-        .personality-desc {
-            font-size: 0.95rem;
-            color: #666;
-            line-height: 1.5;
-        }
-        
-        .personality-traits {
-            margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-        }
-        
-        .trait-tag {
-            background: var(--light-color);
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            color: var(--accent-color);
-        }
-        
-        /* 欢迎消息 */
-        .welcome-message {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--accent-color);
-        }
-        
-        .welcome-icon {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-        }
-        
-        .welcome-text {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-        }
-        
-        .quick-questions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        
-        .quick-question {
-            background: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 1px solid #e0e0e0;
-            font-size: 0.95rem;
-        }
-        
-        .quick-question:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(142,108,136,0.3);
-        }
-        
-        /* 消息气泡 */
-        .message {
-            display: flex;
-            gap: 10px;
-            animation: messageSlide 0.3s ease-out;
-        }
-        
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .message.user {
-            flex-direction: row-reverse;
-        }
-        
-        .message-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            color: white;
-            flex-shrink: 0;
-        }
-        
-        .user .message-avatar {
-            background: var(--user-msg-bg);
-        }
-        
-        .assistant .message-avatar {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        }
-        
-        .message-content {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: 18px;
-            line-height: 1.5;
-        }
-        
-        .user .message-content {
-            background: var(--user-msg-bg);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        
-        .assistant .message-content {
-            background: var(--ai-msg-bg);
-            color: var(--dark-color);
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        /* AI 消息格式化样式 */
-        .message-content p {
-            margin: 0.8em 0;
-            line-height: 1.6;
-        }
-        
-        .message-content p:first-child {
-            margin-top: 0;
-        }
-        
-        .message-content p:last-child {
-            margin-bottom: 0;
-        }
-        
-        .message-content ul, .message-content ol {
-            margin: 0.8em 0;
-            padding-left: 1.5em;
-        }
-        
-        .message-content ul {
-            list-style-type: disc;
-        }
-        
-        .message-content ol {
-            list-style-type: decimal;
-        }
-        
-        .message-content li {
-            margin: 0.4em 0;
-            line-height: 1.5;
-        }
-        
-        .message-content strong {
-            font-weight: 600;
-            color: var(--accent-color);
-        }
-        
-        .user .message-content strong {
-            color: white;
-            font-weight: 700;
-        }
-        
-        .message-content em {
-            font-style: italic;
-            opacity: 0.9;
-        }
-        
-        .message-content blockquote {
-            margin: 0.8em 0;
-            padding: 0.5em 1em;
-            border-left: 3px solid var(--primary-color);
-            background: rgba(142, 108, 136, 0.05);
-            font-style: italic;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .message-content h3 {
-            font-size: 1.1rem;
-            color: var(--accent-color);
-            margin: 1em 0 0.5em;
-            font-weight: 600;
-        }
-        
-        .message-content h4 {
-            font-size: 1rem;
-            color: var(--dark-color);
-            margin: 0.8em 0 0.4em;
-            font-weight: 600;
-        }
-        
-        /* 打字动画 */
-        .typing-indicator {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .typing-dots {
-            display: flex;
-            gap: 4px;
-            padding: 15px;
-            background: white;
-            border-radius: 18px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #999;
-            border-radius: 50%;
-            animation: typingDot 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        @keyframes typingDot {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.5;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
-        }
-        
-        /* 输入区域 */
-        .input-area {
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            padding: 20px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .input-container {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .message-input {
-            flex: 1;
-            border: 2px solid #e0e0e0;
-            border-radius: 24px;
-            padding: 12px 20px;
-            resize: none;
-            outline: none;
-            font-size: 1rem;
-            transition: all 0.3s;
-            max-height: 120px;
-            font-family: inherit;
-        }
-        
-        .message-input:focus {
-            border-color: var(--primary-color);
-        }
-        
-        .send-button {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            color: white;
-            border: none;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(142,108,136,0.3);
-        }
-        
-        .send-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(142,108,136,0.4);
-        }
-        
-        .send-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        /* 限制提示 */
-        .limit-reached {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            color: #dc2626;
-            margin-bottom: 15px;
-        }
-        
-        /* 加载状态 */
-        .loading-skeleton {
-            display: none;
-            text-align: center;
-            padding: 40px;
-            color: var(--accent-color);
-        }
-        
-        .skeleton-pulse {
-            display: inline-block;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: pulse 1.5s infinite;
-            border-radius: 50%;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes pulse {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .message-content {
-                max-width: 85%;
-            }
-            
-            .card-info {
-                display: none;
-            }
-            
-            .quick-questions {
-                padding: 0 10px;
-            }
-            
-            .chat-header {
-                padding: 12px 15px;
-            }
-            
-            .messages-area {
-                padding: 15px;
-            }
-            
-            .personality-cards {
-                gap: 20px;
-            }
-            
-            .personality-card {
-                width: 100%;
-                max-width: 300px;
-            }
-        }
-    </style>
+<!-- 本地化资源 -->
+<link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+
+<style>
+    :root{
+        --primary-color:#8e6c88;
+        --secondary-color:#d1bfa7;
+        --accent-color:#6d4c67;
+        --light-color:#f8f4e9;
+        --dark-color:#333333;
+        --chat-bg:#f5f3f0;
+        --user-msg-bg:#8e6c88;
+        --ai-msg-bg:#ffffff;
+
+        --panel-bg: #ffffff;
+        --panel-border: #e5e7eb;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.08);
+        --shadow-strong: 0 10px 24px rgba(142,108,136,.35);
+    }
+
+    html,body{
+        height:100%;
+    }
+    body{
+        background:linear-gradient(135deg,#f8f4e9 0%,#e8e0d1 100%);
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+        margin:0;
+        display:flex;
+        flex-direction:column;
+        color:var(--dark-color);
+        -webkit-font-smoothing:antialiased;
+        -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* 顶部导航栏（与整体风格统一） */
+    .chat-header{
+        background:#fff;
+        box-shadow:var(--shadow-soft);
+        padding:14px 20px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        position:sticky;
+        top:0;
+        z-index:10;
+    }
+    .back-button{
+        color:var(--accent-color);
+        text-decoration:none;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        transition:.25s ease;
+        font-weight:600;
+    }
+    .back-button:hover{
+        color:var(--primary-color);
+        transform:translateX(-2px);
+    }
+
+    .card-info{display:flex;align-items:center;gap:14px}
+    .card-mini{
+        width:40px;height:60px;border-radius:10px;
+        display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,var(--secondary-color),#c6ac92);
+        color:#6a4c45;box-shadow:0 3px 10px rgba(0,0,0,.1);
+        overflow:hidden;
+    }
+    .card-details{text-align:center}
+    .card-name{font-weight:700;color:var(--accent-color);margin-bottom:2px}
+    .card-direction{font-size:.9rem;color:#6b7280}
+
+    .chat-limit{
+        background:rgba(142,108,136,.08);
+        color:var(--accent-color);
+        border:1px solid rgba(142,108,136,.18);
+        padding:6px 12px;border-radius:999px;
+        font-weight:600;font-size:.92rem;
+    }
+    .chat-limit .count{color:var(--primary-color)}
+
+    /* 聊天容器 */
+    .chat-container{
+        flex:1;overflow:hidden;display:flex;flex-direction:column;
+        max-width:920px;width:100%;margin:0 auto;background:var(--chat-bg);
+    }
+
+    /* 消息区域 */
+    .messages-area{
+        flex:1;overflow:auto;padding:18px;
+        display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;
+    }
+    .messages-area::-webkit-scrollbar{width:6px}
+    .messages-area::-webkit-scrollbar-thumb{background:rgba(142,108,136,.35);border-radius:3px}
+
+    /* 人格选择界面 */
+    .personality-selection{
+        text-align:center;padding:36px 20px;animation:fadeIn .4s ease-out;
+    }
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .personality-title{font-size:1.6rem;color:var(--accent-color);margin-bottom:10px;font-weight:800}
+    .personality-subtitle{font-size:1rem;color:#6b7280;margin-bottom:28px}
+    .personality-cards{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;max-width:860px;margin:0 auto}
+    .personality-card{
+        background:#fff;border-radius:18px;padding:22px 20px;width:240px;cursor:pointer;transition:.25s;
+        border:2px solid transparent;box-shadow:0 5px 18px rgba(0,0,0,.08);
+    }
+    .personality-card:hover{
+        transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.14);border-color:var(--primary-color);
+    }
+    .personality-icon{font-size:2.2rem;margin-bottom:14px;display:block;height:44px}
+    .personality-card.mystic .personality-icon{
+        background:linear-gradient(135deg,#8e6c88,#6d4c67);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .personality-card.wisdom .personality-icon{
+        background:linear-gradient(135deg,#4a6fa5,#2e4578);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .personality-card.warm .personality-icon{
+        background:linear-gradient(135deg,#d4a574,#b8956a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .personality-name{font-size:1.1rem;font-weight:800;color:var(--dark-color);margin-bottom:6px}
+    .personality-desc{font-size:.92rem;color:#6b7280;line-height:1.5}
+    .personality-traits{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .trait-tag{background:var(--light-color);padding:4px 10px;border-radius:999px;font-size:.82rem;color:var(--accent-color)}
+
+    /* 欢迎消息 */
+    .welcome-message{text-align:center;padding:34px 18px;color:var(--accent-color)}
+    .welcome-icon{font-size:2rem;color:var(--primary-color);margin-bottom:12px}
+    .welcome-text{font-size:1.06rem;margin-bottom:10px;line-height:1.6}
+    .quick-questions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
+    .quick-question{
+        background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:9px 16px;font-weight:600;font-size:.95rem;
+        cursor:pointer;transition:.2s;user-select:none;
+    }
+    .quick-question:hover{
+        background:var(--primary-color);color:#fff;transform:translateY(-2px);box-shadow:0 8px 18px rgba(142,108,136,.25);
+    }
+
+    /* 消息气泡（与其它页面统一） */
+    .message{display:flex;gap:10px;max-width:820px;width:100%;animation:msgIn .28s ease-out}
+    @keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .message.user{flex-direction:row-reverse;align-self:flex-end}
+    .message.assistant{align-self:flex-start}
+    .message-avatar{
+        width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+        background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+    }
+    .message.user .message-avatar{background:var(--user-msg-bg)}
+    .message-content{
+        max-width:72%;padding:12px 16px;border-radius:18px;line-height:1.6;background:#fff;color:var(--dark-color);
+        border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.05);word-wrap:break-word;overflow-wrap:break-word;
+    }
+    .message.user .message-content{
+        background:var(--user-msg-bg);color:#fff;border-bottom-right-radius:6px;border-bottom-left-radius:18px;
+    }
+
+    /* Markdown / 富文本（与统一样式一致） */
+    .message-content h1{font-size:1.35rem;margin:1em 0 .5em;color:var(--accent-color);font-weight:800}
+    .message-content h2{font-size:1.2rem;margin:.9em 0 .45em;color:var(--accent-color);font-weight:700}
+    .message-content h3{font-size:1.06rem;margin:.7em 0 .35em;font-weight:700}
+    .message-content h4{font-size:1rem;margin:.6em 0 .3em;font-weight:700}
+    .message-content p{margin:.8em 0}
+    .message-content ul,.message-content ol{margin:.8em 0;padding-left:1.4em}
+    .message-content li{margin:.35em 0}
+    .message-content strong{font-weight:800;color:var(--accent-color)}
+    .message.user .message-content strong{color:#fff}
+    .message-content em{font-style:italic}
+    .message-content del{opacity:.75;text-decoration:line-through}
+    .message-content blockquote{
+        margin:.8em 0;padding:.6em 1em;border-left:4px solid var(--primary-color);
+        background:rgba(142,108,136,.06);border-radius:0 10px 10px 0;
+    }
+    .message-content hr{border:none;border-top:2px solid #e5e7eb;margin:1.2em 0}
+    .message-content code{
+        background:rgba(142,108,136,.12);padding:2px 6px;border-radius:6px;
+        font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+        font-size:.92em;color:var(--accent-color);
+    }
+    .message-content pre{
+        background:#f6f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:14px;overflow:auto;margin:1em 0;
+    }
+    .message-content pre code{background:none;padding:0;color:inherit;font-size:.9em}
+
+    /* 任务清单（与其它页面一致） */
+    .message-content .task-list{list-style:none;padding-left:0;margin:.8em 0}
+    .message-content .task-list li{margin:.35em 0}
+    .message-content .task-list input[type="checkbox"]{
+        margin-right:8px;transform:scale(1.05);vertical-align:middle;accent-color:var(--primary-color);pointer-events:none;
+    }
+
+    /* 表格 */
+    .markdown-table{width:100%;border-collapse:collapse;margin:.9em 0;display:block;overflow:auto}
+    .markdown-table td,.markdown-table th{border:1px solid #e1e4e8;padding:8px 12px;text-align:left}
+    .markdown-table tr:nth-child(even){background:#f9fafb}
+    .markdown-table th{background:rgba(142,108,136,.1);font-weight:700}
+
+    /* 打字动画 */
+    .typing-indicator{display:flex;gap:10px;align-items:center;max-width:820px;width:100%;align-self:flex-start}
+    .typing-dots{display:flex;gap:4px;padding:14px;background:#fff;border-radius:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .typing-dot{width:8px;height:8px;border-radius:50%;background:#a1a1aa;animation:td 1.4s infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+    @keyframes td{0%,60%,100%{transform:translateY(0);opacity:.55}30%{transform:translateY(-8px);opacity:1}}
+
+    /* 输入区域 */
+    .input-area{
+        background:#fff;border-top:1px solid #eee;padding:16px 18px;box-shadow:0 -4px 12px rgba(0,0,0,.04);
+    }
+    .input-container{display:flex;gap:12px;align-items:flex-end;max-width:820px;margin:0 auto}
+    .message-input{
+        flex:1;border:2px solid #e5e7eb;border-radius:20px;padding:12px 16px;resize:none;outline:none;transition:.2s;font-size:1rem;max-height:120px;font-family:inherit;
+    }
+    .message-input:focus{border-color:var(--primary-color)}
+    .send-button{
+        background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+        color:#fff;border:none;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        cursor:pointer;transition:.2s;box-shadow:var(--shadow-strong);
+    }
+    .send-button:hover:not(:disabled){transform:translateY(-2px)}
+    .send-button:disabled{opacity:.6;cursor:not-allowed}
+
+    /* 限制提示 / 加载 */
+    .limit-reached{
+        background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.28);
+        color:#dc2626;border-radius:12px;padding:14px;text-align:center;font-weight:600;margin-bottom:12px;
+    }
+    .loading-skeleton{text-align:center;color:var(--accent-color);padding:30px 10px}
+    .skeleton-pulse{
+        display:inline-block;width:60px;height:60px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+        background-size:200% 100%;animation:pulse 1.5s infinite;border-radius:50%;margin-bottom:12px;
+    }
+    @keyframes pulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* 响应式 */
+    @media (max-width:768px){
+        .chat-header{padding:12px 14px}
+        .card-info{display:none}
+        .messages-area{padding:14px}
+        .message-content{max-width:86%}
+        .personality-cards{gap:12px}
+        .personality-card{width:100%;max-width:320px}
+        .input-area{padding:12px}
+        .message-input{font-size:16px;padding:10px 14px} /* iOS 防缩放 */
+        .send-button{width:44px;height:44px}
+        .quick-questions{padding:0 10px}
+    }
+    @media (max-width:480px){
+        .message-content{max-width:90%;padding:10px 14px;border-radius:16px;border-bottom-left-radius:4px}
+        .message.user .message-content{border-bottom-right-radius:4px;border-bottom-left-radius:16px}
+        .messages-area{padding:10px}
+        .input-area{padding:10px}
+        .send-button{width:40px;height:40px}
+    }
+
+    /* iOS 安全区域 */
+    @supports (padding-bottom: env(safe-area-inset-bottom)){
+        .input-area{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+    }
+
+    /* 横屏矮高适配 */
+    @media (max-height:500px) and (orientation:landscape){
+        .chat-header{position:relative;padding:8px 12px}
+        .messages-area{padding:8px}
+        .message-content{max-width:70%;font-size:.94rem}
+        .input-area{padding:8px 12px}
+        .message-input{max-height:60px}
+    }
+
+    /* 降级动效（可访问性） */
+    @media (prefers-reduced-motion: reduce){
+        *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+    }
+</style>
 </head>
-<body>
-    <!-- 顶部导航 -->
-    <div class="chat-header">
-        <a href="{{ url_for('index') }}" class="back-button">
-            <i class="fas fa-arrow-left"></i>
-            <span>返回</span>
-        </a>
-        
-        <div class="card-info">
-            <div class="card-mini">
-                {% if card_info.image %}
-                    <img src="{{ card_info.image }}" alt="{{ card_info.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                {% else %}
-                    <i class="fas fa-sun"></i>
-                {% endif %}
-            </div>
-            <div class="card-details">
-                <div class="card-name">{{ card_info.name }}</div>
-                <div class="card-direction">{{ card_info.direction }}</div>
-            </div>
-        </div>
-        
-        <div class="chat-limit">
-            剩余对话: <span class="count" id="remaining-count">{{ remaining_chats }}</span>
-        </div>
-    </div>
-    
-    <!-- 聊天容器 -->
-    <div class="chat-container">
-        <!-- 消息区域 -->
-        <div class="messages-area" id="messages-area">
-            <!-- 加载骨架屏 -->
-            <div class="loading-skeleton" id="loading-skeleton">
-                <div class="skeleton-pulse"></div>
-                <div>正在准备您的专属解读空间...</div>
-            </div>
-            
-            <!-- 人格选择界面 -->
-            <div class="personality-selection" id="personality-selection">
-                <h2 class="personality-title">选择您的塔罗解读师</h2>
-                <p class="personality-subtitle">每位解读师都有独特的风格，选择最适合您的那一位</p>
-                
-                <div class="personality-cards">
-                    <div class="personality-card mystic" onclick="selectPersonality('mystic')">
-                        <span class="personality-icon">
-                            <i class="fas fa-moon"></i>
-                        </span>
-                        <h3 class="personality-name">神秘占卜师</h3>
-                        <p class="personality-desc">
-                            深谙古老智慧，用神秘的语言解读命运的轨迹
-                        </p>
-                        <div class="personality-traits">
-                            <span class="trait-tag">深邃</span>
-                            <span class="trait-tag">神秘</span>
-                            <span class="trait-tag">直觉</span>
-                        </div>
-                    </div>
-                    
-                    <div class="personality-card wisdom" onclick="selectPersonality('wisdom')">
-                        <span class="personality-icon">
-                            <i class="fas fa-book"></i>
-                        </span>
-                        <h3 class="personality-name">智慧导师</h3>
-                        <p class="personality-desc">
-                            理性分析每张牌的含义，给出实用的人生建议
-                        </p>
-                        <div class="personality-traits">
-                            <span class="trait-tag">理性</span>
-                            <span class="trait-tag">清晰</span>
-                            <span class="trait-tag">实用</span>
-                        </div>
-                    </div>
-                    
-                    <div class="personality-card warm" onclick="selectPersonality('warm')">
-                        <span class="personality-icon">
-                            <i class="fas fa-heart"></i>
-                        </span>
-                        <h3 class="personality-name">温暖陪伴者</h3>
-                        <p class="personality-desc">
-                            像朋友般倾听你的故事，用温暖的话语治愈心灵
-                        </p>
-                        <div class="personality-traits">
-                            <span class="trait-tag">温暖</span>
-                            <span class="trait-tag">共情</span>
-                            <span class="trait-tag">治愈</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 欢迎消息 -->
-            <div class="welcome-message" id="welcome-message" style="display: none;">
-                <div class="welcome-icon">
-                    <i class="fas fa-sparkles"></i>
-                </div>
-                <div class="welcome-text">
-                    我是你的塔罗解读师，让我们一起探索<br>
-                    《{{ card_info.name }}》（{{ card_info.direction }}）带给你的启示
-                </div>
-                <div class="quick-questions">
-                    <div class="quick-question" onclick="quickAsk('这张牌对我今天有什么指引？')">
-                        这张牌对我今天有什么指引？
-                    </div>
-                    <div class="quick-question" onclick="quickAsk('在感情方面，这张牌想告诉我什么？')">
-                        感情方面的启示
-                    </div>
-                    <div class="quick-question" onclick="quickAsk('这张牌对我的事业有什么建议？')">
-                        事业发展建议
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 输入区域 -->
-        <div class="input-area">
-            {% if can_chat %}
-                <div class="input-container" id="input-container" style="display: none;">
-                    <textarea 
-                        class="message-input" 
-                        id="message-input" 
-                        placeholder="问我关于这张塔罗牌的任何问题..." 
-                        rows="1"
-                        maxlength="500"
-                    ></textarea>
-                    <button class="send-button" id="send-button" onclick="sendMessage()">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
+ <body>
+     <!-- 顶部导航 --> 
+      <div class="chat-header"> <a href="{{ url_for('index') }}" class="back-button"> <i class="fas fa-arrow-left"></i><span>返回</span> </a>
+            <div class="card-info">
+        <div class="card-mini">
+            {% if card_info.image %}
+                <img src="{{ card_info.image }}" alt="{{ card_info.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
             {% else %}
-                <div class="limit-reached">
-                    <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
-                </div>
+                <i class="fas fa-sun"></i>
             {% endif %}
         </div>
+        <div class="card-details">
+            <div class="card-name">{{ card_info.name }}</div>
+            <div class="card-direction">{{ card_info.direction }}</div>
+        </div>
     </div>
-    
-    <script>
-        // 从服务端获取数据
-        let sessionId = "{{ session_id or '' }}";
-        let isTyping = false;
-        let remainingChats = {{ remaining_chats }};
-        const hasHistory = {{ has_history|tojson }};
-        const serverMessages = {{ messages|tojson }};
-        let selectedPersonality = null;
-        let aiPersonality = {{ ai_personality|tojson }} || null;
-        
-        // 格式化 AI 消息
-        function formatAIMessage(content) {
-            // 处理换行 - 保留单个换行，双换行转为段落
-            let formatted = content.split(/\n\n+/).map(para => {
-                if (para.trim()) {
-                    return `<p>${para.trim().replace(/\n/g, '<br>')}</p>`;
-                }
-                return '';
-            }).filter(p => p).join('');
-            
-            // 处理编号列表 (1. 2. 等)
-            formatted = formatted.replace(/<p>(\d+)\.\s+(.+?)(<\/p>|<br>)/g, (match, num, text, ending) => {
-                return `<li value="${num}">${text}</li>`;
-            });
-            
-            // 处理无序列表 (- * • 等开头)
-            formatted = formatted.replace(/<p>[\-\*•]\s+(.+?)(<\/p>|<br>)/g, (match, text, ending) => {
-                return `<li>${text}</li>`;
-            });
-            
-            // 将连续的 li 包装成列表
-            formatted = formatted.replace(/(<li.*?<\/li>\s*)+/g, match => {
-                // 检查是否有 value 属性来判断是否为有序列表
-                if (match.includes('value=')) {
-                    return `<ol>${match}</ol>`;
-                }
-                return `<ul>${match}</ul>`;
-            });
-            
-            // 处理加粗文本 **text** 或 __text__
-            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
-            
-            // 处理斜体文本 *text* 或 _text_
-            formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
-            
-            // 处理标题 (### 等)
-            formatted = formatted.replace(/<p>###\s+(.+?)<\/p>/g, '<h4>$1</h4>');
-            formatted = formatted.replace(/<p>##\s+(.+?)<\/p>/g, '<h3>$1</h3>');
-            
-            // 处理引用 (> 开头)
-            formatted = formatted.replace(/<p>&gt;\s*(.+?)<\/p>/g, '<blockquote>$1</blockquote>');
-            
-            // 处理分隔线
-            formatted = formatted.replace(/<p>[\-\*_]{3,}<\/p>/g, '<hr style="margin: 1em 0; border: none; border-top: 1px solid #e0e0e0;">');
-            
-            return formatted || content;
-        }
-        
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            // 显示加载状态
-            document.getElementById('loading-skeleton').style.display = 'block';
-            
-            // 初始化聊天
-            initializeChat();
-            
-            // 设置输入框事件
-            const input = document.getElementById('message-input');
-            if (input) {
-                input.addEventListener('input', function() {
-                    this.style.height = 'auto';
-                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-                });
-                
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                    }
-                });
-            }
+
+    <div class="chat-limit">剩余对话：<span class="count" id="remaining-count">{{ remaining_chats }}</span></div>
+</div>
+
+<!-- 聊天容器 -->
+<div class="chat-container">
+    <!-- 消息区域 -->
+    <div class="messages-area" id="messages-area">
+        <!-- 加载骨架屏 -->
+        <div class="loading-skeleton" id="loading-skeleton">
+            <div class="skeleton-pulse"></div>
+            <div>正在准备您的专属解读空间...</div>
+        </div>
+
+        <!-- 人格选择界面 -->
+        <div class="personality-selection" id="personality-selection" style="display:none">
+            <h2 class="personality-title">选择您的塔罗解读师</h2>
+            <p class="personality-subtitle">每位解读师都有独特的风格，选择最适合您的那一位</p>
+
+            <div class="personality-cards">
+                <div class="personality-card mystic" onclick="selectPersonality('mystic')">
+                    <span class="personality-icon"><i class="fas fa-moon"></i></span>
+                    <h3 class="personality-name">神秘占卜师</h3>
+                    <p class="personality-desc">深谙古老智慧，用神秘的语言解读命运的轨迹</p>
+                    <div class="personality-traits">
+                        <span class="trait-tag">深邃</span><span class="trait-tag">神秘</span><span class="trait-tag">直觉</span>
+                    </div>
+                </div>
+
+                <div class="personality-card wisdom" onclick="selectPersonality('wisdom')">
+                    <span class="personality-icon"><i class="fas fa-book"></i></span>
+                    <h3 class="personality-name">智慧导师</h3>
+                    <p class="personality-desc">理性分析每张牌的含义，给出实用的人生建议</p>
+                    <div class="personality-traits">
+                        <span class="trait-tag">理性</span><span class="trait-tag">清晰</span><span class="trait-tag">实用</span>
+                    </div>
+                </div>
+
+                <div class="personality-card warm" onclick="selectPersonality('warm')">
+                    <span class="personality-icon"><i class="fas fa-heart"></i></span>
+                    <h3 class="personality-name">温暖陪伴者</h3>
+                    <p class="personality-desc">像朋友般倾听你的故事，用温暖的话语治愈心灵</p>
+                    <div class="personality-traits">
+                        <span class="trait-tag">温暖</span><span class="trait-tag">共情</span><span class="trait-tag">治愈</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 欢迎消息 -->
+        <div class="welcome-message" id="welcome-message" style="display:none;">
+            <div class="welcome-icon"><i class="fas fa-sparkles"></i></div>
+            <div class="welcome-text">
+                我是你的塔罗解读师，让我们一起探索<br>
+                《{{ card_info.name }}》（{{ card_info.direction }}）带给你的启示
+            </div>
+            <div class="quick-questions">
+                <div class="quick-question" onclick="quickAsk('这张牌对我今天有什么指引？')">这张牌对我今天有什么指引？</div>
+                <div class="quick-question" onclick="quickAsk('在感情方面，这张牌想告诉我什么？')">感情方面的启示</div>
+                <div class="quick-question" onclick="quickAsk('这张牌对我的事业有什么建议？')">事业发展建议</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="input-area">
+        {% if can_chat %}
+        <div class="input-container" id="input-container" style="display:none;">
+            <textarea class="message-input" id="message-input" placeholder="问我关于这张塔罗牌的任何问题..." rows="1" maxlength="500"></textarea>
+            <button class="send-button" id="send-button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        {% else %}
+        <div class="limit-reached">
+            <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // ================= 基础状态 =================
+    let sessionId = "{{ session_id or '' }}";
+    let isTyping = false;
+    let remainingChats = {{ remaining_chats }};
+    const hasHistory = {{ has_history|tojson }};
+    const serverMessages = {{ messages|tojson }};
+    let selectedPersonality = null;
+    let aiPersonality = {{ ai_personality|tojson }} || null;
+
+    // ================= 安全转义 / Markdown 富文本（与其它页面一致） =================
+    function escapeHtml(text){
+        const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; 
+        return String(text||'').replace(/[&<>"']/g, s=>m[s]);
+    }
+    function normalizeCompactTables(s){
+        s = s.replace(/\|\s*\|([ :\-|]{3,})\|\s*/g, '|\n|$1|\n');
+        s = s.replace(/\s\|\s\|/g, '\n|');
+        return s;
+    }
+    function formatAIMessage(content){
+        let text = String(content||'').replace(/\r\n/g,'\n');
+
+        // 0) 摘出 ```code``` 块
+        const fences = [];
+        text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
+            const id = `__FENCE_${fences.length}__`;
+            fences.push(`<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`);
+            return id;
         });
-        
-        // 初始化聊天
-        function initializeChat() {
-            // 隐藏加载状态
-            document.getElementById('loading-skeleton').style.display = 'none';
-            
-            console.log('Has history:', hasHistory);
-            console.log('Server messages:', serverMessages);
-            console.log('AI personality:', aiPersonality);
-            
-            // 修改判断逻辑
-            if (hasHistory && serverMessages.length > 0) {
-                // 有历史记录，显示消息和输入框
-                serverMessages.forEach(msg => {
-                    appendMessage(msg.role, msg.content, false);
-                });
-                document.getElementById('input-container').style.display = 'flex';
-            } else if (!aiPersonality) {
-                // 没有选择过人格，显示选择界面
-                document.getElementById('personality-selection').style.display = 'block';
-            } else {
-                // 已选择人格但没有历史，显示欢迎消息
-                selectedPersonality = aiPersonality;
-                document.getElementById('welcome-message').style.display = 'block';
-                document.getElementById('input-container').style.display = 'flex';
+
+        // 0.1) 表格挤压容错
+        text = normalizeCompactTables(text);
+
+        // 1) 全局转义
+        text = escapeHtml(text);
+
+        // 2) 标题
+        text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm,(m,hs,t)=>`<h${Math.min(hs.length,6)}>${t.trim()}</h${Math.min(hs.length,6)}>`);
+        // 3) 分隔线
+        text = text.replace(/^\s*---+\s*$/gm,'<hr>');
+        // 4) 引用（合并多行）
+        text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g,(block)=>{
+            const inner = block.replace(/(^|\n)&gt;\s?/g,'$1').trim();
+            return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
+        });
+        // 5) 行内代码
+        text = text.replace(/`([^`]+)`/g,(m,code)=>`<code>${code}</code>`);
+        // 6) 强/斜体
+        text = text
+            .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+            .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g,'<em>$1</em>')
+            .replace(/___(.+?)___/g,'<strong><em>$1</em></strong>')
+            .replace(/__(.+?)__/g,'<strong>$1</strong>')
+            .replace(/_(.+?)_/g,'<em>$1</em>');
+        // 7) 链接
+        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
+        // 8) 任务清单
+        text = text.replace(/^\s*[-*+]\s+\[( |x|X)\]\s+(.+)$/gm,(m,chk,body)=>`<li data-task="1"><input type="checkbox" disabled ${/x/i.test(chk)?'checked':''}> ${body}</li>`);
+        text = text.replace(/(?:^(?:<li data-task="1">.*<\/li>\n?)+)/gms,(block)=>`<ul class="task-list">${block.replace(/ data-task="1"/g,'').trim()}</ul>\n`);
+        // 9) 普通列表
+        text = text
+            .replace(/^\s*(\d+)\.\s+(.+)$/gm,(m,n,item)=>`<li data-ol="1">${item}</li>`)
+            .replace(/^\s*[-*+]\s+(.+)$/gm,(m,item)=>`<li data-ul="1">${item}</li>`);
+        text = text.replace(/(?:^(?:<li[^>]*>.*<\/li>\n?)+)/gms,(block)=>{
+            const isOl = /<li[^>]*data-ol="1"/.test(block) && !/<li[^>]*data-ul="1"/.test(block);
+            const clean = block.replace(/ data-(ol|ul)="1"/g,'');
+            return (isOl?`<ol>${clean.trim()}</ol>`:`<ul>${clean.trim()}</ul>`)+'\n';
+        });
+        // 10) 表格
+        text = text.replace(
+            /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
+            (m, header, sep, rows) => {
+                const ths = header.split('|').map(s=>`<th>${s.trim()}</th>`).join('');
+                const trs = rows.trim().split('\n').map(r=>{
+                    const tds=r.replace(/^\||\|$/g,'').split('|').map(s=>`<td>${s.trim()}</td>`).join('');
+                    return `<tr>${tds}</tr>`;
+                }).join('');
+                return `\n<table class="markdown-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>\n`;
             }
-    
-            // 如果没有 session_id，初始化一个
-            if (!sessionId) {
-                initSession();
-            }
-        }
-        
-        // 选择人格
-        function selectPersonality(personality) {
-            selectedPersonality = personality;
-            
-            // 隐藏选择界面
-            document.getElementById('personality-selection').style.display = 'none';
-            
-            // 显示加载
-            document.getElementById('loading-skeleton').style.display = 'block';
-            
-            // 初始化会话（带人格参数）
-            initSession(personality);
-        }
-        
-        // 初始化会话
-        async function initSession(personality = null) {
-            try {
-                const payload = {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        ai_personality: personality || selectedPersonality
-                    })
-                };
-                
-                const response = await fetch('/api/chat/init', payload);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    sessionId = data.session_id;
-                    
-                    // 如果是选择人格后的初始化
-                    if (personality) {
-                        // 隐藏加载
-                        document.getElementById('loading-skeleton').style.display = 'none';
-                        // 显示欢迎消息
-                        document.getElementById('welcome-message').style.display = 'block';
-                        // 显示输入框
-                        document.getElementById('input-container').style.display = 'flex';
-                    }
+        );
+        // 11) 分段包裹
+        const parts = text.split(/\n{2,}/).map(seg=>{
+            const s = seg.trim(); if(!s) return '';
+            if (/^<(h\d|blockquote|hr|ul|ol|table|pre)/i.test(s)) return s;
+            return `<p>${s.replace(/\n/g,'<br>')}</p>`;
+        }).filter(Boolean);
+        let html = parts.join('\n');
+        // 12) 回填代码块
+        fences.forEach((codeHtml,i)=>{ html = html.replace(`__FENCE_${i}__`, codeHtml); });
+        // 13) 清理 p 包裹
+        html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
+                   .replace(/<\/(h\d|blockquote|hr|ul|ol|table|pre)><\/p>/g,'</$1>');
+        return html;
+    }
+
+    // ================= 初始化 =================
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('loading-skeleton').style.display = 'block';
+        initializeChat();
+
+        const input = document.getElementById('message-input');
+        if (input){
+            input.addEventListener('input', function(){
+                this.style.height='auto';
+                this.style.height=Math.min(this.scrollHeight,120)+'px';
+            });
+            input.addEventListener('keydown', function(e){
+                if(e.key==='Enter' && !e.shiftKey){
+                    e.preventDefault(); sendMessage();
                 }
-            } catch (error) {
-                console.error('Init session failed:', error);
+            });
+        }
+    });
+
+    function initializeChat(){
+        document.getElementById('loading-skeleton').style.display = 'none';
+
+        if (hasHistory && serverMessages.length > 0){
+            serverMessages.forEach(msg => appendMessage(msg.role, msg.content, false));
+            document.getElementById('input-container').style.display = 'flex';
+        } else if (!aiPersonality){
+            document.getElementById('personality-selection').style.display = 'block';
+        } else {
+            selectedPersonality = aiPersonality;
+            document.getElementById('welcome-message').style.display = 'block';
+            document.getElementById('input-container').style.display = 'flex';
+        }
+
+        if (!sessionId){ initSession(); }
+    }
+
+    // 选择人格
+    function selectPersonality(personality){
+        selectedPersonality = personality;
+        document.getElementById('personality-selection').style.display = 'none';
+        document.getElementById('loading-skeleton').style.display = 'block';
+        initSession(personality);
+    }
+
+    // 初始化会话
+    async function initSession(personality=null){
+        try{
+            const response = await fetch('/api/chat/init', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({ ai_personality: personality || selectedPersonality })
+            });
+            if(response.ok){
+                const data = await response.json();
+                sessionId = data.session_id;
+                if(personality){
+                    document.getElementById('loading-skeleton').style.display = 'none';
+                    document.getElementById('welcome-message').style.display = 'block';
+                    document.getElementById('input-container').style.display = 'flex';
+                }
+            }else{
                 document.getElementById('loading-skeleton').style.display = 'none';
             }
+        }catch(e){
+            console.error('Init session failed:', e);
+            document.getElementById('loading-skeleton').style.display = 'none';
         }
-        
-        // 发送消息
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const message = input.value.trim();
-            
-            if (!message || isTyping) return;
-            
-            // 清空输入框
-            input.value = '';
-            input.style.height = 'auto';
-            
-            // 隐藏欢迎消息
-            const welcome = document.getElementById('welcome-message');
-            if (welcome) welcome.style.display = 'none';
-            
-            // 显示用户消息
-            appendMessage('user', message);
-            
-            // 显示打字动画
-            showTyping();
-            isTyping = true;
-            
-            try {
-                const response = await fetch('/api/chat/send', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        message: message,
-                        session_id: sessionId,
-                        ai_personality: selectedPersonality
-                    })
-                });
-                
-                const data = await response.json();
-                hideTyping();
-                isTyping = false;
-                
-                // 显示 AI 回复
-                appendMessage('assistant', data.reply);
-                
-                // 更新剩余次数
-                if (data.remaining !== undefined) {
-                    remainingChats = data.remaining;
-                    document.getElementById('remaining-count').textContent = remainingChats;
-                }
-                
-                // 检查是否达到限制
-                if (data.limit_reached) {
-                    disableInput();
-                }
-                
-            } catch (error) {
-                console.error('Send message failed:', error);
-                hideTyping();
-                isTyping = false;
-                appendMessage('assistant', '抱歉，消息发送失败，请稍后重试。');
+    }
+
+    // 发送消息
+    async function sendMessage(){
+        const input = document.getElementById('message-input');
+        const message = (input.value||'').trim();
+        if(!message || isTyping) return;
+
+        input.value=''; input.style.height='auto';
+
+        const welcome = document.getElementById('welcome-message');
+        if (welcome) welcome.style.display = 'none';
+
+        appendMessage('user', message);
+        showTyping(); isTyping = true;
+
+        try{
+            const response = await fetch('/api/chat/send', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    message, session_id: sessionId, ai_personality: selectedPersonality
+                })
+            });
+            const data = await response.json();
+            hideTyping(); isTyping = false;
+
+            appendMessage('assistant', data.reply);
+
+            if (typeof data.remaining !== 'undefined'){
+                remainingChats = data.remaining;
+                const el = document.getElementById('remaining-count');
+                if(el) el.textContent = remainingChats;
             }
+            if (data.limit_reached){ disableInput(); }
+        }catch(e){
+            console.error('Send message failed:', e);
+            hideTyping(); isTyping = false;
+            appendMessage('assistant','抱歉，消息发送失败，请稍后重试。');
         }
-        
-        // 快速提问
-        function quickAsk(question) {
-            const input = document.getElementById('message-input');
-            if (input) {
-                input.value = question;
-                sendMessage();
-            }
-        }
-        
-        // 添加消息到界面
-        function appendMessage(role, content, animate = true) {
-            const messagesArea = document.getElementById('messages-area');
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
-            if (animate) messageDiv.style.animation = 'messageSlide 0.3s ease-out';
-            
-            const avatarDiv = document.createElement('div');
-            avatarDiv.className = 'message-avatar';
-            
-            // 根据人格和角色设置头像
-            if (role === 'user') {
-                avatarDiv.innerHTML = '<i class="fas fa-user"></i>';
-            } else {
-                // 根据选择的人格使用不同的图标
-                const icons = {
-                    'mystic': '<i class="fas fa-moon"></i>',
-                    'wisdom': '<i class="fas fa-book"></i>',
-                    'warm': '<i class="fas fa-heart"></i>'
-                };
-                avatarDiv.innerHTML = icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>';
-            }
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            
-            // 根据角色处理内容
-            if (role === 'assistant') {
-                contentDiv.innerHTML = formatAIMessage(content);
-            } else {
-                contentDiv.textContent = content;
-            }
-            
-            messageDiv.appendChild(avatarDiv);
-            messageDiv.appendChild(contentDiv);
-            messagesArea.appendChild(messageDiv);
-            
-            // 平滑滚动到底部
-            setTimeout(() => {
-                messagesArea.scrollTop = messagesArea.scrollHeight;
-            }, 100);
-        }
-        
-        // 显示打字动画
-        function showTyping() {
-            const messagesArea = document.getElementById('messages-area');
-            
-            const typingDiv = document.createElement('div');
-            typingDiv.id = 'typing-indicator';
-            typingDiv.className = 'message assistant typing-indicator';
-            
-            // 根据人格设置不同的打字动画图标
+    }
+
+    // 快速提问
+    function quickAsk(q){
+        const input = document.getElementById('message-input');
+        if(input){ input.value = q; sendMessage(); }
+    }
+
+    // 添加消息到界面
+    function appendMessage(role, content, animate=true){
+        const area = document.getElementById('messages-area');
+        const wrap = document.createElement('div');
+        wrap.className = `message ${role}`;
+        if(animate) wrap.style.animation = 'msgIn .28s ease-out';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+
+        if(role === 'user'){
+            avatar.innerHTML = '<i class="fas fa-user"></i>';
+        }else{
             const icons = {
-                'mystic': '<i class="fas fa-moon"></i>',
-                'wisdom': '<i class="fas fa-book"></i>',
-                'warm': '<i class="fas fa-heart"></i>'
+                'mystic':'<i class="fas fa-moon"></i>',
+                'wisdom':'<i class="fas fa-book"></i>',
+                'warm':'<i class="fas fa-heart"></i>'
             };
-            
-            typingDiv.innerHTML = `
-                <div class="message-avatar">${icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>'}</div>
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-            `;
-            
-            messagesArea.appendChild(typingDiv);
-            messagesArea.scrollTop = messagesArea.scrollHeight;
+            avatar.innerHTML = icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>';
         }
-        
-        // 隐藏打字动画
-        function hideTyping() {
-            const typingIndicator = document.getElementById('typing-indicator');
-            if (typingIndicator) {
-                typingIndicator.remove();
-            }
+
+        const cont = document.createElement('div');
+        cont.className = 'message-content';
+        cont.innerHTML = (role === 'assistant') ? formatAIMessage(content) : escapeHtml(content);
+
+        wrap.appendChild(avatar); wrap.appendChild(cont);
+        area.appendChild(wrap);
+
+        setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 60);
+    }
+
+    // 打字动画
+    function showTyping(){
+        const area = document.getElementById('messages-area');
+        const t = document.createElement('div');
+        t.id = 'typing-indicator';
+        t.className = 'message assistant typing-indicator';
+
+        const icons = {
+            'mystic':'<i class="fas fa-moon"></i>',
+            'wisdom':'<i class="fas fa-book"></i>',
+            'warm':'<i class="fas fa-heart"></i>'
+        };
+        t.innerHTML = `
+            <div class="message-avatar">${icons[selectedPersonality] || '<i class="fas fa-sparkles"></i>'}</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>`;
+        area.appendChild(t); area.scrollTop = area.scrollHeight;
+    }
+    function hideTyping(){ const t = document.getElementById('typing-indicator'); if(t) t.remove(); }
+
+    // 禁用输入
+    function disableInput(){
+        const box = document.querySelector('.input-area');
+        if(box){
+            box.innerHTML = `<div class="limit-reached"><i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧</div>`;
         }
-        
-        // 禁用输入
-        function disableInput() {
-            const inputArea = document.querySelector('.input-area');
-            inputArea.innerHTML = `
-                <div class="limit-reached">
-                    <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
-                </div>
-            `;
-        }
-    </script>
-</body>
+    }
+</script>
+</body> 
 </html>
