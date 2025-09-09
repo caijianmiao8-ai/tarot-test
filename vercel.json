@@ -1,6 +1,10 @@
 {
+  "version": 2,
   "builds": [{ "src": "app.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/(.*)", "dest": "app.py" }],
+  "routes": [
+    { "src": "/static/(.*)", "dest": "/static/$1" },        // 先放行静态
+    { "src": "/(.*)", "dest": "/app.py" }                   // 其他走 Flask
+  ],
   "headers": [
     {
       "source": "/static/manifest.webmanifest",
@@ -9,29 +13,19 @@
         { "key": "Cache-Control", "value": "public, max-age=3600" }
       ]
     },
-    {
-      "source": "/static/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }
-      ]
+    { "source": "/static/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }]
     },
-    {
-      "source": "/static/icons/(.*).png",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+
+    // 注意大小写与实际目录保持一致（你模板里是 CSS/JS 大写）
+    { "source": "/static/CSS/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
-    {
-      "source": "/static/css/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+    { "source": "/static/JS/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
-    {
-      "source": "/static/js/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+    { "source": "/static/icons/(.*).png",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ]
 }
