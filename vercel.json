@@ -1,41 +1,5 @@
 {
   "version": 2,
   "builds": [{ "src": "app.py", "use": "@vercel/python" }],
-  "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/(.*)", "dest": "/app.py" }
-  ],
-  "headers": [
-    {
-      "source": "/static/manifest.webmanifest",
-      "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
-      ]
-    },
-    {
-      "source": "/static/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }
-      ]
-    },
-    {
-      "source": "/static/CSS/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/static/js/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/static/icons/(.*).png",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
-  ]
+
 }
