@@ -48,15 +48,42 @@ except ValueError as e:
 # 统一日志格式（生产上可以写到 JSON）
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-# Playwright
-try:
-    from playwright.sync_api import sync_playwright
-except Exception:
-    sync_playwright = None
+from flask import Flask, send_from_directory, render_template
+import os
 
-# --- Playwright 启动器（全局单例） ---
-_browser = None
-_context = None
+# 重要：确保静态文件夹路径正确
+app = Flask(__name__, 
+            static_folder='static',
+            static_url_path='/static')
+
+# 添加调试信息
+print(f"Static folder path: {app.static_folder}")
+print(f"Static files exist: {os.path.exists('static')}")
+if os.path.exists('static'):
+    print(f"Static folder contents: {os.listdir('static')}")
+
+# 明确的静态文件路由（Vercel 需要）
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """处理所有静态文件请求"""
+    try:
+        # 处理子目录
+        if '/' in filename:
+            parts = filename.split('/')
+            directory = '/'.join(parts[:-1])
+            file = parts[-1]
+            return send_from_directory(f'static/{directory}', file)
+        else:
+            return send_from_directory('static', filename)
+    except Exception as e:
+        print(f"Error serving static file {filename}: {e}")
+        return str(e), 404
+
+# 特殊处理 manifest 文件
+@app.route('/static/manifest.webmanifest')
+def manifest():
+    return send_from_directory('static', 'manifest.webmanifest', 
+                             mimetype='application/manifest+json')
 
 def get_browser():
     global _browser, _context
