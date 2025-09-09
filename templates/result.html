@@ -29,6 +29,7 @@
       --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
       --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
     }
+
     *{box-sizing:border-box}
     html,body{height:100%;min-height:100dvh;min-height:calc(var(--vh,1vh)*100);}
     html{ background:#120c1d; } /* iOS 底层白闪兜底 */
@@ -45,9 +46,9 @@
       position:relative; overflow-x:hidden;
     }
 
-    /* —— 稳定合成背景（与登录/注册统一） —— */
+    /* ===== 合成背景（统一到与 index/login/register 一致的单层策略） ===== */
     .bg-stars{
-      position:fixed; inset:0; z-index:-2; pointer-events:none;
+      position:fixed; inset:0; z-index:-1; pointer-events:none;  /* ▲ 由 -2 提升到 -1，避免被根层“吃掉” */
       background:
         radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,.22), transparent 60%),
         radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,.18), transparent 60%),
@@ -161,7 +162,11 @@
     .mystical-symbol{font-size:min(14vmin,54px);color:rgba(255,255,255,.8);text-shadow:0 0 18px rgba(255,255,255,.35)}
     @keyframes spin2{to{transform:rotate(360deg)}}
 
-    .tarot-image-wrapper{position:absolute;inset:0;background:#120f1f}
+    /* ▲ 修复“黑边”：把牌面容器背景从纯黑改为淡金雾化渐变，与牌背一致风格 */
+    .tarot-image-wrapper{
+      position:absolute;inset:0;
+      background:linear-gradient(135deg, rgba(157,126,168,.14), rgba(232,212,162,.12));
+    }
     .tarot-image{width:100%;height:100%;object-fit:contain;transition:transform .6s ease}
     .tarot-image.reversed{transform:rotate(180deg)}
 
@@ -179,7 +184,15 @@
 
     .section{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:12px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
     .section .title{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--gold-light);margin-bottom:8px}
-    .section .content{color:var(--text-light);line-height:1.75}
+
+    /* ▲ 正文左对齐+易读性优化（不再“居中看着挤”） */
+    .section .content{
+      color:var(--text-light);line-height:1.8;
+      text-align:left;
+      text-wrap:pretty;
+      word-break:break-word;
+      hyphens:auto;
+    }
 
     /* 访客导出 */
     .export-section{margin:18px 0;padding:14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border);text-align:center}
@@ -228,6 +241,14 @@
     /* 触控优化 */
     button,.btn-tarot,.btn-export,.btn-unlock{touch-action:manipulation}
 
+    /* ===== iOS 背景固定 fallback（与首页思路一致） ===== */
+    :root { --sy: 0px; }
+    .ios-pin .bg-stars{
+      position:absolute !important; top:0; left:0; right:0; height:100vh; width:100%;
+      transform: translate3d(0, var(--sy), 0);
+      z-index:0; pointer-events:none; backface-visibility:hidden; will-change:transform;
+    }
+    .ios-pin .main-container{ position:relative; z-index:2; }
   </style>
 </head>
 <body>
@@ -354,13 +375,6 @@
       </div>
 
       <div class="action-buttons">
-        <!--
-        {% if not user.is_guest %}
-        <a href="{{ url_for('clear_cache') }}" class="btn-tarot secondary" onclick="return confirm('确定要清除今日记录吗？清除后可以重新抽牌。')">
-          <i class="fas fa-redo"></i> 重新抽牌
-        </a>
-        {% endif %}
-        -->
         <button class="btn-tarot" onclick="shareResult()"><i class="fas fa-share-alt"></i> 分享结果</button>
       </div>
 
@@ -374,8 +388,22 @@
   <div class="copy-success" id="copySuccess"><i class="fas fa-check-circle"></i> 复制成功！</div>
 
   <script>
-    // iOS 视口高度修复
-    (function(){ const setVh=()=>document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px'); setVh(); addEventListener('resize',setVh); addEventListener('orientationchange',setVh); })();
+    // 视口高度修复（与首页一致）
+    (function(){
+      const setVh=()=>document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px');
+      setVh(); addEventListener('resize',setVh); addEventListener('orientationchange',setVh);
+    })();
+
+    // iOS 背景固定 fallback（与首页思路一致）
+    (function(){
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      if(isIOS){
+        document.documentElement.classList.add('ios-pin');
+        const sync = ()=> document.documentElement.style.setProperty('--sy', window.scrollY + 'px');
+        sync(); addEventListener('scroll', sync, {passive:true});
+      }
+    })();
 
     // PWA SW（与 index 保持一致，失败忽略）
     if ('serviceWorker' in navigator) { addEventListener('load', ()=> navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
@@ -402,7 +430,7 @@
 生成自：塔罗每日指引`;
       (navigator.clipboard ? navigator.clipboard.writeText(content) : new Promise((res,rej)=>{ try{ const ta=document.createElement('textarea'); ta.value=content; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); res(); }catch(e){ rej(e) } }))
       .then(showCopySuccess)
-      .catch(()=>{ /* 兜底 */ showCopySuccess(); });
+      .catch(()=>{ showCopySuccess(); });
     }
 
     function showCopySuccess(){ const el=document.getElementById('copySuccess'); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
@@ -414,7 +442,7 @@
       else{ copyToClipboard(); }
     }
 
-    // 缺内容自动刷新
+    // 缺内容自动刷新（兜底）
     {% if not today_insight or not guidance %}
       setTimeout(()=>location.reload(), 5000);
     {% endif %}
