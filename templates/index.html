@@ -379,58 +379,69 @@ input, select, textarea{
 }
 
 
-/* ===== iOS 修复 v2：不顶走首屏 + 恢复星盘文字（仅 iOS 生效） ===== */
+/* ===== iOS 背景增强 v3：提亮、提色、提高可见度（仅 iOS 生效） ===== */
 @supports (-webkit-touch-callout: none) {
 
-  /* 仍保留“单层背景”策略，避免多层 fixed 白屏 */
+  /* 仍走单层背景，避免 iOS 多层 fixed 白屏；但我们把色彩和对比度拉高 */
   .bg-veil, .bg-constellations, .bg-glyphs, .zodiac { display: none !important; }
 
-  /* 关键修改：sticky -> fixed，不参与文档流，不会把内容推下去 */
+  :root{
+    /* 你已有色板的延续：略微更亮、更“金”一些 */
+    --ios-gold: #f1e4b7;                 /* 比 --gold-light 更亮一点 */
+    --ios-gold-alpha: .30;               /* 金色图案不透明度 */
+    --ios-fog-a: .26;                    /* 柔雾层强度（原 .18 左右 → .26） */
+    --ios-fog-b: .20;
+    --ios-fog-c: .16;
+    --ios-stars: .95;                    /* 细星点亮度（原 .8 → .95） */
+    --ios-lines: .28;                    /* 星座连线对比（原 .18 → .28） */
+    --ios-disc: .18;                     /* 旋转星盘可见度（原 .12 → .18） */
+  }
+
   .bg-stars{
     position: fixed !important;
     inset: 0;
-    height: 100dvh;              /* 或用 100vh 也可 */
-    z-index: 0;                  /* 在内容之下，但不是负值 */
+    height: 100dvh;
+    z-index: 0;
     pointer-events: none;
     backface-visibility: hidden;
     transform: translateZ(0);
     animation: none;
 
-    /* 你上一版的合成背景可以原样保留；这里简化为与之前一致的多重背景 */
+    /* —— 提亮后的单层合成背景 —— */
     background:
-      /* 柔雾层 */
-      radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
-      radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
-      radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%),
+      /* 柔雾层（提升强度与层次） */
+      radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,var(--ios-fog-a)), transparent 60%),
+      radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,var(--ios-fog-b)), transparent 60%),
+      radial-gradient(920px 580px at 58% 12%, rgba(157,126,168,var(--ios-fog-c)), transparent 72%),
 
-      /* 细星点 */
-      radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,.8), transparent),
-      radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,.8), transparent),
-      radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.8), transparent),
-      radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,.8), transparent),
-      radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,.8), transparent),
+      /* 细星点（更亮） */
+      radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,var(--ios-stars)), transparent),
+      radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,var(--ios-stars)), transparent),
+      radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,var(--ios-stars)), transparent),
+      radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,var(--ios-stars)), transparent),
+      radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,var(--ios-stars)), transparent),
 
-      /* 线性星座 */
+      /* 线性星座（提高线与节点对比） */
       url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'>\
-<g stroke='rgba(255,255,255,0.18)' stroke-width='1' fill='none'>\
+<g stroke='rgba(255,255,255,0.28)' stroke-width='1' fill='none'>\
 <line x1='90' y1='120' x2='160' y2='160'/><line x1='160' y1='160' x2='210' y2='110'/><line x1='160' y1='160' x2='110' y2='200'/>\
 <line x1='780' y1='120' x2='840' y2='160'/><line x1='840' y1='160' x2='900' y2='180'/><line x1='900' y1='180' x2='950' y2='150'/>\
 <line x1='760' y1='740' x2='820' y2='780'/><line x1='820' y1='780' x2='880' y2='740'/><line x1='820' y1='780' x2='840' y2='840'/>\
 </g>\
-<g fill='rgba(255,255,255,0.7)'>\
+<g fill='rgba(255,255,255,0.9)'>\
 <circle cx='90' cy='120' r='1.2'/><circle cx='160' cy='160' r='1.2'/><circle cx='210' cy='110' r='1.2'/><circle cx='110' cy='200' r='1.2'/>\
 <circle cx='780' cy='120' r='1.2'/><circle cx='840' cy='160' r='1.2'/><circle cx='900' cy='180' r='1.2'/><circle cx='950' cy='150' r='1.2'/>\
 <circle cx='760' cy='740' r='1.2'/><circle cx='820' cy='780' r='1.2'/><circle cx='880' cy='740' r='1.2'/><circle cx='840' cy='840' r='1.2'/>\
 </g></svg>"),
 
-      /* 四元素 glyph 布局（与你之前保持一致） */
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>\"),
-      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
+      /* 四元素 glyph（更显眼一些） */
+      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>\"),
+      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>\"),
+      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>\"),
+      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
 
-      /* 最底线性渐变 */
+      /* 品牌底色保留 */
       linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
 
     background-repeat: no-repeat, no-repeat, no-repeat,
@@ -439,11 +450,11 @@ input, select, textarea{
                        no-repeat, no-repeat, no-repeat, no-repeat,
                        no-repeat;
     background-size:
-      cover, cover, cover,     /* 柔雾 */
+      cover, cover, cover,                 /* 柔雾 */
       220px 220px, 220px 220px, 220px 220px, 220px 220px, 220px 220px, /* 星点 */
-      cover,                   /* 线性星座 */
-      68px 68px, 76px 76px, 64px 64px, 72px 72px,                     /* 四元素 */
-      cover;                   /* 渐变底 */
+      cover,                               /* 线性星座 */
+      68px 68px, 76px 76px, 64px 64px, 76px 76px,                     /* glyph */
+      cover;                               /* 渐变底 */
     background-position:
       12% 14%, 82% 72%, 58% 12%,
       12% 25%, 32% 60%, 62% 30%, 82% 70%, 22% 80%,
@@ -452,44 +463,66 @@ input, select, textarea{
       center;
   }
 
-  /* 恢复星盘“文字圈”，并保持旋转（仍在单层里完成） */
+  /* 星盘（含文字）更亮一些，并加一层“金色极光”做层次 */
   .bg-stars::after{
     content: "";
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 560px; height: 560px;           /* 可按需改大到 720~820px */
+    position: absolute; left: 50%; top: 50%;
+    width: 680px; height: 680px;                   /* iOS 可见区域更大一些 */
     transform: translate(-50%, -50%);
-    opacity: .12;
+    opacity: var(--ios-disc);
     pointer-events: none;
     background: url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>\
-<g fill='none' stroke='%23ffffff' stroke-opacity='.7' stroke-width='.3'>\
+<g fill='none' stroke='%23ffffff' stroke-opacity='.78' stroke-width='.3'>\
 <circle cx='50' cy='50' r='44'/>\
-<circle cx='50' cy='50' r='34' stroke-opacity='.4'/>\
-<g stroke-opacity='.25'>\
-<line x1='50' y1='6' x2='50' y2='94'/>\
-<line x1='6' y1='50' x2='94' y2='50'/>\
+<circle cx='50' cy='50' r='34' stroke-opacity='.5'/>\
+<g stroke-opacity='.35'>\
+<line x1='50' y1='6'  x2='50' y2='94'/>\
+<line x1='6'  y1='50' x2='94' y2='50'/>\
 <line x1='18' y1='18' x2='82' y2='82'/>\
 <line x1='18' y1='82' x2='82' y2='18'/>\
 </g>\
 </g>\
-<text x='50' y='10' text-anchor='middle' fill='%23ffffff' fill-opacity='.55' font-size='6' font-family='serif'>\
+<text x='50' y='10' text-anchor='middle' fill='%23ffffff' fill-opacity='.7' font-size='6' font-family='serif'>\
 ♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎\
 </text>\
 </svg>") center/100% 100% no-repeat;
     animation: iosZodiacSpin 110s linear infinite;
     will-change: transform;
   }
+
+  /* 金色极光（更“女友风”的柔亮感） */
+  .bg-stars::before{
+    content: "";
+    position: absolute; left: 50%; top: 50%;
+    width: 120vmax; height: 120vmax;
+    transform: translate(-50%, -50%) rotate(10deg);
+    pointer-events: none;
+    opacity: var(--ios-gold-alpha);
+    background:
+      radial-gradient(40% 35% at 30% 40%, rgba(241,228,183,.38), transparent 70%),
+      conic-gradient(from 0deg at 50% 50%, rgba(241,228,183,.18), rgba(157,126,168,.08), rgba(241,228,183,.18), rgba(157,126,168,.08), rgba(241,228,183,.18));
+    animation: auroraSlow 95s linear infinite;
+    will-change: transform, opacity;
+  }
+
   @keyframes iosZodiacSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes auroraSlow   { to { transform: translate(-50%, -50%) rotate(370deg); } }
 
-  /* 确保内容层在背景之上 */
+  /* 内容层在背景之上 + iOS 橡皮筋回弹时避免白底 */
   .main-container, .features, .footer { position: relative; z-index: 2; }
-
-  /* 极端回弹（橡皮筋）时避免白底 */
   html{ background:#120c1d; }
 }
+
+/* 可选：用户开启“高对比度”时，再加一点点亮度 */
+@media (prefers-contrast: more) {
+  @supports (-webkit-touch-callout: none) {
+    :root{ --ios-fog-a:.30; --ios-fog-b:.24; --ios-gold-alpha:.34; --ios-disc:.22; }
+  }
+}
+
   </style>
-  
+
 </head>
 <body>
   <div class="bg-stars"></div>
