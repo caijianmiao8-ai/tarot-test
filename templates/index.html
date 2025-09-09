@@ -379,41 +379,38 @@ input, select, textarea{
 }
 
 
-/* ========== iOS 专用：用一层 .bg-stars 承载全部背景，其他背景层隐藏 ========== */
+/* ===== iOS 修复 v2：不顶走首屏 + 恢复星盘文字（仅 iOS 生效） ===== */
 @supports (-webkit-touch-callout: none) {
-  /* 1) 隐藏 iOS 上易触发白屏的多层 fixed 背景 */
-  .bg-veil,
-  .bg-constellations,
-  .bg-glyphs,
-  .zodiac { display: none !important; }
 
-  /* 2) 把 .bg-stars 改为“单层粘滞背景”，承载所有装饰图案 */
+  /* 仍保留“单层背景”策略，避免多层 fixed 白屏 */
+  .bg-veil, .bg-constellations, .bg-glyphs, .zodiac { display: none !important; }
+
+  /* 关键修改：sticky -> fixed，不参与文档流，不会把内容推下去 */
   .bg-stars{
-    position: sticky !important;    /* 代替 fixed，更稳 */
-    top: 0;
-    height: 100svh;                 /* iOS 视口安全单位 */
-    inset: 0;                       /* 覆盖全屏 */
-    z-index: 0;                     /* 在内容之下，但不是负数 */
+    position: fixed !important;
+    inset: 0;
+    height: 100dvh;              /* 或用 100vh 也可 */
+    z-index: 0;                  /* 在内容之下，但不是负值 */
     pointer-events: none;
     backface-visibility: hidden;
-    transform: translateZ(0);       /* GPU 合成，避免闪烁 */
-    animation: none;                /* 关闭原 twinkle 动画（合并到下方装饰） */
+    transform: translateZ(0);
+    animation: none;
 
-    /* 3) 一层里叠加全部背景（星点/柔雾/四元素/星座线） */
+    /* 你上一版的合成背景可以原样保留；这里简化为与之前一致的多重背景 */
     background:
-      /* 柔雾层（保持你的配色） */
+      /* 柔雾层 */
       radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
       radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
       radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%),
 
-      /* 细星点（原有星空质感） */
+      /* 细星点 */
       radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,.8), transparent),
       radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,.8), transparent),
       radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.8), transparent),
       radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,.8), transparent),
       radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,.8), transparent),
 
-      /* 线性星座（合并为背景图片） */
+      /* 线性星座 */
       url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'>\
 <g stroke='rgba(255,255,255,0.18)' stroke-width='1' fill='none'>\
@@ -427,13 +424,13 @@ input, select, textarea{
 <circle cx='760' cy='740' r='1.2'/><circle cx='820' cy='780' r='1.2'/><circle cx='880' cy='740' r='1.2'/><circle cx='840' cy='840' r='1.2'/>\
 </g></svg>"),
 
-      /* 四元素 glyph（Wand / Cup / Sword / Pentacle），与原布局一致 */
+      /* 四元素 glyph 布局（与你之前保持一致） */
       url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>\"),
       url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>\"),
       url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>\"),
       url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
 
-      /* 最底层你的线性渐变 */
+      /* 最底线性渐变 */
       linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
 
     background-repeat: no-repeat, no-repeat, no-repeat,
@@ -442,48 +439,57 @@ input, select, textarea{
                        no-repeat, no-repeat, no-repeat, no-repeat,
                        no-repeat;
     background-size:
-      cover, cover, cover,           /* 三层柔雾 */
-      220px 220px, 220px 220px, 220px 220px, 220px 220px, 220px 220px,  /* 星点阵列 */
-      cover,                         /* 线性星座 SVG */
-      68px 68px, 76px 76px, 64px 64px, 72px 72px,                       /* 四元素 glyph */
-      cover;                         /* 线性渐变底 */
+      cover, cover, cover,     /* 柔雾 */
+      220px 220px, 220px 220px, 220px 220px, 220px 220px, 220px 220px, /* 星点 */
+      cover,                   /* 线性星座 */
+      68px 68px, 76px 76px, 64px 64px, 72px 72px,                     /* 四元素 */
+      cover;                   /* 渐变底 */
     background-position:
-      12% 14%, 82% 72%, 58% 12%,     /* 柔雾锚点 */
-      12% 25%, 32% 60%, 62% 30%, 82% 70%, 22% 80%,  /* 星点 */
-      center,                        /* 星座线覆盖全屏 */
-      8% 24%, 86% 22%, 12% 78%, 88% 68%,            /* glyph 布局 */
-      center;                        /* 渐变底 */
-    opacity: .98;                    /* 轻微提亮，避免看起来“变暗” */
+      12% 14%, 82% 72%, 58% 12%,
+      12% 25%, 32% 60%, 62% 30%, 82% 70%, 22% 80%,
+      center,
+      8% 24%, 86% 22%, 12% 78%, 88% 68%,
+      center;
   }
 
-  /* 4) 在 .bg-stars 上追加“旋转星盘”伪元素（iOS 也要有高级感） */
+  /* 恢复星盘“文字圈”，并保持旋转（仍在单层里完成） */
   .bg-stars::after{
     content: "";
     position: absolute;
     left: 50%; top: 50%;
-    width: 560px; height: 560px;     /* 移动端尺寸；桌面上你已有 SVG */
+    width: 560px; height: 560px;           /* 可按需改大到 720~820px */
     transform: translate(-50%, -50%);
     opacity: .12;
     pointer-events: none;
     background: url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>\
 <g fill='none' stroke='%23ffffff' stroke-opacity='.7' stroke-width='.3'>\
-<circle cx='50' cy='50' r='44'/><circle cx='50' cy='50' r='34' stroke-opacity='.4'/>\
-<g stroke-opacity='.25'><line x1='50' y1='6' x2='50' y2='94'/><line x1='6' y1='50' x2='94' y2='50'/><line x1='18' y1='18' x2='82' y2='82'/><line x1='18' y1='82' x2='82' y2='18'/></g>\
+<circle cx='50' cy='50' r='44'/>\
+<circle cx='50' cy='50' r='34' stroke-opacity='.4'/>\
+<g stroke-opacity='.25'>\
+<line x1='50' y1='6' x2='50' y2='94'/>\
+<line x1='6' y1='50' x2='94' y2='50'/>\
+<line x1='18' y1='18' x2='82' y2='82'/>\
+<line x1='18' y1='82' x2='82' y2='18'/>\
 </g>\
+</g>\
+<text x='50' y='10' text-anchor='middle' fill='%23ffffff' fill-opacity='.55' font-size='6' font-family='serif'>\
+♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎\
+</text>\
 </svg>") center/100% 100% no-repeat;
     animation: iosZodiacSpin 110s linear infinite;
     will-change: transform;
   }
   @keyframes iosZodiacSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
-  /* 5) 主体在背景之上（不影响你的 fixed 顶栏/弹层） */
+  /* 确保内容层在背景之上 */
   .main-container, .features, .footer { position: relative; z-index: 2; }
-  html{ background:#120c1d; }     /* 防极端回弹时白底 */
+
+  /* 极端回弹（橡皮筋）时避免白底 */
+  html{ background:#120c1d; }
 }
-
-
   </style>
+  
 </head>
 <body>
   <div class="bg-stars"></div>
