@@ -28,6 +28,7 @@
       --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
       --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
       --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
+      --sy: 0px; /* iOS 背景同步滚动 */
     }
 
     *{box-sizing:border-box}
@@ -46,9 +47,9 @@
       position:relative; overflow-x:hidden;
     }
 
-    /* ===== 合成背景（统一到与 index/login/register 一致的单层策略） ===== */
+    /* ===== 背景合成（与 index/login/register 对齐） ===== */
     .bg-stars{
-      position:fixed; inset:0; z-index:-1; pointer-events:none;  /* ▲ 由 -2 提升到 -1，避免被根层“吃掉” */
+      position:fixed; inset:0; z-index:0; pointer-events:none;
       background:
         radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,.22), transparent 60%),
         radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,.18), transparent 60%),
@@ -60,19 +61,10 @@
         radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,.9), transparent),
         radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,.9), transparent),
 
-        url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'>\
-<g stroke='rgba(255,255,255,0.28)' stroke-width='1' fill='none'>\
-<line x1='90' y1='120' x2='160' y2='160'/><line x1='160' y1='160' x2='210' y2='110'/><line x1='160' y1='160' x2='110' y2='200'/>\
-<line x1='780' y1='120' x2='840' y2='160'/><line x1='840' y1='160' x2='900' y2='180'/><line x1='900' y1='180' x2='950' y2='150'/>\
-<line x1='760' y1='740' x2='820' y2='780'/><line x1='820' y1='780' x2='880' y2='740'/><line x1='820' y1='780' x2='840' y2='840'/>\
-</g>\
-<g fill='rgba(255,255,255,0.9)'>\
-<circle cx='90' cy='120' r='1.2'/><circle cx='160' cy='160' r='1.2'/><circle cx='210' cy='110' r='1.2'/><circle cx='110' cy='200' r='1.2'/>\
-<circle cx='780' cy='120' r='1.2'/><circle cx='840' cy='160' r='1.2'/><circle cx='900' cy='180' r='1.2'/><circle cx='950' cy='150' r='1.2'/>\
-<circle cx='760' cy='740' r='1.2'/><circle cx='820' cy='780' r='1.2'/><circle cx='880' cy='740' r='1.2'/><circle cx='840' cy='840' r='1.2'/>\
-</g></svg>"),
+        /* 星图线（单行、URL 编码） */
+        url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'%3E%3Cg stroke='rgba(255,255,255,0.28)' stroke-width='1' fill='none'%3E%3Cline x1='90' y1='120' x2='160' y2='160'/%3E%3Cline x1='160' y1='160' x2='210' y2='110'/%3E%3Cline x1='160' y1='160' x2='110' y2='200'/%3E%3Cline x1='780' y1='120' x2='840' y2='160'/%3E%3Cline x1='840' y1='160' x2='900' y2='180'/%3E%3Cline x1='900' y1='180' x2='950' y2='150'/%3E%3Cline x1='760' y1='740' x2='820' y2='780'/%3E%3Cline x1='820' y1='780' x2='880' y2='740'/%3E%3Cline x1='820' y1='780' x2='840' y2='840'/%3E%3C/g%3E%3C/svg%3E"),
 
+        /* 四元素小图标（可解析、已对 # 编码） */
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23f1e4b7' stroke-opacity='0.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>"),
@@ -101,19 +93,8 @@
       position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
       width:min(88vmin,720px); height:min(88vmin,720px);
       opacity:.18; pointer-events:none;
-      background:url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>\
-<g fill='none' stroke='%23ffffff' stroke-opacity='.78' stroke-width='.3'>\
-<circle cx='50' cy='50' r='44'/>\
-<circle cx='50' cy='50' r='34' stroke-opacity='.5'/>\
-<g stroke-opacity='.35'>\
-<line x1='50' y1='6' x2='50' y2='94'/>\
-<line x1='6' y1='50' x2='94' y2='50'/>\
-<line x1='18' y1='18' x2='82' y2='82'/>\
-<line x1='18' y1='82' x2='82' y2='18'/>\
-</g></g>\
-<text x='50' y='10' text-anchor='middle' fill='%23ffffff' fill-opacity='.7' font-size='6' font-family='serif'>\
-♈︎♉︎♊︎♋︎♌︎♍︎♎︎♏︎♐︎♑︎♒︎♓︎</text></svg>") center/100% 100% no-repeat;
+      /* 星环（base64，避免编辑器对多行/特殊字符报红） */
+      background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz4KPGcgZmlsbD0nbm9uZScgc3Ryb2tlPScjZmZmZmZmJyBzdHJva2Utb3BhY2l0eT0nLjc4JyBzdHJva2Utd2lkdGg9Jy4zJz4KPGNpcmNsZSBjeD0nNTAnIGN5PSc1MCcgcj0nNDQnLz4KPGNpcmNsZSBjeD0nNTAnIGN5PSc1MCcgcj0nMzQnIHN0cm9rZS1vcGFjaXR5PScuNScvPgo8ZyBzdHJva2Utb3BhY2l0eT0nLjM1Jz4KPGxpbmUgeDE9JzUwJyB5MT0nNicgeDI9JzUwJyB5Mj0nOTQnLz4KPGxpbmUgeDE9JzYnIHkxPSc1MCcgeDI9Jzk0JyB5Mj0nNTAnLz4KPGxpbmUgeDE9JzE4JyB5MT0nMTgnIHgyPSc4MicgeTI9JzgyJy8+CjxsaW5lIHgxPScxOCcgeTE9JzgyJyB4Mj0nODInIHkyPScxOCcvPgo8L2c+PC9nPgo8dGV4dCB4PSc1MCcgeT0nMTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9JyNmZmZmZmYnIGZpbGwtb3BhY2l0eT0nLjc nIGZvbnQtc2l6ZT0nNicgZm9udC1mYW1pbHk9J3NlcmlmJz4K4pmo77iO4pmh77iO4pm i77iO4pmr77iO4pms77iO4pmt77iO4pmu77iO4pmv77iO4pmw77iO4pmx77iO4pmz77iO PC90ZXh0Pgo8L3N2Zz4=") center/100% 100% no-repeat;
       animation:spin 110s linear infinite;
     }
     @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
@@ -129,7 +110,7 @@
     .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
 
     /* 主容器 */
-    .main-container{max-width:980px;width:100%;margin:calc(88px + env(safe-area-inset-top,0px)) auto 24px}
+    .main-container{max-width:980px;width:100%;margin:calc(88px + env(safe-area-inset-top,0px)) auto 24px; position:relative; z-index:1;}
     @media (max-width:768px){ .main-container{margin:calc(74px + env(safe-area-inset-top,0px)) auto 16px} }
 
     .tarot-card-wrap{
@@ -150,11 +131,9 @@
     .card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.175,.885,.32,1.275)}
     .card-visual.flipped .card-inner{transform:rotateY(180deg)}
     .card-front,.card-back{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;overflow:hidden;border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.28);}
-    .card-front{
-      background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2));
-    }
+    .card-front{ background:linear-gradient(135deg, rgba(157,126,168,.36), rgba(232,212,162,.2)); }
     .card-front::after{content:"";position:absolute;inset:14px;border-radius:10px;border:1px solid rgba(255,255,255,.22)}
-    .card-back{transform:rotateY(180deg);background:#0f0b19}
+    .card-back{ transform:rotateY(180deg); background:none; }
 
     .card-back-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
     .mystical-border{width:58%;aspect-ratio:1/1;border:2px solid rgba(255,255,255,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:spin2 20s linear infinite}
@@ -162,12 +141,12 @@
     .mystical-symbol{font-size:min(14vmin,54px);color:rgba(255,255,255,.8);text-shadow:0 0 18px rgba(255,255,255,.35)}
     @keyframes spin2{to{transform:rotate(360deg)}}
 
-    /* ▲ 修复“黑边”：把牌面容器背景从纯黑改为淡金雾化渐变，与牌背一致风格 */
+    /* —— 修复“黑边”：牌面容器使用不透明渐变底 —— */
     .tarot-image-wrapper{
-      position:absolute;inset:0;
-      background:linear-gradient(135deg, rgba(157,126,168,.14), rgba(232,212,162,.12));
+      position:absolute; inset:0;
+      background:linear-gradient(135deg, #2f2343 0%, #241c33 100%);
     }
-    .tarot-image{width:100%;height:100%;object-fit:contain;transition:transform .6s ease}
+    .tarot-image{width:100%;height:100%;object-fit:contain;object-position:center;image-rendering:auto;transition:transform .6s ease}
     .tarot-image.reversed{transform:rotate(180deg)}
 
     .direction-badge{
@@ -185,13 +164,10 @@
     .section{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:12px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
     .section .title{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--gold-light);margin-bottom:8px}
 
-    /* ▲ 正文左对齐+易读性优化（不再“居中看着挤”） */
+    /* —— 正文左对齐 + 易读性 —— */
     .section .content{
       color:var(--text-light);line-height:1.8;
-      text-align:left;
-      text-wrap:pretty;
-      word-break:break-word;
-      hyphens:auto;
+      text-align:left; text-wrap:pretty; word-break:break-word; hyphens:auto;
     }
 
     /* 访客导出 */
@@ -241,14 +217,15 @@
     /* 触控优化 */
     button,.btn-tarot,.btn-export,.btn-unlock{touch-action:manipulation}
 
-    /* ===== iOS 背景固定 fallback（与首页思路一致） ===== */
-    :root { --sy: 0px; }
+    /* ===== iOS 背景固定 fallback（滚动同步） ===== */
     .ios-pin .bg-stars{
       position:absolute !important; top:0; left:0; right:0; height:100vh; width:100%;
       transform: translate3d(0, var(--sy), 0);
       z-index:0; pointer-events:none; backface-visibility:hidden; will-change:transform;
     }
-    .ios-pin .main-container{ position:relative; z-index:2; }
+
+    /* 防止其他全屏容器用纯色把背景盖住（保险） */
+    .page, .container, .wrapper, .layout, .app-root{ background: transparent !important; }
   </style>
 </head>
 <body>
@@ -304,10 +281,10 @@
                 {% if card.image %}
                   <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" src="{{ card.image }}" alt="{{ card.name }}">
                 {% else %}
-                  <div style="width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, rgba(157,126,168,.14), rgba(232,212,162,.12));">
+                  <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(157,126,168,.14), rgba(232,212,162,.12));">
                     <div style="text-align:center;">
-                      <i class="fas fa-sparkles" style="font-size: 3.4rem; color: var(--gold-light); opacity:.8"></i>
-                      <h3 style="margin-top: 10px; color:#fff">{{ card.name }}</h3>
+                      <i class="fas fa-sparkles" style="font-size:3.4rem;color:var(--gold-light);opacity:.8"></i>
+                      <h3 style="margin-top:10px;color:#fff">{{ card.name }}</h3>
                     </div>
                   </div>
                 {% endif %}
@@ -400,7 +377,7 @@
       const isIOS = /iPad|iPhone|iPod/.test(ua);
       if(isIOS){
         document.documentElement.classList.add('ios-pin');
-        const sync = ()=> document.documentElement.style.setProperty('--sy', window.scrollY + 'px');
+        const sync = ()=> document.documentElement.style.setProperty('--sy', String(window.scrollY) + 'px');
         sync(); addEventListener('scroll', sync, {passive:true});
       }
     })();
