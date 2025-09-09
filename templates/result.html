@@ -153,6 +153,22 @@
       .card-visual{width:clamp(180px,64vw,260px);height:auto;aspect-ratio:260/400}
       .btn-unlock{padding:12px 26px;font-size:1rem}
     }
+
+    /* 让翻转后的牌面在上层，避免 3D 叠层把图片压住 */
+.card-front, .card-back {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+.card-front { z-index: 1; }
+.card-back  { transform: rotateY(180deg) translateZ(0.1px); z-index: 0; }
+
+/* 翻转后，把背面（真正的牌面）层级提到最上 */
+.card-visual.flipped .card-front { z-index: 0; }
+.card-visual.flipped .card-back  { z-index: 2; }
+
+/* 确保图片本身在该面内的最高层 */
+.tarot-image-wrapper, .tarot-image { position: relative; z-index: 2; display: block; }
+
   </style>
 </head>
 <body>
@@ -211,7 +227,14 @@
             </div>
             <div class="tarot-image-wrapper">
               {% if card.image %}
-                <img class="tarot-image {% if direction == '逆位' %}reversed{% endif %}" src="{{ card.image }}" alt="{{ card.name }}">
+                <img id="tarotImg"
+     class="tarot-image {% if direction == '逆位' %}reversed{% endif %}"
+     src="{{ card.image }}"
+     alt="{{ card.name }}"
+     loading="lazy"
+     decoding="async"
+     referrerpolicy="no-referrer"
+     onerror="handleImageError(this)">
               {% else %}
                 <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(157,126,168,.16), rgba(232,212,162,.12));">
                   <div style="text-align:center;color:var(--text-light)">
@@ -353,6 +376,48 @@
     // 视口高度变量 --vh（iOS 适配）
     function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01 + 'px'); }
     setVh(); window.addEventListener('resize', setVh);
+
+
+  function handleImageError(img) {
+    const s = img.getAttribute('src') || '';
+
+    // 尝试 1：相对路径自动补 /static/
+    if (!img.dataset.triedStatic && !/^https?:\/\//.test(s) && !s.startsWith('/')) {
+      img.dataset.triedStatic = 1;
+      img.src = '{{ url_for("static", filename="") }}' + s.replace(/^static\//,'');
+      return;
+    }
+    // 尝试 2：去重 /static/static/
+    if (!img.dataset.triedStrip && s.includes('/static/static/')) {
+      img.dataset.triedStrip = 1;
+      img.src = s.replace('/static/static/', '/static/');
+      return;
+    }
+    // 尝试 3：占位（依旧失败）
+    const wrap = img.closest('.tarot-image-wrapper');
+    if (wrap) {
+      wrap.innerHTML = `
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                    background:linear-gradient(135deg, rgba(157,126,168,.16), rgba(232,212,162,.12));">
+          <div style="text-align:center;color:var(--text-light)">
+            <i class="fas fa-image" style="font-size:3rem;color:var(--gold-light);"></i>
+            <div style="margin-top:10px;font-weight:700">{{ card.name }}</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // 页面加载后：如果 src 是相对/裸路径，先行补全一次
+  (function autoFixRelative(){
+    var img = document.getElementById('tarotImg');
+    if (!img) return;
+    var s = img.getAttribute('src') || '';
+    if (!/^https?:\/\//.test(s) && !s.startsWith('/')) {
+      img.src = '{{ url_for("static", filename="") }}' + s.replace(/^static\//,'');
+    }
+  })();
+
+
   </script>
 </body>
 </html>

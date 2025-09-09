@@ -537,61 +537,66 @@
 
     // ============ 高质量导出方案 ============
     
-    // 主方案：DOM-to-Image-More（最佳效果）
-    async function exportWithDomToImage() {
-      const card = document.getElementById('shareCard');
-      const actions = document.getElementById('actions');
-      
-      try {
-        // 隐藏操作按钮
-        if (actions) actions.style.display = 'none';
-        document.body.classList.add('export-mode');
-        
-        // 等待样式稳定
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // 设置导出参数
-        const scale = 2.5; // 高分辨率
-        const options = {
-          quality: 0.98,
-          width: card.offsetWidth * scale,
-          height: card.offsetHeight * scale,
-          bgcolor: '#1a1625',
-          style: {
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            width: card.offsetWidth + 'px',
-            height: card.offsetHeight + 'px'
-          },
-          // 处理跨域图片
-          cacheBust: true,
-          // 保留所有样式
-          copyStyles: true,
-          // 包含伪元素
-          filter: (node) => {
-            // 排除操作按钮
-            return !node.classList?.contains('actions');
-          }
-        };
-        
-        // 生成高质量PNG
-        const dataUrl = await domtoimage.toPng(card, options);
-        
-        // 下载
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `ruoshui_tarot_${Date.now()}.png`;
-        a.click();
-        
-        return true;
-      } catch (error) {
-        console.error('DOM-to-Image export failed:', error);
-        return false;
-      } finally {
-        document.body.classList.remove('export-mode');
-        if (actions) actions.style.display = '';
+async function exportWithBackground() {
+  const card = document.getElementById('shareCard');
+  const actions = document.getElementById('actions');
+  
+  try {
+    if (actions) actions.style.display = 'none';
+    document.body.classList.add('export-mode');
+    
+    // 创建临时容器
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 400px;
+      height: 711px;
+      background: linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    
+    // 克隆卡片
+    const clonedCard = card.cloneNode(true);
+    wrapper.appendChild(clonedCard);
+    document.body.appendChild(wrapper);
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // 导出整个容器
+    const scale = 2.5;
+    const dataUrl = await domtoimage.toPng(wrapper, {
+      quality: 0.98,
+      width: 400 * scale,
+      height: 711 * scale,
+      style: {
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left'
       }
-    }
+    });
+    
+    // 清理
+    document.body.removeChild(wrapper);
+    
+    // 下载
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `ruoshui_tarot_${Date.now()}.png`;
+    a.click();
+    
+    return true;
+  } catch (error) {
+    console.error('Export with background failed:', error);
+    return false;
+  } finally {
+    document.body.classList.remove('export-mode');
+    if (actions) actions.style.display = '';
+  }
+}
     
     // 备用方案：增强的 html2canvas
     async function exportWithHtml2Canvas() {
