@@ -599,6 +599,243 @@ ${card}
       $('btnCopy').onclick = ()=>copyText();
       $('btnSave').onclick = savePNG;
     });
+
+
+    // 增强的消息通信和客户端导出支持
+(function() {
+  // 监听来自父页面的消息
+  window.addEventListener('message', async function(event) {
+    const message = event.data;
+    if (!message || !message.type) return;
+    
+    switch(message.type) {
+      case 'share:init':
+        // 初始化数据
+        if (message.data) {
+          renderFromData(message.data);
+        }
+        break;
+        
+      case 'share:update':
+        // 更新二维码和链接
+        if (message.qrCode) {
+          const qrImg = document.getElementById('qrImg');
+          const qrPh = document.getElementById('qrPh');
+          qrImg.src = message.qrCode;
+          qrImg.classList.remove('hidden');
+          qrPh.classList.add('hidden');
+        }
+        if (message.shareUrl) {
+          document.getElementById('siteUrl').textContent = 
+            message.shareUrl.replace(/^https?:\/\//, '');
+        }
+        break;
+        
+      case 'share:export':
+        // 客户端导出
+        await performClientExport();
+        break;
+    }
+  });
+  
+  // 从外部数据渲染（用于 iframe 模式）
+  function renderFromData(data) {
+    // 更新日期和用户名
+    document.getElementById('dateTag').textContent = 
+      data.today || new Date().toLocaleDateString('zh-CN').replace(/\//g, '.');
+    document.getElementById('userTag').textContent = 
+      data.user_name || '神秘访客';
+    
+    // 更新卡牌信息
+    const reading = data.reading || {};
+    document.getElementById('cardName').textContent = 
+      reading.name || reading.card_name || '—';
+    document.getElementById('cardDirection').textContent = 
+      reading.direction || '—';
+    
+    // 更新卡牌图片
+    if (reading.image) {
+      const img = document.getElementById('cardImg');
+      img.src = reading.image;
+      img.onload = function() {
+        img.classList.remove('hidden');
+        document.getElementById('cardPh').classList.add('hidden');
+      };
+    }
+    
+    // 更新运势数据
+    const fortune = data.fortune || {};
+    updateFortuneDisplay(fortune);
+  }
+  
+  // 更新运势显示
+  function updateFortuneDisplay(fortune) {
+    // 总分
+    const score = Number(fortune.overall_score || 0);
+    document.getElementById('scoreNum').textContent = score || '—';
+    document.getElementById('ring').style.setProperty('--progress', 
+      (Math.max(0, Math.min(100, score)) / 100).toFixed(3));
+    
+    // 评级
+    let grade = '平';
+    if (score >= 85) grade = '大吉';
+    else if (score >= 70) grade = '中吉';
+    else if (score >= 55) grade = '小吉';
+    document.getElementById('scoreBadge').textContent = grade;
+    
+    // 总评
+    document.getElementById('summaryText').textContent = 
+      fortune.summary || '今日运势温和清澈，顺势而行。';
+    
+    // 宜忌
+    const dos = (fortune.do || []).slice(0, 3);
+    const donts = (fortune.dont || []).slice(0, 3);
+    
+    document.getElementById('doListV').innerHTML = 
+      dos.length ? dos.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
+    document.getElementById('dontListV').innerHTML = 
+      donts.length ? donts.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
+    
+    // 幸运元素
+    const lucky = fortune.lucky_elements || {};
+    document.getElementById('luckyColor').textContent = 
+      fortune.lucky_color || lucky.color || '—';
+    document.getElementById('luckyNumber').textContent = 
+      fortune.lucky_number || lucky.number || '—';
+    document.getElementById('luckyHour').textContent = 
+      fortune.lucky_hour || lucky.hour || '—';
+    document.getElementById('luckyDirectionDisplay').textContent = 
+      fortune.lucky_direction || lucky.direction || '—';
+    
+    // 五维度（如果有）
+    if (fortune.dimensions && Array.isArray(fortune.dimensions)) {
+      updateDimensions(fortune.dimensions);
+    }
+  }
+  
+  // 更新五维度显示
+  function updateDimensions(dimensions) {
+    const dimsEl = document.getElementById('dims');
+    if (!dimsEl) return;
+    
+    dimsEl.innerHTML = '';
+    const icons = {
+      '事业运': '💼', '财富运': '💰', 
+      '爱情运': '💕', '健康运': '🌿', 
+      '贵人运': '✨'
+    };
+    
+    dimensions.forEach(dim => {
+      const stars = Math.floor(dim.stars || dim.score || 0);
+      let starsHtml = '';
+      for (let i = 0; i < 5; i++) {
+        starsHtml += `<span class="star${i < stars ? ' filled' : ''}"></span>`;
+      }
+      
+      const item = document.createElement('div');
+      item.className = 'dim-item';
+      item.innerHTML = `
+        <div class="dim-circle">${icons[dim.name] || '⭐'}</div>
+        <div class="dim-label">${dim.name.replace('运', '')}</div>
+        <div class="dim-rating">${starsHtml}</div>
+      `;
+      dimsEl.appendChild(item);
+    });
+  }
+  
+  // 客户端导出实现
+  async function performClientExport() {
+    try {
+      // 隐藏操作按钮
+      const actions = document.getElementById('actions');
+      if (actions) actions.style.display = 'none';
+      
+      // 添加导出模式类
+      document.body.classList.add('export-mode');
+      
+      // 等待重绘
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 检查是否有 html2canvas
+      if (typeof html2canvas === 'undefined') {
+        // 动态加载 html2canvas
+        await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+      }
+      
+      // 执行截图
+      const canvas = await html2canvas(document.getElementById('shareCard'), {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+        allowTaint: false,
+        onclone: function(clonedDoc) {
+          // 在克隆的文档中确保样式正确
+          clonedDoc.body.classList.add('export-mode');
+        }
+      });
+      
+      // 转换为 data URL
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // 如果在 iframe 中，发送给父页面
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'share:export-ready',
+          success: true,
+          dataUrl: dataUrl
+        }, '*');
+      } else {
+        // 直接下载
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `ruoshui_tarot_${Date.now()}.png`;
+        a.click();
+      }
+      
+    } catch (error) {
+      console.error('Client export error:', error);
+      
+      // 通知失败
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'share:export-ready',
+          success: false,
+          error: error.message
+        }, '*');
+      } else {
+        alert('导出失败：' + error.message);
+      }
+      
+    } finally {
+      // 恢复界面
+      document.body.classList.remove('export-mode');
+      const actions = document.getElementById('actions');
+      if (actions) actions.style.display = '';
+    }
+  }
+  
+  // 动态加载脚本
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  
+  // 如果在 iframe 中，通知父页面已准备就绪
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'share:ready' }, '*');
+    
+    // 隐藏操作按钮（iframe 模式下）
+    const actions = document.getElementById('actions');
+    if (actions) actions.style.display = 'none';
+  }
+})();
+
   </script>
 </body>
 </html>
