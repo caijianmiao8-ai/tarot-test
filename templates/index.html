@@ -521,6 +521,29 @@ input, select, textarea{
   }
 }
 
+
+
+/* 彻底隐藏旧的分享弹层及其遮罩 */
+.sc-overlay,
+.sc-backdrop { display: none !important; visibility: hidden !important; opacity: 0 !important; }
+
+/* 移动端触控增强 & 安全区适配 */
+.fab-share { 
+  min-width: 44px; min-height: 44px; 
+  display:flex; align-items:center; justify-content:center;
+  border-radius: 999px; 
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.fab-share.disabled { pointer-events: none; opacity: .5; }
+.btn-ai-chat { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+/* iOS 底部安全区：让悬浮按钮不被 Home 条遮住 */
+@supports(padding:max(0px)) {
+  .fab-share { margin-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+
   </style>
 
 </head>
@@ -1179,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // 若你想彻底停用旧的弹层（overlay），可强行隐藏它（可选）
-  // const css = document.createElement('style'); css.innerHTML = '.sc-overlay{display:none!important}'; document.head.appendChild(css);
+ const css = document.createElement('style'); css.innerHTML = '.sc-overlay{display:none!important}'; document.head.appendChild(css);
 
 </script>
 
