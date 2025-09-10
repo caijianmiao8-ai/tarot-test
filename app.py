@@ -241,6 +241,176 @@ def generate_qr_code(data: str) -> str:
         print(f"[generate_qr_code] fallback: {e}")
         return None
 
+# ====== 日切工具 & DB 读写（仅本文件使用） ======
+from datetime import timedelta
+from flask import request, jsonify, session, g
+from database import DatabaseManager, SpreadDAO  # 已有
+from services import DateTimeService, DifyService, SpreadService, ChatService, PersonaService
+
+
+def _day_key_date(cutoff_hour: int = 1):
+    """
+    返回“会话日”的 date（01:00 为日界线）：
+    - 00:00 ~ 00:59 视为前一天
+    - 01:00 及之后视为当天
+    """
+    now = DateTimeService.get_beijing_datetime()
+    if now.hour < cutoff_hour:
+        return (now - timedelta(days=1)).date()
+    return now.date()
+
+def _dc_select(user_ref: str, scope: str, ai_personality: str, day_key_date):
+    """查当日 conversation_id（表：dify_conversations）"""
+    try:
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT conversation_id
+                    FROM dify_conversations
+                    WHERE user_ref=%s AND scope=%s AND ai_personality=%s AND day_key=%s
+                    LIMIT 1
+                """, (user_ref, scope, ai_personality, day_key_date))
+                row = cur.fetchone()
+                if not row:
+                    return None
+                # 兼容 RealDictCursor / tuple
+                return row.get("conversation_id") if isinstance(row, dict) else row[0]
+    except Exception as e:
+        print("[daily-cid] select error:", e)
+        return None
+
+def _dc_upsert(user_ref: str, scope: str, ai_personality: str, day_key_date, conversation_id: str):
+    """写/改当日 conversation_id（有则覆盖，无则插入）"""
+    try:
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO dify_conversations(user_ref, scope, ai_personality, day_key, conversation_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (user_ref, scope, ai_personality, day_key)
+                    DO UPDATE SET conversation_id = EXCLUDED.conversation_id
+                """, (user_ref, scope, ai_personality, day_key_date, conversation_id))
+                conn.commit()
+    except Exception as e:
+        print("[daily-cid] upsert error:", e)
+
+# ========== 引导聊天（guided）：每日固定会话 ==========
+@app.route("/api/guided/chat/send_daily", methods=["POST"])
+def api_guided_chat_send_daily():
+    """
+    与 /api/guided/chat/send 等价，但 conversation_id 按 用户×人格×scope=guided×(01:00切日) 固定
+    """
+    user = g.get("user") or {}
+    data = request.json or {}
+    message = (data.get('message') or '').strip()
+    ai_personality = _resolve_ai_personality(data)
+
+    if not message or len(message) > Config.CHAT_FEATURES['max_message_length']:
+        return jsonify({'error': '消息长度不合法'}), 400
+
+    # 频控（沿用原逻辑）
+    can_chat, remaining = SpreadService.can_chat_today(
+        user.get('id'), session.get('session_id'), user.get('is_guest', True)
+    )
+    if not can_chat:
+        limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
+        return jsonify({'reply': limit_msg, 'limit_reached': True, 'remaining': 0})
+
+    user_ref = get_user_ref()
+    scope = "guided"
+    day_key = _day_key_date(1)
+
+    # 1) 取当日CID；若无则不传 cid 让 Dify 新建
+    cid = _dc_select(user_ref, scope, ai_personality, day_key)
+
+    resp = DifyService.guided_chat(
+        user_message=message,
+        user_ref=user_ref,
+        conversation_id=cid,             # 可能是 None → 让 Dify 新建
+        ai_personality=ai_personality,
+        phase='guide',
+        spread_id=data.get('spread_id'),
+        reading_id=data.get('reading_id'),
+        question=data.get('question'),
+        candidate_set_id=data.get('candidate_set_id'),
+    )
+
+    new_cid = resp.get("conversation_id") or cid
+    if new_cid:
+        _dc_upsert(user_ref, scope, ai_personality, day_key, new_cid)
+        session['guided_cid'] = new_cid  # 兼容旧逻辑
+        session.modified = True
+
+    return jsonify({
+        'reply': resp.get('answer', ''),
+        'conversation_id': new_cid,
+        'remaining': max(remaining - 1, 0)
+    })
+
+# ========== 牌阵聊天（spread）：每日固定会话 ==========
+@app.route("/api/spread/chat/send_daily", methods=["POST"])
+def api_spread_chat_send_daily():
+    """
+    与 /api/spread/chat/send 等价，但 conversation_id 按 用户×人格×scope=spread×(01:00切日) 固定；
+    同时把当日CID写回该 reading，保证 SpreadService.process_chat_message 继续沿用。
+    """
+    user = g.get("user") or {}
+    data = request.json or {}
+    reading_id = data.get('reading_id')
+    message = (data.get('message') or '').strip()
+    if not reading_id:
+        return jsonify({'error': 'missing reading_id'}), 400
+    if not message:
+        return jsonify({'error': '消息为空'}), 400
+
+    # 鉴权
+    reading = SpreadDAO.get_by_id(reading_id)
+    if not reading:
+        return jsonify({'error': '占卜记录不存在'}), 404
+    if reading['user_id'] != user.get('id') and reading['session_id'] != session.get('session_id'):
+        return jsonify({'error': '无权访问'}), 403
+
+    # 频控
+    can_chat, remaining = SpreadService.can_chat_today(
+        user.get('id'), session.get('session_id'), user.get('is_guest', True)
+    )
+    if not can_chat:
+        limit_msg = random.choice(ChatService.LIMIT_MESSAGES)
+        return jsonify({'reply': limit_msg, 'limit_reached': True, 'remaining': 0})
+
+    user_ref = get_user_ref()
+    ai_personality = (reading.get('ai_personality') or _resolve_ai_personality(data) or 'warm')
+    scope = "spread"
+    day_key = _day_key_date(1)
+
+    # 1) 取当日CID；如命中且与 reading 不同，则同步回 reading
+    cid = _dc_select(user_ref, scope, ai_personality, day_key)
+    if cid and cid != reading.get('conversation_id'):
+        try:
+            SpreadDAO.update_conversation_id(reading_id, cid)
+        except Exception as e:
+            print("[daily-cid] update reading conversation_id error:", e)
+
+    # 2) 走你现有服务：它会根据 reading.conversation_id 续聊，并在变化时更新 reading
+    resp = SpreadService.process_chat_message(
+        reading_id=reading_id,
+        user_message=message,
+        user_ref=user_ref
+    )
+
+    new_cid = resp.get("conversation_id") or cid
+    if new_cid and new_cid != cid:
+        _dc_upsert(user_ref, scope, ai_personality, day_key, new_cid)
+        try:
+            SpreadDAO.update_conversation_id(reading_id, new_cid)
+        except Exception as e:
+            print("[daily-cid] update reading conversation_id error:", e)
+
+    return jsonify({
+        'reply': resp.get('answer', ''),
+        'conversation_id': new_cid,
+        'remaining': max(remaining - 1, 0)
+    })
 
 # =========================
 # 路由：分享卡片生成页面（本人查看/生成）

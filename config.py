@@ -9,6 +9,9 @@ class Config:
     """应用配置类"""
     
 
+    # ===== Conversation 日界线配置 =====
+    APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Asia/Shanghai")  # 也可用 "Asia/Tokyo"
+    DAILY_CONV_CUTOFF_HOUR = int(os.environ.get("DAILY_CONV_CUTOFF_HOUR", "1"))  # 01:00 切日
 
     # Flask 配置
     SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")

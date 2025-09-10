@@ -167,8 +167,79 @@ def convert_fortune_format(dify_data):
         "summary": dify_data.get("summary", "今日运势平稳，适合稳步前进。")
     }
     
+from database import DifyConversationDAO
+
+class DifyConversationService:
+    @staticmethod
+    def ensure_daily_conversation(user_ref: str,
+                                  scope: str,
+                                  ai_personality: str,
+                                  prefer_existing: bool = True):
+        """
+        返回 (day_key, existing_cid_or_None)
+        """
+        day_key = DateTimeService.day_key_for_cutoff()
+        cid = None
+        if prefer_existing:
+            cid = DifyConversationDAO.get_conversation_id(
+                user_ref=user_ref,
+                day_key=day_key,
+                scope=scope,
+                ai_personality=ai_personality
+            )
+        return day_key, cid
+
+    @staticmethod
+    def save_daily_conversation(user_ref: str,
+                                scope: str,
+                                ai_personality: str,
+                                day_key: str,
+                                conversation_id: str):
+        if conversation_id:
+            DifyConversationDAO.upsert_conversation_id(
+                user_ref=user_ref,
+                day_key=day_key,
+                scope=scope,
+                ai_personality=ai_personality,
+                conversation_id=conversation_id
+            )
+
+
+try:
+    from zoneinfo import ZoneInfo  # Py3.9+
+except Exception:
+    ZoneInfo = None
+
 class DateTimeService:
+
     """时间服务"""
+    @staticmethod
+    def _tz():
+        if ZoneInfo:
+            return ZoneInfo(getattr(Config, "APP_TIMEZONE", "Asia/Shanghai"))
+        # 兜底：无 ZoneInfo 时，仍用 naive 时间（不建议线上）
+        return None
+
+    @staticmethod
+    def now_local():
+        tz = DateTimeService._tz()
+        return datetime.now(tz) if tz else datetime.now()
+
+    @staticmethod
+    def day_key_for_cutoff(cutoff_hour: int = None) -> str:
+        """
+        返回“会话日键”：达到 cutoff_hour（默认 01:00）前，属于“前一天”；之后属于“当天”
+        用于每天固定刷新 conversation。
+        """
+        cutoff_hour = (cutoff_hour
+                       if cutoff_hour is not None
+                       else getattr(Config, "DAILY_CONV_CUTOFF_HOUR", 1))
+        now = DateTimeService.now_local()
+        if now.hour < cutoff_hour:
+            eff_date = (now - timedelta(days=1)).date()
+        else:
+            eff_date = now.date()
+        return eff_date.strftime("%Y%m%d")  # 作为字符串在业务层传递，DB层用 date
 
     @staticmethod
     def get_beijing_date():

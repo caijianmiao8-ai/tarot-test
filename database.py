@@ -140,6 +140,40 @@ class ShareDAO:
             with conn.cursor() as cur:
                 cur.execute(sql, [share_id])
 
+class DifyConversationDAO:
+    @staticmethod
+    def get_conversation_id(user_ref: str, day_key: str,
+                            scope: str = "guided",
+                            ai_personality: str = "warm"):
+        sql = """
+        select conversation_id
+        from dify_conversations
+        where user_ref=%s and scope=%s and ai_personality=%s and day_key=%s::date
+        limit 1
+        """
+        with DatabaseManager.get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (user_ref, scope, ai_personality, day_key))
+                row = cur.fetchone()
+                return row[0] if row else None
+
+    @staticmethod
+    def upsert_conversation_id(user_ref: str, day_key: str, conversation_id: str,
+                               scope: str = "guided",
+                               ai_personality: str = "warm"):
+        sql = """
+        insert into dify_conversations(user_ref, scope, ai_personality, day_key, conversation_id)
+        values (%s, %s, %s, %s::date, %s)
+        on conflict (user_ref, scope, ai_personality, day_key)
+        do update set conversation_id=excluded.conversation_id
+        returning id
+        """
+        with DatabaseManager.get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (user_ref, scope, ai_personality, day_key, conversation_id))
+                _ = cur.fetchone()
+                conn.commit()
+                return True
 
 class ShareService:
     @staticmethod
