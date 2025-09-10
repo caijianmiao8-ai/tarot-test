@@ -246,6 +246,60 @@ def generate_qr_code(data: str) -> str:
 # ===== Cron 调度：按日枚举会话并触发摘要 Workflow =====
 from flask import request, jsonify
 from datetime import datetime, timedelta
+# ==== imports（若已存在可忽略） ====
+import json
+import requests
+from config import Config
+
+# ==== 触发 Dify 摘要 Workflow（轻量触发，不拼消息） ====
+def _run_summary_workflow(user_ref: str,
+                          conversation_id: str,
+                          day_key: str,
+                          scope: str,
+                          persona: str,
+                          extra_inputs: dict | None = None,
+                          timeout: int = 20):
+    """
+    触发 Dify 的“会话摘要 Workflow”。这里只传轻量 inputs，
+    真正的“拉历史+总结”在 Dify Workflow 内部完成（HTTP Request 节点访问 /v1/messages）。
+    返回: (ok: bool, info: dict)
+    """
+    api_key = getattr(Config, "DIFY_SUM_WORKFLOW_API_KEY", "")
+    if not api_key:
+        return False, {"error": "Missing env DIFY_SUM_WORKFLOW_API_KEY"}
+
+    base = getattr(Config, "DIFY_API_BASE", "https://api.dify.ai").rstrip("/")
+    url = f"{base}/v1/workflows/run"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "inputs": {
+            "user": user_ref,
+            "conversation_id": conversation_id,
+            "day_key": str(day_key),
+            "scope": scope,
+            "persona": persona,
+            **(extra_inputs or {})
+        },
+        # 触发即可；不依赖流式
+        "response_mode": "blocking"
+    }
+
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        ok = 200 <= r.status_code < 300
+        try:
+            body = r.json()
+        except Exception:
+            body = {"text": r.text[:2000]}
+        if ok:
+            return True, body
+        else:
+            return False, {"status_code": r.status_code, "body": body}
+    except requests.RequestException as e:
+        return False, {"error": str(e)}
 
 # —— 小工具：鉴权（支持 Vercel Cron 或 token）——
 def _cron_authorized():
