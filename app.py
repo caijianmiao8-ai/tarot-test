@@ -3,7 +3,7 @@
 重构版本，支持 Vercel 部署和未来迁移
 """
 import os
-import json
+import json, requests
 import random
 import traceback
 import uuid
@@ -240,6 +240,186 @@ def generate_qr_code(data: str) -> str:
         # 不中断主流程，前端可用 share_url 自行渲染第三方二维码（或展示链接）
         print(f"[generate_qr_code] fallback: {e}")
         return None
+
+
+
+# ===== Cron 调度：按日枚举会话并触发摘要 Workflow =====
+from flask import request, jsonify
+from datetime import datetime, timedelta
+
+# —— 小工具：鉴权（支持 Vercel Cron 或 token）——
+def _cron_authorized():
+    """
+    通过以下任一方式鉴权：
+      1) Vercel Cron 自带请求头：x-vercel-cron: 1
+      2) Header: X-CRON-SECRET: <Config.CRON_SECRET>
+      3) Query:  ?token=<Config.CRON_SECRET>
+      4) Header: Authorization: Bearer <Config.CRON_SECRET>
+    """
+    try:
+        if request.headers.get("x-vercel-cron") == "1":
+            return True
+        if request.headers.get("X-CRON-SECRET") == Config.CRON_SECRET:
+            return True
+        if request.args.get("token") == Config.CRON_SECRET:
+            return True
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ") and auth.split(" ", 1)[1] == Config.CRON_SECRET:
+            return True
+    except Exception:
+        pass
+    return False
+
+# —— 小工具：解析查询参数（兼容 GET/POST）——
+def _read_params():
+    # GET 参数
+    scope_filter = request.args.get("scope")  # guided | spread | all/None
+    only_missing = request.args.get("only_missing", "1") in ("1", "true", "True")
+    limit = int(request.args.get("limit", "300"))  # 默认 300，比 10000 安全很多
+    after_id = request.args.get("after_id")  # 分页用：仅取 id > after_id 的会话
+    day_key_override = request.args.get("day_key")  # 允许指定某天，格式 YYYY-MM-DD
+
+    # 兼容 POST JSON（手工触发时也可以传）
+    j = request.get_json(silent=True) or {}
+    scope_filter = j.get("scope", scope_filter)
+    if "only_missing" in j:
+        only_missing = str(j.get("only_missing")).lower() in ("1", "true")
+    limit = int(j.get("limit", limit))
+    after_id = j.get("after_id", after_id)
+    day_key_override = j.get("day_key", day_key_override)
+
+    return scope_filter, only_missing, limit, after_id, day_key_override
+
+# —— 小工具：本地切日 —— 
+def _now_local():
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo(getattr(Config, "APP_TIMEZONE", "Asia/Tokyo")))
+    except Exception:
+        return datetime.now()
+
+def _day_key_for_cutoff(dt: datetime | None = None):
+    dt = dt or _now_local()
+    cutoff = getattr(Config, "DAILY_CONV_CUTOFF_HOUR", 1)
+    if dt.hour < cutoff:
+        return (dt - timedelta(days=1)).date()
+    return dt.date()
+
+@app.route("/tasks/dispatch_daily_summaries", methods=["GET", "POST"])
+def tasks_dispatch_daily_summaries():
+    """
+    调度接口：枚举当日（或指定 day_key）的 dify_conversations，
+    为每条 (user_ref, conversation_id) 触发“会话摘要 Workflow”。
+    Workflow 内部自行拉取 /v1/messages 并总结，再 POST 回 /webhooks/dify/summary_ingest。
+    """
+    # 1) 鉴权：支持 Vercel Cron 或 token 兜底
+    if not _cron_authorized():
+        return jsonify({"error": "unauthorized"}), 401
+
+    # 2) 读取参数（GET/POST 通用）
+    scope_filter, only_missing, limit, after_id, day_key_override = _read_params()
+
+    # 3) day_key：允许外部传入；否则按本地切日计算（01:00）
+    if day_key_override:
+        try:
+            day_key = datetime.fromisoformat(day_key_override).date()
+        except Exception:
+            return jsonify({"error": "invalid day_key, expect YYYY-MM-DD"}), 400
+    else:
+        day_key = _day_key_for_cutoff()
+
+    # 4) 组装 SQL：支持 only_missing、scope 过滤、after_id 分页
+    #    注意：加上 c.id 以便游标分页（order by c.id asc）
+    left_join = ""
+    and_scope = ""
+    and_missing = ""
+    and_after = ""
+
+    params = [day_key]
+
+    if scope_filter and scope_filter != "all":
+        and_scope = "AND c.scope = %s"
+        params.append(scope_filter)
+
+    if only_missing:
+        left_join = """
+            LEFT JOIN daily_summaries s
+              ON s.user_ref=c.user_ref
+             AND s.scope=c.scope
+             AND s.ai_personality=c.ai_personality
+             AND s.day_key=c.day_key
+        """
+        and_missing = "AND s.id IS NULL"
+
+    if after_id:
+        and_after = "AND c.id > %s"
+        params.append(int(after_id))
+
+    params.append(int(limit))
+
+    sql = f"""
+        SELECT c.id, c.user_ref, c.scope, c.ai_personality, c.conversation_id
+          FROM dify_conversations c
+          {left_join}
+         WHERE c.day_key = %s
+           {and_scope}
+           {and_missing}
+           {and_after}
+         ORDER BY c.id ASC
+         LIMIT %s
+    """
+
+    # 5) 查询
+    with DatabaseManager.get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall() or []
+
+    if not rows:
+        return jsonify({
+            "day_key": str(day_key),
+            "total": 0,
+            "dispatched": 0,
+            "next_after_id": None,
+            "items": []
+        })
+
+    # 6) 逐条触发 Workflow（轻量：只传 user/conv/day/scope/persona）
+    total = len(rows)
+    dispatched = 0
+    items = []
+    last_id = None
+
+    for r in rows:
+        # 兼容 tuple/dict
+        row_id   = r["id"] if isinstance(r, dict) else r[0]
+        user_ref = r["user_ref"] if isinstance(r, dict) else r[1]
+        scope    = r["scope"] if isinstance(r, dict) else r[2]
+        persona  = r["ai_personality"] if isinstance(r, dict) else r[3]
+        cid      = r["conversation_id"] if isinstance(r, dict) else r[4]
+
+        ok, _info = _run_summary_workflow(
+            user_ref=user_ref,
+            conversation_id=cid,
+            day_key=str(day_key),
+            scope=scope,
+            persona=persona,
+            extra_inputs=None,
+            timeout=10  # 短超时即可；真正工作在 Workflow 内完成并回调
+        )
+        dispatched += 1 if ok else 0
+        last_id = row_id
+        items.append({"id": row_id, "user_ref": user_ref, "scope": scope, "persona": persona, "ok": ok})
+
+    # 7) 返回 next_after_id，便于多次触发分页跑完（如果需要）
+    return jsonify({
+        "day_key": str(day_key),
+        "total": total,
+        "dispatched": dispatched,
+        "next_after_id": last_id,
+        "items": items
+    })
+
 
 # ====== 日切工具 & DB 读写（仅本文件使用） ======
 from datetime import timedelta

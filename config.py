@@ -8,6 +8,21 @@ from datetime import timedelta
 class Config:
     """应用配置类"""
     
+    # ===== Dify & Cron/Webhook 配置 =====
+    DIFY_API_BASE = os.getenv("DIFY_API_BASE", "http://ai-bot-new.dalongyun.com/v1")
+
+    # 触发“会话摘要 Workflow”的 API Key（在该 Workflow 的 Access API 页面获得）
+    DIFY_SUM_WORKFLOW_API_KEY = os.getenv("DIFY_SUM_WORKFLOW_API_KEY", "")
+
+    # 时区与切日（你现在按 01:00 切日）
+    APP_TIMEZONE = os.getenv("APP_TIMEZONE", "Asia/Tokyo")
+    DAILY_CONV_CUTOFF_HOUR = int(os.getenv("DAILY_CONV_CUTOFF_HOUR", "1"))
+
+    # 调度接口的简易鉴权（Vercel Cron 调用时在 Header 里带 X-CRON-SECRET）
+    CRON_SECRET = os.getenv("CRON_SECRET", "change-me")
+
+    # Webhook 验证（Workflow 的最后一个 HTTP 节点以 Header 带上 X-WEBHOOK-SECRET）
+    WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change-me-too")
 
     # ===== Conversation 日界线配置 =====
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Asia/Shanghai")  # 也可用 "Asia/Tokyo"
