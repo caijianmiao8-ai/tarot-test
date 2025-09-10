@@ -248,8 +248,28 @@ from flask import request, jsonify
 from datetime import datetime, timedelta
 # ==== imports（若已存在可忽略） ====
 import json
+from psycopg2.extras import Json
 import requests
 from config import Config
+
+def _webhook_authorized():
+    """
+    允许以下任一方式通过：
+      - Header: X-WEBHOOK-SECRET: <Config.WEBHOOK_SECRET>
+      - Header: Authorization: Bearer <Config.WEBHOOK_SECRET>
+      - Query:  ?token=<Config.WEBHOOK_SECRET>   (便于手工调试)
+    """
+    try:
+        if request.headers.get("X-WEBHOOK-SECRET") == Config.WEBHOOK_SECRET:
+            return True
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ") and auth.split(" ", 1)[1] == Config.WEBHOOK_SECRET:
+            return True
+        if request.args.get("token") == Config.WEBHOOK_SECRET:
+            return True
+    except Exception:
+        pass
+    return False
 
 # ==== 触发 Dify 摘要 Workflow（轻量触发，不拼消息） ====
 def _run_summary_workflow(user_ref: str,
@@ -358,6 +378,90 @@ def _day_key_for_cutoff(dt: datetime | None = None):
     if dt.hour < cutoff:
         return (dt - timedelta(days=1)).date()
     return dt.date()
+
+@app.route("/webhooks/dify/summary_ingest", methods=["POST"])
+def webhooks_dify_summary_ingest():
+    """
+    接收 Dify Workflow 的摘要结果，写入 daily_summaries 表。
+    期望 Body（JSON）包含：
+      user, conversation_id, day_key, scope, persona, message_count, summary_json(对象或字符串), [tail_preview], [turns_compact_count]
+    """
+    # 1) 鉴权
+    if not _webhook_authorized():
+        return jsonify({"error": "unauthorized"}), 401
+
+    # 2) 解析 Body（兼容对象/字符串）
+    body = request.get_json(silent=True) or {}
+    user_ref = (body.get("user") or "").strip()
+    conversation_id = (body.get("conversation_id") or "").strip()
+    scope = (body.get("scope") or "guided").strip()
+    persona = (body.get("persona") or "default").strip()
+    day_key_raw = (body.get("day_key") or "").strip()
+    message_count = int(body.get("message_count") or 0)
+
+    # day_key 转日期
+    try:
+        day_key = datetime.fromisoformat(day_key_raw).date()
+    except Exception:
+        return jsonify({"error": "invalid day_key"}), 400
+
+    # summary_json 可能是对象或字符串
+    summary_json = body.get("summary_json")
+    if isinstance(summary_json, str):
+        try:
+            summary_json = json.loads(summary_json)
+        except Exception:
+            summary_json = None
+
+    if not isinstance(summary_json, dict):
+        # 最小兜底，确保有结构
+        summary_json = {
+            "summary": (body.get("summary") or "今天没有对话内容"),
+            "topics": [],
+            "mood": "neutral",
+            "next_openers": []
+        }
+
+    # 生成一份 summary_text（可选，便于检索/预览）
+    summary_text = (summary_json.get("summary") or "").strip()
+    if len(summary_text) > 2000:
+        summary_text = summary_text[:2000]
+
+    # 3) 入库（UPSERT）
+    # 约定：daily_summaries 上有唯一键 (user_ref, scope, ai_personality, day_key)
+    sql = """
+        INSERT INTO daily_summaries
+          (user_ref, scope, ai_personality, day_key, conversation_id, message_count, summary_json, summary_text, updated_at)
+        VALUES
+          (%s, %s, %s, %s, %s, %s, %s, %s, now())
+        ON CONFLICT (user_ref, scope, ai_personality, day_key) DO UPDATE SET
+          conversation_id = EXCLUDED.conversation_id,
+          message_count   = EXCLUDED.message_count,
+          summary_json    = EXCLUDED.summary_json,
+          summary_text    = EXCLUDED.summary_text,
+          updated_at      = now()
+        RETURNING id
+    """
+    params = [
+        user_ref, scope, persona, day_key, conversation_id,
+        message_count, Json(summary_json), summary_text
+    ]
+
+    try:
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                row = cur.fetchone()
+                conn.commit()
+        return jsonify({"ok": True, "id": (row["id"] if isinstance(row, dict) else (row[0] if row else None))})
+    except Exception as e:
+        # 统一打印/返回，方便排错
+        try:
+            err = str(e)
+        except Exception:
+            err = "db error"
+        return jsonify({"ok": False, "error": err}), 500
+
 
 @app.route("/tasks/dispatch_daily_summaries", methods=["GET", "POST"])
 def tasks_dispatch_daily_summaries():
