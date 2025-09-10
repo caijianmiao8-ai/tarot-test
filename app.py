@@ -476,6 +476,8 @@ def tasks_dispatch_daily_summaries():
 
     # 2) 读取参数（GET/POST 通用）
     scope_filter, only_missing, limit, after_id, day_key_override = _read_params()
+    debug = request.args.get("debug", "0") in ("1", "true", "True")
+    dry_run = request.args.get("dry_run", "0") in ("1", "true", "True")
 
     # 3) day_key：允许外部传入；否则按本地切日计算（01:00）
     if day_key_override:
@@ -487,7 +489,6 @@ def tasks_dispatch_daily_summaries():
         day_key = _day_key_for_cutoff()
 
     # 4) 组装 SQL：支持 only_missing、scope 过滤、after_id 分页
-    #    注意：加上 c.id 以便游标分页（order by c.id asc）
     left_join = ""
     and_scope = ""
     and_missing = ""
@@ -539,7 +540,34 @@ def tasks_dispatch_daily_summaries():
             "total": 0,
             "dispatched": 0,
             "next_after_id": None,
-            "items": []
+            "items": [],
+            "filters": {
+                "scope": scope_filter or "ALL",
+                "only_missing": bool(only_missing),
+                "after_id": after_id,
+                "limit": limit
+            }
+        })
+
+    # dry_run：只回显将要触发的条目，不实际触发
+    if dry_run:
+        items = []
+        for r in rows:
+            row_id   = r["id"] if isinstance(r, dict) else r[0]
+            user_ref = r["user_ref"] if isinstance(r, dict) else r[1]
+            scope    = r["scope"] if isinstance(r, dict) else r[2]
+            persona  = r["ai_personality"] if isinstance(r, dict) else r[3]
+            cid      = r["conversation_id"] if isinstance(r, dict) else r[4]
+            items.append({
+                "id": row_id, "user_ref": user_ref, "scope": scope, "persona": persona, "conversation_id": cid
+            })
+        return jsonify({
+            "day_key": str(day_key),
+            "total": len(rows),
+            "dispatched": 0,
+            "next_after_id": (rows[-1]["id"] if isinstance(rows[0], dict) else rows[-1][0]),
+            "items": items,
+            "dry_run": True
         })
 
     # 6) 逐条触发 Workflow（轻量：只传 user/conv/day/scope/persona）
@@ -549,25 +577,28 @@ def tasks_dispatch_daily_summaries():
     last_id = None
 
     for r in rows:
-        # 兼容 tuple/dict
         row_id   = r["id"] if isinstance(r, dict) else r[0]
         user_ref = r["user_ref"] if isinstance(r, dict) else r[1]
         scope    = r["scope"] if isinstance(r, dict) else r[2]
         persona  = r["ai_personality"] if isinstance(r, dict) else r[3]
         cid      = r["conversation_id"] if isinstance(r, dict) else r[4]
 
-        ok, _info = _run_summary_workflow(
+        ok, info = _run_summary_workflow(
             user_ref=user_ref,
             conversation_id=cid,
             day_key=str(day_key),
             scope=scope,
             persona=persona,
             extra_inputs=None,
-            timeout=10  # 短超时即可；真正工作在 Workflow 内完成并回调
+            timeout=12  # 短超时即可；真正工作在 Workflow 内完成并回调
         )
         dispatched += 1 if ok else 0
         last_id = row_id
-        items.append({"id": row_id, "user_ref": user_ref, "scope": scope, "persona": persona, "ok": ok})
+        item = {"id": row_id, "user_ref": user_ref, "scope": scope, "persona": persona, "ok": ok}
+        if debug:
+            # 回显 Dify 的响应，便于定位 401/403/404 或 Body 错误
+            item["resp"] = info
+        items.append(item)
 
     # 7) 返回 next_after_id，便于多次触发分页跑完（如果需要）
     return jsonify({
@@ -575,8 +606,10 @@ def tasks_dispatch_daily_summaries():
         "total": total,
         "dispatched": dispatched,
         "next_after_id": last_id,
-        "items": items
+        "items": items,
+        "debug": bool(debug)
     })
+
 
 
 # ====== 日切工具 & DB 读写（仅本文件使用） ======
