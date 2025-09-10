@@ -308,17 +308,25 @@ def _run_summary_workflow(user_ref: str,
         "response_mode": "blocking"
     }
 
+    conn_to = int(getattr(Config, "DIFY_CONNECT_TIMEOUT", 5))
+    read_to = int(timeout or getattr(Config, "DIFY_WORKFLOW_TIMEOUT", 60))
+
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        r = requests.post(url, headers=headers, json=payload, timeout=(conn_to, read_to))
         ok = 200 <= r.status_code < 300
         try:
             body = r.json()
         except Exception:
             body = {"text": r.text[:2000]}
-        if ok:
-            return True, body
-        else:
-            return False, {"status_code": r.status_code, "body": body}
+        return (True, body) if ok else (False, {"status_code": r.status_code, "body": body})
+
+    except requests.ReadTimeout:
+        # ✅ 读超时：多数情况下 Workflow 仍会继续在服务端执行并回调
+        return True, {"warn": "read_timeout", "note": f"server may continue running; read_to={read_to}s"}
+
+    except requests.ConnectTimeout:
+        return False, {"error": f"connect_timeout (> {conn_to}s)"}
+
     except requests.RequestException as e:
         return False, {"error": str(e)}
 
@@ -591,7 +599,7 @@ def tasks_dispatch_daily_summaries():
             scope=scope,
             persona=persona,
             extra_inputs=None,
-            timeout=12  # 短超时即可；真正工作在 Workflow 内完成并回调
+           #  timeout=12  # 短超时即可；真正工作在 Workflow 内完成并回调
         )
         dispatched += 1 if ok else 0
         last_id = row_id
