@@ -295,7 +295,8 @@ def _run_summary_workflow(user_ref: str,
         "Content-Type": "application/json",
     }
     payload = {
-        "inputs": {
+        "user": user_ref,
+        "inputs": {            
             "user": user_ref,
             "conversation_id": conversation_id,
             "day_key": str(day_key),
