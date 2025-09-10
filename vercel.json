@@ -1,8 +1,21 @@
+
 {
-  "builds": [{ "src": "app.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/(.*)", "dest": "app.py" }],
-  "buildCommand": "pip install -r requirements.txt && python -m playwright install chromium && (python -m playwright install-deps || true)",
+  "builds": [
+    { 
+      "src": "app.py", 
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    { 
+      "src": "/(.*)", 
+      "dest": "app.py" 
+    }
+  ],
   "crons": [
-    { "path": "/tasks/dispatch_daily_summaries", "schedule": "47 17 * * *" }
+    {
+      "path": "/tasks/dispatch_daily_summaries",
+      "schedule": "58 17 * * *"  
+    }
   ]
 }
