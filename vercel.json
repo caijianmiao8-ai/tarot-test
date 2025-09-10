@@ -3,7 +3,6 @@
   "routes": [{ "src": "/(.*)", "dest": "app.py" }],
   "buildCommand": "pip install -r requirements.txt && python -m playwright install chromium && (python -m playwright install-deps || true)",
   "crons": [
-    { "path": "/tasks/dispatch_daily_summaries", "schedule": "*/2 * * * *" }   // ← 测试用
-    // { "path": "/tasks/dispatch_daily_summaries", "schedule": "0 16 * * *" } // ← 正式用（东京01:00）
+    { "path": "/tasks/dispatch_daily_summaries", "schedule": "*/2 * * * *" } 
   ]
 }
