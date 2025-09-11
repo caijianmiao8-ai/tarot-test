@@ -554,38 +554,75 @@
     // ============ 图像内联 & 导出增强（移动端关键修复） ============
 
     // ★ 新增：把 <img> 的 src 转为 dataURL，避免 iOS/WebKit 在导出时丢图
-    async function toDataURL(url){
-      const res = await fetch(url, { credentials: 'same-origin', cache: 'force-cache' });
-      const blob = await res.blob();
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
+async function toDataURL(url) {
+  try {
+    // 如果已经是 dataURL，直接返回
+    if (url.startsWith('data:')) return url;
+    
+    // 如果是相对路径，转为绝对路径
+    if (!url.startsWith('http')) {
+      const a = document.createElement('a');
+      a.href = url;
+      url = a.href;
+    }
+    
+    // 使用 fetch 获取图片
+    const response = await fetch(url, { 
+      mode: 'cors',
+      credentials: 'same-origin',
+      cache: 'force-cache'
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch image');
+    
+    const blob = await response.blob();
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('Failed to convert image to dataURL:', error);
+    return url; // 失败时返回原URL
+  }
+}
+
+async function ensureInlineImages() {
+  const cardImg = document.getElementById('cardImg');
+  const qrImg = document.getElementById('qrImg');
+  
+  // 内联卡牌图片
+  if (cardImg && !cardImg.classList.contains('hidden') && cardImg.src) {
+    try {
+      const dataUrl = await toDataURL(cardImg.src);
+      cardImg.src = dataUrl;
+      // 等待图片重新加载
+      await new Promise((resolve) => {
+        if (cardImg.complete) {
+          resolve();
+        } else {
+          cardImg.onload = resolve;
+          cardImg.onerror = resolve;
+        }
       });
+    } catch (e) {
+      console.warn('Failed to inline card image:', e);
     }
+  }
+  
+  // 内联二维码
+  if (qrImg && !qrImg.classList.contains('hidden') && qrImg.src) {
+    try {
+      const dataUrl = await toDataURL(qrImg.src);
+      qrImg.src = dataUrl;
+    } catch (e) {
+      console.warn('Failed to inline QR image:', e);
+    }
+  }
+}
 
-    async function inlineImageElement(img){
-      if (!img || img.classList.contains('hidden')) return;
-      if (!img.src || img.src.startsWith('data:')) return;
-      try{
-        const dataUrl = await toDataURL(img.src);
-        await new Promise((res, rej) => {
-          img.onload = () => res();
-          img.onerror = () => res(); // 忽略错误，继续导出
-          img.src = dataUrl;
-          if (img.complete && img.naturalWidth) res();
-        });
-      }catch(e){
-        console.warn('inline image failed:', e);
-      }
-    }
-
-    async function ensureInlineCardAssets(){
-      await Promise.all([
-        inlineImageElement($('cardImg')),
-        inlineImageElement($('qrImg'))
-      ]);
-    }
 
     async function waitForVisibleImages(root){
       const imgs = Array.from(root.querySelectorAll('img')).filter(i => !i.classList.contains('hidden'));
@@ -630,190 +667,287 @@
     }
 
     // ★ 新增：移动端“直接存相册/分享”封装
-    async function saveBlobMobile(blob, filename){
-      try{
-        const file = new File([blob], filename, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files:[file] })) {
-          await navigator.share({ files:[file], title: '若水占卜 · 分享卡片' });
+async function saveBlobMobile(blob, filename) {
+  try {
+    // 方案A：如果支持 Web Share API with files
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: 'image/png' });
+      
+      // 检查是否可以分享文件
+      if (navigator.canShare({ files: [file] })) {
+        // 注意：这里必须在用户手势上下文中调用
+        try {
+          await navigator.share({
+            files: [file],
+            title: '若水占卜',
+            text: '分享我的塔罗运势'
+          });
           return true;
+        } catch (shareError) {
+          // 用户取消分享或分享失败，继续其他方案
+          console.log('Share cancelled or failed:', shareError);
         }
-      }catch(err){
-        // 某些 Android 浏览器可能抛异常，继续走降级
-        console.warn('Web Share with file failed:', err);
       }
-
-      // iOS Safari 对 <a download> 支持不佳：改为新标签打开 → 长按保存
-      const url = URL.createObjectURL(blob);
-      if (isIOS()) {
-        window.open(url, '_blank');
-        setTimeout(()=>URL.revokeObjectURL(url), 30000);
-        return true;
-      }
-
-      // 其它浏览器走普通下载
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url), 100);
-      return true;
     }
+  } catch (err) {
+    console.warn('Web Share API not available:', err);
+  }
+  
+  // 方案B：创建下载链接
+  const url = URL.createObjectURL(blob);
+  
+  // iOS Safari 特殊处理
+  if (isIOS()) {
+    // iOS 不支持 download 属性，改为新窗口打开
+    const newWindow = window.open(url, '_blank');
+    if (newWindow) {
+      // 提示用户长按保存
+      setTimeout(() => {
+        alert('图片已在新窗口打开\n请长按图片选择"存储图像"保存到相册');
+      }, 500);
+    }
+    // 延迟释放 URL
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  }
+  
+  // Android 和其他浏览器
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  
+  // 触发下载
+  a.click();
+  
+  // 清理
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+  
+  return true;
+}
 
     // ============ 高质量导出方案（保留你的主流程，插入关键修复） ============
 
-    async function exportWithCanvas() {
-      const card = document.getElementById('shareCard');
-      const actions = document.getElementById('actions');
-
-      try {
-        if (actions) actions.style.display = 'none';
-        document.body.classList.add('export-mode');
-
-        // ★ 关键：等待可见图片加载 & 内联卡图/二维码，避免导出丢图
-        await waitForVisibleImages(card);
-        await ensureInlineCardAssets();
-        enhanceForExport(card); // 移除 backdrop-filter 等
-
-        // 小延时保证布局稳定
-        await new Promise(resolve => setTimeout(resolve, 80));
-
-        // 移动端内存更敏感：iOS 降低 scale
-        const baseScale = 2.5;
-        const scale = isIOS() ? 2 : baseScale; // ★ 新增：iOS 稳定优先
-        const width = 400;
-        const height = 711;
-
-        // 优先 dom-to-image-more
-        let cardDataUrl;
-        if (typeof domtoimage !== 'undefined') {
-          cardDataUrl = await domtoimage.toPng(card, {
-            quality: 0.98,
-            width: width * scale,
-            height: height * scale,
-            style: {
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              width: width + 'px',
-              height: height + 'px'
-            },
-            bgcolor: null,
-            cacheBust: true,
-            copyStyles: true
-          });
-        } else if (typeof html2canvas !== 'undefined') {
-          const canvas = await html2canvas(card, {
-            scale: scale,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: null
-          });
-          cardDataUrl = canvas.toDataURL('image/png', 0.98);
-        } else {
-          throw new Error('No export library available');
+async function exportWithCanvas() {
+  const card = document.getElementById('shareCard');
+  const actions = document.getElementById('actions');
+  
+  try {
+    // 隐藏操作按钮
+    if (actions) actions.style.display = 'none';
+    document.body.classList.add('export-mode');
+    
+    // 关键：先内联所有图片
+    console.log('Inlining images...');
+    await ensureInlineImages();
+    
+    // 等待DOM稳定
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // 设置导出参数
+    const scale = isIOS() ? 2 : 2.5; // iOS 用较低分辨率以提高稳定性
+    const width = 400;
+    const height = 711;
+    
+    // 步骤1：导出卡片内容
+    console.log('Capturing card...');
+    let cardDataUrl;
+    
+    if (typeof domtoimage !== 'undefined') {
+      cardDataUrl = await domtoimage.toPng(card, {
+        quality: 0.95,
+        width: width * scale,
+        height: height * scale,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: width + 'px',
+          height: height + 'px'
+        },
+        bgcolor: null,
+        cacheBust: false, // 关闭缓存破坏，因为我们已经内联了
+        copyStyles: true,
+        // 过滤函数
+        filter: (node) => {
+          // 排除操作按钮
+          if (node.classList && node.classList.contains('actions')) {
+            return false;
+          }
+          return true;
         }
-
-        if (!cardDataUrl || cardDataUrl.length < 100) {
-          throw new Error('Failed to capture card content');
-        }
-
-        // 合成最终图层（保留你的渐变背景）
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = width * scale;
-        canvas.height = height * scale;
-
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width * 0.8, canvas.height * 0.8);
-        gradient.addColorStop(0, '#2d1b4e');
-        gradient.addColorStop(1, '#1a1625');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        await new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => { ctx.drawImage(img, 0, 0); resolve(); };
-          img.onerror = (e) => reject(e);
-          img.src = cardDataUrl;
-        });
-
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.98));
-        if (!blob) throw new Error('Failed to build PNG');
-
-        // ★ 新增：移动端优先系统分享到相册；不支持则自动降级
-        await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
-        return true;
-
-      } finally {
-        document.body.classList.remove('export-mode');
-        if (actions) actions.style.display = '';
-      }
+      });
+    } else if (typeof html2canvas !== 'undefined') {
+      const canvas = await html2canvas(card, {
+        scale: scale,
+        useCORS: false, // 关闭CORS，因为已内联
+        allowTaint: true, // 允许，因为已内联
+        backgroundColor: null,
+        logging: false
+      });
+      cardDataUrl = canvas.toDataURL('image/png', 0.95);
+    } else {
+      throw new Error('No export library available');
     }
+    
+    // 步骤2：创建最终画布
+    console.log('Creating final canvas...');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    
+    // 绘制渐变背景
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width * 0.8, canvas.height * 0.8);
+    gradient.addColorStop(0, '#2d1b4e');
+    gradient.addColorStop(1, '#1a1625');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 添加光晕效果
+    ctx.globalAlpha = 0.15;
+    const glow = ctx.createRadialGradient(
+      canvas.width * 0.3, canvas.height * 0.2, 0,
+      canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5
+    );
+    glow.addColorStop(0, 'rgba(157, 126, 168, 0.5)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0;
+    
+    // 步骤3：绘制卡片
+    console.log('Compositing...');
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = cardDataUrl;
+    });
+    
+    // 步骤4：转为 Blob
+    console.log('Creating blob...');
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/png', 0.95);
+    });
+    
+    if (!blob) throw new Error('Failed to create blob');
+    
+    // 保存（已修复手势问题）
+    await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('Export failed:', error);
+    throw error;
+  } finally {
+    // 恢复UI
+    document.body.classList.remove('export-mode');
+    if (actions) actions.style.display = '';
+  }
+}
 
-    // 简化的备用方案（直接填充背景） —— 保留你的实现
-    async function exportSimpleWithBackground() {
-      const card = document.getElementById('shareCard');
-      const actions = document.getElementById('actions');
-      try {
-        if (actions) actions.style.display = 'none';
-        document.body.classList.add('export-mode');
-
-        await waitForVisibleImages(card);
-        await ensureInlineCardAssets();
-        enhanceForExport(card);
-        await new Promise(resolve => setTimeout(resolve, 60));
-
-        if (typeof domtoimage === 'undefined') throw new Error('dom-to-image library not available');
-
-        const scale = isIOS() ? 2 : 2.5; // ★ iOS 稳定优先
-        const dataUrl = await domtoimage.toPng(card, {
-          quality: 0.98,
-          width: card.offsetWidth * scale,
-          height: card.offsetHeight * scale,
-          style: { transform: `scale(${scale})`, transformOrigin: 'top left' },
-          bgcolor: '#1a1625',
-          cacheBust: true,
-          copyStyles: true
-        });
-
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
-        return true;
-      } catch (error) {
-        console.error('Simple export failed:', error);
-        return false;
-      } finally {
-        document.body.classList.remove('export-mode');
-        if (actions) actions.style.display = '';
-      }
+async function exportSimpleWithBackground() {
+  const card = document.getElementById('shareCard');
+  const actions = document.getElementById('actions');
+  
+  try {
+    if (actions) actions.style.display = 'none';
+    document.body.classList.add('export-mode');
+    
+    // 内联图片
+    await ensureInlineImages();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const scale = isIOS() ? 2 : 2.5;
+    
+    if (typeof domtoimage === 'undefined') {
+      throw new Error('dom-to-image not available');
     }
+    
+    const dataUrl = await domtoimage.toPng(card, {
+      quality: 0.95,
+      width: card.offsetWidth * scale,
+      height: card.offsetHeight * scale,
+      style: {
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left'
+      },
+      bgcolor: '#1a1625', // 填充背景
+      cacheBust: false,
+      copyStyles: true
+    });
+    
+    // 转为 Blob
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    
+    // 保存
+    await saveBlobMobile(blob, `ruoshui_tarot_${Date.now()}.png`);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('Simple export failed:', error);
+    return false;
+  } finally {
+    document.body.classList.remove('export-mode');
+    if (actions) actions.style.display = '';
+  }
+}
 
-    async function smartExport() {
-      const btn = document.getElementById('btnSave');
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '⏳ 正在导出...';
+// 工具函数
+const isIOS = () => /iP(hone|od|ad)/i.test(navigator.userAgent);
+const isAndroid = () => /Android/i.test(navigator.userAgent);
 
-      try {
-        let success = false;
-        try {
-          success = await exportWithCanvas();
-        } catch (e) {
-          console.warn('Canvas export failed, fallback...', e);
-          success = await exportSimpleWithBackground();
-        }
-        if (!success) throw new Error('All export methods failed');
-        btn.innerHTML = '✅ 已保存';
-        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
-      } catch (error) {
-        alert('导出失败，请检查网络或稍后重试');
+async function smartExport() {
+  const btn = document.getElementById('btnSave');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 正在导出...';
+  
+  // 关键：在用户手势期间准备好 Web Share
+  let shareReady = false;
+  let shareFile = null;
+  
+  // 如果支持 Web Share，先准备好
+  if (navigator.share && navigator.canShare) {
+    shareReady = true;
+  }
+  
+  try {
+    // 执行导出
+    const success = await exportWithCanvas();
+    
+    if (success) {
+      btn.innerHTML = '✅ 已保存';
+      setTimeout(() => {
         btn.innerHTML = originalText;
-      } finally {
-        btn.disabled = false;
-      }
+      }, 2000);
     }
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    
+    // 降级方案：简单导出
+    try {
+      await exportSimpleWithBackground();
+      btn.innerHTML = '✅ 已保存';
+    } catch (fallbackError) {
+      alert('保存失败，请截图保存');
+      btn.innerHTML = originalText;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
 
     // ============ iframe 通信支持（保持你的逻辑，修复未定义函数） ============
     window.addEventListener('message', async function(event) {
