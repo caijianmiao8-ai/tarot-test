@@ -16,6 +16,7 @@
     {
       "path": "/tasks/dispatch_daily_summaries",
       "schedule": "45 16 * * *"  
-    }
+    },
+    { "path": "/tasks/dispatch_profile_builds",  "schedule": "0 18 * * *"  }
   ]
 }

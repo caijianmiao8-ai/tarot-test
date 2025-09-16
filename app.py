@@ -12,6 +12,8 @@ import base64
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from functools import wraps
+from psycopg2.extras import Json
+import re
 import time
 import logging
 from contextlib import contextmanager
@@ -251,6 +253,108 @@ import json
 from psycopg2.extras import Json
 import requests
 from config import Config
+def _internal_authorized():
+    """
+    供 Dify Workflow 的 HTTP 节点访问内部只读接口：
+      - Header: X-INTERNAL-SECRET: <Config.INTERNAL_API_SECRET 或 WEBHOOK_SECRET>
+      - Header: Authorization: Bearer <同上>
+      - Query:  ?token=<同上>
+    """
+    try:
+        sec = getattr(Config, "INTERNAL_API_SECRET", None) or getattr(Config, "WEBHOOK_SECRET", None)
+        if not sec:
+            return False
+        if request.headers.get("X-INTERNAL-SECRET") == sec:
+            return True
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ") and auth.split(" ", 1)[1] == sec:
+            return True
+        if request.args.get("token") == sec:
+            return True
+    except Exception:
+        pass
+    return False
+
+def _parse_date(s: str | None):
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s).date()
+    except Exception:
+        return None
+
+def _profile_window(until_date: datetime.date | None = None, window_days: int = 30):
+    """
+    画像的统计窗口：since..until（闭区间）。
+    - until 缺省取“昨天”（按 _day_key_for_cutoff 的时区/切日逻辑）
+    - since = until - (window_days-1)
+    """
+    if not until_date:
+        # 用你已有的切日逻辑的“昨天”
+        until_date = (_day_key_for_cutoff() - timedelta(days=0))
+    since_date = until_date - timedelta(days=max(1, window_days) - 1)
+    return since_date, until_date
+
+def _run_profile_workflow(user_ref: str,
+                          username: str | None,
+                          scope: str,
+                          persona: str,
+                          since_date,
+                          until_date,
+                          window_days: int = 30,
+                          extra_inputs: dict | None = None,
+                          timeout: int | None = None):
+    """
+    触发 Dify 的“用户画像 Workflow”（与日总结分离的第二条工作流）。
+    - 顶层 user 必填（用于 Dify 归属/限流）
+    - inputs 携带 user/username/scope/persona/since/until/window_days
+    - 画像 Workflow 内部会通过 HTTP 节点调用 /internal/daily_summaries/list 拉取数据并归纳
+    """
+    api_key = getattr(Config, "DIFY_PROFILE_WORKFLOW_API_KEY", "") or getattr(Config, "DIFY_SUM_WORKFLOW_API_KEY", "")
+    if not api_key:
+        return False, {"error": "Missing env DIFY_PROFILE_WORKFLOW_API_KEY"}
+
+    base = getattr(Config, "DIFY_API_BASE", "https://api.dify.ai").rstrip("/")
+    url = f"{base}/v1/workflows/run"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "user": user_ref,  # 顶层 user：Dify 必填
+        "inputs": {
+            "user": user_ref,
+            "username": username or "",
+            "scope": scope,
+            "persona": persona,
+            "since": str(since_date),
+            "until": str(until_date),
+            "window_days": int(window_days),
+            **(extra_inputs or {})
+        },
+        "response_mode": "blocking"
+    }
+
+    # 超时：连接 5s，读取可由 ENV 配置（默认 90s）
+    conn_to = int(getattr(Config, "DIFY_CONNECT_TIMEOUT", 5))
+    read_to = int(timeout or getattr(Config, "DIFY_WORKFLOW_TIMEOUT", 90))
+    import requests
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=(conn_to, read_to))
+        ok = 200 <= r.status_code < 300
+        try:
+            body = r.json()
+        except Exception:
+            body = {"text": r.text[:2000]}
+        return (True, body) if ok else (False, {"status_code": r.status_code, "body": body})
+    except requests.ReadTimeout:
+        # 读超时：通常服务端仍在执行并最终回调
+        return True, {"warn": "read_timeout", "note": f"server may continue running; read_to={read_to}s"}
+    except requests.ConnectTimeout:
+        return False, {"error": f"connect_timeout(>{conn_to}s)"}
+    except Exception as e:
+        return False, {"error": str(e)}
 
 def _webhook_authorized():
     """
@@ -387,6 +491,370 @@ def _day_key_for_cutoff(dt: datetime | None = None):
     if dt.hour < cutoff:
         return (dt - timedelta(days=1)).date()
     return dt.date()
+
+
+@app.route("/internal/daily_summaries/list", methods=["GET"])
+def internal_daily_summaries_list():
+    """
+    供“画像 Workflow”的 HTTP Request 节点调用。
+    查询 user 在 since..until(日) 的 daily_summaries，按 day_key 升序返回。
+    鉴权：X-INTERNAL-SECRET / Bearer / ?token
+    Query:
+      - user / user_ref (必填)
+      - since / until（YYYY-MM-DD，闭区间，至少给 until；不给则默认 until=昨天, since=until-29）
+      - scope (可选，默认 ALL)
+      - persona (可选，默认 ALL)
+      - limit (<= 90，默认 60)
+    返回：
+      { user_ref, scope, persona, since, until, total, items: [ {day_key, message_count, summary_text, summary_json} ... ] }
+    """
+    if not _internal_authorized():
+        return jsonify({"error": "unauthorized"}), 401
+
+    user_ref = request.args.get("user") or request.args.get("user_ref")
+    if not user_ref:
+        return jsonify({"error": "missing user"}), 400
+
+    scope = request.args.get("scope")
+    persona = request.args.get("persona")
+    since_q = _parse_date(request.args.get("since"))
+    until_q = _parse_date(request.args.get("until"))
+    limit = min(max(int(request.args.get("limit", "60")), 1), 90)
+
+    if not until_q:
+        _since, _until = _profile_window(None, 30)
+    else:
+        if not since_q:
+            since_q = until_q - timedelta(days=29)
+        _since, _until = since_q, until_q
+
+    sql = """
+        select day_key, message_count, summary_json, summary_text
+          from daily_summaries
+         where user_ref = %s
+           and day_key between %s and %s
+           {and_scope}
+           {and_persona}
+         order by day_key asc
+         limit %s
+    """
+    and_scope = "and scope = %s" if scope else ""
+    and_persona = "and ai_personality = %s" if persona else ""
+
+    params = [user_ref, _since, _until]
+    if scope: params.append(scope)
+    if persona: params.append(persona)
+    params.append(limit)
+
+    items = []
+    with DatabaseManager.get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql.format(and_scope=and_scope, and_persona=and_persona), params)
+            rows = cur.fetchall() or []
+            for r in rows:
+                # 兼容 tuple/dict
+                day_key  = r["day_key"] if isinstance(r, dict) else r[0]
+                msg_cnt  = r["message_count"] if isinstance(r, dict) else r[1]
+                sjson    = r["summary_json"] if isinstance(r, dict) else r[2]
+                stext    = r["summary_text"] if isinstance(r, dict) else r[3]
+                # 如果 sjson 是字符串，尝试解析
+                if isinstance(sjson, str):
+                    try: sjson = json.loads(sjson)
+                    except Exception: sjson = None
+                items.append({
+                    "day_key": str(day_key),
+                    "message_count": int(msg_cnt or 0),
+                    "summary_text": stext or "",
+                    "summary_json": (sjson if isinstance(sjson, dict) else {})
+                })
+
+    return jsonify({
+        "user_ref": user_ref,
+        "scope": scope or "ALL",
+        "persona": persona or "ALL",
+        "since": str(_since),
+        "until": str(_until),
+        "total": len(items),
+        "items": items
+    })
+
+
+@app.route("/tasks/dispatch_profile_builds", methods=["GET", "POST"])
+def tasks_dispatch_profile_builds():
+    """
+    画像调度：在 since..until 窗口内，枚举有 daily_summaries 的 (user_ref, scope, persona)，
+    对“缺画像或画像过期”的用户触发画像 Workflow。
+    鉴权：与 Cron 相同（x-vercel-cron / X-CRON-SECRET / ?token / Bearer）
+    Query/JSON:
+      - window_days: 统计窗口天数，默认 30
+      - until: YYYY-MM-DD（默认“昨天”）
+      - scope: guided/spread/all（默认 all）
+      - only_missing: 默认 true（仅触发缺画像或过期的）
+      - limit: 默认 200
+      - after_user: 可选，按 user_ref 做游标分页
+      - debug/dry_run: 调试
+    过期逻辑：若 user_profiles.source_until < until，则视为过期。
+    """
+    if not _cron_authorized():
+        return jsonify({"error": "unauthorized"}), 401
+
+    # 读取参数
+    q = request.args; j = request.get_json(silent=True) or {}
+    window_days = int(j.get("window_days", q.get("window_days", 30)))
+    until_q = _parse_date(j.get("until", q.get("until")))
+    scope_filter = (j.get("scope", q.get("scope")) or "").strip()
+    only_missing = str(j.get("only_missing", q.get("only_missing", "1"))).lower() in ("1","true")
+    limit = int(j.get("limit", q.get("limit", 200)))
+    after_user = j.get("after_user", q.get("after_user"))
+    debug = str(j.get("debug", q.get("debug", "0"))).lower() in ("1","true")
+    dry_run = str(j.get("dry_run", q.get("dry_run", "0"))).lower() in ("1","true")
+
+    since_date, until_date = _profile_window(until_q, window_days)
+
+    and_scope = ""
+    params = [since_date, until_date]
+    if scope_filter and scope_filter not in ("all","ALL"):
+        and_scope = "and ds.scope = %s"
+        params.append(scope_filter)
+
+    # 只枚举在窗口内有日总结的用户（distinct by user_ref/scope/persona）
+    # 通过 left join user_profiles 过滤“缺失或过期”的
+    sql = f"""
+        with cand as (
+          select ds.user_ref, ds.scope, ds.ai_personality,
+                 min(ds.day_key) as first_day,
+                 max(ds.day_key) as last_day,
+                 count(*) as days
+            from daily_summaries ds
+           where ds.day_key between %s and %s
+             {and_scope}
+           group by ds.user_ref, ds.scope, ds.ai_personality
+        )
+        select c.user_ref, c.scope, c.ai_personality,
+               c.first_day, c.last_day, c.days,
+               up.source_until as prof_until
+          from cand c
+          left join user_profiles up
+            on up.user_ref=c.user_ref and up.scope=c.scope and up.ai_personality=c.ai_personality
+         where (%s = true) is not false
+            or up.id is null
+            or up.source_until is null
+            or up.source_until < %s
+         {and_after}
+         order by c.user_ref asc
+         limit %s
+    """
+    and_after = ""
+    if after_user:
+        and_after = "and c.user_ref > %s"
+        params.extend([only_missing, until_date, after_user, limit])
+    else:
+        params.extend([only_missing, until_date, limit])
+
+    rows = []
+    with DatabaseManager.get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall() or []
+
+    if not rows:
+        return jsonify({
+            "since": str(since_date), "until": str(until_date),
+            "window_days": window_days,
+            "total": 0, "dispatched": 0,
+            "next_after_user": None, "items": []
+        })
+
+    # 可选：一次性拉取这些 user 的 username（若 users 表存在且 id=用户标识）
+    usernames = {}
+    try:
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                ids = [ (r["user_ref"] if isinstance(r,dict) else r[0]) for r in rows ]
+                # 去重
+                ids = list(dict.fromkeys(ids))
+                if ids:
+                    # 假设 users(id, username) 结构；如果你的主键列不是 id，请据实际更改
+                    cur.execute("select id, username from users where id = any(%s)", (ids,))
+                    for u in cur.fetchall() or []:
+                        if isinstance(u, dict):
+                            usernames[u["id"]] = u.get("username") or ""
+                        else:
+                            usernames[u[0]] = u[1] or ""
+    except Exception:
+        # users 表可能不存在，不影响主流程
+        pass
+
+    if dry_run:
+        items = []
+        for r in rows:
+            user_ref = r["user_ref"] if isinstance(r,dict) else r[0]
+            scope    = r["scope"] if isinstance(r,dict) else r[1]
+            persona  = r["ai_personality"] if isinstance(r,dict) else r[2]
+            first_day= r["first_day"] if isinstance(r,dict) else r[3]
+            last_day = r["last_day"] if isinstance(r,dict) else r[4]
+            days     = r["days"] if isinstance(r,dict) else r[5]
+            prof_until = r["prof_until"] if isinstance(r,dict) else r[6]
+            items.append({
+                "user_ref": user_ref, "username": usernames.get(user_ref,""),
+                "scope": scope, "persona": persona,
+                "first_day": str(first_day), "last_day": str(last_day),
+                "days": int(days or 0),
+                "profile_until": (str(prof_until) if prof_until else None)
+            })
+        return jsonify({
+            "since": str(since_date), "until": str(until_date),
+            "window_days": window_days,
+            "total": len(items), "dispatched": 0,
+            "next_after_user": (items[-1]["user_ref"] if items else None),
+            "items": items, "dry_run": True
+        })
+
+    # 逐条触发画像 Workflow
+    dispatched = 0
+    items = []
+    last_user = None
+    for r in rows:
+        user_ref = r["user_ref"] if isinstance(r,dict) else r[0]
+        scope    = r["scope"] if isinstance(r,dict) else r[1]
+        persona  = r["ai_personality"] if isinstance(r,dict) else r[2]
+        username = usernames.get(user_ref, "")
+        ok, info = _run_profile_workflow(
+            user_ref=user_ref,
+            username=username,
+            scope=scope,
+            persona=persona,
+            since_date=since_date,
+            until_date=until_date,
+            window_days=window_days,
+            extra_inputs=None,
+            timeout=None  # 使用默认 90s 读超时；读超时也视为已提交
+        )
+        dispatched += 1 if ok else 0
+        last_user = user_ref
+        item = {"user_ref": user_ref, "scope": scope, "persona": persona, "username": username, "ok": ok}
+        if debug:
+            item["resp"] = info
+        items.append(item)
+
+    return jsonify({
+        "since": str(since_date), "until": str(until_date),
+        "window_days": window_days,
+        "total": len(rows), "dispatched": dispatched,
+        "next_after_user": last_user,
+        "items": items, "debug": bool(debug)
+    })
+
+@app.route("/webhooks/dify/profile_ingest", methods=["POST"])
+def webhooks_dify_profile_ingest():
+    """
+    接收“画像 Workflow”的输出：
+      Body 期望：
+        user, scope, persona, window_days, since, until,
+        profile_json(对象或字符串), injection_text(字符串，给 Chat 注入)
+    入库：
+      - upsert 到 user_profiles（唯一键 user_ref, scope, ai_personality）
+      - 可选：插入一条 user_profile_history（便于回溯）
+    """
+    # 鉴权：沿用 webhook 口令
+    if not _webhook_authorized():
+        return jsonify({"error": "unauthorized"}), 401
+
+    body = request.get_json(silent=True) or {}
+    user_ref = (body.get("user") or body.get("user_ref") or "").strip()
+    scope = (body.get("scope") or "guided").strip()
+    persona = (body.get("persona") or "default").strip()
+    window_days = int(body.get("window_days") or 30)
+
+    since_raw = (body.get("since") or body.get("source_since") or "").strip()
+    until_raw = (body.get("until") or body.get("source_until") or "").strip()
+    try:
+        since_date = datetime.fromisoformat(since_raw).date()
+        until_date = datetime.fromisoformat(until_raw).date()
+    except Exception:
+        return jsonify({"error": "invalid since/until"}), 400
+
+    prof = body.get("profile_json")
+    if isinstance(prof, str):
+        try:
+            prof = json.loads(prof)
+        except Exception:
+            prof = None
+    if not isinstance(prof, dict):
+        # 最小兜底
+        prof = {
+            "summary": "暂无画像数据。",
+            "top_topics": [],
+            "stable_preferences": [],
+            "avoid": [],
+            "writing_style_pref": "",
+            "tone_pref": "",
+            "recurring_facts": [],
+            "keywords": [],
+            "confidence": 0.5,
+            "injection_text": ""
+        }
+
+    # 取一份文本给 Chat 注入（优先 injection_text → 其次 summary）
+    inj = body.get("injection_text")
+    if not inj:
+        inj = (prof.get("injection_text") or prof.get("summary") or "").strip()
+    if len(inj) > 4000:  # 控制长度
+        inj = inj[:4000]
+
+    # upsert 到 user_profiles；并可选写入 history
+    sql_upsert = """
+        insert into user_profiles
+          (user_ref, scope, ai_personality, window_days, source_since, source_until, profile_json, profile_text, updated_at)
+        values
+          (%s, %s, %s, %s, %s, %s, %s, %s, now())
+        on conflict (user_ref, scope, ai_personality) do update set
+          window_days = excluded.window_days,
+          source_since = excluded.source_since,
+          source_until = excluded.source_until,
+          profile_json = excluded.profile_json,
+          profile_text = excluded.profile_text,
+          updated_at = now()
+        returning id
+    """
+
+    write_history = str(getattr(Config, "WRITE_PROFILE_HISTORY", "1")).lower() in ("1","true")
+    sql_hist = """
+        insert into user_profile_history
+          (user_ref, scope, ai_personality, window_days, source_since, source_until, profile_json, profile_text)
+        values
+          (%s, %s, %s, %s, %s, %s, %s, %s)
+        returning id
+    """
+
+    try:
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql_upsert, [
+                    user_ref, scope, persona, window_days,
+                    since_date, until_date, Json(prof), inj
+                ])
+                row = cur.fetchone()
+                prof_id = (row["id"] if isinstance(row, dict) else (row[0] if row else None))
+
+                hist_id = None
+                if write_history:
+                    try:
+                        cur.execute(sql_hist, [
+                            user_ref, scope, persona, window_days,
+                            since_date, until_date, Json(prof), inj
+                        ])
+                        r2 = cur.fetchone()
+                        hist_id = (r2["id"] if isinstance(r2, dict) else (r2[0] if r2 else None))
+                    except Exception:
+                        # 历史表不存在时忽略
+                        pass
+
+                conn.commit()
+        return jsonify({"ok": True, "profile_id": prof_id, "history_id": hist_id})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 
 @app.route("/webhooks/dify/summary_ingest", methods=["POST"])
 def webhooks_dify_summary_ingest():
