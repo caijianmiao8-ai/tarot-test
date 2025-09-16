@@ -1261,6 +1261,99 @@ def api_spread_chat_send_daily():
         'remaining': max(remaining - 1, 0)
     })
 
+@app.route("/internal/profiles/get", methods=["GET"])
+@app.route("/internal/profiles/get/", methods=["GET"])   # 兼容尾斜杠
+def internal_profiles_get():
+    """
+    按 user_ref 读取用户画像；scope/persona 可选。
+    逻辑：
+      - 若传 scope+persona：精确匹配该组合的最新一条
+      - 若仅 scope：取该 scope 下最新一条
+      - 若仅 persona：取该 persona 下最新一条
+      - 若都不传：取该用户的“最新一条”
+    鉴权：
+      - Header: X-INTERNAL-SECRET
+      - 或 Query: ?token=
+    """
+    if not _internal_authorized():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    user_ref = request.args.get("user") or request.args.get("user_ref")
+    scope = request.args.get("scope")
+    persona = request.args.get("persona")
+    if not user_ref:
+        return jsonify({"ok": False, "error": "missing user"}), 400
+
+    base_sql = """
+      SELECT user_ref, scope, ai_personality, profile_json, injection_text,
+             source_since, source_until, updated_at, created_at
+        FROM user_profiles
+       WHERE user_ref = %s
+    """
+    params = [user_ref]
+    order_sql = " ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 1"
+
+    if scope and persona:
+        sql = base_sql + " AND scope = %s AND ai_personality = %s" + order_sql
+        params += [scope, persona]
+    elif scope:
+        sql = base_sql + " AND scope = %s" + order_sql
+        params += [scope]
+    elif persona:
+        sql = base_sql + " AND ai_personality = %s" + order_sql
+        params += [persona]
+    else:
+        sql = base_sql + order_sql
+
+    with DatabaseManager.get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            row = cur.fetchone()
+
+    if not row:
+        return jsonify({
+            "ok": True, "found": False,
+            "user_ref": user_ref,
+            "scope": scope, "persona": persona,
+            "profile_json": None, "profile_text": None
+        })
+
+    # 兼容 tuple/dict 两种游标
+    if isinstance(row, dict):
+        user_ref_db   = row["user_ref"]
+        scope_db      = row["scope"]
+        persona_db    = row["ai_personality"]
+        profile_json  = row["profile_json"]
+        injection_txt = row.get("injection_text")
+        source_since  = row["source_since"]
+        source_until  = row["source_until"]
+        updated_at    = row["updated_at"]
+    else:
+        user_ref_db, scope_db, persona_db, profile_json, injection_txt, \
+        source_since, source_until, updated_at, _created_at = row
+
+    # 若表里没单独列 injection_text，就从 profile_json 兜底
+    profile_text = injection_txt
+    if not profile_text and profile_json:
+        try:
+            obj = profile_json if isinstance(profile_json, dict) else json.loads(profile_json)
+            profile_text = (obj or {}).get("injection_text")
+        except Exception:
+            profile_text = None
+
+    return jsonify({
+        "ok": True,
+        "found": True,
+        "user_ref": user_ref_db,
+        "scope": scope_db,
+        "persona": persona_db,
+        "profile_json": profile_json,
+        "profile_text": profile_text,
+        "updated_at": str(updated_at) if updated_at else None,
+        "source_since": str(source_since) if source_since else None,
+        "source_until": str(source_until) if source_until else None
+    })
+    
 # =========================
 # 路由：分享卡片生成页面（本人查看/生成）
 # =========================
