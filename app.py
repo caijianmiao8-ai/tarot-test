@@ -9,7 +9,6 @@ import traceback
 import uuid
 import io
 import base64
-from __future__ import annotations
 from typing import Optional, Union
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
