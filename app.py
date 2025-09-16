@@ -9,6 +9,8 @@ import traceback
 import uuid
 import io
 import base64
+from __future__ import annotations
+from typing import Optional, Union
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from functools import wraps
@@ -275,7 +277,7 @@ def _internal_authorized():
         pass
     return False
 
-def _parse_date(s: str | None):
+def _parse_date(s: Optional[str]):
     if not s:
         return None
     try:
@@ -283,7 +285,7 @@ def _parse_date(s: str | None):
     except Exception:
         return None
 
-def _profile_window(until_date: datetime.date | None = None, window_days: int = 30):
+def _profile_window(until_date: Optional[datetime.date] = None, window_days: int = 30):
     """
     画像的统计窗口：since..until（闭区间）。
     - until 缺省取“昨天”（按 _day_key_for_cutoff 的时区/切日逻辑）
@@ -296,14 +298,14 @@ def _profile_window(until_date: datetime.date | None = None, window_days: int = 
     return since_date, until_date
 
 def _run_profile_workflow(user_ref: str,
-                          username: str | None,
+                          username: Optional[str],
                           scope: str,
                           persona: str,
                           since_date,
                           until_date,
                           window_days: int = 30,
-                          extra_inputs: dict | None = None,
-                          timeout: int | None = None):
+                          extra_inputs: Optional[dict] = None,
+                          timeout: Optional[int] = None):
     """
     触发 Dify 的“用户画像 Workflow”（与日总结分离的第二条工作流）。
     - 顶层 user 必填（用于 Dify 归属/限流）
