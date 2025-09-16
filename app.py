@@ -1264,11 +1264,6 @@ def api_spread_chat_send_daily():
 @app.route("/internal/profiles/get", methods=["GET"])
 @app.route("/internal/profiles/get/", methods=["GET"])  # 兼容尾斜杠
 def internal_profiles_get():
-    """
-    按 user_ref 读取用户画像；scope/persona 可选。
-    若 scope/persona 未传，则返回该用户“最新一条”画像。
-    鉴权：Header X-INTERNAL-SECRET 或 Query ?token=
-    """
     if not _internal_authorized():
         return jsonify({"ok": False, "error": "unauthorized"}), 401
 
@@ -1280,12 +1275,13 @@ def internal_profiles_get():
 
     base_sql = """
       SELECT user_ref, scope, ai_personality, profile_json,
-             source_since, source_until, updated_at, created_at
+             source_since, source_until, updated_at
         FROM user_profiles
        WHERE user_ref = %s
     """
     params = [user_ref]
-    order_sql = " ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 1"
+    # 仅用 updated_at 排序；没有 created_at
+    order_sql = " ORDER BY updated_at DESC NULLS LAST LIMIT 1"
 
     if scope and persona:
         sql = base_sql + " AND scope = %s AND ai_personality = %s" + order_sql
@@ -1299,6 +1295,7 @@ def internal_profiles_get():
     else:
         sql = base_sql + order_sql
 
+    from database import DatabaseManager
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, params)
@@ -1312,40 +1309,39 @@ def internal_profiles_get():
             "profile_json": None, "profile_text": None
         })
 
-    # 兼容 tuple/dict 两种游标
+    # 兼容 tuple/dict
     if isinstance(row, dict):
-        user_ref_db   = row["user_ref"]
-        scope_db      = row["scope"]
-        persona_db    = row["ai_personality"]
-        profile_json  = row["profile_json"]
-        source_since  = row["source_since"]
-        source_until  = row["source_until"]
-        updated_at    = row["updated_at"]
+        user_ref_db  = row["user_ref"]
+        scope_db     = row["scope"]
+        persona_db   = row["ai_personality"]
+        profile_json = row["profile_json"]
+        source_since = row["source_since"]
+        source_until = row["source_until"]
+        updated_at   = row["updated_at"]
     else:
         user_ref_db, scope_db, persona_db, profile_json, \
-        source_since, source_until, updated_at, _created_at = row
+        source_since, source_until, updated_at = row
 
-    # 从 profile_json 里兜底提取 injection_text（表里没有该列也不影响）
+    # 从 profile_json 兜底抽取 injection_text
     profile_text = None
     try:
-        pj = profile_json if isinstance(profile_json, dict) else json.loads(profile_json or "null")
+        import json as _json
+        pj = profile_json if isinstance(profile_json, dict) else _json.loads(profile_json or "null")
         if isinstance(pj, dict):
             profile_text = pj.get("injection_text")
     except Exception:
         profile_text = None
 
     return jsonify({
-        "ok": True,
-        "found": True,
-        "user_ref": user_ref_db,
-        "scope": scope_db,
-        "persona": persona_db,
-        "profile_json": profile_json,   # 原样返回（可能是 dict 或字符串）
-        "profile_text": profile_text,   # 供 Chatflow 直接注入
+        "ok": True, "found": True,
+        "user_ref": user_ref_db, "scope": scope_db, "persona": persona_db,
+        "profile_json": profile_json,              # 原样返回
+        "profile_text": profile_text,              # 直接给 Chatflow 注入
         "updated_at": str(updated_at) if updated_at else None,
         "source_since": str(source_since) if source_since else None,
         "source_until": str(source_until) if source_until else None
     })
+4
 
 # =========================
 # 路由：分享卡片生成页面（本人查看/生成）
