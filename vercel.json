@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/tasks/dispatch_daily_summaries",
-      "schedule": "13 18 * * *"  
+      "schedule": "45 16 * * *"  
     }
   ]
 }
