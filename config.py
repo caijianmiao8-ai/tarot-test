@@ -11,13 +11,26 @@ class Config:
     # ===== Dify & Cron/Webhook 配置 =====
     DIFY_API_BASE = os.getenv("DIFY_API_BASE", "http://ai-bot-new.dalongyun.com/v1")
 
+    # INTERNAL_API_SECRET：供 Workflow 拉你内部接口用；若未单独设置，则回退到 WEBHOOK_SECRET
+    INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET") or os.getenv("WEBHOOK_SECRET", "")
+
+
     # 触发“会话摘要 Workflow”的 API Key（在该 Workflow 的 Access API 页面获得）
     DIFY_SUM_WORKFLOW_API_KEY = os.getenv("DIFY_SUM_WORKFLOW_API_KEY", "")
+    DIFY_PROFILE_WORKFLOW_API_KEY = os.getenv("DIFY_PROFILE_WORKFLOW_API_KEY")
+
+     # 超时（秒）
+    DIFY_CONNECT_TIMEOUT = int(os.getenv("DIFY_CONNECT_TIMEOUT", "5"))
+    DIFY_WORKFLOW_TIMEOUT = int(os.getenv("DIFY_WORKFLOW_TIMEOUT", "90"))
+
+    # === 画像历史开关 ===
+    WRITE_PROFILE_HISTORY = os.getenv("WRITE_PROFILE_HISTORY", "1")
 
     # 时区与切日（你现在按 01:00 切日）
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "Asia/Tokyo")
     DAILY_CONV_CUTOFF_HOUR = int(os.getenv("DAILY_CONV_CUTOFF_HOUR", "1"))
-
+    DAILY_CONV_CUTOFF_MINUTE = int(os.getenv("DAILY_CONV_CUTOFF_MINUTE", "0"))
+    
     # 调度接口的简易鉴权（Vercel Cron 调用时在 Header 里带 X-CRON-SECRET）
     CRON_SECRET = os.getenv("CRON_SECRET", "change-me")
 
