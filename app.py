@@ -1296,15 +1296,32 @@ def internal_profiles_get():
         sql = base_sql + order_sql
 
     from database import DatabaseManager
+    import json as _json
+
+    row = None
+    username = None
+
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
+            # 1) 画像行
             cur.execute(sql, params)
             row = cur.fetchone()
+
+            # 2) 用户昵称（可选；如果你的列名不是 username，请改成实际列名）
+            try:
+                cur.execute("SELECT username FROM users WHERE id = %s LIMIT 1", [user_ref])
+                urow = cur.fetchone()
+                if urow:
+                    username = urow["username"] if isinstance(urow, dict) else urow[0]
+            except Exception:
+                # users 表不存在或列名不同时，不要抛错，置为空即可
+                username = None
 
     if not row:
         return jsonify({
             "ok": True, "found": False,
             "user_ref": user_ref,
+            "username": username,           # 新增：回传昵称（可能为 null）
             "scope": scope, "persona": persona,
             "profile_json": None, "profile_text": None
         })
@@ -1325,7 +1342,6 @@ def internal_profiles_get():
     # 从 profile_json 兜底抽取 injection_text
     profile_text = None
     try:
-        import json as _json
         pj = profile_json if isinstance(profile_json, dict) else _json.loads(profile_json or "null")
         if isinstance(pj, dict):
             profile_text = pj.get("injection_text")
@@ -1334,14 +1350,15 @@ def internal_profiles_get():
 
     return jsonify({
         "ok": True, "found": True,
-        "user_ref": user_ref_db, "scope": scope_db, "persona": persona_db,
-        "profile_json": profile_json,              # 原样返回
-        "profile_text": profile_text,              # 直接给 Chatflow 注入
+        "user_ref": user_ref_db,
+        "username": username,              # 新增：回传昵称（可能为 null）
+        "scope": scope_db, "persona": persona_db,
+        "profile_json": profile_json,      # 原样返回（dict 或 text）
+        "profile_text": profile_text,      # 直接给 Chatflow 注入
         "updated_at": str(updated_at) if updated_at else None,
         "source_since": str(source_since) if source_since else None,
         "source_until": str(source_until) if source_until else None
     })
-4
 
 # =========================
 # 路由：分享卡片生成页面（本人查看/生成）
