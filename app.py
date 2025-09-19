@@ -582,79 +582,64 @@ def internal_daily_summaries_list():
 
 @app.route("/tasks/dispatch_profile_builds", methods=["GET", "POST"])
 def tasks_dispatch_profile_builds():
-    """
-    画像调度：在 since..until 窗口内，枚举有 daily_summaries 的 (user_ref, scope, persona)，
-    对“缺画像或画像过期”的用户触发画像 Workflow。
-    """
     if not _cron_authorized():
         return jsonify({"error": "unauthorized"}), 401
 
-    # ===== 读取参数 =====
-    q = request.args
-    j = request.get_json(silent=True) or {}
+    q = request.args; j = request.get_json(silent=True) or {}
     window_days = int(j.get("window_days", q.get("window_days", 30)))
     until_q = _parse_date(j.get("until", q.get("until")))
     scope_filter = (j.get("scope", q.get("scope")) or "").strip()
-    only_missing = str(j.get("only_missing", q.get("only_missing", "1"))).lower() in ("1", "true")
+    only_missing = str(j.get("only_missing", q.get("only_missing", "1"))).lower() in ("1","true")
     limit = int(j.get("limit", q.get("limit", 200)))
     after_user = j.get("after_user", q.get("after_user"))
-    debug = str(j.get("debug", q.get("debug", "0"))).lower() in ("1", "true")
-    dry_run = str(j.get("dry_run", q.get("dry_run", "0"))).lower() in ("1", "true")
+    debug = str(j.get("debug", q.get("debug", "0"))).lower() in ("1","true")
+    dry_run = str(j.get("dry_run", q.get("dry_run", "0"))).lower() in ("1","true")
 
     since_date, until_date = _profile_window(until_q, window_days)
 
-    # ===== CTE cand 的 WHERE 片段与参数 =====
-    cand_where = ["ds.day_key BETWEEN %s AND %s"]
-    cand_params = [since_date, until_date]
+    # ✅ 先决定是否需要 after 片段，避免未绑定
+    and_after = " and c.user_ref > %s" if after_user else ""
 
+    # ✅ scope 片段也先决定好
+    and_scope = ""
     if scope_filter and scope_filter.lower() != "all":
-        cand_where.append("ds.scope = %s")
-        cand_params.append(scope_filter)
+        and_scope = "and ds.scope = %s"
 
-    cand_where_sql = " AND ".join(cand_where)
-
-    # ===== 外层 WHERE 片段与参数（与 only_missing / after_user 强相关） =====
-    outer_where = []
-    outer_params = []
-
-    # 仅在 only_missing=True 时，才添加“缺失/过期”过滤
-    if only_missing:
-        outer_where.append("(up.id IS NULL OR up.source_until IS NULL OR up.source_until < %s)")
-        outer_params.append(until_date)
-
-    # 游标翻页
-    if after_user:
-        outer_where.append("c.user_ref > %s")
-        outer_params.append(after_user)
-
-    outer_where_sql = ("WHERE " + " AND ".join(outer_where)) if outer_where else ""
-
-    # ===== 拼装 SQL（避免未定义变量参与 f-string）=====
     sql = f"""
-        WITH cand AS (
-            SELECT ds.user_ref, ds.scope, ds.ai_personality,
-                   MIN(ds.day_key) AS first_day,
-                   MAX(ds.day_key) AS last_day,
-                   COUNT(*) AS days
-              FROM daily_summaries ds
-             WHERE {cand_where_sql}
-             GROUP BY ds.user_ref, ds.scope, ds.ai_personality
+        with cand as (
+          select ds.user_ref, ds.scope, ds.ai_personality,
+                 min(ds.day_key) as first_day,
+                 max(ds.day_key) as last_day,
+                 count(*) as days
+            from daily_summaries ds
+           where ds.day_key between %s and %s
+             {and_scope}
+           group by ds.user_ref, ds.scope, ds.ai_personality
         )
-        SELECT c.user_ref, c.scope, c.ai_personality,
+        select c.user_ref, c.scope, c.ai_personality,
                c.first_day, c.last_day, c.days,
-               up.source_until AS prof_until
-          FROM cand c
-          LEFT JOIN user_profiles up
-            ON up.user_ref = c.user_ref
-           AND up.scope = c.scope
-           AND up.ai_personality = c.ai_personality
-        {outer_where_sql}
-        ORDER BY c.user_ref ASC
-        LIMIT %s
+               up.source_until as prof_until
+          from cand c
+          left join user_profiles up
+            on up.user_ref=c.user_ref and up.scope=c.scope and up.ai_personality=c.ai_personality
+         where (%s = true) is not false
+            or up.id is null
+            or up.source_until is null
+            or up.source_until < %s
+         {and_after}
+         order by c.user_ref asc
+         limit %s
     """
 
-    # 参数顺序 = CTE参数 + 外层参数 + LIMIT
-    params = cand_params + outer_params + [limit]
+    # ✅ 参数按“占位符出现顺序”构建
+    params = [since_date, until_date]                 # between %s AND %s
+    if and_scope:                                     # 可选 scope
+        params.append(scope_filter)
+    params.append(only_missing)                       # (%s = true) is not false
+    params.append(until_date)                         # up.source_until < %s
+    if after_user:                                    # and c.user_ref > %s
+        params.append(after_user)
+    params.append(limit)                              # limit %s
 
     rows = []
     with DatabaseManager.get_db() as conn:
@@ -670,35 +655,35 @@ def tasks_dispatch_profile_builds():
             "next_after_user": None, "items": []
         })
 
-    # 可选拉取 username
+    # ===== 以下与你原来一致 =====
     usernames = {}
     try:
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
-                ids = [(r["user_ref"] if isinstance(r, dict) else r[0]) for r in rows]
+                ids = [ (r["user_ref"] if isinstance(r,dict) else r[0]) for r in rows ]
                 ids = list(dict.fromkeys(ids))
                 if ids:
-                    cur.execute("SELECT id, username FROM users WHERE id = ANY(%s)", (ids,))
+                    cur.execute("select id, username from users where id = any(%s)", (ids,))
                     for u in cur.fetchall() or []:
                         if isinstance(u, dict):
                             usernames[u["id"]] = u.get("username") or ""
                         else:
                             usernames[u[0]] = u[1] or ""
     except Exception:
-        pass  # users 表不存在不影响主流程
+        pass
 
     if dry_run:
         items = []
         for r in rows:
-            user_ref  = r["user_ref"] if isinstance(r, dict) else r[0]
-            scope     = r["scope"] if isinstance(r, dict) else r[1]
-            persona   = r["ai_personality"] if isinstance(r, dict) else r[2]
-            first_day = r["first_day"] if isinstance(r, dict) else r[3]
-            last_day  = r["last_day"] if isinstance(r, dict) else r[4]
-            days      = r["days"] if isinstance(r, dict) else r[5]
-            prof_until= r["prof_until"] if isinstance(r, dict) else r[6]
+            user_ref = r["user_ref"] if isinstance(r,dict) else r[0]
+            scope    = r["scope"] if isinstance(r,dict) else r[1]
+            persona  = r["ai_personality"] if isinstance(r,dict) else r[2]
+            first_day= r["first_day"] if isinstance(r,dict) else r[3]
+            last_day = r["last_day"] if isinstance(r,dict) else r[4]
+            days     = r["days"] if isinstance(r,dict) else r[5]
+            prof_until = r["prof_until"] if isinstance(r,dict) else r[6]
             items.append({
-                "user_ref": user_ref, "username": usernames.get(user_ref, ""),
+                "user_ref": user_ref, "username": usernames.get(user_ref,""),
                 "scope": scope, "persona": persona,
                 "first_day": str(first_day), "last_day": str(last_day),
                 "days": int(days or 0),
@@ -712,21 +697,24 @@ def tasks_dispatch_profile_builds():
             "items": items, "dry_run": True
         })
 
-    # 真正触发
     dispatched = 0
     items = []
     last_user = None
     for r in rows:
-        user_ref = r["user_ref"] if isinstance(r, dict) else r[0]
-        scope    = r["scope"] if isinstance(r, dict) else r[1]
-        persona  = r["ai_personality"] if isinstance(r, dict) else r[2]
+        user_ref = r["user_ref"] if isinstance(r,dict) else r[0]
+        scope    = r["scope"] if isinstance(r,dict) else r[1]
+        persona  = r["ai_personality"] if isinstance(r,dict) else r[2]
         username = usernames.get(user_ref, "")
         ok, info = _run_profile_workflow(
-            user_ref=user_ref, username=username,
-            scope=scope, persona=persona,
-            since_date=since_date, until_date=until_date,
+            user_ref=user_ref,
+            username=username,
+            scope=scope,
+            persona=persona,
+            since_date=since_date,
+            until_date=until_date,
             window_days=window_days,
-            extra_inputs=None, timeout=None
+            extra_inputs=None,
+            timeout=None
         )
         dispatched += 1 if ok else 0
         last_user = user_ref
@@ -742,6 +730,7 @@ def tasks_dispatch_profile_builds():
         "next_after_user": last_user,
         "items": items, "debug": bool(debug)
     })
+
 
 
 @app.route("/webhooks/dify/profile_ingest", methods=["POST"])
