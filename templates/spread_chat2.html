@@ -1171,15 +1171,35 @@
     function openPersonaModal(){ 
         document.getElementById('persona-modal').classList.add('show'); 
     }
+function bindPersonaClickFix(){
+        // 兼容内联 onclick 不传 event/this 的情况
+        document.querySelectorAll('.persona-card').forEach(card=>{
+            card.addEventListener('click', function(e){
+                const onclick = this.getAttribute('onclick') || '';
+                let id = null;
+                const m = onclick.match(/pickPersona\(['"](\w+)['"]\)/);
+                if(m) id = m[1];
+                // 回退：按顺序推断
+                if(!id){
+                    const titles = this.querySelector('.title')?.textContent || '';
+                    if(/理性/.test(titles)) id='wisdom';
+                    else if(/神秘/.test(titles)) id='mystic';
+                    else id='warm';
+                }
+                pickPersona(id, this);
+            }, { once: false });
+        });
+    }
+
     function closePersonaModal(){ 
         document.getElementById('persona-modal').classList.remove('show'); 
     }
-    function pickPersona(id){ 
-        state.personaId=id; 
-        // 更新选中状态
-        document.querySelectorAll('.persona-card').forEach(card => {
-            card.classList.remove('selected');
-        });
+    function pickPersona(id, el){ 
+        state.personaId = id; 
+        // 更新选中状态（不依赖全局 event）
+        document.querySelectorAll('.persona-card').forEach(card => card.classList.remove('selected'));
+        if(el && el.classList) el.classList.add('selected');
+    });
         event.currentTarget.classList.add('selected');
     }
     async function confirmPersona(){
@@ -1284,7 +1304,7 @@
 
     async function init(){
         bindInputEvents();
-        const q = getQuery();
+        bindPersonaClickFix(); const q = getQuery();
         state.personaId = q.persona_id || null;
         state.spreadId  = q.spread_id  || null;
         state.question  = q.question   || null;
