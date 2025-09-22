@@ -632,7 +632,8 @@
         total: 0,
         progress: 0,
         positions: [],
-        drawn: [],                  // {index, position_name, card_name, upright, image_url}
+        drawn: [],
+        zeroBased: false,                  // {index, position_name, card_name, upright, image_url}
         candidateSetId: null,
         interpretShown: false       // 已经收到完整解读
     };
@@ -666,6 +667,8 @@
         
         // 先清理指令标签
         text = stripThinkTags(text);
+        // 去除形如 [[CARD*DRAWN]] {...} / [[SPREAD_SELECTED]] {...} 的整行指令
+        text = text.replace(/^\s*\[\[\s*(?:CARD|SPREAD)(?:[_*])[A-Z_]+\s*\]\][^\n]*$/gmi, '').trim();
 
         // ===== 0) 代码块：先摘走，再统一转义其他部分 =====
         const fences = [];
@@ -797,30 +800,61 @@
         }
         return out;
     }
-    
-    function tryParseDirectiveBlocks(text){
-        const res = { spreads:[], cards:[] };
-        const clean = String(text||'');
-        // 允许多个指令行
-        const lines = clean.split('\n');
-        for(const line of lines){
-            if(line.includes('[[SPREAD_SELECTED]]')){
-                const jsonText = extractFirstJson(line.slice(line.indexOf('[[SPREAD_SELECTED]]')+18));
-                if(jsonText){ 
-                    try{ res.spreads.push(JSON.parse(jsonText)); }
-                    catch(e){ log('parse SPREAD_SELECTED fail',e,jsonText); } 
-                }
-            }
-            if(line.includes('[[CARD_DRAWN]]')){
-                const jsonText = extractFirstJson(line.slice(line.indexOf('[[CARD_DRAWN]]')+14));
-                if(jsonText){ 
-                    try{ res.cards.push(JSON.parse(jsonText)); }
-                    catch(e){ log('parse CARD_DRAWN fail',e,jsonText); } 
-                }
-            }
+
+
+// 把对象/数组里的所有 key 的 `*` 统一替换为 `_`
+    function normalizeDirectiveKeys(v){
+      if (Array.isArray(v)) return v.map(normalizeDirectiveKeys);
+      if (v && typeof v === 'object'){
+        const out = {};
+        for (const k in v){
+          const nk = k.replace(/\*/g, '_'); // e.g. image*url -> image_url
+          out[nk] = normalizeDirectiveKeys(v[k]);
         }
-        return res;
+        return out;
+      }
+      return v;
     }
+
+
+
+
+function tryParseDirectiveBlocks(text){
+  const res = { spreads:[], cards:[] };
+  const clean = String(text||'');
+  const lines = clean.split('\n');
+
+  // 兼容 [[SPREAD_SELECTED]] / [[SPREAD*SELECTED]]
+  const spreadRe = /\[\[\s*SPREAD[_*]SELECTED\s*\]\]/i;
+  // 兼容 [[CARD_DRAWN]] / [[CARD*DRAWN]]
+  const cardRe   = /\[\[\s*CARD[_*]DRAWN\s*\]\]/i;
+
+  for (const line of lines){
+    const sm = line.match(spreadRe);
+    if (sm){
+      const jsonText = extractFirstJson(line.slice(sm.index + sm[0].length));
+      if (jsonText){
+        try{
+          const obj = JSON.parse(jsonText);
+          res.spreads.push(normalizeDirectiveKeys(obj)); // 统一 key
+        }catch(e){ log('parse SPREAD_SELECTED fail', e, jsonText); }
+      }
+    }
+    const cm = line.match(cardRe);
+    if (cm){
+      const jsonText = extractFirstJson(line.slice(cm.index + cm[0].length));
+      if (jsonText){
+        try{
+          const obj = JSON.parse(jsonText);
+          res.cards.push(normalizeDirectiveKeys(obj)); // 统一 key
+        }catch(e){ log('parse CARD_DRAWN fail', e, jsonText); }
+      }
+    }
+  }
+  return res;
+}
+
+
 
     // ========================= 渲染与状态 =========================
     function appendMessage(role, raw, asAIFormat){
@@ -1007,22 +1041,39 @@
                 updatePhase('DRAWING'); 
             }
             directives.cards.forEach(c=>{
-                // 进度推进（容错）
-                const idx = Number(c.index)||Number(c.index_1)|| (state.progress+1);
-                state.progress = Math.max(state.progress, idx||1);
-                // 记录
-                state.drawn.push({
-                    index: idx,
-                    position_name: c.position_name || '',
-                    card_name: c.card_name || '',
-                    upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
-                    image_url: c.image_url || c.image || '',
-                    short_meaning: c.short_meaning || ''
-                });
-                renderSlots();
-                renderCardBubble(c);
-            });
+              // 观察 index 是否为 0 → 认为服务端使用 0 基索引
+              const hasIndex   = (c.index !== undefined && c.index !== null);
+              const hasIndex_1 = (c.index_1 !== undefined && c.index_1 !== null);
+              const rawIdx = hasIndex ? Number(c.index)
+                          : hasIndex_1 ? Number(c.index_1)
+                          : NaN;
 
+              if (rawIdx === 0) state.zeroBased = true;
+
+              // 规范化为“展示用 1 基索引”
+              let idxDisplay;
+              if (Number.isFinite(rawIdx)){
+                idxDisplay = state.zeroBased ? (rawIdx + 1) : (rawIdx <= 0 ? 1 : rawIdx);
+              } else {
+                idxDisplay = state.progress + 1; // 缺失时自增
+              }
+
+              // 推进进度（展示用 1 基）
+              state.progress = Math.max(state.progress, idxDisplay);
+
+              // 记录
+              state.drawn.push({
+                index: idxDisplay,
+                position_name: c.position_name || '',
+                card_name: c.card_name || '',
+                upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
+                image_url: c.image_url || c.image || '',
+                short_meaning: c.short_meaning || ''
+              });
+            
+              renderSlots();
+              renderCardBubble({ ...c, index: idxDisplay }); // 确保气泡里也是 1 基
+            });
             // 如果抽满，切换到"完整解读"阶段，等待 Chatflow 下一条 Answer（即完整解读文本）
             if(state.total>0 && state.progress>=state.total){
                 updatePhase('INTERPRET');
@@ -1032,18 +1083,20 @@
     }
 
     // 用户点击"确认并开始抽牌"
-    async function confirmSpread(spread){
-        // 让 Chatflow 知道这是确认操作，并传会话已知字段（candidate_set_id 可选）
-        const token = {
-            spread_id: spread.spread_id || state.spreadId,
-            spread_name: spread.spread_name || state.spreadName || '',
-            question: state.question || spread.question || '',
-            candidate_set_id: state.candidateSetId || spread.candidate_set_id || ''
-        };
-        const payload = `[[SPREAD_SELECTED]] ${JSON.stringify(token)}`;
-        document.getElementById('message-input').value = payload;
-        await sendMessage();
-    }
+async function confirmSpread(spread){
+  // 发送给 Chatflow 的选阵确认令牌 —— 使用星号版本以与服务端保持一致
+  const token = {
+    "spread*id":   spread.spread_id   || state.spreadId,
+    "spread*name": spread.spread_name || state.spreadName || '',
+    "question":    state.question     || spread.question  || '',
+    "candidate*set*id": state.candidateSetId || spread.candidate_set_id || ''
+    // 如需 card*count/positions 由服务端决定，这里不强行带；保持最小字段集
+  };
+  const payload = `[[SPREAD*SELECTED]] ${JSON.stringify(token)}`;
+  document.getElementById('message-input').value = payload;
+  await sendMessage();
+}
+
 
     function requestChangeSpread(){
         appendMessage('assistant','没问题，我们也可以换一个你更喜欢的牌阵～',true);
