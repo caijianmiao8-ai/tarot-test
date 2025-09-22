@@ -798,39 +798,29 @@
         return out;
     }
     
-    
-    // 剥离指令块，防止出现在可见文本中（兼容 [[CARD*DRAWN]] / [[SPREAD-SELECTED]] 等）
-    function stripDirectiveBlocks(s){
-      const re = /\[\[\s*(SPREAD\W*SELECTED|CARD\W*DRAWN)\s*\]\]\s*{[\s\S]*?}(?=\s*(?:\[\[|$))/gi;
-      return String(s||'').replace(re,'').replace(/\n{3,}/g,'\n\n').trim();
-    }
-
-    // 仅规范 JSON 键名中的星号；不改值
-    function normalizeJsonKeys(jsonText){
-      return String(jsonText||'').replace(/\*/g, '_');
-    }
-
-    // 兼容各种分隔符/大小写/多行；可解析多段指令
     function tryParseDirectiveBlocks(text){
-      const res = {spreads: [], cards: []};
-      if(!text) return res;
-
-      const blockRe = /\[\[\s*(SPREAD\W*SELECTED|CARD\W*DRAWN)\s*\]\][\s\S]*?(?=(?:\n{2,}|\[\[|$))/gi;
-      const blocks = String(text).match(blockRe) || [];
-
-      for(const b of blocks){
-        const isSpread = /\bSPREAD\W*SELECTED\b/i.test(b);
-        const jsonRaw = extractFirstJson(b);
-        if(!jsonRaw) continue;
-        const jsonClean = normalizeJsonKeys(jsonRaw);
-        try{
-          const obj = JSON.parse(jsonClean);
-          (isSpread ? res.spreads : res.cards).push(obj);
-        }catch(e){ log('parse directive fail', e, jsonClean); }
-      }
-      return res;
+        const res = { spreads:[], cards:[] };
+        const clean = String(text||'');
+        // 允许多个指令行
+        const lines = clean.split('\n');
+        for(const line of lines){
+            if(line.includes('[[SPREAD_SELECTED]]')){
+                const jsonText = extractFirstJson(line.slice(line.indexOf('[[SPREAD_SELECTED]]')+18));
+                if(jsonText){ 
+                    try{ res.spreads.push(JSON.parse(jsonText)); }
+                    catch(e){ log('parse SPREAD_SELECTED fail',e,jsonText); } 
+                }
+            }
+            if(line.includes('[[CARD_DRAWN]]')){
+                const jsonText = extractFirstJson(line.slice(line.indexOf('[[CARD_DRAWN]]')+14));
+                if(jsonText){ 
+                    try{ res.cards.push(JSON.parse(jsonText)); }
+                    catch(e){ log('parse CARD_DRAWN fail',e,jsonText); } 
+                }
+            }
+        }
+        return res;
     }
-
 
     // ========================= 渲染与状态 =========================
     function appendMessage(role, raw, asAIFormat){
@@ -919,42 +909,9 @@
         appendMessage('assistant', html, false);
     }
 
-    
-    function normalizeIndex(v, fallback){
-      let n = Number(v);
-      if(!Number.isFinite(n)) n = Number(fallback);
-      if(!Number.isFinite(n)) n = 1;
-      if(n <= 0) n = 1; // 0 视为第一张
-      return Math.floor(n);
-    }
-
-    function applyDrawnCard(c){
-      const idx = normalizeIndex(c.index ?? c.index_1, state.progress + 1);
-      state.progress = Math.max(state.progress, idx);
-
-      const item = {
-        index: idx,
-        position_name: c.position_name || '',
-        card_name: c.card_name || '',
-        upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
-        image_url: c.image_url || c.image || '',
-        short_meaning: c.short_meaning || ''
-      };
-
-      // 去重：同 index 覆盖更新
-      const at = state.drawn.findIndex(x => Number(x.index) === idx);
-      if(at >= 0) state.drawn[at] = item; else state.drawn.push(item);
-
-      // 稳定排序
-      state.drawn.sort((a,b) => Number(a.index) - Number(b.index));
-
-      renderSlots();
-      renderCardBubble(item);
-    }
-
     function renderCardBubble(card){
         // card: {index(展示1基), position_name, card_name, direction/upright, image_url|image, short_meaning?}
-        const idx = normalizeIndex(card.index, state.progress||1);
+        const idx = Number(card.index)||state.progress||1;
         const upright = (typeof card.upright==='boolean') ? card.upright : (String(card.direction||'').includes('正'));
         const img = card.image_url || card.image || '';
         const html = `
@@ -969,29 +926,20 @@
         appendMessage('assistant', html, false);
     }
 
-
     // ========================= 网络交互 =========================
     let isTyping=false;
-    async 
-    let isTyping=false;
-    async function sendMessage(overrideText=null, displayText=null){
+    async function sendMessage(){
         const input=document.getElementById('message-input');
-        const msg=(typeof overrideText==='string') ? overrideText : (input?.value||'').trim();
+        const msg=(input?.value||'').trim();
         if(!msg||isTyping) return;
-
-        // 只有手动输入时才清空输入框
-        if(!(typeof overrideText==='string')){
-          input.value=''; 
-          input.style.height='auto';
-        }
-
+        input.value=''; 
+        input.style.height='auto';
+        
         // 隐藏快捷问题
         const quick = document.getElementById('quick-questions');
         if(quick) quick.classList.add('hidden');
-
-        // 展示用文本可与发送文本不同
-        const shown = (typeof displayText==='string') ? displayText : msg;
-        appendMessage('user', shown, false);
+        
+        appendMessage('user', msg, false);
 
         const payload = {
             message: msg,
@@ -1017,6 +965,7 @@
 
             const text = (data && (data.reply||data.text||data.answer)) || '…';
             processAssistantReply(text);
+
         }catch(e){
             hideTyping(); 
             isTyping=false;
@@ -1025,46 +974,64 @@
         }
     }
 
-
-    
     function processAssistantReply(text){
-      // 1) 用户可见部分：移除所有 [[...]]{...} 指令块
-      const visible = stripDirectiveBlocks(text);
-      if(visible.trim()){
-        appendMessage('assistant', visible, true);
-      }
+        appendMessage('assistant', text, true);
 
-      // 2) 解析（用原始 text，保证不丢信号）
-      const directives = tryParseDirectiveBlocks(text);
+        // 解析指令
+        const directives = tryParseDirectiveBlocks(text);
+        
+        // 1) 选阵确认
+        if(directives.spreads.length){
+            directives.spreads.forEach(sp=>{
+                // 状态写回
+                if(sp.spread_id) state.spreadId = sp.spread_id;
+                if(sp.spread_name) state.spreadName = sp.spread_name;
+                if(sp.card_count) { 
+                    state.total = Number(sp.card_count)||0; 
+                    renderSlots(); 
+                }
+                if(sp.question && !state.question) state.question = sp.question;
+                if(sp.reading_id) state.readingId = sp.reading_id;
+                if(sp.candidate_set_id) state.candidateSetId = sp.candidate_set_id;
+                if(Array.isArray(sp.positions)) state.positions = sp.positions;
 
-      // 2.1) 选阵确认（保持原有逻辑）
-      if(directives.spreads.length){
-        directives.spreads.forEach(sp=>{
-          if(sp.spread_id) state.spreadId = sp.spread_id;
-          if(sp.spread_name) state.spreadName = sp.spread_name;
-          if(sp.card_count){ state.total = Number(sp.card_count)||0; renderSlots(); }
-          if(sp.question && !state.question) state.question = sp.question;
-          if(sp.reading_id) state.readingId = sp.reading_id;
-          if(sp.candidate_set_id) state.candidateSetId = sp.candidate_set_id;
-          if(Array.isArray(sp.positions)) state.positions = sp.positions;
-          renderSpreadConfirm(sp);
-        });
-      }
-
-      // 2.2) 单张翻牌
-      if(directives.cards.length){
-        if(state.phase!=='DRAWING') updatePhase('DRAWING');
-        directives.cards.forEach(applyDrawnCard);
-        if(state.total>0 && state.progress>=state.total){
-          updatePhase('INTERPRET');
-          appendMessage('assistant','全部抽完啦！我来整合完整解读…',true);
+                // 引导 UI
+                renderSpreadConfirm(sp);
+            });
         }
-      }
+
+        // 2) 单张翻牌
+        if(directives.cards.length){
+            // 切换阶段
+            if(state.phase!=='DRAWING'){ 
+                updatePhase('DRAWING'); 
+            }
+            directives.cards.forEach(c=>{
+                // 进度推进（容错）
+                const idx = Number(c.index)||Number(c.index_1)|| (state.progress+1);
+                state.progress = Math.max(state.progress, idx||1);
+                // 记录
+                state.drawn.push({
+                    index: idx,
+                    position_name: c.position_name || '',
+                    card_name: c.card_name || '',
+                    upright: (typeof c.upright==='boolean') ? c.upright : String(c.direction||'').includes('正'),
+                    image_url: c.image_url || c.image || '',
+                    short_meaning: c.short_meaning || ''
+                });
+                renderSlots();
+                renderCardBubble(c);
+            });
+
+            // 如果抽满，切换到"完整解读"阶段，等待 Chatflow 下一条 Answer（即完整解读文本）
+            if(state.total>0 && state.progress>=state.total){
+                updatePhase('INTERPRET');
+                appendMessage('assistant','全部抽完啦！我来整合完整解读…',true);
+            }
+        }
     }
 
-
     // 用户点击"确认并开始抽牌"
-    async 
     async function confirmSpread(spread){
         // 让 Chatflow 知道这是确认操作，并传会话已知字段（candidate_set_id 可选）
         const token = {
@@ -1074,9 +1041,9 @@
             candidate_set_id: state.candidateSetId || spread.candidate_set_id || ''
         };
         const payload = `[[SPREAD_SELECTED]] ${JSON.stringify(token)}`;
-        await sendMessage(payload, '确认并开始抽牌 ✅');
+        document.getElementById('message-input').value = payload;
+        await sendMessage();
     }
-
 
     function requestChangeSpread(){
         appendMessage('assistant','没问题，我们也可以换一个你更喜欢的牌阵～',true);
@@ -1103,21 +1070,18 @@
         renderSpreadCards();
     }
 
-    
     function renderSpreadCards(){
         const layout = document.getElementById('cards-layout');
         layout.innerHTML = '';
-
-        state.drawn.forEach((card, idxArr) => {
-            const displayIdx = normalizeIndex(card.index, idxArr + 1);   // 展示用 1 基
-            const posIdx = Math.max(0, displayIdx - 1);                  // 位义数组 0 基
+        
+        state.drawn.forEach((card, idx) => {
             const cardEl = document.createElement('div');
             cardEl.className = 'card-position';
             cardEl.innerHTML = `
-                <div class="position-number">${displayIdx}</div>
+                <div class="position-number">${idx + 1}</div>
                 <div class="position-info">
-                    <div class="position-name">${escapeHtml(card.position_name||\`位置 \${displayIdx}\`)}</div>
-                    <div class="position-meaning">${escapeHtml(state.positions[posIdx]?.meaning||'')}</div>
+                    <div class="position-name">${escapeHtml(card.position_name||`位置 ${idx+1}`)}</div>
+                    <div class="position-meaning">${escapeHtml(state.positions[idx]?.meaning||'')}</div>
                     <div class="drawn-card">
                         <div class="card-image ${!card.upright?'reversed':''}">
                             ${card.image_url ? 
@@ -1135,7 +1099,6 @@
             layout.appendChild(cardEl);
         });
     }
-
 
     function toggleSpreadDisplay(){
         const panel=document.getElementById('spreadDisplay');
@@ -1171,35 +1134,15 @@
     function openPersonaModal(){ 
         document.getElementById('persona-modal').classList.add('show'); 
     }
-function bindPersonaClickFix(){
-        // 兼容内联 onclick 不传 event/this 的情况
-        document.querySelectorAll('.persona-card').forEach(card=>{
-            card.addEventListener('click', function(e){
-                const onclick = this.getAttribute('onclick') || '';
-                let id = null;
-                const m = onclick.match(/pickPersona\(['"](\w+)['"]\)/);
-                if(m) id = m[1];
-                // 回退：按顺序推断
-                if(!id){
-                    const titles = this.querySelector('.title')?.textContent || '';
-                    if(/理性/.test(titles)) id='wisdom';
-                    else if(/神秘/.test(titles)) id='mystic';
-                    else id='warm';
-                }
-                pickPersona(id, this);
-            }, { once: false });
-        });
-    }
-
     function closePersonaModal(){ 
         document.getElementById('persona-modal').classList.remove('show'); 
     }
-    function pickPersona(id, el){ 
-        state.personaId = id; 
-        // 更新选中状态（不依赖全局 event）
-        document.querySelectorAll('.persona-card').forEach(card => card.classList.remove('selected'));
-        if(el && el.classList) el.classList.add('selected');
-    });
+    function pickPersona(id){ 
+        state.personaId=id; 
+        // 更新选中状态
+        document.querySelectorAll('.persona-card').forEach(card => {
+            card.classList.remove('selected');
+        });
         event.currentTarget.classList.add('selected');
     }
     async function confirmPersona(){
@@ -1304,7 +1247,7 @@ function bindPersonaClickFix(){
 
     async function init(){
         bindInputEvents();
-        bindPersonaClickFix(); const q = getQuery();
+        const q = getQuery();
         state.personaId = q.persona_id || null;
         state.spreadId  = q.spread_id  || null;
         state.question  = q.question   || null;
