@@ -620,19 +620,17 @@ linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
       <div class="action-section">
         {% if has_drawn %}
           <a href="{{ url_for('result') }}" class="already-drawn"><i class="fas fa-eye"></i> 查看今日塔罗解读</a>
-          <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background: linear-gradient(135deg, #4a6fa5, #2e4578);"><i class="fas fa-layer-group"></i> 自选牌阵</a>
-            <a href="{{ url_for('guide_spread') }}" class="btn-tarot"><i class="fas fa-magic"></i> 引导选择牌阵</a>
-          </div>
+<div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+  <a href="/spread/chat2" class="btn-tarot"><i class="fas fa-magic"></i> ai塔罗师占卜</a>
+</div>
           <div class="info-text" style="margin-top:8px;color:var(--text-muted)">您今天已经抽取过塔罗牌了</div>
         {% else %}
           <form id="draw-form" action="{{ url_for('draw_card') }}" method="post">
             <button type="submit" class="btn-tarot" id="draw-btn"><i class="fas fa-hand-sparkles"></i> 抽取今日塔罗牌</button>
           </form>
-          <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('spread') }}" class="btn-tarot" style="background:#6c757d;"><i class="fas fa-layer-group"></i> 自选牌阵</a>
-            <a href="{{ url_for('guide_spread') }}" class="btn-tarot"><i class="fas fa-magic"></i> 引导选择牌阵</a>
-          </div>
+<div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+  <a href="/spread/chat2" class="btn-tarot"><i class="fas fa-magic"></i> ai塔罗师占卜</a>
+</div>
           <div class="info-text" style="margin-top:8px;color:var(--text-muted)">点击按钮开始抽取今日塔罗牌，或直接进入牌阵占卜</div>
         {% endif %}
       </div>
