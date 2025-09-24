@@ -26,5 +26,15 @@
   "tags": ["Demo", "Blueprint"],
   "type": "link",
   "path": "/g/guess_number/"
+},
+{
+  "slug": "reaction-timer",
+  "title": "反应速度测试",
+  "subtitle": "看到绿色立刻点！键鼠皆可",
+  "cover": "/static/images/covers/reaction-timer.jpg",
+  "tags": ["Arcade", "Timing", "Neon"],
+  "type": "link",
+  "path": "/g/reaction_timer/"
 }
+
 ]
