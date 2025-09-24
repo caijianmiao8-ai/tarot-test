@@ -6,8 +6,14 @@ import os
 from datetime import timedelta
 
 class Config:
+
     """应用配置类"""
     
+    GAME_FEATURES = {
+      "guess_number":   {"daily_limit_guest": 100, "daily_limit_user": 500},
+      "reaction_timer": {"daily_limit_guest": 9999, "daily_limit_user": 9999},
+      # ...
+    }
     # ===== Dify & Cron/Webhook 配置 =====
     DIFY_API_BASE = os.getenv("DIFY_API_BASE", "http://ai-bot-new.dalongyun.com/v1")
 
