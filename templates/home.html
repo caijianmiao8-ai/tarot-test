@@ -68,7 +68,7 @@
           <div class="tags">
             {% for t in p.tags %}<div class="tag">{{ t }}</div>{% endfor %}
           </div>{% endif %}
-          <div class="action"><a class="btn" href="{{ p.path }}">进入</a></div>
+          <a class="btn" href="{{ '/play/' ~ p.slug if p.type == 'template' else p.path }}">进入</a>
         </div>
       </div>
       {% endfor %}
