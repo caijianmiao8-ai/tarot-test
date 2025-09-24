@@ -40,7 +40,7 @@ from plugins import register_plugins, plugin_metas
 # 初始化 Flask 应用
 app = Flask(__name__)
 app.config.from_object(Config)
-register_plugins(app)
+register_plugins(app, base_pkg="blueprints.games")
 
 # 验证配置
 try:
