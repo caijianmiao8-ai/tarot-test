@@ -1,40 +1,26 @@
+<!-- templates/games/guess_number/index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>猜数字 · 示例</title>
-  <style>
-    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#1a1625;color:#fff;
-         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}
-    .card{width:min(92vw,520px);padding:24px;border-radius:18px;background:rgba(255,255,255,.06);
-          border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px)}
-    .row{display:flex;gap:8px;margin-top:12px}
-    input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.2);color:#fff}
-    button{padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#6d5675;color:#fff;cursor:pointer}
-    #log{margin-top:12px;opacity:.9}
-  </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>猜数字 · Guess Number</title>
+  <!-- ★ 只加载自己的 CSS，不引入站点公共 CSS，完全隔离 -->
+  <link rel="stylesheet" href="{{ url_for('guess_number.static', filename='main.css') }}">
 </head>
-<body>
+<body id="app-guess-number">
   <div class="card">
-    <h1>猜数字（1~100）</h1>
-    <p>这是一个最小骨架，用来验证<strong>游戏蓝图</strong>能否独立挂载到 /g/guess_number/</p>
+    <h1 class="title">猜数字（1~100）</h1>
+    <p class="sub">这个页面示范了“每个游戏自己的风格与脚本”。</p>
+
     <div class="row">
       <input id="num" type="number" min="1" max="100" placeholder="输入一个数字"/>
       <button id="btn">猜！</button>
     </div>
-    <div id="log"></div>
+    <div id="log" class="log"></div>
   </div>
-  <script>
-    const log = (t)=>{ document.getElementById('log').innerHTML += `<div>${t}</div>` }
-    document.getElementById('btn').onclick = async ()=>{
-      const n = +document.getElementById('num').value;
-      const r = await fetch("./api/guess",{
-        method:"POST",headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({n})
-      }).then(r=>r.json());
-      if(!r.ok){ log("输入有误"); return; }
-      log(r.result === "equal" ? "🎉 猜对了！" : (r.result==="low" ? "小了" : "大了"));
-    }
-  </script>
+
+  <!-- ★ 只加载自己的 JS；用 ES Module 或 IIFE，避免全局变量泄漏 -->
+  <script type="module" src="{{ url_for('guess_number.static', filename='main.js') }}"></script>
 </body>
 </html>
