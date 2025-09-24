@@ -22,7 +22,8 @@ class GameRuntime:
     def session(game_key, user_id, session_id, *, daily=False, ai_personality='warm'):
         day_key = GameRuntime.today() if daily else None
         s = GameSessionDAO.get_by_key(game_key, user_id, session_id, day_key)
-        return s or GameSessionDAO.create(game_key, user_id, session_id, day_key, ai_personality)
+        # 改这里：用 create_or_get
+        return s or GameSessionDAO.create_or_get(game_key, user_id, session_id, day_key, ai_personality)
 
     @staticmethod
     def patch_state(session_id, patch:dict):
@@ -32,4 +33,4 @@ class GameRuntime:
     def log(game_key, session_id, user_id, action, payload=None, result=None, *, bump=True):
         GameActionDAO.add(session_id, game_key, user_id, action, payload, result)
         if bump:
-            GameUsageDAO.bump(game_key, user_id, None, GameRuntime.today(), actions=1)
+            GameUsageDAO.bump(game_key, user_id, session_id, GameRuntime.today(), actions=1)
