@@ -34,11 +34,13 @@ from services import (
     PersonaService,
     ShareService # ★ 必须补上
 )
+from blueprints.games import register_all_games
 
 
 # 初始化 Flask 应用
 app = Flask(__name__)
 app.config.from_object(Config)
+register_all_games(app)
 
 # 验证配置
 try:

@@ -17,5 +17,14 @@
     "type": "template",
     "template": "play/profile-card.html",
     "path": "/play/profile-card"
-  }
+  },
+  {
+  "slug": "guess-number",
+  "title": "猜数字（示例）",
+  "subtitle": "最小蓝图骨架",
+  "cover": "/static/images/covers/guess-number.jpg",
+  "tags": ["Demo", "Blueprint"],
+  "type": "link",
+  "path": "/g/guess_number/"
+}
 ]
