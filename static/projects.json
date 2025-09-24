@@ -1,0 +1,21 @@
+[
+  {
+    "slug": "tarot",
+    "title": "塔罗 · 每日指引",
+    "subtitle": "你当前的主功能",
+    "cover": "/static/images/covers/tarot.jpg",
+    "tags": ["Tarot", "LLM", "Dify"],
+    "type": "link",
+    "path": "/"
+  },
+  {
+    "slug": "play-profile-card",
+    "title": "Design 001 · 玻璃拟态名片",
+    "subtitle": "纯前端视觉练习（占位示例）",
+    "cover": "/static/images/covers/profile-card.jpg",
+    "tags": ["UI", "Glassmorphism"],
+    "type": "template",
+    "template": "play/profile-card.html",
+    "path": "/play/profile-card"
+  }
+]

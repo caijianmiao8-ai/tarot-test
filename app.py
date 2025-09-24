@@ -18,7 +18,7 @@ import re
 import time
 import logging
 from contextlib import contextmanager
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, make_response, send_file, abort
 import hashlib
 from config import Config
 from database import DatabaseManager, ChatDAO, SpreadDAO  # 这里如果用到 UserDAO 也只在函数内部 import 了，OK
@@ -76,6 +76,37 @@ def get_browser():
     )
     return _browser, _context
 
+_PROJECTS_CACHE = None
+def load_projects():
+    """从 static/projects.json 读取项目清单（带简单缓存）"""
+    global _PROJECTS_CACHE
+    if _PROJECTS_CACHE is not None:
+        return _PROJECTS_CACHE
+    path = os.path.join(app.root_path, 'static', 'projects.json')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            _PROJECTS_CACHE = json.load(f)
+    except Exception:
+        _PROJECTS_CACHE = []
+    return _PROJECTS_CACHE
+
+# --- 新增主面板路由 ---
+@app.route("/hub")
+def hub():
+    projects = load_projects()
+    return render_template("home.html", projects=projects)
+
+# --- 可选：模板型项目的保底路由（/play/<slug>）---
+@app.route("/play/<slug>")
+def play_template(slug):
+    projects = load_projects()
+    p = next((x for x in projects if x.get("slug") == slug), None)
+    if not p:
+        abort(404)
+    if p.get("type") == "template" and p.get("template"):
+        return render_template(p["template"])
+    abort(404)
+    
 def screenshot_share_card(url: str, selector: str = "#shareCardRoot") -> bytes:
     """
     打开 share_card 页面，等待稳定后，截图卡片根节点（selector），返回 PNG bytes
