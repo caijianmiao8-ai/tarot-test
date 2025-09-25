@@ -360,9 +360,9 @@ def api_stream():
     seed     = (j.get("seed") or "").strip()              # 若有 seed 且未传 preset，将自动扩写
     builder  = (j.get("builderModel") or "").strip() or "openai/gpt-4o-mini"
 
-    judge_on       = bool(j.get("judge", False))
-    judge_per_round= bool(j.get("judgePerRound", True))
-    judge_model    = (j.get("judgeModel") or "").strip() or ("fake/demo" if not judge_on else "openai/gpt-4o-mini")
+    judge_on        = bool(j.get("judge", False))
+    judge_per_round = bool(j.get("judgePerRound", True))
+    judge_model     = (j.get("judgeModel") or "").strip() or ("fake/demo" if not judge_on else "openai/gpt-4o-mini")
 
     if not topic:
         return jsonify({"ok": False, "error": "NO_TOPIC"}), 400
@@ -375,6 +375,9 @@ def api_stream():
     transcript: List[Dict] = []  # 收集 {"type":"turn","side":"A/B","round":n,"text":...}
 
     def gen():
+        # ✅ 关键修复：nonlocal 必须放在内层函数顶部，且在第一次使用这些变量之前
+        nonlocal presetA, presetB
+
         # 元信息
         yield json.dumps({"type":"meta","topic":topic,"rounds":rounds,
                           "A":modelA,"B":modelB,
@@ -397,18 +400,20 @@ def api_stream():
                 )
                 m = re.search(r"\{[\s\S]*\}", text)
                 if m:
-                    obj = json.loads(m.group(0))
-                    presetA_local = (obj.get("A") or "").strip()
-                    presetB_local = (obj.get("B") or "").strip()
-                    if presetA_local or presetB_local:
-                        yield json.dumps({"type":"preset","A":presetA_local,"B":presetB_local}, ensure_ascii=False) + "\n"
-                        nonlocal presetA, presetB
-                        if presetA_local: presetA = presetA_local
-                        if presetB_local: presetB = presetB_local
+                    try:
+                        obj = json.loads(m.group(0))
+                    except Exception:
+                        obj = {}
+                    a_local = (obj.get("A") or "").strip()
+                    b_local = (obj.get("B") or "").strip()
+                    if a_local or b_local:
+                        if a_local: presetA = a_local
+                        if b_local: presetB = b_local
+                        yield json.dumps({"type":"preset","A":presetA,"B":presetB}, ensure_ascii=False) + "\n"
             except Exception as e:
                 yield json.dumps({"type":"error","who":"builder","message":str(e)}, ensure_ascii=False) + "\n"
 
-        # 预检 A/B/裁判/（若用到）builder
+        # 预检 A/B/裁判
         okA, errA = preflight_model(modelA, app_url, app_name) if not modelA.startswith("fake/") else (True,"")
         okB, errB = preflight_model(modelB, app_url, app_name) if not modelB.startswith("fake/") else (True,"")
         okJ, errJ = (True,"")
@@ -470,7 +475,7 @@ def api_stream():
                 except Exception as e:
                     yield json.dumps({"type":"error","who":"judge","round":r,"message":str(e)}, ensure_ascii=False) + "\n"
 
-        # 最终裁判
+        # 最终裁判（若只开终裁或与每轮裁判并存）
         if judge_on and not judge_per_round:
             try:
                 msgsJF = build_judge_messages(topic, transcript, final=True)
@@ -491,6 +496,7 @@ def api_stream():
         "X-Accel-Buffering": "no",
     }
     return Response(stream_with_context(gen()), headers=headers)
+
 
 @bp.post("/track")
 def track():
