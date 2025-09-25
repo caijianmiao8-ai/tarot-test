@@ -7,13 +7,169 @@ let aborter = null;
 let currentLineEl = null;
 let transcript = [];
 
-async function loadModels(){
-  // 只拉取“当前 Key 真可用”的模型
-  const r = await fetch(`${BASE}api/models?available=1`);
+// ---- 启动蒙层进度 ----
+const boot = {
+  el: $("#boot"),
+  main: $("#main"),
+  tip: $("#boot-tip"),
+  bar: $("#boot-bar"),
+  pct: $("#boot-pct"),
+  show(){ this.el.style.display = "flex"; this.main.style.display = "none"; },
+  hide(){ this.el.style.display = "none"; this.main.style.display = ""; },
+  update(done, total, text){
+    const p = total ? Math.round((done/total)*100) : 0;
+    this.bar.style.width = p + "%";
+    this.pct.textContent = p + "%";
+    if(text) this.tip.textContent = text;
+  }
+};
+
+// ---- 模型加载：全量 -> 前端并发预检 -> 只保留可用 ----
+const CACHE_KEY = "ai_duel_available_models_v1";
+const CACHE_TTL = 10*60*1000; // 10min
+
+async function fetchAllModels(){
+  const r = await fetch(`${BASE}api/models?available=0`);
   const j = await r.json();
+  return j.models || [];
+}
+
+async function checkModel(id){
+  const r = await fetch(`${BASE}api/models/check`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({id})
+  });
+  const j = await r.json();
+  return !!j.ok;
+}
+
+// 简单并发池
+async function runPool(items, limit, worker, onStep){
+  const ret = [];
+  let idx = 0, done = 0;
+  const slot = Array(Math.min(limit, items.length)).fill(0).map(async () => {
+    while(idx < items.length){
+      const i = idx++;
+      const it = items[i];
+      let ok = false;
+      try{ ok = await worker(it); }catch{}
+      if(ok) ret.push(it);
+      done++;
+      onStep?.(done, items.length, it);
+    }
+  });
+  await Promise.all(slot);
+  return ret;
+}
+
+function saveCache(models){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ts: Date.now(), models}));
+  }catch{}
+}
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(Date.now() - obj.ts > CACHE_TTL) return null;
+    return obj.models || null;
+  }catch{ return null; }
+}
+
+async function loadModels(){
+  boot.show();
+  // 先尝试用缓存，能秒开；同时后台刷新
+  const cached = loadCache();
+  if(cached && cached.length){
+    fillSelects(cached);
+    boot.hide();
+    // 背景静默刷新（不挡交互）
+    refreshModelsInBackground();
+    return;
+  }
+  // 没缓存：走完整预检并显示进度
+  await refreshModelsInForeground();
+}
+
+async function refreshModelsInBackground(){
+  try{
+    const all = await fetchAllModels();
+    const ok = await runPool(all, 8, async m => await checkModel(m.id));
+    if(ok.length){
+      saveCache(ok);
+    }
+  }catch{}
+}
+
+async function refreshModelsInForeground(){
+  try{
+    boot.update(0, 0, "获取模型目录…");
+    const all = await fetchAllModels();
+    if(!all.length){
+      boot.update(0, 1, "获取模型目录失败，使用演示模型…");
+      fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+      boot.hide();
+      return;
+    }
+    let ok = [];
+    await runPool(all, 8, async m => {
+      const res = await checkModel(m.id);
+      return res;
+    }, (done, total, m) => {
+      boot.update(done, total, `检测可用性：${m.name || m.id}`);
+    });
+    // 过滤出通过的
+    ok = all.filter(m => {
+      // 通过的会在 runPool 的返回里；为简化，我们再跑一遍 checkModel 结果缓存可扩展，但这里直接再发一次太重
+      // 直接用缓存方式：服务端 /api/models/check 会写入缓存；这里再查一次不可行
+      // 更稳妥：我们在 runPool 内没有保存通过项的引用，改一下：
+    });
+  }catch(e){
+    console.error(e);
+  }
+}
+
+// 改造 runPool：把通过项推入外层数组
+async function loadModels_final(){
+  boot.show();
+  try{
+    boot.update(0, 0, "获取模型目录…");
+    const all = await fetchAllModels();
+    if(!all.length){
+      fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+      boot.hide();
+      return;
+    }
+    const passed = [];
+    await runPool(all, 8, async m => {
+      const ok = await checkModel(m.id);
+      if(ok) passed.push(m);
+      return ok;
+    }, (done, total, m) => {
+      boot.update(done, total, `检测可用性：${m.name || m.id}`);
+    });
+    if(!passed.length){
+      // 兜底给一个演示项
+      passed.push({id:"fake/demo", name:"内置演示（无 Key）"});
+    }
+    // 排序并缓存
+    passed.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
+    saveCache(passed);
+    fillSelects(passed);
+  }catch(e){
+    console.error(e);
+    fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+  }finally{
+    boot.hide();
+  }
+}
+
+function fillSelects(models){
   for(const el of [$("#modelA"), $("#modelB")]){
     el.innerHTML = "";
-    j.models.forEach(m => el.insertAdjacentHTML("beforeend", `<option value="${m.id}">${m.name}</option>`));
+    models.forEach(m => el.insertAdjacentHTML("beforeend", `<option value="${m.id}">${m.name || m.id}</option>`));
   }
 }
 
@@ -55,7 +211,7 @@ async function start(){
     if(!r.ok){ log(`出错了（${r.status}）`); return; }
 
     const reader = r.body.getReader();
-    const td = new TextDecoder(); // 默认 UTF-8
+    const td = new TextDecoder(); // UTF-8
     let buf = "";
     let activeSide = null, activeRound = null;
 
@@ -97,8 +253,6 @@ async function start(){
     log("已停止或网络异常");
   }finally{
     $("#start").disabled = false; $("#stop").disabled = true;
-
-    // 冷路径上报（不阻塞）
     try{
       const data = JSON.stringify({
         topic: $("#topic").value,
@@ -115,7 +269,8 @@ function stop(){
 }
 
 window.addEventListener("DOMContentLoaded", async ()=>{
-  await loadModels();
+  // 用最终版加载（含进度条）
+  await loadModels_final();
   $("#start").addEventListener("click", start);
   $("#stop").addEventListener("click",  stop);
 });

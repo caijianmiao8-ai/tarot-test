@@ -23,7 +23,6 @@ bp = Blueprint(
     static_url_path=f"/static/games/{SLUG}",
 )
 
-# 轻身份（仅 cookie，不连库）
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE","0").lower() in ("1","true","yes")
 SER = URLSafeSerializer(SECRET_KEY, salt=f"{SLUG}-state")
@@ -48,9 +47,6 @@ _MODEL_OK_CACHE: dict[str, float] = {}  # {model_id: expire_ts}
 _MODEL_TTL_SEC = 600                    # 10 分钟缓存
 
 def preflight_model(model_id: str, app_url: str, app_name: str) -> tuple[bool, str]:
-    """
-    用一个极短的非流式请求验证模型可用性；成功返回 (True,"")，失败 (False, 具体错误)
-    """
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         return False, "缺少 OPENROUTER_API_KEY"
@@ -93,7 +89,8 @@ def _model_ok(model_id: str, app_url: str, app_name: str) -> bool:
 @bp.get("/api/models")
 def api_models():
     """
-    ?available=1 只返回“当前 Key 真可用”的模型（并发预检 + 缓存）
+    ?available=1 仅返回“当前 Key 真可用”的模型（并发预检 + 缓存）
+    ?available=0 返回全量目录（不预检） —— 推荐前端用这条再逐个检查并显示进度
     """
     api_key = os.getenv("OPENROUTER_API_KEY")
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
@@ -130,7 +127,7 @@ def api_models():
             {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
         ]
 
-    # 3) 只保留“可用”——并发预检（带缓存）
+    # 3) 只保留“可用”（后端一把筛的旧逻辑，保留给可选场景）
     if only_available and models:
         filtered: List[Dict] = []
         with ThreadPoolExecutor(max_workers=6) as ex:
@@ -149,6 +146,20 @@ def api_models():
     models.append({"id": "fake/demo", "name": "内置演示（无 Key）"})
 
     return jsonify({"ok": True, "models": models})
+
+@bp.post("/api/models/check")
+def api_models_check():
+    """单个模型预检（供前端并发调用以显示进度）"""
+    j = request.get_json(silent=True) or {}
+    model_id = (j.get("id") or "").strip()
+    if not model_id:
+        return jsonify({"ok": False, "error": "NO_ID"}), 400
+    app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
+    app_name = os.getenv("APP_NAME", "AI Duel Arena")
+    ok, err = preflight_model(model_id, app_url, app_name)
+    if ok:
+        _MODEL_OK_CACHE[model_id] = time.time() + _MODEL_TTL_SEC
+    return jsonify({"ok": ok, "error": err or ""})
 
 # =========================
 #      上下文与摘要
@@ -186,14 +197,12 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
         f"你是辩论选手{side}，立场：{stance}。题目：「{topic}」。"
         "规则：每轮≤150字；引用对方上一轮关键点进行论证或反驳；给出具体例证或推理；保持礼貌，不复述题面。"
     )
-    # 最近 N 轮原文
     recent_rounds = []
     if transcript:
         max_round = max(t["round"] for t in transcript if t["side"] in ("A","B"))
         lo = max(1, max_round - keep_last_rounds + 1)
         recent_rounds = [t for t in transcript if t["round"] >= lo and t["side"] in ("A","B")]
     recent_text = join_turns(recent_rounds) if recent_rounds else ""
-    # 更早历史摘要
     earlier = [t for t in transcript if t not in recent_rounds and t["side"] in ("A","B")]
     summary_text = cheap_summarize(join_turns(earlier)) if earlier else ""
     next_round = (transcript[-1]["round"] if transcript else 0) + (1 if (not transcript or transcript[-1]["side"]=="B") else 0)
@@ -207,7 +216,6 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
 
     user = compose(summary_text, recent_text)
     budget = max_ctx_tokens - (est_tokens(system) + 300)
-    # 先减最近轮数
     k = keep_last_rounds
     while est_tokens(user) > budget and k > 0:
         k -= 1
@@ -217,7 +225,6 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
             recent_rounds = [t for t in transcript if t["round"] >= lo and t["side"] in ("A","B")]
             recent_text = join_turns(recent_rounds) if recent_rounds else ""
         user = compose(summary_text, recent_text)
-    # 再缩摘要
     while est_tokens(user) > budget and summary_text:
         summary_text = summary_text[: max(50, len(summary_text)-200)]
         user = compose(summary_text, recent_text)
@@ -233,9 +240,6 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
 def stream_openrouter_messages(model_id: str, messages: List[Dict],
                                app_url: str | None = None,
                                app_name: str | None = None) -> Iterable[str]:
-    """
-    直连 OpenRouter /v1/chat/completions（OpenAI 兼容），逐 token 产出 delta.content
-    """
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("缺少 OPENROUTER_API_KEY 环境变量")
@@ -264,7 +268,6 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
                 msg = r.text
             raise RuntimeError(f"OpenRouter {r.status_code}: {msg}")
 
-        # 关键：自己用 UTF-8 解码，避免 requests 误判编码导致中文“æ…”
         for raw in r.iter_lines(decode_unicode=False):
             if not raw:
                 continue
@@ -324,11 +327,10 @@ def api_stream():
     transcript: List[Dict] = []
 
     def gen():
-        # 1) 先发 meta
         yield json.dumps({"type":"meta","topic":topic,"rounds":rounds,
                           "A":modelA,"B":modelB,"stanceA":stanceA,"stanceB":stanceB}, ensure_ascii=False) + "\n"
 
-        # 2) 开局预检：更快反馈“不可用”错误
+        # 开局预检（快速失败）
         okA, errA = preflight_model(modelA, app_url, app_name)
         okB, errB = preflight_model(modelB, app_url, app_name)
         if not okA:
@@ -339,9 +341,7 @@ def api_stream():
             yield json.dumps({"type":"end"}) + "\n"
             return
 
-        # 3) 回合制对话（A 先手）
         for r in range(1, rounds+1):
-            # A 回合
             msgsA = build_messages_for_side(topic, stanceA, transcript, side="A",
                                             max_ctx_tokens=6000, keep_last_rounds=2)
             acc = []
@@ -356,7 +356,6 @@ def api_stream():
             transcript.append({"side":"A","round":r,"text":fullA})
             yield json.dumps({"type":"turn","side":"A","round":r,"text":fullA}, ensure_ascii=False) + "\n"
 
-            # B 回合
             msgsB = build_messages_for_side(topic, stanceB, transcript, side="B",
                                             max_ctx_tokens=6000, keep_last_rounds=2)
             acc = []
@@ -382,7 +381,6 @@ def api_stream():
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
     }
-    # 保住请求上下文
     return Response(stream_with_context(gen()), headers=headers)
 
 @bp.post("/track")

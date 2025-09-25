@@ -7,7 +7,17 @@
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
 <body id="app-ai-duel">
-  <div class="wrap">
+  <!-- 启动蒙层 -->
+  <div id="boot" class="boot">
+    <div class="box">
+      <h2>正在载入模型列表</h2>
+      <p id="boot-tip">初始化中…</p>
+      <div class="progress"><div id="boot-bar" class="bar" style="width:0%"></div></div>
+      <div class="pct"><span id="boot-pct">0%</span></div>
+    </div>
+  </div>
+
+  <div class="wrap" style="display:none" id="main">
     <h1>AI 斗蛐蛐</h1>
     <div class="cfg">
       <textarea id="topic" rows="3" placeholder="输入命题，例如：'在初创公司里，远程优于线下办公吗？'"></textarea>
@@ -30,6 +40,7 @@
     </div>
     <div id="log" class="log"></div>
   </div>
+
   <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
 </body>
 </html>

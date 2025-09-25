@@ -10,3 +10,12 @@ button[disabled]{opacity:.5; cursor:not-allowed}
 .log{background:#0f1730; border:1px solid #1d2a4a; border-radius:14px; padding:12px; min-height:240px; max-height:60vh; overflow:auto}
 .line{padding:6px 8px; border-bottom:1px dashed #1d2a4a; white-space:pre-wrap; line-height:1.5}
 .line b{color:#9ec3ff}
+
+/* 启动蒙层 + 进度条 */
+.boot{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(6,10,25,.9); z-index:9999}
+.boot .box{width:min(520px,90vw); background:#111a33; border:1px solid #1d2a4a; border-radius:16px; padding:18px}
+.boot h2{margin:0 0 10px; font-size:20px}
+.boot p{margin:6px 0 12px; color:#cfd8ef}
+.progress{height:10px; background:#0b1533; border:1px solid #22345d; border-radius:999px; overflow:hidden}
+.bar{height:100%; width:0%; background:#3b82f6; transition:width .15s linear}
+.pct{margin-top:8px; text-align:right; color:#9ec3ff; font-variant-numeric: tabular-nums}
