@@ -153,9 +153,10 @@
   </div>
 
   <!-- 页面脚本 -->
-  <script>
-    window.DUEL_BASE = "{{ url_for('ai_duel.page') }}".replace(/\/$/, '/') ; // 以 /g/ai_duel/ 结尾
-  </script>
-  <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
+<script>
+  const baseRaw = {{ url_for('ai_duel.page') | tojson }};  // 例如 "/g/ai_duel/" 或 "/g/ai_duel"
+  window.DUEL_BASE = baseRaw.endsWith('/') ? baseRaw : baseRaw + '/';
+</script>
+<script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
 </body>
 </html>
