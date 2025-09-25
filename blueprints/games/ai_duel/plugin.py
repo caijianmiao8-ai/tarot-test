@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, render_template, request, Response, jsonify, make_response
+from flask import Blueprint, render_template, request, Response, jsonify, make_response, stream_with_context
 import os, json, secrets, time, requests
 from itsdangerous import URLSafeSerializer
 from typing import Iterable, List, Dict
@@ -10,7 +10,7 @@ def get_meta():
     return {
         "slug": SLUG,
         "title": "AI 斗蛐蛐",
-        "subtitle": "选命题 + 选2模型，实时辩论流",
+        "subtitle": "选命题 + 选2模型，实时辩论流（OpenRouter）",
         "path": f"/g/{SLUG}/",
         "tags": ["LLM","Debate","Streaming"]
     }
@@ -22,7 +22,7 @@ bp = Blueprint(
     static_url_path=f"/static/games/{SLUG}",
 )
 
-# —— 轻身份：仅用于 cookie，不查库 ——
+# 轻身份（仅 cookie，不连库）
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE","0").lower() in ("1","true","yes")
 SER = URLSafeSerializer(SECRET_KEY, salt=f"{SLUG}-state")
@@ -42,24 +42,20 @@ def page():
 
 @bp.get("/api/models")
 def api_models():
-    # 这里列出常用 OpenRouter 模型；你可继续添加
-    # 名称写法遵循 openrouter 的 "provider/model" 形式
     models = [
-        {"id": "openai/gpt-4o-mini",           "name": "OpenAI · GPT-4o-mini"},
-        {"id": "openai/gpt-4o",                "name": "OpenAI · GPT-4o"},
-        {"id": "anthropic/claude-3.5-sonnet",  "name": "Anthropic · Claude 3.5 Sonnet"},
-        {"id": "google/gemini-1.5-pro",        "name": "Google · Gemini 1.5 Pro"},
-        {"id": "qwen/qwen-2.5-72b-instruct",   "name": "Qwen · 2.5-72B Instruct"},
-        {"id": "meta-llama/llama-3.1-70b-instruct", "name": "Llama · 3.1-70B Instruct"},
-        {"id": "deepseek/deepseek-chat",       "name": "DeepSeek · Chat"},
-        {"id": "fake/demo",                    "name": "内置演示（无 Key）"},
+        {"id": "openai/gpt-4o-mini",                 "name": "OpenAI · GPT-4o-mini"},
+        {"id": "openai/gpt-4o",                      "name": "OpenAI · GPT-4o"},
+        {"id": "anthropic/claude-3.5-sonnet",        "name": "Anthropic · Claude 3.5 Sonnet"},
+        {"id": "google/gemini-1.5-pro",              "name": "Google · Gemini 1.5 Pro"},
+        {"id": "qwen/qwen-2.5-72b-instruct",         "name": "Qwen · 2.5-72B Instruct"},
+        {"id": "meta-llama/llama-3.1-70b-instruct",  "name": "Llama · 3.1-70B Instruct"},
+        {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
+        {"id": "fake/demo",                          "name": "内置演示（无 Key）"},
     ]
     return jsonify({"ok": True, "models": models})
 
-# ------------------ 上下文与摘要 ------------------
-
+# ---------- 上下文与摘要 ----------
 def est_tokens(text: str) -> int:
-    # 粗估 token：足够用于预算控制
     return max(1, len(text) // 4)
 
 def join_turns(transcript: List[Dict]) -> str:
@@ -78,9 +74,9 @@ def cheap_summarize(text: str, max_chars: int = 600) -> str:
         if any(k in line for k in ("因此","所以","综上","因而","结果")):
             s.append(line[:200])
         else:
-            stops = [line.find(p) for p in ("。",".","!","?") if line.find(p) != -1]
-            cut = (min(stops) + 1) if stops else min(120, len(line))
-            s.append(line[:cut])
+            stops = [p for p in (".","。","!","?") if p in line]
+            cut = min((line.find(p) for p in stops if line.find(p) != -1), default=-1)
+            s.append(line[: (cut+1 if cut>0 else min(120, len(line)))])
         if sum(len(x) for x in s) > max_chars: break
     out = "；".join(s)
     return (out[:max_chars] + "…") if len(out) > max_chars else out
@@ -91,32 +87,25 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
         f"你是辩论选手{side}，立场：{stance}。题目：「{topic}」。"
         "规则：每轮≤150字；引用对方上一轮关键点进行论证或反驳；给出具体例证或推理；保持礼貌，不复述题面。"
     )
-
-    # 最近 N 轮原文
     recent_rounds = []
     if transcript:
         max_round = max(t["round"] for t in transcript if t["side"] in ("A","B"))
         lo = max(1, max_round - keep_last_rounds + 1)
         recent_rounds = [t for t in transcript if t["round"] >= lo and t["side"] in ("A","B")]
     recent_text = join_turns(recent_rounds) if recent_rounds else ""
-
-    # 更早历史摘要
     earlier = [t for t in transcript if t not in recent_rounds and t["side"] in ("A","B")]
     summary_text = cheap_summarize(join_turns(earlier)) if earlier else ""
-
     next_round = (transcript[-1]["round"] if transcript else 0) + (1 if (not transcript or transcript[-1]["side"]=="B") else 0)
 
-    def compose(summary_txt, recent_txt):
+    def compose(summ, recent):
         blocks = []
-        if summary_txt: blocks.append(f"【既往摘要】\n{summary_txt}")
-        if recent_txt:  blocks.append(f"【最近几轮】\n{recent_txt}")
+        if summ:   blocks.append(f"【既往摘要】\n{summ}")
+        if recent: blocks.append(f"【最近几轮】\n{recent}")
         blocks.append(f"请给出你的第 {next_round} 轮回应：")
         return "\n\n".join(blocks)
 
     user = compose(summary_text, recent_text)
-    budget = max_ctx_tokens - (est_tokens(system) + 300)  # 给生成留余量
-
-    # 先减 recent 轮数
+    budget = max_ctx_tokens - (est_tokens(system) + 300)
     k = keep_last_rounds
     while est_tokens(user) > budget and k > 0:
         k -= 1
@@ -126,7 +115,6 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
             recent_rounds = [t for t in transcript if t["round"] >= lo and t["side"] in ("A","B")]
             recent_text = join_turns(recent_rounds) if recent_rounds else ""
         user = compose(summary_text, recent_text)
-    # 再缩摘要
     while est_tokens(user) > budget and summary_text:
         summary_text = summary_text[: max(50, len(summary_text)-200)]
         user = compose(summary_text, recent_text)
@@ -137,34 +125,32 @@ def build_messages_for_side(topic: str, stance: str, transcript: List[Dict],
     ]
     return messages
 
-# ------------------ OpenRouter 流式 ------------------
-
-def stream_openrouter_messages(model_id: str, messages: List[Dict]) -> Iterable[str]:
-    """
-    直连 OpenRouter /v1/chat/completions，逐 token 产出 delta.content
-    """
+# ---------- OpenRouter 流式（不在此函数里访问 request） ----------
+def stream_openrouter_messages(model_id: str, messages: List[Dict],
+                               app_url: str | None = None,
+                               app_name: str | None = None) -> Iterable[str]:
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("缺少 OPENROUTER_API_KEY 环境变量")
-
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        # 以下两个非必须，但官方建议加上
-        "HTTP-Referer": os.getenv("APP_URL", request.host_url.rstrip("/")),
-        "X-Title": os.getenv("APP_NAME", "AI Duel Arena"),
     }
+    if app_url:
+        headers["HTTP-Referer"] = app_url
+    if app_name:
+        headers["X-Title"] = app_name
     payload = {
-        "model": model_id,       # 例如 "anthropic/claude-3.5-sonnet"
-        "messages": messages,    # OpenAI/Anthropic 兼容格式
+        "model": model_id,
+        "messages": messages,
         "temperature": 0.7,
         "stream": True,
     }
     with requests.post(url, headers=headers, json=payload, stream=True, timeout=600) as r:
         r.raise_for_status()
         for raw in r.iter_lines(decode_unicode=True):
-            if not raw: 
+            if not raw:
                 continue
             if raw.startswith("data:"):
                 data = raw[len("data:"):].strip()
@@ -172,7 +158,6 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict]) -> Iterable[
                     break
                 try:
                     obj = json.loads(data)
-                    # 与 OpenAI 一致：choices[0].delta.content
                     delta = obj["choices"][0]["delta"].get("content") or ""
                     if delta:
                         yield delta
@@ -180,30 +165,22 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict]) -> Iterable[
                     continue
 
 def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
-    # 演示用：无 Key 也可预览 UI 效果
     last = messages[-1]["content"] if messages else "开始发言。"
     text = f"（{model}）基于当前上下文：{last[:80]}…… 我的回应是：首先… 其次… 最后…"
     for ch in text:
         yield ch
         time.sleep(0.012)
 
-def pick_streamer(model_id: str):
+def pick_streamer(model_id: str, app_url: str, app_name: str):
     prov = model_id.split("/", 1)[0]
     if prov == "fake":
         return lambda msgs: stream_fake_messages(model_id, msgs)
     else:
-        return lambda msgs: stream_openrouter_messages(model_id, msgs)
+        return lambda msgs: stream_openrouter_messages(model_id, msgs, app_url=app_url, app_name=app_name)
 
-# ------------------ 主对战：NDJSON 流 ------------------
-
+# ---------- 主对战：NDJSON 流 ----------
 @bp.post("/api/stream")
 def api_stream():
-    """
-    请求 JSON：
-      topic, rounds, modelA, modelB, stanceA, stanceB, judge
-    返回 NDJSON 流：
-      meta / chunk / turn / judge / end / error
-    """
     j = request.get_json(silent=True) or {}
     topic   = (j.get("topic") or "").strip()
     rounds  = max(1, min(int(j.get("rounds") or 4), 12))
@@ -212,22 +189,22 @@ def api_stream():
     stanceA = (j.get("stanceA") or "正方").strip()
     stanceB = (j.get("stanceB") or "反方").strip()
     do_judge= bool(j.get("judge"))
-
     if not topic:
         return jsonify({"ok": False, "error": "NO_TOPIC"}), 400
 
-    streamA = pick_streamer(modelA)
-    streamB = pick_streamer(modelB)
+    app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
+    app_name = os.getenv("APP_NAME", "AI Duel Arena")
+
+    streamA = pick_streamer(modelA, app_url, app_name)
+    streamB = pick_streamer(modelB, app_url, app_name)
 
     transcript: List[Dict] = []
 
     def gen():
-        # 头信息
         yield json.dumps({"type":"meta","topic":topic,"rounds":rounds,
                           "A":modelA,"B":modelB,"stanceA":stanceA,"stanceB":stanceB}, ensure_ascii=False) + "\n"
-        # 逐回合：A 先手
         for r in range(1, rounds+1):
-            # A 回合（流式）
+            # A 回合
             msgsA = build_messages_for_side(topic, stanceA, transcript, side="A",
                                             max_ctx_tokens=6000, keep_last_rounds=2)
             acc = []
@@ -236,13 +213,13 @@ def api_stream():
                     acc.append(delta)
                     yield json.dumps({"type":"chunk","side":"A","round":r,"delta":delta}, ensure_ascii=False) + "\n"
             except Exception as e:
-                yield json.dumps({"type":"error","side":"A","round":r,"message":str(e)}) + "\n"
+                yield json.dumps({"type":"error","side":"A","round":r,"message":str(e)}, ensure_ascii=False) + "\n"
                 break
             fullA = "".join(acc).strip()
             transcript.append({"side":"A","round":r,"text":fullA})
             yield json.dumps({"type":"turn","side":"A","round":r,"text":fullA}, ensure_ascii=False) + "\n"
 
-            # B 回合（流式）
+            # B 回合
             msgsB = build_messages_for_side(topic, stanceB, transcript, side="B",
                                             max_ctx_tokens=6000, keep_last_rounds=2)
             acc = []
@@ -251,7 +228,7 @@ def api_stream():
                     acc.append(delta)
                     yield json.dumps({"type":"chunk","side":"B","round":r,"delta":delta}, ensure_ascii=False) + "\n"
             except Exception as e:
-                yield json.dumps({"type":"error","side":"B","round":r,"message":str(e)}) + "\n"
+                yield json.dumps({"type":"error","side":"B","round":r,"message":str(e)}, ensure_ascii=False) + "\n"
                 break
             fullB = "".join(acc).strip()
             transcript.append({"side":"B","round":r,"text":fullB})
@@ -268,9 +245,9 @@ def api_stream():
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
     }
-    return Response(gen(), headers=headers)
+    # 关键：保住请求上下文，避免 Working outside of request context
+    return Response(stream_with_context(gen()), headers=headers)
 
-# 可选：冷路径上报统计（不阻塞 UI）
 @bp.post("/track")
 def track():
     _ = request.get_json(silent=True) or {}
