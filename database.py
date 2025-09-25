@@ -16,6 +16,7 @@ from decimal import Decimal
 import os
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
+import threading 
 
 POOL = None                  # ★ 一定要在模块顶层先定义
 POOL_LOCK = threading.Lock()
