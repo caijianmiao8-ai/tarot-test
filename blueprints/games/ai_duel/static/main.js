@@ -89,15 +89,19 @@ function fillSelects(models){
 
 async function loadModels(){
   boot.show();
-  const cached = loadCache();
-  if(cached && cached.length){
-    fillSelects(cached);
+  try{
+    boot.update(0, 1, "读取模型缓存…");
+    const r = await fetch(`${BASE}api/models?available=1`);  // 直接拿可用缓存
+    const j = await r.json();
+    const models = j.models || [{id:"fake/demo", name:"内置演示（无 Key）"}];
+    fillSelects(models);
+  }catch(e){
+    fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+  }finally{
     boot.hide();
-    refreshModelsInBackground();
-    return;
   }
-  await refreshModelsInForeground();
 }
+
 
 async function refreshModelsInBackground(){
   try{

@@ -7,6 +7,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import g   # ← 新增
 from core.runtime import GameRuntime   # ← 新增
 from config import Config 
+from datetime import datetime, timedelta, timezone
+import threading
+from database import DatabaseManager
+
 
 SLUG = "ai_duel"
 
@@ -48,6 +52,97 @@ def _ensure_sid(resp):
 def page():
     resp = make_response(render_template(f"games/{SLUG}/index.html"))
     return _ensure_sid(resp)
+
+
+# === DB 缓存 DAO ===
+class ModelCacheDAO:
+    @staticmethod
+    def upsert(model_id: str, name: str, ok: bool, error: str | None, checked_at: datetime):
+        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+            cur.execute("""
+                insert into model_availability(model_id, model_name, ok, error, checked_at)
+                values (%s,%s,%s,%s,%s)
+                on conflict (model_id) do update set
+                  model_name = excluded.model_name,
+                  ok         = excluded.ok,
+                  error      = excluded.error,
+                  checked_at = excluded.checked_at
+            """, (model_id, name, ok, error, checked_at))
+            conn.commit()
+
+    @staticmethod
+    def get_all():
+        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+            cur.execute("""select model_id, model_name, ok, error, checked_at
+                           from model_availability order by model_name asc""")
+            return cur.fetchall()
+
+    @staticmethod
+    def get_last_checked_at():
+        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+            cur.execute("select max(checked_at) as ts from model_availability")
+            row = cur.fetchone()
+            return (row['ts'] if isinstance(row, dict) else (row[0] if row else None))
+
+def fetch_openrouter_directory(api_key: str) -> list[dict]:
+    # 返回 [{id,name}, ...]
+    try:
+        r = requests.get("https://openrouter.ai/api/v1/models",
+                         headers={"Authorization": f"Bearer {api_key}"},
+                         timeout=20)
+        if r.ok:
+            data = (r.json() or {}).get("data", [])
+            out = []
+            for m in data:
+                mid = m.get("id")
+                if not mid: continue
+                out.append({"id": mid, "name": m.get("name") or mid})
+            return out
+    except Exception:
+        pass
+    # 回退静态
+    return [
+        {"id": "openai/gpt-4o-mini",                 "name": "OpenAI · GPT-4o-mini"},
+        {"id": "anthropic/claude-3.5-sonnet",        "name": "Anthropic · Claude 3.5 Sonnet"},
+        {"id": "meta-llama/llama-3.1-70b-instruct",  "name": "Llama · 3.1-70B Instruct"},
+        {"id": "qwen/qwen-2.5-72b-instruct",         "name": "Qwen · 2.5-72B Instruct"},
+        {"id": "google/gemini-1.5-pro",              "name": "Google · Gemini 1.5 Pro"},
+        {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
+    ]
+
+def preflight_model_with_err(model_id: str, app_url: str, app_name: str) -> tuple[bool, str]:
+    ok, err = preflight_model(model_id, app_url, app_name)
+    return ok, (err or "")
+
+def refresh_models_bulk(app_url: str, app_name: str, *, max_workers: int = 6) -> dict:
+    """
+    拉目录 -> 并发预检 -> 全量写 DB 缓存
+    返回 {count:int, ok:int}
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        return {"count": 0, "ok": 0}
+
+    directory = fetch_openrouter_directory(api_key)
+    if not directory:
+        return {"count": 0, "ok": 0}
+
+    ok_cnt = 0
+    now = datetime.now(timezone.utc)
+    def worker(m):
+        nonlocal ok_cnt
+        ok, err = preflight_model_with_err(m["id"], app_url, app_name)
+        if ok: ok_cnt += 1
+        ModelCacheDAO.upsert(m["id"], m["name"], ok, err, now)
+
+    if max_workers <= 1:
+        for m in directory: worker(m)
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            list(ex.map(worker, directory))
+
+    return {"count": len(directory), "ok": ok_cnt}
+
 
 # ---------------- 模型目录 + 可用性缓存/预检 ----------------
 _MODEL_OK_CACHE: dict[str, float] = {}  # {model_id: expire_ts}
@@ -93,55 +188,75 @@ def _model_ok(mid: str, app_url: str, app_name: str) -> bool:
 @bp.get("/api/models")
 def api_models():
     """
-    ?available=1 仅返回“当前 Key 真可用”的模型（并发预检 + 缓存）
-    ?available=0 返回全量目录（不预检） —— 前端可自行并发预检并显示进度
+    ?available=1  只返回可用(ok=true)的；默认 1
+    ?refresh=1    强制同步刷新（仅限你自己调试；建议用 /api/models/refresh）
     """
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    only_available = (request.args.get("available","1").lower() in ("1","true","yes"))
+    force_refresh  = (request.args.get("refresh","0").lower() in ("1","true","yes"))
+
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
     app_name = os.getenv("APP_NAME", "AI Duel Arena")
-    only_available = (request.args.get("available","1").lower() in ("1","true","yes"))
 
-    models: List[Dict] = []
-    if api_key:
+    # 环境变量控制缓存策略
+    ttl_days  = int(os.getenv("MODEL_CACHE_TTL_DAYS", "30"))
+    lazy_bg   = os.getenv("MODEL_CACHE_LAZY_BG", "0").lower() in ("1","true","yes")  # 是否过期后后台懒刷新
+
+    rows = ModelCacheDAO.get_all()
+    last = ModelCacheDAO.get_last_checked_at()
+
+    def rows_to_models(rs):
+        out = []
+        for r in rs:
+            rid = r["model_id"] if isinstance(r, dict) else r[0]
+            nm  = r["model_name"] if isinstance(r, dict) else r[1]
+            ok  = r["ok"] if isinstance(r, dict) else r[2]
+            if (not only_available) or ok:
+                out.append({"id": rid, "name": nm})
+        if not out:
+            out.append({"id":"fake/demo", "name":"内置演示（无 Key）"})
+        out.sort(key=lambda x: x["name"].lower())
+        return out
+
+    # 1) 首次没有缓存：同步刷新一次
+    if not rows or force_refresh:
+        stat = refresh_models_bulk(app_url, app_name)
+        rows = ModelCacheDAO.get_all()
+        return jsonify({"ok": True, "models": rows_to_models(rows), "refreshed": True, "stat": stat})
+
+    # 2) 有缓存：直接用，并根据 TTL 判断是否后台懒刷新
+    models = rows_to_models(rows)
+
+    too_old = False
+    if last:
+        # last 可能是 naive/aware，统一成 aware
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        too_old = (datetime.now(timezone.utc) - last) > timedelta(days=ttl_days)
+    else:
+        too_old = True
+
+    if too_old and lazy_bg:
+        # 后台线程，立即返回缓存（Vercel 上通常也能跑完；不保证）
         try:
-            r = requests.get("https://openrouter.ai/api/v1/models",
-                             headers={"Authorization": f"Bearer {api_key}"},
-                             timeout=20)
-            if r.ok:
-                data = (r.json() or {}).get("data", [])
-                for m in data:
-                    mid = m.get("id")
-                    if not mid: continue
-                    name = m.get("name") or mid
-                    # 过滤非聊天向可按需增加条件，这里先全收
-                    models.append({"id": mid, "name": name})
+            threading.Thread(target=lambda: refresh_models_bulk(app_url, app_name), daemon=True).start()
         except Exception:
             pass
 
-    if not models:
-        models = [
-            {"id": "openai/gpt-4o-mini",                 "name": "OpenAI · GPT-4o-mini"},
-            {"id": "anthropic/claude-3.5-sonnet",        "name": "Anthropic · Claude 3.5 Sonnet"},
-            {"id": "meta-llama/llama-3.1-70b-instruct",  "name": "Llama · 3.1-70B Instruct"},
-            {"id": "qwen/qwen-2.5-72b-instruct",         "name": "Qwen · 2.5-72B Instruct"},
-            {"id": "google/gemini-1.5-pro",              "name": "Google · Gemini 1.5 Pro"},
-            {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
-        ]
+    return jsonify({"ok": True, "models": models, "refreshed": False, "cache_age_days": None if not last else (datetime.now(timezone.utc)-last).days})
 
-    if only_available and models:
-        filtered: List[Dict] = []
-        with ThreadPoolExecutor(max_workers=6) as ex:
-            futs = {ex.submit(_model_ok, m["id"], app_url, app_name): m for m in models}
-            for fut in as_completed(futs):
-                m = futs[fut]
-                try:
-                    if fut.result(): filtered.append(m)
-                except Exception:    pass
-        models = filtered
 
-    models.sort(key=lambda x: x["name"].lower())
-    models.append({"id": "fake/demo", "name": "内置演示（无 Key）"})
-    return jsonify({"ok": True, "models": models})
+@bp.post("/api/models/refresh")
+def api_models_refresh():
+    token = request.args.get("token") or request.headers.get("X-Refresh-Token")
+    secret = os.getenv("MODEL_REFRESH_TOKEN")  # 你自己在环境变量里设置一个强随机串
+    if not secret or token != secret:
+        return jsonify({"ok": False, "error": "UNAUTHORIZED"}), 401
+
+    app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
+    app_name = os.getenv("APP_NAME", "AI Duel Arena")
+    stat = refresh_models_bulk(app_url, app_name)
+    return jsonify({"ok": True, "stat": stat})
+
 
 @bp.post("/api/models/check")
 def api_models_check():
