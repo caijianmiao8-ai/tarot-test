@@ -1,98 +1,161 @@
-<!doctype html>
+<!-- templates/games/ai_duel/index.html -->
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>AI 斗蛐蛐 - 智能对决竞技场</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>AI 斗蛐蛐 · 对战间</title>
+
+  <!-- 字体：像素/机械混搭 -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- 你的公共 CSS 如无可删 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+
+  <!-- 本页样式 -->
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
-<body id="app-ai-duel">
-  <!-- 启动蒙层 -->
-  <div id="boot" class="boot">
-    <div class="box">
-      <h2>🦗 正在载入模型列表</h2>
-      <p id="boot-tip">初始化中…</p>
-      <div class="progress"><div id="boot-bar" class="bar" style="width:0%"></div></div>
-      <div class="pct"><span id="boot-pct">0%</span></div>
+<body id="duel-app">
+  <!-- 顶栏：标题 + 配额 -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="cube"></span>
+      <h1>AI 斗蛐蛐</h1>
+      <small class="subtitle">若水的对战间</small>
+    </div>
+    <div class="quota" id="quota">配额加载中…</div>
+  </header>
+
+  <!-- 主容器：两侧头像，中间聊天 -->
+  <main class="stage">
+    <!-- 侧栏 A -->
+    <aside class="side side-a">
+      <div class="bot-card">
+        <div class="bot-avatar a" title="A阵营"></div>
+        <div class="bot-meta">
+          <div class="bot-name" id="nameA">A 方</div>
+          <div class="bot-model" id="modelAName">模型待选</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 聊天区 -->
+    <section class="chat" id="chat">
+      <!-- 欢迎/提示 -->
+      <div class="banner">
+        <div class="banner-title">准备开战</div>
+        <div class="banner-note">选择题目与模型，或直接点下面的快捷题目开始。</div>
+        <div class="quick-row">
+          <button class="chip" data-topic="薯条好吃还是汉堡好吃？">薯条 vs 汉堡</button>
+          <button class="chip" data-topic="AI 会在十年内取代程序员吗？">AI vs 程序员</button>
+          <button class="chip" data-topic="猫更聪明还是狗更聪明？">猫 vs 狗</button>
+          <button class="chip" data-topic="远程办公是否更高效？">远程 vs 办公室</button>
+          <button class="chip" data-topic="极简设计是否优于功能堆叠？">极简 vs 全能</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 侧栏 B -->
+    <aside class="side side-b">
+      <div class="bot-card">
+        <div class="bot-avatar b" title="B阵营"></div>
+        <div class="bot-meta">
+          <div class="bot-name" id="nameB">B 方</div>
+          <div class="bot-model" id="modelBName">模型待选</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 底部固定操作条：快速开始 / 停止 / 展开设置 -->
+  <div class="dock">
+    <div class="dock-left">
+      <input id="topic" class="topic-input" type="text" placeholder="输入题目，例如：薯条好吃还是汉堡好吃？">
+      <button id="btn-start" class="btn primary">开始对战</button>
+      <button id="btn-stop" class="btn danger" disabled>停止</button>
+    </div>
+    <div class="dock-right">
+      <button id="btn-toggle" class="btn ghost">⚙ 设置</button>
     </div>
   </div>
 
-  <div class="wrap" style="display:none" id="main">
-    <!-- 顶部标题 -->
-    <div class="header">
-      <h1>
-        <span class="cricket-icon">🦗</span>
-        AI 斗蛐蛐
-        <span class="cricket-icon">🦗</span>
-      </h1>
-      <div class="subtitle">智能对决竞技场 · 让AI思维碰撞出火花</div>
-    </div>
+  <!-- 底部弹出设置面板 -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle" id="sheetClose">—</div>
+    <div class="sheet-content">
+      <div class="sheet-grid">
+        <div class="sheet-col">
+          <div class="group">
+            <label>对战回合（1-10）</label>
+            <input id="rounds" type="number" min="1" max="10" value="4">
+          </div>
 
-    <!-- 配置面板 -->
-    <div class="config-panel">
-      <!-- 话题设置 -->
-      <div class="config-section">
-        <div class="section-title">🎯 对决话题</div>
-        <textarea id="topic" rows="2" placeholder="输入一个有趣的问题或话题，例如：'如何让开源社区更健康？' 或 '未来城市应该是什么样子？'"></textarea>
+          <div class="group">
+            <label>模型 A</label>
+            <select id="modelA"></select>
+          </div>
+
+          <div class="group">
+            <label>模型 B</label>
+            <select id="modelB"></select>
+          </div>
+
+          <div class="group">
+            <label>一句设定（可选，自动扩展成双方预设）</label>
+            <input id="seed" type="text" placeholder="例如：两位美食评论家围绕快餐健康性展开讨论">
+          </div>
+        </div>
+
+        <div class="sheet-col">
+          <div class="group">
+            <label>角色 A 预设（可留空）</label>
+            <textarea id="presetA" rows="4" placeholder="如：美食科学家，重证据与营养学，逻辑严谨"></textarea>
+          </div>
+          <div class="group">
+            <label>角色 B 预设（可留空）</label>
+            <textarea id="presetB" rows="4" placeholder="如：街头美食家，重口感与文化，语言活泼"></textarea>
+          </div>
+
+          <div class="group small">
+            <label class="inline">
+              <input id="useJudge" type="checkbox" checked>
+              启用裁判（每回合裁定）
+            </label>
+            <select id="judgeModel" class="inline"></select>
+          </div>
+
+          <div class="group">
+            <div class="label-row">
+              <label>快捷角色预设</label>
+              <button class="chip small role" data-a="产品经理（用户至上，度量与实验）" data-b="资深架构师（系统性、可靠性、成本）">PM ↔ 架构师</button>
+              <button class="chip small role" data-a="美食科学家（营养、证据）" data-b="美食文化家（风味、文化）">科学 ↔ 文化</button>
+              <button class="chip small role" data-a="乐观投资人（增长、愿景）" data-b="稳健财务官（盈利、风险）">VC ↔ CFO</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 角色预设 -->
-      <div class="config-section">
-        <div class="section-title">🎭 角色设定</div>
-        <div class="config-row">
-          <input id="seed" class="grow" placeholder="输入角色设定（例：A是严谨的工程师，B是充满想象力的产品经理）"/>
-          <select id="builderModel"></select>
-          <button id="btnExpand">✨ 一键生成角色</button>
-        </div>
-        <div class="config-row col">
-          <label>🅰️ A方角色</label>
-          <textarea id="presetA" rows="2" placeholder="定义A方的性格、立场和思维方式..."></textarea>
-        </div>
-        <div class="config-row col">
-          <label>🅱️ B方角色</label>
-          <textarea id="presetB" rows="2" placeholder="定义B方的性格、立场和思维方式..."></textarea>
-        </div>
-      </div>
-
-      <!-- 对战设置 -->
-      <div class="config-section">
-        <div class="section-title">⚔️ 对战配置</div>
-        <div class="config-row">
-          <label>🅰️ A方模型</label>
-          <select id="modelA"></select>
-          <label>🅱️ B方模型</label>
-          <select id="modelB"></select>
-          <label>🔄 回合数</label>
-          <input id="rounds" type="number" min="1" max="10" value="4" style="width: 80px"/>
-        </div>
-        <div class="config-row">
-          <label>🎓 裁判模型</label>
-          <select id="judgeModel"></select>
-          <label class="chk">
-            <input id="judgePerRound" type="checkbox" checked>
-            <span>每回合评判</span>
-          </label>
-          <label class="chk">
-            <input id="judgeFinal" type="checkbox">
-            <span>最终总评</span>
-          </label>
-        </div>
-        <div class="action-buttons">
-          <button id="start">🚀 开始对决</button>
-          <button id="stop" disabled>⏹ 停止对话</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 对话区域 -->
-    <div id="log" class="battle-arena">
-      <div class="empty-state">
-        <div class="icon">🦗</div>
-        <div class="text">等待开始...</div>
+      <div class="sheet-footer">
+        <span id="modelsInfo">模型加载中…</span>
+        <div class="spacer"></div>
+        <button id="btn-save" class="btn primary">保存并收起</button>
       </div>
     </div>
   </div>
 
+  <!-- 载入遮罩 / 进度 -->
+  <div class="boot" id="boot" hidden>
+    <div class="boot-box">
+      <div class="boot-title">加载模型目录…</div>
+      <div class="bar"><span id="bar" style="width:0%"></span></div>
+      <div class="boot-tip" id="bootTip">初始化</div>
+    </div>
+  </div>
+
+  <!-- 页面脚本 -->
+  <script>
+    window.DUEL_BASE = "{{ url_for('ai_duel.page') }}".replace(/\/$/, '/') ; // 以 /g/ai_duel/ 结尾
+  </script>
   <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
 </body>
 </html>
