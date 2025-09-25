@@ -1,14 +1,10 @@
-# plugins.py（稳定版：不自动探测；必须显式传 base_pkg）
+# plugins.py（稳定版）
 import importlib, pkgutil
 from typing import List, Dict
 
 _PLUGINS: List[Dict] = []
 
 def register_plugins(app, base_pkg: str):
-    """
-    显式从 base_pkg 下面扫描 <child>.plugin
-    例如 base_pkg="blueprints.games"
-    """
     print(f"[plugins] loading from base_pkg='{base_pkg}'")
     pkg = importlib.import_module(base_pkg)
 
