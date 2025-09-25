@@ -34,6 +34,40 @@ def _ensure_sid(resp):
     resp.set_cookie("sid", sid, max_age=60*60*24*730, httponly=True, samesite="Lax", secure=COOKIE_SECURE)
     return resp
 
+def preflight_model(model_id: str, app_url: str, app_name: str) -> tuple[bool, str]:
+    """
+    用一个极短的非流式请求验证模型可用性；成功返回 (True,"")，失败 (False, 具体错误)
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        return False, "缺少 OPENROUTER_API_KEY"
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": app_url,
+        "X-Title": app_name,
+    }
+    payload = {
+        "model": model_id,
+        "messages": [{"role":"user","content":"ping"}],
+        "max_tokens": 1,
+        "stream": False
+    }
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        if r.status_code == 200:
+            return True, ""
+        try:
+            j = r.json()
+            msg = (j.get("error") or {}).get("message") or j.get("message") or r.text
+        except Exception:
+            msg = r.text
+        return False, f"OpenRouter {r.status_code}: {msg}"
+    except Exception as e:
+        return False, str(e)
+
+
 @bp.get("/")
 @bp.get("")
 def page():
@@ -180,7 +214,6 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
 
     with requests.post(url, headers=headers, json=payload, stream=True, timeout=600) as r:
         if r.status_code != 200:
-            # 关键：把 OpenRouter 的具体错误抛给外层（通常是 “Model xxx is not available”）
             try:
                 j = r.json()
                 msg = (j.get("error") or {}).get("message") or j.get("message") or r.text
@@ -188,21 +221,27 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
                 msg = r.text
             raise RuntimeError(f"OpenRouter {r.status_code}: {msg}")
 
-        # 200 正常流式：按 OpenAI 兼容的 delta.content 读
-        for raw in r.iter_lines(decode_unicode=True):
-            if not raw: 
+        # 关键：不要 decode_unicode，让我们自己按 UTF-8 解码
+        for raw in r.iter_lines(decode_unicode=False):
+            if not raw:
                 continue
-            if raw.startswith("data:"):
-                data = raw[len("data:"):].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    obj = json.loads(data)
-                    delta = obj["choices"][0]["delta"].get("content") or ""
-                    if delta:
-                        yield delta
-                except Exception:
-                    continue
+            try:
+                line = raw.decode("utf-8", errors="replace").strip()
+            except Exception:
+                continue
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()  # 去掉 "data:"
+            if data == "[DONE]":
+                break
+            try:
+                obj = json.loads(data)
+                delta = obj["choices"][0]["delta"].get("content") or ""
+                if delta:
+                    yield delta
+            except Exception:
+                continue
+
 
 
 def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
