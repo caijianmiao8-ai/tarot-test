@@ -17,6 +17,9 @@ import os
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
 
+POOL = None                  # ★ 一定要在模块顶层先定义
+POOL_LOCK = threading.Lock()
+
 def _mk_pool():
     global POOL
     if POOL is not None:
@@ -225,8 +228,6 @@ class ShareService:
 
 class DatabaseManager:
     """数据库管理器"""
-
-    _pool = None
 
     @classmethod
     def init_pool(cls):
