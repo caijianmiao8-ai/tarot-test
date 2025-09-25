@@ -1,6 +1,7 @@
 # core/dao.py
 import json
 from database import DatabaseManager
+from psycopg2.extras import RealDictCursor
 
 def _identity(user_id, session_id):
     # 你的业务：已登录用 user_id；否则回退到 session_id；都没有就空串
@@ -17,7 +18,7 @@ class GameSessionDAO:
         # day_key_norm 列 = coalesce(day_key,'0001-01-01')
         # 这里我们传 NULL 代表“无按日”，让 SQL 用 day_key_norm = '0001-01-01' 匹配
         day_val = day_key  # None 表示“无按日”
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
                 select * from game_sessions
                 where game_key = %s
@@ -31,7 +32,7 @@ class GameSessionDAO:
     def create_or_get(game_key, user_id, session_id, day_key=None, ai_personality='warm'):
         """避免并发重复：用唯一约束做 UPSERT，返回最终行"""
         identity = _identity(user_id, session_id)
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
                 insert into game_sessions (game_key, user_id, session_id, day_key, state, ai_personality)
                 values (%s, %s, %s, %s, '{}'::jsonb, %s)
@@ -45,7 +46,7 @@ class GameSessionDAO:
 
     @staticmethod
     def patch_state(session_id, patch: dict):
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
               update game_sessions
               set state = coalesce(state,'{}'::jsonb) || %s::jsonb,
@@ -56,7 +57,7 @@ class GameSessionDAO:
 
     @staticmethod
     def set_conversation(session_id, cid: str | None):
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""update game_sessions set conversation_id=%s, updated_at=now() where id=%s""",
                         (cid, session_id))
             conn.commit()
@@ -64,7 +65,7 @@ class GameSessionDAO:
 class GameActionDAO:
     @staticmethod
     def add(session_id, game_key, user_id, action, payload=None, result=None):
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
               insert into game_actions (session_id, game_key, user_id, action, payload, result)
               values (%s, %s, %s, %s, %s::jsonb, %s::jsonb)
@@ -77,7 +78,7 @@ class GameUsageDAO:
     @staticmethod
     def get_today(game_key, user_id, session_id, day):
         identity = _identity(user_id, session_id)
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
               select actions from game_usage_daily
               where day = %s and game_key = %s and identity_key = %s
@@ -88,7 +89,7 @@ class GameUsageDAO:
 
     @staticmethod
     def bump(game_key, user_id, session_id, day, actions=1, tokens_in=0, tokens_out=0):
-        with DatabaseManager.get_db() as conn, conn.cursor() as cur:
+        with DatabaseManager.get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
               insert into game_usage_daily (day, game_key, user_id, session_id, actions, tokens_in, tokens_out)
               values (%s,%s,%s,%s,%s,%s,%s)
