@@ -250,12 +250,25 @@ class DatabaseManager:
     @classmethod
     @contextmanager
     def get_db(cls):
-        """上下文管理器，自动处理连接的获取和释放"""
-        conn = cls.get_connection()
+        """优先复用本次请求的连接；没有再创建"""
+        conn = None
+        created_here = False
+        try:
+            # 如果在 Flask 请求上下文中，先看有没有 g._db_conn
+            from flask import g  # 请求外会 ImportError，下面 except 会处理
+            conn = getattr(g, "_db_conn", None)
+        except Exception:
+            conn = None
+
+        if conn is None:
+            conn = cls.get_connection()
+            created_here = True
+
         try:
             yield conn
         finally:
-            cls.return_connection(conn)
+            if created_here:
+                cls.return_connection(conn)
 
 
 # =========================
