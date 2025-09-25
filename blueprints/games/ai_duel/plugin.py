@@ -42,17 +42,47 @@ def page():
 
 @bp.get("/api/models")
 def api_models():
-    models = [
-        {"id": "openai/gpt-4o-mini",                 "name": "OpenAI · GPT-4o-mini"},
-        {"id": "openai/gpt-4o",                      "name": "OpenAI · GPT-4o"},
-        {"id": "anthropic/claude-3.5-sonnet",        "name": "Anthropic · Claude 3.5 Sonnet"},
-        {"id": "google/gemini-1.5-pro",              "name": "Google · Gemini 1.5 Pro"},
-        {"id": "qwen/qwen-2.5-72b-instruct",         "name": "Qwen · 2.5-72B Instruct"},
-        {"id": "meta-llama/llama-3.1-70b-instruct",  "name": "Llama · 3.1-70B Instruct"},
-        {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
-        {"id": "fake/demo",                          "name": "内置演示（无 Key）"},
-    ]
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    models = []
+
+    # 先尝试实时拉取
+    if api_key:
+        try:
+            r = requests.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=20
+            )
+            if r.ok:
+                data = (r.json() or {}).get("data", [])
+                # 只取常见聊天模型；名称用 name 或 id
+                for m in data:
+                    mid = m.get("id")
+                    if not mid: 
+                        continue
+                    name = m.get("name") or mid
+                    models.append({"id": mid, "name": name})
+                # 简单排序：按名字
+                models.sort(key=lambda x: x["name"].lower())
+        except Exception:
+            pass  # 静默回退
+
+    # 若实时失败，回退一组常用模型
+    if not models:
+        models = [
+            {"id": "openai/gpt-4o-mini",                 "name": "OpenAI · GPT-4o-mini"},
+            {"id": "anthropic/claude-3.5-sonnet",        "name": "Anthropic · Claude 3.5 Sonnet"},
+            {"id": "meta-llama/llama-3.1-70b-instruct",  "name": "Llama · 3.1-70B Instruct"},
+            {"id": "qwen/qwen-2.5-72b-instruct",         "name": "Qwen · 2.5-72B Instruct"},
+            {"id": "google/gemini-1.5-pro",              "name": "Google · Gemini 1.5 Pro"},
+            {"id": "deepseek/deepseek-chat",             "name": "DeepSeek · Chat"},
+        ]
+
+    # 永远附带一个无需 Key 的演示项，便于快速验链路
+    models.append({"id": "fake/demo", "name": "内置演示（无 Key）"})
+
     return jsonify({"ok": True, "models": models})
+
 
 # ---------- 上下文与摘要 ----------
 def est_tokens(text: str) -> int:
@@ -132,25 +162,35 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("缺少 OPENROUTER_API_KEY 环境变量")
+
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    if app_url:
-        headers["HTTP-Referer"] = app_url
-    if app_name:
-        headers["X-Title"] = app_name
+    if app_url:  headers["HTTP-Referer"] = app_url
+    if app_name: headers["X-Title"]      = app_name
+
     payload = {
         "model": model_id,
         "messages": messages,
         "temperature": 0.7,
         "stream": True,
     }
+
     with requests.post(url, headers=headers, json=payload, stream=True, timeout=600) as r:
-        r.raise_for_status()
+        if r.status_code != 200:
+            # 关键：把 OpenRouter 的具体错误抛给外层（通常是 “Model xxx is not available”）
+            try:
+                j = r.json()
+                msg = (j.get("error") or {}).get("message") or j.get("message") or r.text
+            except Exception:
+                msg = r.text
+            raise RuntimeError(f"OpenRouter {r.status_code}: {msg}")
+
+        # 200 正常流式：按 OpenAI 兼容的 delta.content 读
         for raw in r.iter_lines(decode_unicode=True):
-            if not raw:
+            if not raw: 
                 continue
             if raw.startswith("data:"):
                 data = raw[len("data:"):].strip()
@@ -163,6 +203,7 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
                         yield delta
                 except Exception:
                     continue
+
 
 def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
     last = messages[-1]["content"] if messages else "开始发言。"
