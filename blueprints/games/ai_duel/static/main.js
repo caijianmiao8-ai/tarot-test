@@ -185,8 +185,242 @@ async function runPool(items, limit, worker, onStep){
 }
 
 function saveCache(models){
-  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts: Date.now(), models})); }catch{}
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts: Date.now(), models}));   }catch{}
 }
+
+async function refreshModelsInForeground(){
+  try{
+    boot.update(0, 0, "获取模型目录…");
+    const all = await fetchAllModels();
+    if(!all.length){
+      fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+      boot.hide();
+      return;
+    }
+    const passed = [];
+    await runPool(all, 8, async m => {
+      const ok = await checkModel(m.id);
+      if(ok) passed.push(m);
+      return ok;
+    }, (done, total, m) => {
+      boot.update(done, total, `检测可用性：${m.name || m.id}`);
+    });
+    if(!passed.length){
+      passed.push({id:"fake/demo", name:"内置演示（无 Key）"});
+    }
+    passed.sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id));
+    saveCache(passed);
+    fillSelects(passed);
+  }catch(e){
+    console.error(e);
+    fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
+  }finally{
+    boot.hide();
+  }
+}
+
+/* ---------- 一键扩写预设 ---------- */
+async function expandPreset(){
+  const seed = $("#seed").value.trim();
+  if(!seed){ alert("请先输入一句设定"); return; }
+  $("#btnExpand").disabled = true; 
+  $("#btnExpand").textContent = "⏳ 生成中…";
+  try{
+    const r = await fetch(`${BASE}api/preset/expand`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({seed, builderModel: $("#builderModel").value})
+    });
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || "扩写失败");
+    $("#presetA").value = j.presetA || "";
+    $("#presetB").value = j.presetB || "";
+  }catch(e){
+    alert(e.message || "扩写失败");
+  }finally{
+    $("#btnExpand").disabled = false; 
+    $("#btnExpand").textContent = "✨ 一键生成角色";
+  }
+}
+
+/* ---------- 开始/停止 ---------- */
+async function start(){
+  $("#start").disabled = true; 
+  $("#stop").disabled = false;
+  logEl.innerHTML = '<div class="empty-state"><div class="icon">🦗</div><div class="text">等待开始精彩对决...</div></div>';
+  transcript = []; 
+  currentLineEl = null;
+  isFirstMessage = true;
+  currentMessage = { side: null, content: '', round: null, isJudge: false };
+
+  const body = {
+    topic:  $("#topic").value.trim(),
+    rounds: +$("#rounds").value,
+    modelA: $("#modelA").value,
+    modelB: $("#modelB").value,
+    presetA: $("#presetA").value.trim(),
+    presetB: $("#presetB").value.trim(),
+    seed:    $("#seed").value.trim(),            // 若 preset 空，则后端会用 seed 扩写
+    builderModel: $("#builderModel").value,
+    judge: ($("#judgePerRound").checked || $("#judgeFinal").checked),
+    judgePerRound: $("#judgePerRound").checked,
+    judgeModel: $("#judgeModel").value
+  };
+  
+  if(!body.topic){ 
+    renderSystemMessage("请输入问题/话题", true);
+    $("#start").disabled=false; 
+    $("#stop").disabled=true; 
+    return; 
+  }
+
+  aborter = new AbortController();
+
+  try{
+    const r = await fetch(`${BASE}api/stream`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+      signal: aborter.signal
+    });
+    
+    if (!r.ok){
+      try{
+        const j = await r.json();
+        if (r.status === 429 && j.error === "DAILY_LIMIT"){
+          renderSystemMessage(`⌛ 今日开始次数已用完（剩余 ${j.left} 次）`, true);
+        }else{
+          renderSystemMessage(`❌ 出错（${r.status}）：${j.error || ""}`, true);
+        }
+      }catch{
+        renderSystemMessage(`❌ 出错（${r.status}）`, true);
+      }
+      $("#start").disabled = false; 
+      $("#stop").disabled = true;
+      return;
+    }
+
+    const reader = r.body.getReader();
+    const td = new TextDecoder();
+    let buf = "";
+    let activeSide = null, activeRound = null;
+
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      buf += td.decode(value, {stream:true});
+
+      let idx;
+      while((idx = buf.indexOf("\n")) >= 0){
+        const line = buf.slice(0, idx).trim();
+        buf = buf.slice(idx+1);
+        if(!line) continue;
+        let msg; 
+        try{ msg = JSON.parse(line); } catch{ continue; }
+
+        if(msg.type==="meta"){
+          clearEmptyState();
+          renderSystemMessage(`📋 题目：<b>${msg.topic}</b>（回合：${msg.rounds}）`);
+          if(msg.judge) renderSystemMessage(`🎓 裁判：${msg.judgeModel} · 每轮：${msg.judgePerRound ? "是" : "否"}`);
+        }else if(msg.type==="preset"){
+          // 后端扩写的预设，直接填入编辑框，用户可继续修改后再开新局
+          if(msg.A) $("#presetA").value = msg.A;
+          if(msg.B) $("#presetB").value = msg.B;
+          renderSystemMessage("✅ 已根据一句设定扩写 A/B 预设");
+        }else if(msg.type==="chunk"){
+          if(activeSide!==msg.side || activeRound!==msg.round){
+            finishCurrentMessage();
+            activeSide = msg.side; 
+            activeRound = msg.round; 
+            beginLine(activeSide, activeRound);
+          }
+          appendDelta(msg.delta);
+        }else if(msg.type==="turn"){
+          transcript.push(msg);
+          finishCurrentMessage();
+          activeSide = null; 
+          activeRound = null;
+        }else if(msg.type==="judge_chunk"){
+          if(activeSide!=="J" || activeRound!==msg.round){
+            finishCurrentMessage();
+            activeSide = "J"; 
+            activeRound = msg.round; 
+            beginLine("J", activeRound, "judge");
+          }
+          appendDelta(msg.delta);
+        }else if(msg.type==="judge_turn"){
+          finishCurrentMessage();
+          activeSide = null; 
+          activeRound = null;
+        }else if(msg.type==="judge_final_chunk"){
+          if(activeSide!=="JFINAL"){
+            finishCurrentMessage();
+            activeSide = "JFINAL"; 
+            activeRound = 0; 
+            beginLine("J", 0, "judge");
+          }
+          appendDelta(msg.delta);
+        }else if(msg.type==="judge_final"){
+          finishCurrentMessage();
+          activeSide = null; 
+          activeRound = null;
+        }else if(msg.type==="error"){
+          const who = msg.side ? `${msg.side} 方` : (msg.who || "未知");
+          const rr  = msg.round ? ` 第 ${msg.round} 回合` : "";
+          renderSystemMessage(`❌ ${who}${rr} 出错：${msg.message}`, true);
+        }else if(msg.type==="end"){
+          renderSystemMessage("🏁 对决结束");
+        }
+      }
+    }
+    
+    // 确保最后的消息被渲染
+    finishCurrentMessage();
+  }catch(e){
+    if(e.name === 'AbortError') {
+      renderSystemMessage("⏹ 已停止对话");
+    } else {
+      renderSystemMessage("⚠️ 网络异常或连接中断", true);
+    }
+  }finally{
+    $("#start").disabled = false; 
+    $("#stop").disabled = true;
+    try{
+      const data = JSON.stringify({
+        topic: $("#topic").value,
+        models: {A: $("#modelA").value, B: $("#modelB").value, judge: $("#judgeModel").value},
+        transcript
+      });
+      navigator.sendBeacon?.(`${BASE}track`, new Blob([data], {type:"application/json"}));
+    }catch{}
+  }
+}
+
+function stop(){ 
+  if(aborter) aborter.abort(); 
+}
+
+async function showQuota(){
+  try{
+    const r = await fetch(`${BASE}api/quota`);
+    const j = await r.json();
+    if(j.ok && j.limit !== undefined){
+      renderQuota(j.left, j.limit);
+      if(j.left <= 0){ 
+        $("#start").disabled = true; 
+      }
+    }
+  }catch{}
+}
+
+/* ---------- 初始化 ---------- */
+window.addEventListener("DOMContentLoaded", async ()=>{
+  await loadModels();
+  await showQuota();   // 显示配额
+  $("#btnExpand").addEventListener("click", expandPreset);
+  $("#start").addEventListener("click", start);
+  $("#stop").addEventListener("click",  stop);
+});
 
 function loadCache(){
   try{
@@ -213,14 +447,22 @@ function fillSelects(models){
 async function loadModels(){
   boot.show();
   try{
-    boot.update(0, 1, "读取模型缓存…");
-    const r = await fetch(`${BASE}api/models?available=1`);  // 直接拿可用缓存
-    const j = await r.json();
-    const models = j.models || [{id:"fake/demo", name:"内置演示（无 Key）"}];
-    fillSelects(models);
+    boot.update(0, 1, "读取模型列表…");
+    // 先尝试从缓存读取
+    const cached = loadCache();
+    if(cached){
+      fillSelects(cached);
+      boot.hide();
+      // 后台刷新
+      refreshModelsInBackground();
+      return;
+    }
+    
+    // 没有缓存，前台加载
+    await refreshModelsInForeground();
   }catch(e){
+    console.error("loadModels error:", e);
     fillSelects([{id:"fake/demo", name:"内置演示（无 Key）"}]);
-  }finally{
     boot.hide();
   }
 }
@@ -229,4 +471,7 @@ async function refreshModelsInBackground(){
   try{
     const all = await fetchAllModels();
     const ok = await runPool(all, 8, async m => await checkModel(m.id));
-    if(ok.length){ ok.
+    if(ok.length){ 
+      ok.sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id)); 
+      saveCache(ok); 
+    }
