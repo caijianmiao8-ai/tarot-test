@@ -59,11 +59,6 @@ try:
 except Exception:
     sync_playwright = None
 
-@app.before_request
-def _open_db_conn():
-    # 只建一次，所有 DAO 都会复用
-    if not hasattr(g, "_db_conn"):
-        g._db_conn = DatabaseManager.get_connection()
 
 # --- Playwright 启动器（全局单例） ---
 _browser = None
@@ -3173,13 +3168,7 @@ def fortune_preview():
     except Exception as e:
         return jsonify({"error": "获取运势预览失败"}), 500
 
-@app.teardown_request
-def _close_db_conn(exc):
-    conn = getattr(g, "_db_conn", None)
-    if conn:
-        DatabaseManager.return_connection(conn)
-        g._db_conn = None
-        
+
 
 # ===== 主程序入口 =====
 

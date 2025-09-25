@@ -13,6 +13,23 @@ import datetime
 import json
 from datetime import date, datetime
 from decimal import Decimal
+import os
+from psycopg2.pool import SimpleConnectionPool
+from psycopg2.extras import RealDictCursor
+
+def _mk_pool():
+    global POOL
+    if POOL is not None:
+        return POOL
+    dsn = os.getenv("DATABASE_URL")  # ← 换成 Supabase Pooler DSN
+    # 加速 & 稳定性参数
+    POOL = SimpleConnectionPool(
+        minconn=1, maxconn=8, dsn=dsn,
+        connect_timeout=3,
+        keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=5,
+        sslmode="require"
+    )
+    return POOL
 
 def _json_default(o):
     if isinstance(o, (datetime, date)):
@@ -226,49 +243,26 @@ class DatabaseManager:
 
     @classmethod
     def get_connection(cls):
-        """获取数据库连接"""
-        if Config.IS_VERCEL:
-            # Vercel: 每次创建新连接
-            return psycopg2.connect(
-                Config.DATABASE_URL,
-                cursor_factory=psycopg2.extras.RealDictCursor,
-                sslmode="require"
-            )
-        else:
-            # 传统部署: 使用连接池
-            cls.init_pool()
-            return cls._pool.getconn()
+        return _mk_pool().getconn()
 
     @classmethod
     def return_connection(cls, conn):
-        """归还连接到连接池"""
-        if not Config.IS_VERCEL and cls._pool:
-            cls._pool.putconn(conn)
-        else:
-            conn.close()
+        try:
+            _mk_pool().putconn(conn)
+        except Exception:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     @classmethod
     @contextmanager
     def get_db(cls):
-        """优先复用本次请求的连接；没有再创建"""
-        conn = None
-        created_here = False
-        try:
-            # 如果在 Flask 请求上下文中，先看有没有 g._db_conn
-            from flask import g  # 请求外会 ImportError，下面 except 会处理
-            conn = getattr(g, "_db_conn", None)
-        except Exception:
-            conn = None
-
-        if conn is None:
-            conn = cls.get_connection()
-            created_here = True
-
+        conn = cls.get_connection()
         try:
             yield conn
         finally:
-            if created_here:
-                cls.return_connection(conn)
+            cls.return_connection(conn)
 
 
 # =========================
