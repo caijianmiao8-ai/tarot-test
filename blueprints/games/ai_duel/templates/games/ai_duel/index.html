@@ -6,32 +6,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>AI 斗蛐蛐 · 对战间</title>
 
-  <!-- 字体：像素/机械混搭 -->
+  <!-- 机械像素+中文字体 -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- 你的公共 CSS 如无可删 -->
+  <!-- 可留可删 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
 
-  <!-- 本页样式 -->
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
 <body id="duel-app">
-  <!-- 顶栏：标题 + 配额 -->
+  <!-- 顶栏：标题 + 今日配额 -->
   <header class="topbar">
     <div class="brand">
-      <span class="cube"></span>
+      <span class="vox"></span>
       <h1>AI 斗蛐蛐</h1>
-      <small class="subtitle">若水的对战间</small>
+      <small>若水的对战间</small>
     </div>
-    <div class="quota" id="quota">配额加载中…</div>
+    <div class="quota" id="quota">—</div>
   </header>
 
-  <!-- 主容器：两侧头像，中间聊天 -->
+  <!-- 舞台：左右机器人 + 中间聊天 -->
   <main class="stage">
-    <!-- 侧栏 A -->
+    <!-- 左：A -->
     <aside class="side side-a">
       <div class="bot-card">
-        <div class="bot-avatar a" title="A阵营"></div>
+        <div class="bot-avatar a"></div>
         <div class="bot-meta">
           <div class="bot-name" id="nameA">A 方</div>
           <div class="bot-model" id="modelAName">模型待选</div>
@@ -39,12 +38,12 @@
       </div>
     </aside>
 
-    <!-- 聊天区 -->
+    <!-- 中：聊天 -->
     <section class="chat" id="chat">
-      <!-- 欢迎/提示 -->
+      <!-- 欢迎卡片 + 快捷题目 -->
       <div class="banner">
         <div class="banner-title">准备开战</div>
-        <div class="banner-note">选择题目与模型，或直接点下面的快捷题目开始。</div>
+        <div class="banner-note">输入题目或直接点下面的快捷按钮；复杂选项在底部设置里。</div>
         <div class="quick-row">
           <button class="chip" data-topic="薯条好吃还是汉堡好吃？">薯条 vs 汉堡</button>
           <button class="chip" data-topic="AI 会在十年内取代程序员吗？">AI vs 程序员</button>
@@ -55,10 +54,10 @@
       </div>
     </section>
 
-    <!-- 侧栏 B -->
+    <!-- 右：B -->
     <aside class="side side-b">
       <div class="bot-card">
-        <div class="bot-avatar b" title="B阵营"></div>
+        <div class="bot-avatar b"></div>
         <div class="bot-meta">
           <div class="bot-name" id="nameB">B 方</div>
           <div class="bot-model" id="modelBName">模型待选</div>
@@ -67,7 +66,7 @@
     </aside>
   </main>
 
-  <!-- 底部固定操作条：快速开始 / 停止 / 展开设置 -->
+  <!-- 底部操作条 -->
   <div class="dock">
     <div class="dock-left">
       <input id="topic" class="topic-input" type="text" placeholder="输入题目，例如：薯条好吃还是汉堡好吃？">
@@ -79,9 +78,9 @@
     </div>
   </div>
 
-  <!-- 底部弹出设置面板 -->
+  <!-- 底部弹出设置（保留所有高级项 + 预设生成） -->
   <div class="sheet" id="sheet">
-    <div class="sheet-handle" id="sheetClose">—</div>
+    <div class="sheet-handle" id="sheetClose" title="收起">—</div>
     <div class="sheet-content">
       <div class="sheet-grid">
         <div class="sheet-col">
@@ -101,26 +100,28 @@
           </div>
 
           <div class="group">
-            <label>一句设定（可选，自动扩展成双方预设）</label>
-            <input id="seed" type="text" placeholder="例如：两位美食评论家围绕快餐健康性展开讨论">
+            <label>一句设定（自动扩展成双方预设）</label>
+            <div class="row">
+              <input id="seed" type="text" placeholder="如：两位美食评论家围绕快餐健康性展开讨论">
+              <button id="btn-gen" class="btn secondary">✨ 生成预设</button>
+            </div>
+            <small class="muted">不填也可手动写下方 A/B 预设；生成依赖后端 /api/presets</small>
           </div>
         </div>
 
         <div class="sheet-col">
           <div class="group">
-            <label>角色 A 预设（可留空）</label>
+            <label>角色 A 预设</label>
             <textarea id="presetA" rows="4" placeholder="如：美食科学家，重证据与营养学，逻辑严谨"></textarea>
           </div>
           <div class="group">
-            <label>角色 B 预设（可留空）</label>
+            <label>角色 B 预设</label>
             <textarea id="presetB" rows="4" placeholder="如：街头美食家，重口感与文化，语言活泼"></textarea>
           </div>
 
           <div class="group small">
-            <label class="inline">
-              <input id="useJudge" type="checkbox" checked>
-              启用裁判（每回合裁定）
-            </label>
+            <label class="inline"><input id="judgePer" type="checkbox" checked> 逐回合裁判点评</label>
+            <label class="inline"><input id="judgeFinal" type="checkbox" checked> 终局裁判总结</label>
             <select id="judgeModel" class="inline"></select>
           </div>
 
@@ -136,7 +137,7 @@
       </div>
 
       <div class="sheet-footer">
-        <span id="modelsInfo">模型加载中…</span>
+        <span id="modelsInfo" class="muted">模型加载中…</span>
         <div class="spacer"></div>
         <button id="btn-save" class="btn primary">保存并收起</button>
       </div>
@@ -146,17 +147,20 @@
   <!-- 载入遮罩 / 进度 -->
   <div class="boot" id="boot" hidden>
     <div class="boot-box">
-      <div class="boot-title">加载模型目录…</div>
+      <div class="boot-title">初始化模型目录…</div>
       <div class="bar"><span id="bar" style="width:0%"></span></div>
-      <div class="boot-tip" id="bootTip">初始化</div>
+      <div class="boot-tip" id="bootTip">请稍候</div>
     </div>
   </div>
 
-  <!-- 页面脚本 -->
-<script>
-  const baseRaw = {{ url_for('ai_duel.page') | tojson }};  // 例如 "/g/ai_duel/" 或 "/g/ai_duel"
-  window.DUEL_BASE = baseRaw.endsWith('/') ? baseRaw : baseRaw + '/';
-</script>
-<script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
+  <!-- 轻量级吐司 -->
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- base 前缀，确保以 / 结尾 -->
+  <script>
+    const baseRaw = {{ url_for('ai_duel.page') | tojson }};
+    window.DUEL_BASE = baseRaw.endsWith('/') ? baseRaw : baseRaw + '/';
+  </script>
+  <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
 </body>
 </html>

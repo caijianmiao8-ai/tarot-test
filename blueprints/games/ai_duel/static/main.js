@@ -1,22 +1,27 @@
 // static/games/ai_duel/main.js
-const $ = (sel, root=document)=>root.querySelector(sel);
-const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+const $  = (s, r=document)=>r.querySelector(s);
+const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
 
-const BASE = window.DUEL_BASE || (location.pathname.replace(/\/$/, '/'));
+// 安全 BASE & 拼接
+const rawBase = window.DUEL_BASE || "/g/ai_duel/";
+const BASE = rawBase.endsWith('/') ? rawBase : rawBase + '/';
+const api = (p)=> BASE + (p.startsWith('/') ? p.slice(1) : p);
 
-// UI refs
-const chat = $("#chat");
+// refs
+const chat   = $("#chat");
 const btnStart = $("#btn-start");
 const btnStop  = $("#btn-stop");
 const topicInp = $("#topic");
 const roundsInp= $("#rounds");
 const modelA   = $("#modelA");
 const modelB   = $("#modelB");
-const judgeOn  = $("#useJudge");
 const judgeSel = $("#judgeModel");
+const judgePer = $("#judgePer");
+const judgeFinal = $("#judgeFinal");
+const seedInp  = $("#seed");
+const btnGen   = $("#btn-gen");
 const presetA  = $("#presetA");
 const presetB  = $("#presetB");
-const seedInp  = $("#seed");
 const sheet    = $("#sheet");
 const btnToggle= $("#btn-toggle");
 const btnSave  = $("#btn-save");
@@ -26,6 +31,7 @@ const nameAEl  = $("#nameA");
 const nameBEl  = $("#nameB");
 const modelAName = $("#modelAName");
 const modelBName = $("#modelBName");
+const toastEl = $("#toast");
 
 // boot overlay
 const boot = $("#boot"), bar=$("#bar"), bootTip=$("#bootTip");
@@ -36,17 +42,23 @@ let running = false;
 let lastBubbleA = null;
 let lastBubbleB = null;
 
-// helpers
+// ui utils
+function toast(msg, ms=2200){
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  setTimeout(()=> toastEl.hidden = true, ms);
+}
 function logBannerTitle(text){
   const b = $(".banner"); if(!b) return;
   const t = $(".banner-title", b); if(t) t.textContent = text;
 }
-function addMsg(side, text="", isNew=true){
+function addMsg(side, text="", withTime=true){
   const wrap = document.createElement("div");
   wrap.className = `msg ${side}`;
+  const time = withTime ? `<div class="time">${new Date().toLocaleTimeString()}</div>` : '';
   wrap.innerHTML = `
-    <div class="avatar"></div>
     <div class="bubble">${text || '<span class="typing"></span>'}</div>
+    ${time}
   `;
   chat.appendChild(wrap);
   chat.scrollTop = chat.scrollHeight;
@@ -54,7 +66,6 @@ function addMsg(side, text="", isNew=true){
 }
 function appendChunk(bubble, delta){
   if(!bubble) return;
-  // remove typing placeholder if present
   const typing = $(".typing", bubble);
   if(typing) typing.remove();
   bubble.textContent += delta;
@@ -67,32 +78,27 @@ function setModelLabels(){
   modelBName.textContent = b;
 }
 
-// sheet controls
-btnToggle.addEventListener("click", ()=> sheet.classList.toggle("open"));
+// sheet
 $("#sheetClose").addEventListener("click", ()=> sheet.classList.remove("open"));
-btnSave.addEventListener("click", ()=>{
-  setModelLabels();
-  sheet.classList.remove("open");
-});
+btnToggle.addEventListener("click", ()=> sheet.classList.toggle("open"));
+btnSave.addEventListener("click", ()=>{ setModelLabels(); sheet.classList.remove("open"); });
 
-// quick topic chips
+// 快捷题目
 chat.addEventListener("click", (e)=>{
   const btn = e.target.closest(".chip");
   if(!btn || !btn.dataset.topic) return;
   topicInp.value = btn.dataset.topic;
 });
 
-// quick role chips
+// 快捷角色
 $$(".chip.role").forEach(ch=>{
   ch.addEventListener("click", ()=>{
-    const a = ch.dataset.a || "";
-    const b = ch.dataset.b || "";
-    presetA.value = a;
-    presetB.value = b;
+    presetA.value = ch.dataset.a || "";
+    presetB.value = ch.dataset.b || "";
   });
 });
 
-// boot overlay helpers
+// boot overlay
 function bootShow(){ boot.hidden = false; }
 function bootHide(){ boot.hidden = true; }
 function bootStep(p, tip){ bar.style.width = `${Math.max(0, Math.min(100, p))}%`; if(tip) bootTip.textContent = tip; }
@@ -101,11 +107,10 @@ function bootStep(p, tip){ bar.style.width = `${Math.max(0, Math.min(100, p))}%`
 async function loadModels(){
   bootShow(); bootStep(10, "读取模型缓存…");
   try{
-    const r = await fetch(`${BASE}api/models?available=1`);
+    const r = await fetch(api('api/models?available=1'));
     const j = await r.json();
-    const models = j.models || [{id:"fake/demo", name:"内置演示"}];
+    const models = j.models || [];
 
-    // fill selects
     const fill = (sel)=>{
       sel.innerHTML = "";
       for(const m of models){
@@ -116,16 +121,15 @@ async function loadModels(){
     };
     fill(modelA); fill(modelB); fill(judgeSel);
 
-    // sensible defaults：A 选第1个，B 选第2个（若有）
     modelA.selectedIndex = 0;
     modelB.selectedIndex = Math.min(1, modelB.options.length-1);
     judgeSel.selectedIndex = 0;
 
     setModelLabels();
-    modelsInfo.textContent = `已载入 ${models.length} 个可用模型`;
+    modelsInfo.textContent = models.length ? `已载入 ${models.length} 个可用模型` : "未获取到可用模型（请检查缓存）";
     bootStep(100, "完成");
   }catch(e){
-    modelsInfo.textContent = "模型目录载入失败，使用内置演示";
+    modelsInfo.textContent = "模型目录载入失败";
   }finally{
     setTimeout(bootHide, 200);
   }
@@ -134,7 +138,7 @@ async function loadModels(){
 // quota
 async function loadQuota(){
   try{
-    const r = await fetch(`${BASE}api/quota`);
+    const r = await fetch(api('api/quota'));
     const j = await r.json();
     if(j.ok){
       quotaEl.textContent = `今日对战配额：剩 ${j.left}/${j.limit}`;
@@ -142,18 +146,66 @@ async function loadQuota(){
   }catch{}
 }
 
-// streaming
+// 生成预设（依赖后端 /api/presets；若 404 则退化为把 seed 套入）
+btnGen.addEventListener("click", async ()=>{
+  const seed = seedInp.value.trim();
+  const topic = topicInp.value.trim();
+  if(!seed && !topic){ toast("请先填写题目或一句设定"); return; }
+
+  try{
+    const r = await fetch(api('api/presets'), {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        topic,
+        seed,
+        modelA: modelA.value,
+        modelB: modelB.value
+      })
+    });
+    if(r.ok){
+      const j = await r.json();
+      if(j.ok){
+        presetA.value = j.presetA || presetA.value;
+        presetB.value = j.presetB || presetB.value;
+        toast("已生成角色预设");
+        return;
+      }
+    }
+    // 不 ok：退化
+    fallbackSeed();
+  }catch(e){
+    fallbackSeed();
+  }
+
+  function fallbackSeed(){
+    if(seed){
+      if(!presetA.value) presetA.value = `角色 A：${seed}`;
+      if(!presetB.value) presetB.value = `角色 B：${seed}`;
+      toast("已用一句设定填入 A/B（后端未启用 /api/presets）");
+    }else{
+      toast("生成失败，且无一句设定可用");
+    }
+  }
+});
+
+// 启动/停止
+btnStart.addEventListener("click", start);
+btnStop.addEventListener("click", stop);
+topicInp.addEventListener("keydown", (e)=>{ if(e.key==="Enter") start(); });
+
 function start(){
   if(running) return;
   const topic = topicInp.value.trim();
   const rounds = Math.max(1, Math.min(parseInt(roundsInp.value||"4",10), 10));
-  if(!topic){ topicInp.focus(); return; }
+  if(!topic){ topicInp.focus(); toast("请先填写题目"); return; }
 
-  // reset chat banner
+  // 重置视图
   logBannerTitle("对战进行中");
-  lastBubbleA = lastBubbleB = null;
+  lastBubbleA = addMsg('a', "", true); // A typing
+  lastBubbleB = null;
 
-  // payload
+  // payload（注意保留 judge 逐回合 / 终局）
   const payload = {
     topic,
     rounds,
@@ -162,20 +214,16 @@ function start(){
     presetA: presetA.value.trim(),
     presetB: presetB.value.trim(),
     seed: seedInp.value.trim(),
-    judge: !!judgeOn.checked,
-    judgePerRound: true,
+    judge: (judgePer.checked || judgeFinal.checked),
+    judgePerRound: !!judgePer.checked,
+    judgeFinal: !!judgeFinal.checked,
     judgeModel: judgeSel.value
   };
 
-  // UI
   btnStart.disabled = true;
   btnStop.disabled = false;
   running = true;
   controller = new AbortController();
-
-  // add first typing bubbles
-  lastBubbleA = addMsg('a', "", true);
-  lastBubbleB = null; // B 会在 A 之后出现
 
   stream(payload).catch(err=>{
     addMsg('a', `❌ 错误：${err.message || err}`, true);
@@ -186,15 +234,18 @@ function start(){
     loadQuota();
   });
 }
+
 function stop(){
   try{ controller?.abort(); }catch{}
   running = false;
   btnStart.disabled = false;
   btnStop.disabled = true;
+  toast("已停止");
 }
 
+// 流式
 async function stream(body){
-  const r = await fetch(`${BASE}api/stream`, {
+  const r = await fetch(api('api/stream'), {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify(body),
@@ -232,20 +283,30 @@ async function stream(body){
   }
 }
 
-// event handler
+function ensureJudgeBox(){
+  let box = $("#judgeBox");
+  if(!box){
+    box = document.createElement("div");
+    box.id = "judgeBox";
+    box.className = "banner";
+    box.innerHTML = `<div class="banner-title">裁判</div><div class="banner-note"></div>`;
+    chat.appendChild(box);
+  }
+  return $(".banner-note", box);
+}
+
+// 事件处理（不遗漏：meta、preset、chunk、turn、judge_chunk、judge_turn、judge_final、end、error）
 function handleEvent(line){
   let j;
   try{ j = JSON.parse(line); }catch{ return; }
 
   switch(j.type){
     case "meta":{
-      // 更新面板信息
       if(j.A){ modelAName.textContent = j.A; }
       if(j.B){ modelBName.textContent = j.B; }
       break;
     }
     case "preset":{
-      // 系统扩写了角色设定，回填到面板
       if(j.A){ presetA.value = j.A; }
       if(j.B){ presetB.value = j.B; }
       break;
@@ -263,19 +324,16 @@ function handleEvent(line){
     case "turn":{
       if(j.side === "A"){
         if(!lastBubbleA) lastBubbleA = addMsg('a', "", true);
-        appendChunk(lastBubbleA, "\n"); //轻微收尾
-        // 开始等待 B：先放一个打字框
-        lastBubbleB = addMsg('b', "", true);
+        appendChunk(lastBubbleA, "\n");
+        lastBubbleB = addMsg('b', "", true); // 轮到 B typing
       }else if(j.side === "B"){
         if(!lastBubbleB) lastBubbleB = addMsg('b', "", true);
         appendChunk(lastBubbleB, "\n");
-        // 新一轮 A 的 typing
-        lastBubbleA = addMsg('a', "", true);
+        lastBubbleA = addMsg('a', "", true); // 新一轮 A typing
       }
       break;
     }
     case "judge_chunk":{
-      // 裁判流：用居中 banner 简略显示
       ensureJudgeBox().textContent += j.delta || "";
       break;
     }
@@ -297,29 +355,11 @@ function handleEvent(line){
       break;
     }
     default:
-      // ignore
+      // 兼容服务端扩展类型：忽略
   }
 }
-function ensureJudgeBox(){
-  let box = $("#judgeBox");
-  if(!box){
-    box = document.createElement("div");
-    box.id = "judgeBox";
-    box.className = "banner";
-    box.innerHTML = `<div class="banner-title">裁判点评</div><div class="banner-note"></div>`;
-    chat.appendChild(box);
-  }
-  return $(".banner-note", box);
-}
 
-// actions
-btnStart.addEventListener("click", start);
-btnStop.addEventListener("click", stop);
-
-// enter start
-topicInp.addEventListener("keydown", (e)=>{ if(e.key==="Enter") start(); });
-
-// init
+// 初始化
 (async function init(){
   await loadModels();
   await loadQuota();

@@ -1,40 +1,40 @@
 /* static/games/ai_duel/main.css */
 :root{
-  --bg: #0d0f14;
-  --panel: #11141b;
-  --muted: #8ea0b2;
-  --text: #e7edf5;
-  --a: #00ffd1;       /* 霓虹青绿 A 方 */
-  --b: #ff7ae6;       /* 霓虹粉紫 B 方 */
-  --accent: #13b4ff;  /* 点缀蓝 */
-  --danger: #ff4d6d;
-  --pixel-border: 2px solid #303545;
+  --bg: #f2f6fb;
+  --panel: #ffffff;
+  --muted: #6b7a90;
+  --text: #111826;
+  --a: #10b981;       /* A 方：青绿 */
+  --b: #8b5cf6;       /* B 方：紫色 */
+  --accent: #22c55e;  /* 点缀：嫩绿 */
+  --danger: #ef4444;
+  --pixel: 2px solid #c7d2fe;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; background:linear-gradient(180deg,#0b0d12,#0e1118 60%,#0b0d12);
+  margin:0; background:linear-gradient(180deg,#f6fbff,#eef3f9);
   color:var(--text); font-family:'Noto Sans SC', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 /* 顶栏 */
 .topbar{
   position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between;
-  padding:12px 16px; background:rgba(13,15,20,.8); backdrop-filter:blur(8px); border-bottom:var(--pixel-border);
+  padding:12px 16px; background:rgba(255,255,255,.8); backdrop-filter:blur(10px); border-bottom:var(--pixel)
 }
 .brand{display:flex; align-items:center; gap:12px}
-.brand .cube{width:14px; height:14px; background:linear-gradient(135deg,var(--a) 0%, var(--accent) 100%); box-shadow:0 0 12px rgba(0,255,209,.6)}
+.brand .vox{width:14px; height:14px; background:linear-gradient(135deg,var(--a), var(--b)); box-shadow:0 0 10px rgba(16,185,129,.5)}
 .topbar h1{margin:0; font: 700 18px/1 'Press Start 2P', monospace; letter-spacing:1px}
-.subtitle{margin-left:10px; color:var(--muted); font-size:12px}
+.topbar small{margin-left:10px; color:var(--muted); font-size:12px}
 .quota{color:var(--muted); font-size:13px}
 
-/* 主舞台布局 */
+/* 舞台布局 */
 .stage{display:grid; grid-template-columns: 220px 1fr 220px; gap:16px; max-width:1200px; margin:16px auto; padding:0 12px}
 .side{position:sticky; top:64px; height:fit-content}
-.bot-card{display:flex; align-items:center; gap:12px; background:var(--panel); border:var(--pixel-border); padding:12px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.bot-avatar{width:56px; height:56px; border-radius:8px; border:var(--pixel-border); background:#090b10; position:relative}
-.bot-avatar::after{content:''; position:absolute; inset:6px; border-radius:4px; filter:drop-shadow(0 0 6px rgba(255,255,255,.2))}
+.bot-card{display:flex; align-items:center; gap:12px; background:var(--panel); border:var(--pixel); padding:12px; border-radius:10px; box-shadow:0 8px 26px rgba(17,24,39,.06)}
+.bot-avatar{width:56px; height:56px; border-radius:8px; border:var(--pixel); background:#eef2ff; position:relative}
+.bot-avatar::after{content:''; position:absolute; inset:6px; border-radius:6px; filter:drop-shadow(0 0 6px rgba(0,0,0,.08))}
 .bot-avatar.a::after{
   background:
    radial-gradient(circle at 35% 40%, var(--a) 0 6px, transparent 7px),
@@ -51,77 +51,109 @@ body{
 .bot-meta .bot-model{color:var(--muted); font-size:12px}
 
 /* 聊天区 */
-.chat{background:var(--panel); border:var(--pixel-border); border-radius:8px; padding:16px; min-height:60vh; position:relative; overflow:auto}
-.banner{border:1px dashed #2f3443; border-radius:8px; padding:16px; color:var(--muted); text-align:center}
-.banner-title{font:700 14px/1 'Press Start 2P', monospace; color:#cfe7ff; margin-bottom:6px}
+.chat{
+  background:var(--panel); border:var(--pixel); border-radius:12px; padding:18px; min-height:60vh; overflow:auto;
+  box-shadow:0 10px 30px rgba(17,24,39,.06)
+}
+
+/* 欢迎卡片 */
+.banner{border:2px dashed #d5ddf7; border-radius:12px; padding:16px; text-align:center; background:#fafcff}
+.banner-title{font:700 14px/1 'Press Start 2P', monospace; color:#1f2937; margin-bottom:6px}
+.banner-note{color:var(--muted)}
 .quick-row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px}
-.chip{background:#0f131c; color:#d7e6ff; border:1px solid #334055; border-radius:999px; padding:8px 12px; cursor:pointer; transition:.15s}
-.chip:hover{transform:translateY(-1px); background:#111728; border-color:#43607a}
+.chip{
+  background:#f3f6fe; color:#334155; border:1px solid #d2daf6; border-radius:999px; padding:8px 12px; cursor:pointer; transition:.15s;
+}
+.chip:hover{transform:translateY(-1px); background:#eef2ff; border-color:#c7d2fe}
 .chip.small{padding:4px 8px; font-size:12px}
 
+/* 对话消息（更像 IM） */
 .msg{display:flex; gap:10px; margin:14px 0; align-items:flex-end}
 .msg .bubble{
-  max-width:68%; padding:12px 14px; border-radius:10px;
-  line-height:1.5; white-space:pre-wrap; word-break:break-word; box-shadow:0 4px 14px rgba(0,0,0,.18)
+  max-width:70%; padding:12px 14px; border-radius:14px; line-height:1.6; white-space:pre-wrap; word-break:break-word;
+  position:relative; box-shadow:0 4px 14px rgba(17,24,39,.08);
 }
+.msg .time{font-size:11px; color:#94a3b8; margin:2px 6px}
 .msg.a{justify-content:flex-start}
-.msg.a .bubble{background:#061a17; border:1px solid rgba(0,255,209,.25); color:#ddfff6}
 .msg.b{justify-content:flex-end}
-.msg.b .bubble{background:#1a0f16; border:1px solid rgba(255,122,230,.25); color:#ffe8fa}
-.msg .avatar{width:36px; height:36px; border-radius:6px; border:var(--pixel-border)}
-.msg.a .avatar{background:linear-gradient(135deg,#042c25,#093d30)}
-.msg.b .avatar{background:linear-gradient(135deg,#2c0723,#3a0a2f)}
 
-.typing{display:inline-block; min-width:2ch}
-.typing::after{
-  content:'▋'; animation:blink 1s steps(1) infinite; margin-left:2px; color:#9adfcb
+.msg.a .bubble{background:#ecfdf5; border:1px solid #b6f4d9; color:#064e3b}
+.msg.b .bubble{background:#f5f3ff; border:1px solid #d8ccff; color:#3b0764}
+
+/* 气泡三角 */
+.msg.a .bubble::after{
+  content:''; position:absolute; left:-6px; bottom:10px; border-width:6px; border-style:solid;
+  border-color: transparent #b6f4d9 transparent transparent;
 }
+.msg.a .bubble::before{
+  content:''; position:absolute; left:-5px; bottom:11px; border-width:5px; border-style:solid;
+  border-color: transparent #ecfdf5 transparent transparent;
+}
+.msg.b .bubble::after{
+  content:''; position:absolute; right:-6px; bottom:10px; border-width:6px; border-style:solid;
+  border-color: transparent transparent transparent #d8ccff;
+}
+.msg.b .bubble::before{
+  content:''; position:absolute; right:-5px; bottom:11px; border-width:5px; border-style:solid;
+  border-color: transparent transparent transparent #f5f3ff;
+}
+
+/* 打字指示 */
+.typing{display:inline-block; min-width:2ch}
+.typing::after{content:'▋'; animation:blink 1s steps(1) infinite; margin-left:2px; color:#94a3b8}
 @keyframes blink{50%{opacity:0}}
 
 /* 底部工具条 */
 .dock{
   position:sticky; bottom:0; z-index:15; display:flex; align-items:center; justify-content:space-between;
-  gap:12px; padding:10px 12px; background:rgba(13,15,20,.9); backdrop-filter:blur(8px); border-top:var(--pixel-border)
+  gap:12px; padding:10px 12px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border-top:var(--pixel)
 }
 .topic-input{
-  width: min(48vw, 720px); background:#0b0e15; border:1px solid #2e3340; border-radius:8px; padding:10px 12px; color:var(--text)
+  width: min(48vw, 720px); background:#fff; border:1px solid #d1d5db; border-radius:10px; padding:10px 12px; color:var(--text);
+  box-shadow:0 2px 8px rgba(17,24,39,.05) inset;
 }
-.btn{border:1px solid #354258; padding:10px 14px; border-radius:8px; color:#dce9ff; background:#0f131c; cursor:pointer}
-.btn.primary{background:linear-gradient(180deg,#0f3b34,#0a2d27); border-color:#0bbf9d}
-.btn.primary:hover{filter:brightness(1.1)}
-.btn.danger{background:linear-gradient(180deg,#3b0f22,#2b0a19); border-color:#ff4d8e}
-.btn.ghost{background:#0f131c}
-.btn:disabled{opacity:.5; cursor:not-allowed}
+.btn{border:1px solid #c7d2fe; padding:10px 14px; border-radius:10px; color:#1f2937; background:#eef2ff; cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#dcfce7,#bbf7d0); border-color:#86efac}
+.btn.primary:hover{filter:brightness(1.03)}
+.btn.secondary{background:#e9edff}
+.btn.danger{background:linear-gradient(180deg,#fee2e2,#fecaca); border-color:#fca5a5}
+.btn.ghost{background:#f3f6fe}
+.btn:disabled{opacity:.6; cursor:not-allowed}
 .dock-left{display:flex; gap:8px; align-items:center}
 .dock-right{display:flex; gap:8px; align-items:center}
 
-/* 底部弹出设置面板 */
+/* 设置面板（底部弹出） */
 .sheet{
   position:fixed; inset:auto 0 0 0; transform:translateY(100%); transition:transform .28s ease; z-index:30;
-  background:linear-gradient(180deg,#0d0f14,#0c1018); border-top:var(--pixel-border);
+  background:linear-gradient(180deg,#ffffff,#f7faff); border-top:var(--pixel); box-shadow:0 -10px 30px rgba(17,24,39,.08)
 }
 .sheet.open{transform:translateY(0)}
-.sheet-handle{width:64px; height:6px; background:#2b3144; border-radius:999px; margin:10px auto}
+.sheet-handle{width:64px; height:6px; background:#cbd5e1; border-radius:999px; margin:10px auto}
 .sheet-content{max-width:1200px; margin:0 auto; padding:8px 16px 16px}
 .sheet-grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
-.group{background:#0f131c; border:1px solid #2e3340; border-radius:8px; padding:10px}
-.group.small{display:flex; align-items:center; gap:12px}
-.group label{display:block; color:#bcd3ee; margin-bottom:6px}
+.group{background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:10px}
+.group .row{display:flex; gap:8px; align-items:center}
+.group.small{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.group label{display:block; color:#0f172a; font-weight:600; margin-bottom:6px}
 .group .inline{display:inline-block; vertical-align:middle; margin-right:8px}
 .group input[type="text"], .group input[type="number"], .group select, .group textarea{
-  width:100%; background:#0b0e15; border:1px solid #2e3340; border-radius:6px; color:#dfe9ff; padding:8px 10px
+  width:100%; background:#fff; border:1px solid #d1d5db; border-radius:10px; color:#111827; padding:9px 10px
 }
 .label-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
 .sheet-footer{display:flex; align-items:center; gap:12px; padding-top:6px}
 .spacer{flex:1}
+.muted{color:#6b7280; font-size:12px}
 
 /* 载入遮罩 */
-.boot{position:fixed; inset:0; background:rgba(8,10,14,.7); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center}
-.boot-box{background:#0f131c; border:var(--pixel-border); border-radius:10px; padding:18px 20px; width:min(460px, 90vw)}
+.boot{position:fixed; inset:0; background:rgba(241,245,249,.6); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center}
+.boot-box{background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px 20px; width:min(460px, 90vw); box-shadow:0 10px 30px rgba(17,24,39,.08)}
 .boot-title{font:700 14px 'Press Start 2P', monospace; margin-bottom:8px}
-.bar{height:8px; background:#0b0e15; border:1px solid #2e3340; border-radius:999px; overflow:hidden}
-.bar span{display:block; height:100%; background:linear-gradient(90deg,var(--a),var(--accent)); transition:width .2s}
+.bar{height:10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:999px; overflow:hidden}
+.bar span{display:block; height:100%; background:linear-gradient(90deg,var(--a),var(--b)); transition:width .2s}
 .boot-tip{color:var(--muted); margin-top:8px; font-size:12px}
+
+/* 吐司 */
+.toast{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.2); z-index:50}
 
 @media (max-width: 980px){
   .stage{grid-template-columns: 1fr; }
