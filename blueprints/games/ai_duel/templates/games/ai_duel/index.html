@@ -19,25 +19,47 @@
 
   <div class="wrap" style="display:none" id="main">
     <h1>AI 斗蛐蛐</h1>
+
+    <!-- 题目 -->
     <div class="cfg">
-      <textarea id="topic" rows="3" placeholder="输入命题，例如：'在初创公司里，远程优于线下办公吗？'"></textarea>
+      <textarea id="topic" rows="3" placeholder="输入问题/话题，例如：'如何让开源社区更健康？'"></textarea>
+    </div>
+
+    <!-- 预设扩写 -->
+    <div class="cfg">
+      <div class="row">
+        <input id="seed" class="grow" placeholder="一句设定（例：A 是严谨工程师；B 是有想象力的产品经理）"/>
+        <label>Builder</label><select id="builderModel"></select>
+        <button id="btnExpand">一键扩写为 A/B 预设</button>
+      </div>
+      <div class="row col">
+        <label>A 角色预设</label>
+        <textarea id="presetA" rows="3" placeholder="可手写或用一键扩写生成…"></textarea>
+      </div>
+      <div class="row col">
+        <label>B 角色预设</label>
+        <textarea id="presetB" rows="3" placeholder="可手写或用一键扩写生成…"></textarea>
+      </div>
+    </div>
+
+    <!-- 模型与裁判 -->
+    <div class="cfg">
       <div class="row">
         <label>A 模型</label><select id="modelA"></select>
-        <label>立场</label><input id="stanceA" value="正方"/>
-      </div>
-      <div class="row">
         <label>B 模型</label><select id="modelB"></select>
-        <label>立场</label><input id="stanceB" value="反方"/>
-      </div>
-      <div class="row">
         <label>回合</label><input id="rounds" type="number" min="1" max="12" value="4"/>
-        <label class="chk"><input id="judge" type="checkbox"> 最后请裁判判定</label>
       </div>
       <div class="row">
-        <button id="start">开始对战</button>
+        <label>裁判模型</label><select id="judgeModel"></select>
+        <label class="chk"><input id="judgePerRound" type="checkbox" checked> 每轮裁判</label>
+        <label class="chk"><input id="judgeFinal" type="checkbox"> 最终裁判</label>
+      </div>
+      <div class="row">
+        <button id="start">开始对话</button>
         <button id="stop" disabled>停止</button>
       </div>
     </div>
+
     <div id="log" class="log"></div>
   </div>
 
