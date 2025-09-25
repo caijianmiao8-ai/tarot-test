@@ -203,7 +203,21 @@ async function start(){
       body: JSON.stringify(body),
       signal: aborter.signal
     });
-    if(!r.ok){ log(`出错了（${r.status}）`); return; }
+if (!r.ok){
+  try{
+    const j = await r.json();
+    if (r.status === 429 && j.error === "DAILY_LIMIT"){
+      log(`❌ 今日开始次数已用完（剩余 ${j.left} 次）`);
+    }else{
+      log(`❌ 出错（${r.status}）：${j.error || ""}`);
+    }
+  }catch{
+    log(`❌ 出错（${r.status}）`);
+  }
+  $("#start").disabled = false; $("#stop").disabled = true;
+  return;
+}
+
 
     const reader = r.body.getReader();
     const td = new TextDecoder();
@@ -284,4 +298,21 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   $("#btnExpand").addEventListener("click", expandPreset);
   $("#start").addEventListener("click", start);
   $("#stop").addEventListener("click",  stop);
+});
+
+
+async function showQuota(){
+  try{
+    const r = await fetch(`${BASE}api/quota`);
+    const j = await r.json();
+    if(j.ok && j.limit !== undefined){
+      log(`今日对战配额：${j.left}/${j.limit}`);
+      if(j.left <= 0){ $("#start").disabled = true; }
+    }
+  }catch{}
+}
+window.addEventListener("DOMContentLoaded", async ()=>{
+  await loadModels();
+  await showQuota();   // ← 可选
+  // ...
 });

@@ -4,6 +4,9 @@ import os, json, secrets, time, requests, re
 from itsdangerous import URLSafeSerializer
 from typing import Iterable, List, Dict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from flask import g   # ← 新增
+from core.runtime import GameRuntime   # ← 新增
+from config import Config 
 
 SLUG = "ai_duel"
 
@@ -27,6 +30,11 @@ bp = Blueprint(
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE","0").lower() in ("1","true","yes")
 SER = URLSafeSerializer(SECRET_KEY, salt=f"{SLUG}-state")
+
+def _ids():
+    user_id = (getattr(g, "user", {}) or {}).get("id")
+    sid = request.cookies.get("sid")
+    return user_id, sid
 
 def _ensure_sid(resp):
     if request.cookies.get("sid"):
@@ -352,12 +360,16 @@ def api_preset_expand():
 def api_stream():
     j = request.get_json(silent=True) or {}
     topic    = (j.get("topic") or "").strip()
-    rounds   = max(1, min(int(j.get("rounds") or 4), 12))
+
+    # ★ 轮次上限 = 配置里的 max_rounds（默认 10）
+    max_rounds_cfg = (Config.GAME_FEATURES.get("ai_duel", {}).get("max_rounds", 10))
+    rounds   = max(1, min(int(j.get("rounds") or 4), int(max_rounds_cfg)))
+
     modelA   = j.get("modelA") or "fake/demo"
     modelB   = j.get("modelB") or "fake/demo"
     presetA  = (j.get("presetA") or "").strip()
     presetB  = (j.get("presetB") or "").strip()
-    seed     = (j.get("seed") or "").strip()              # 若有 seed 且未传 preset，将自动扩写
+    seed     = (j.get("seed") or "").strip()
     builder  = (j.get("builderModel") or "").strip() or "openai/gpt-4o-mini"
 
     judge_on        = bool(j.get("judge", False))
@@ -367,12 +379,27 @@ def api_stream():
     if not topic:
         return jsonify({"ok": False, "error": "NO_TOPIC"}), 400
 
+    # ★★★ 配额校验：一次开赛 = 1 次使用
+    user_id, sid = _ids()
+    ok, left = GameRuntime.can_play("ai_duel", user_id, sid, is_guest=(user_id is None))
+    if not ok:
+        # 直接 429，前端会提示今日剩余次数
+        return jsonify({"ok": False, "error": "DAILY_LIMIT", "left": left}), 429
+
+    # ★★★ 建立/获取“当日会话”，并且只在这里记 1 次用量
+    s = GameRuntime.session("ai_duel", user_id, sid, daily=True)
+    GameRuntime.log("ai_duel", s["id"], user_id,
+                    "start",
+                    {"topic": topic, "rounds": rounds, "modelA": modelA, "modelB": modelB},
+                    bump=True)  # ← 仅此处 bump 记账
+
+    # ↓↓↓ 你原先的流式生成逻辑（gen / Response）保持不动
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
     app_name = os.getenv("APP_NAME", "AI Duel Arena")
     streamA  = pick_streamer(modelA, app_url, app_name)
     streamB  = pick_streamer(modelB, app_url, app_name)
 
-    transcript: List[Dict] = []  # 收集 {"type":"turn","side":"A/B","round":n,"text":...}
+    transcript: List[Dict] = []
 
     def gen():
         # ✅ 关键修复：nonlocal 必须放在内层函数顶部，且在第一次使用这些变量之前
@@ -503,5 +530,16 @@ def track():
     _ = request.get_json(silent=True) or {}
     return ("", 204)
 
+@bp.get("/api/quota")
+def api_quota():
+    user_id, sid = _ids()
+    ok, left = GameRuntime.can_play("ai_duel", user_id, sid, is_guest=(user_id is None))
+    # 推算总配额（仅用于展示）
+    limits = Config.GAME_FEATURES.get("ai_duel", {})
+    limit  = limits.get('daily_limit_user' if user_id else 'daily_limit_guest', 5)
+    return jsonify({"ok": True, "left": left, "limit": limit})
+
+
 def get_blueprint():
     return bp
+

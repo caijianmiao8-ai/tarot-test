@@ -8,10 +8,15 @@ from datetime import timedelta
 class Config:
 
     """应用配置类"""
-    
+
     GAME_FEATURES = {
       "guess_number":   {"daily_limit_guest": 100, "daily_limit_user": 500},
       "reaction_timer": {"daily_limit_guest": 9999, "daily_limit_user": 9999},
+      "ai_duel": {  # ★ 新增
+        "daily_limit_guest": 5,   # 游客每日可开始的对战次数
+        "daily_limit_user": 5,    # 登录用户每日可开始的对战次数
+        "max_rounds": 10          # 轮次上限
+    },
       # ...
     }
     # ===== Dify & Cron/Webhook 配置 =====
