@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>AI 斗蛐蛐</title>
+  <title>AI 斗蛐蛐 - 智能对决竞技场</title>
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
 <body id="app-ai-duel">
   <!-- 启动蒙层 -->
   <div id="boot" class="boot">
     <div class="box">
-      <h2>正在载入模型列表</h2>
+      <h2>🦗 正在载入模型列表</h2>
       <p id="boot-tip">初始化中…</p>
       <div class="progress"><div id="boot-bar" class="bar" style="width:0%"></div></div>
       <div class="pct"><span id="boot-pct">0%</span></div>
@@ -18,49 +18,79 @@
   </div>
 
   <div class="wrap" style="display:none" id="main">
-    <h1>AI 斗蛐蛐</h1>
-
-    <!-- 题目 -->
-    <div class="cfg">
-      <textarea id="topic" rows="3" placeholder="输入问题/话题，例如：'如何让开源社区更健康？'"></textarea>
+    <!-- 顶部标题 -->
+    <div class="header">
+      <h1>
+        <span class="cricket-icon">🦗</span>
+        AI 斗蛐蛐
+        <span class="cricket-icon">🦗</span>
+      </h1>
+      <div class="subtitle">智能对决竞技场 · 让AI思维碰撞出火花</div>
     </div>
 
-    <!-- 预设扩写 -->
-    <div class="cfg">
-      <div class="row">
-        <input id="seed" class="grow" placeholder="一句设定（例：A 是严谨工程师；B 是有想象力的产品经理）"/>
-        <label>Builder</label><select id="builderModel"></select>
-        <button id="btnExpand">一键扩写为 A/B 预设</button>
+    <!-- 配置面板 -->
+    <div class="config-panel">
+      <!-- 话题设置 -->
+      <div class="config-section">
+        <div class="section-title">🎯 对决话题</div>
+        <textarea id="topic" rows="2" placeholder="输入一个有趣的问题或话题，例如：'如何让开源社区更健康？' 或 '未来城市应该是什么样子？'"></textarea>
       </div>
-      <div class="row col">
-        <label>A 角色预设</label>
-        <textarea id="presetA" rows="3" placeholder="可手写或用一键扩写生成…"></textarea>
+
+      <!-- 角色预设 -->
+      <div class="config-section">
+        <div class="section-title">🎭 角色设定</div>
+        <div class="config-row">
+          <input id="seed" class="grow" placeholder="输入角色设定（例：A是严谨的工程师，B是充满想象力的产品经理）"/>
+          <select id="builderModel"></select>
+          <button id="btnExpand">✨ 一键生成角色</button>
+        </div>
+        <div class="config-row col">
+          <label>🅰️ A方角色</label>
+          <textarea id="presetA" rows="2" placeholder="定义A方的性格、立场和思维方式..."></textarea>
+        </div>
+        <div class="config-row col">
+          <label>🅱️ B方角色</label>
+          <textarea id="presetB" rows="2" placeholder="定义B方的性格、立场和思维方式..."></textarea>
+        </div>
       </div>
-      <div class="row col">
-        <label>B 角色预设</label>
-        <textarea id="presetB" rows="3" placeholder="可手写或用一键扩写生成…"></textarea>
+
+      <!-- 对战设置 -->
+      <div class="config-section">
+        <div class="section-title">⚔️ 对战配置</div>
+        <div class="config-row">
+          <label>🅰️ A方模型</label>
+          <select id="modelA"></select>
+          <label>🅱️ B方模型</label>
+          <select id="modelB"></select>
+          <label>🔄 回合数</label>
+          <input id="rounds" type="number" min="1" max="10" value="4" style="width: 80px"/>
+        </div>
+        <div class="config-row">
+          <label>🎓 裁判模型</label>
+          <select id="judgeModel"></select>
+          <label class="chk">
+            <input id="judgePerRound" type="checkbox" checked>
+            <span>每回合评判</span>
+          </label>
+          <label class="chk">
+            <input id="judgeFinal" type="checkbox">
+            <span>最终总评</span>
+          </label>
+        </div>
+        <div class="action-buttons">
+          <button id="start">🚀 开始对决</button>
+          <button id="stop" disabled>⏹ 停止对话</button>
+        </div>
       </div>
     </div>
 
-    <!-- 模型与裁判 -->
-    <div class="cfg">
-      <div class="row">
-        <label>A 模型</label><select id="modelA"></select>
-        <label>B 模型</label><select id="modelB"></select>
-        <label>回合</label><input id="rounds" type="number" min="1" max="10" value="4"/>
-      </div>
-      <div class="row">
-        <label>裁判模型</label><select id="judgeModel"></select>
-        <label class="chk"><input id="judgePerRound" type="checkbox" checked> 每轮裁判</label>
-        <label class="chk"><input id="judgeFinal" type="checkbox"> 最终裁判</label>
-      </div>
-      <div class="row">
-        <button id="start">开始对话</button>
-        <button id="stop" disabled>停止</button>
+    <!-- 对话区域 -->
+    <div id="log" class="battle-arena">
+      <div class="empty-state">
+        <div class="icon">🦗</div>
+        <div class="text">等待开始...</div>
       </div>
     </div>
-
-    <div id="log" class="log"></div>
   </div>
 
   <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
