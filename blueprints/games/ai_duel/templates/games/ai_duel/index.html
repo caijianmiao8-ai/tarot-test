@@ -10,7 +10,7 @@
   <div class="wrap">
     <h1>AI 斗蛐蛐</h1>
     <div class="cfg">
-      <textarea id="topic" placeholder="输入命题，例如：'在初创公司里，远程优于线下办公吗？'"></textarea>
+      <textarea id="topic" rows="3" placeholder="输入命题，例如：'在初创公司里，远程优于线下办公吗？'"></textarea>
       <div class="row">
         <label>A 模型</label><select id="modelA"></select>
         <label>立场</label><input id="stanceA" value="正方"/>
@@ -21,9 +21,11 @@
       </div>
       <div class="row">
         <label>回合</label><input id="rounds" type="number" min="1" max="12" value="4"/>
-        <label><input id="judge" type="checkbox"/> 最后请裁判判定</label>
+        <label class="chk"><input id="judge" type="checkbox"> 最后请裁判判定</label>
+      </div>
+      <div class="row">
         <button id="start">开始对战</button>
-        <button id="stop"  disabled>停止</button>
+        <button id="stop" disabled>停止</button>
       </div>
     </div>
     <div id="log" class="log"></div>
