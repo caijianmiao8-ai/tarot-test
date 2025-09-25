@@ -30,7 +30,9 @@ class GameRuntime:
         GameSessionDAO.patch_state(session_id, patch)
 
     @staticmethod
-    def log(game_key, session_id, user_id, action, payload=None, result=None, *, bump=True):
-        GameActionDAO.add(session_id, game_key, user_id, action, payload, result)
+    def log(game_key, session_row_id, user_id, action, payload=None, result=None,
+            *, bump=True, sid=None):   # ★ 新增 sid 形参
+        GameActionDAO.add(session_row_id, game_key, user_id, action, payload, result)
         if bump:
-            GameUsageDAO.bump(game_key, user_id, session_id, GameRuntime.today(), actions=1)
+            # ★ 这里必须把与 can_play 同一把“身份钥匙”传进去（user_id 或 sid）
+            GameUsageDAO.bump(game_key, user_id, sid, GameRuntime.today(), actions=1)

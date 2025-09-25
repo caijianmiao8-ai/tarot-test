@@ -506,7 +506,7 @@ def api_stream():
     GameRuntime.log("ai_duel", s["id"], user_id,
                     "start",
                     {"topic": topic, "rounds": rounds, "modelA": modelA, "modelB": modelB},
-                    bump=True)  # ← 仅此处 bump 记账
+                    bump=True, sid=sid)  # ← 仅此处 bump 记账
 
     # ↓↓↓ 你原先的流式生成逻辑（gen / Response）保持不动
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
