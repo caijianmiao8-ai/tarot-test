@@ -9,14 +9,13 @@
     "path": "/"
   },
   {
-    "slug": "play-profile-card",
-    "title": "Design 001 · 玻璃拟态名片",
-    "subtitle": "纯前端视觉练习（占位示例）",
-    "cover": "/static/images/covers/profile-card.jpg",
-    "tags": ["UI", "Glassmorphism"],
-    "type": "template",
-    "template": "play/profile-card.html",
-    "path": "/play/profile-card"
+    "slug": "ai-duel",
+    "title": "AI斗蛐蛐",
+    "subtitle": "看看谁家ai好用",
+    "cover": "/static/images/covers/ai_duel.jpg",
+    "tags": ["AI", "辩论"],
+    "type": "link",
+    "path": "/g/ai_duel/"
   },
   {
   "slug": "guess-number",
