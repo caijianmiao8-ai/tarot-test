@@ -1,102 +1,68 @@
-from flask import Blueprint, render_template, request, jsonify, g, make_response
-from core.runtime import GameRuntime
-import random, secrets, os
+# plugins.py（最终稳版）
+import importlib
+import pkgutil
+from typing import List, Dict
 
-SLUG = "guess_number"
+_PLUGINS: List[Dict] = []
 
-bp = Blueprint(
-    SLUG, __name__,
-    template_folder="templates",
-    static_folder="static",
-    static_url_path=f"/static/games/{SLUG}",
-)
+def _pick_base_pkg(user_pkg: str | None):
+    if user_pkg:
+        try:
+            pkg = importlib.import_module(user_pkg)
+            print(f"[plugins] base_pkg set explicitly: {user_pkg}")
+            return user_pkg, pkg
+        except ModuleNotFoundError:
+            print(f"[plugins] ERROR: base_pkg='{user_pkg}' not importable")
+            return None, None
 
-# 本地开发 http 建议保持 False；上线 https 配置环境变量 COOKIE_SECURE=1
-SECURE_COOKIE = os.getenv("COOKIE_SECURE", "0").lower() in ("1", "true", "yes")
+    # 自动探测：先试 blueprints.games，再试 games
+    for cand in ("blueprints.games", "games"):
+        try:
+            pkg = importlib.import_module(cand)
+            print(f"[plugins] autodetected base_pkg: {cand}")
+            return cand, pkg
+        except ModuleNotFoundError:
+            continue
+    print("[plugins] ERROR: no plugin package found (tried 'blueprints.games', 'games')")
+    return None, None
 
-def _ids():
-    """登录用户用 user_id；游客用 sid"""
-    user_id = (getattr(g, "user", {}) or {}).get("id")
-    sid = request.cookies.get("sid")
-    return user_id, sid
+def register_plugins(app, base_pkg: str | None = None):
+    """
+    自动发现 <base_pkg>.<child>.plugin，调用 get_meta()/get_blueprint()，
+    并注册到 /g/<slug>/。默认自动探测 base_pkg。
+    """
+    global _PLUGINS
+    picked, pkg = _pick_base_pkg(base_pkg)
+    if not pkg:
+        return
 
-def _ensure_sid(resp):
-    """游客没有 sid 时发一个"""
-    if request.cookies.get("sid"):
-        return resp
-    sid = secrets.token_hex(16)
-    resp.set_cookie(
-        "sid", sid,
-        max_age=60 * 60 * 24 * 730,  # 2 years
-        httponly=True,
-        samesite="Lax",
-        secure=SECURE_COOKIE,        # 本地 http 请保持 False
-    )
-    return resp
+    count = 0
+    for m in pkgutil.iter_modules(pkg.__path__):
+        mod_name = f"{picked}.{m.name}.plugin"
+        try:
+            mod = importlib.import_module(mod_name)
+        except ModuleNotFoundError:
+            # 子包里没有 plugin.py，跳过
+            print(f"[plugins] skip: {mod_name} not found")
+            continue
 
-@bp.get("/")
-def page():
-    resp = make_response(render_template(f"games/{SLUG}/index.html"))
-    return _ensure_sid(resp)
+        get_meta = getattr(mod, "get_meta", None)
+        get_bp   = getattr(mod, "get_blueprint", None)
+        if not callable(get_meta) or not callable(get_bp):
+            print(f"[plugins] skip: {mod_name} missing get_meta/get_blueprint")
+            continue
 
-# 兜底：如果将来有非“简单请求”的 header，预检也能秒回
-@bp.route("/api/guess", methods=["OPTIONS"])
-def api_guess_options():
-    return ("", 204)
+        meta = get_meta()
+        bp   = get_bp()
+        slug = meta.get("slug", m.name)
 
-@bp.post("/api/start")
-def api_start():
-    user_id, sid = _ids()
-    ok, left = GameRuntime.can_play(SLUG, user_id, sid, is_guest=(user_id is None))
-    if not ok:
-        return jsonify({"ok": False, "error": "DAILY_LIMIT", "left": left}), 429
+        app.register_blueprint(bp, url_prefix=f"/g/{slug}")
+        _PLUGINS.append(meta)
+        count += 1
+        print(f"[plugins] Registered '{slug}' at /g/{slug}/")
 
-    s = GameRuntime.session(SLUG, user_id, sid, daily=True)
-    GameRuntime.patch_state(s["id"], {"secret": random.randint(1, 100), "tries": 0})
-    GameRuntime.log(SLUG, s["id"], user_id, "start", {"init": True})
-    return _ensure_sid(jsonify({"ok": True}))
+    if count == 0:
+        print(f"[plugins] WARNING: no plugins found under {picked}")
 
-def _parse_n():
-    """兼容 JSON 与表单两种入参"""
-    data = request.get_json(silent=True)
-    if data and "n" in data:
-        raw = str(data.get("n"))
-    else:
-        raw = request.form.get("n", "")
-    try:
-        return int(raw), None
-    except (TypeError, ValueError):
-        return None, "BAD_INPUT"
-
-@bp.post("/api/guess")
-def api_guess():
-    user_id, sid = _ids()
-
-    # 防止绕过 /api/start 暴力猜
-    ok, left = GameRuntime.can_play(SLUG, user_id, sid, is_guest=(user_id is None))
-    if not ok:
-        return jsonify({"ok": False, "error": "DAILY_LIMIT", "left": left}), 429
-
-    s = GameRuntime.session(SLUG, user_id, sid, daily=True)
-    st = (s.get("state") or {})
-
-    # 没 start 也能自动开一局
-    if "secret" not in st:
-        GameRuntime.patch_state(s["id"], {"secret": random.randint(1, 100), "tries": 0})
-        s = GameRuntime.session(SLUG, user_id, sid, daily=True)
-        st = (s.get("state") or {})
-
-    n, err = _parse_n()
-    if err:
-        return jsonify({"ok": False, "error": err}), 400
-    if not (1 <= n <= 100):
-        return jsonify({"ok": False, "error": "BAD_INPUT_RANGE"}), 400
-
-    secret = int(st.get("secret", 50))
-    tries  = int(st.get("tries", 0)) + 1
-    res = "equal" if n == secret else ("low" if n < secret else "high")
-
-    GameRuntime.patch_state(s["id"], {"tries": tries})
-    GameRuntime.log(SLUG, s["id"], user_id, "guess", {"n": n}, {"res": res, "tries": tries})
-
-    return jsonify({"ok": True, "result": res, "tries": tries})
+def plugin_metas() -> List[Dict]:
+    return list(_PLUGINS)
