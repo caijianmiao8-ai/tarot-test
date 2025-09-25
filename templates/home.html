@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>若水的涂鸦实验室 · Sketch Lab</title>
+  <title>Sketch Lab · 涂鸦实验室</title>
   
-  <!-- Bootstrap CSS（按你当前路径） -->
+  <!-- Bootstrap CSS (如果需要) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
   
@@ -20,7 +20,13 @@
       --pencil-light: #888888;
       --highlight: #ffeb3b;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       font-family: 'Kalam', 'Noto Sans SC', cursive;
       background: var(--paper-white);
@@ -29,199 +35,458 @@
       position: relative;
       overflow-x: hidden;
     }
+    
     /* 纸张纹理背景 */
     body::before {
       content: '';
-      position: fixed; inset: 0; opacity: 0.5; pointer-events: none;
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 28px, #e5e5e5 28px, #e5e5e5 29px),
-        repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(0,0,0,0.03) 1px, rgba(0,0,0,0.03) 2px);
+      position: fixed;
+      inset: 0;
+      opacity: 0.5;
+      background-image: 
+        repeating-linear-gradient(0deg,
+          transparent,
+          transparent 28px,
+          #e5e5e5 28px,
+          #e5e5e5 29px),
+        repeating-linear-gradient(90deg,
+          transparent,
+          transparent 1px,
+          rgba(0,0,0,0.03) 1px,
+          rgba(0,0,0,0.03) 2px);
+      pointer-events: none;
     }
-    /* 背景涂鸦 */
-    .doodles { position: fixed; inset: 0; pointer-events: none; opacity: 0.1; z-index: 0; }
-    .doodle { position: absolute; font-size: 20px; transform: rotate(var(--rotation)); filter: blur(0.5px); }
-    .notebook { max-width: 1200px; margin: 0 auto; padding: 40px 20px; position: relative; z-index: 1; }
-
-    /* 顶部登录条 */
-    .topbar {
-      position: sticky; top: 0; z-index: 10;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 10px 16px; margin-bottom: 8px;
-      background: rgba(253,252,248,0.8); backdrop-filter: blur(6px);
-      border-bottom: 1.5px dashed var(--pencil-light);
+    
+    /* 手绘装饰 */
+    .doodles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.1;
+      z-index: 0;
     }
-    .topbar .brand {
-      display: inline-flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .5px;
+    
+    .doodle {
+      position: absolute;
+      font-size: 20px;
+      transform: rotate(var(--rotation));
+      filter: blur(0.5px);
     }
-    .topbar .brand .dot { width:10px; height:10px; border:2px solid var(--ink-black); border-radius:50%; display:inline-block; }
-    .auth-actions { display:flex; align-items:center; gap:10px; }
-    .btn-auth {
-      padding: 6px 14px; border: 2px solid var(--ink-black); background: none; color: var(--ink-black);
-      border-radius: 16px 6px 16px 6px; font-weight: 700; text-decoration: none; transition: .2s ease;
+    
+    /* 主容器 */
+    .notebook {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
     }
-    .btn-auth:hover { background: var(--ink-black); color: var(--paper-white); transform: rotate(-1deg); }
-    .user-chip {
-      display:flex; align-items:center; gap:10px; padding:6px 10px; border:2px solid var(--ink-black);
-      border-radius: 20px 8px 20px 8px; background: rgba(0,0,0,0.03);
+    
+    /* 标题区域 */
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+      position: relative;
     }
-    .avatar {
-      width:28px; height:28px; border-radius:50%; border:2px solid var(--ink-black);
-      display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:#fff;
-    }
-    .user-name { font-size: 14px; }
-
-    /* 标题区 */
-    .header { text-align: center; margin-bottom: 60px; position: relative; }
+    
     .main-title {
-      font-size: clamp(48px, 8vw, 72px); font-weight: 700; position: relative; display: inline-block; transform: rotate(-1deg);
+      font-size: clamp(48px, 8vw, 72px);
+      font-weight: 700;
+      position: relative;
+      display: inline-block;
+      transform: rotate(-1deg);
     }
+    
     .main-title::before {
-      content: ''; position: absolute; bottom: -5px; left: -10px; right: -10px; height: 20px;
-      background: var(--highlight); opacity: 0.4; transform: rotate(1deg) skewX(-15deg); z-index: -1;
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: -10px;
+      right: -10px;
+      height: 20px;
+      background: var(--highlight);
+      opacity: 0.4;
+      transform: rotate(1deg) skewX(-15deg);
+      z-index: -1;
     }
+    
     .main-title::after {
-      content: ''; position: absolute; top: 50%; left: -60px; width: 40px; height: 40px;
-      border: 3px solid var(--ink-black); border-radius: 50%;
-      background:
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -60px;
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--ink-black);
+      border-radius: 50%;
+      background: 
         radial-gradient(circle at 30% 30%, transparent 8px, var(--ink-black) 8px, var(--ink-black) 10px, transparent 10px),
         radial-gradient(circle at 70% 30%, transparent 8px, var(--ink-black) 8px, var(--ink-black) 10px, transparent 10px);
     }
-    .subtitle { font-size: 18px; color: var(--sketch-gray); margin-top: 10px; position: relative; display: inline-block; }
-    .subtitle::before, .subtitle::after { content: '~'; position: absolute; top: 50%; transform: translateY(-50%); font-size: 30px; color: var(--pencil-light); }
-    .subtitle::before { left: -30px; } .subtitle::after { right: -30px; }
-
+    
+    .subtitle {
+      font-size: 18px;
+      color: var(--sketch-gray);
+      margin-top: 10px;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .subtitle::before,
+    .subtitle::after {
+      content: '~';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 30px;
+      color: var(--pencil-light);
+    }
+    
+    .subtitle::before {
+      left: -30px;
+    }
+    
+    .subtitle::after {
+      right: -30px;
+    }
+    
     /* 项目网格 */
-    .sketches { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px; margin-bottom: 80px; }
-
-    /* 项目卡片 */
-    .sketch-card { background: var(--paper-white); position: relative; padding: 20px; cursor: pointer; transition: transform 0.3s ease; }
+    .sketches {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 40px;
+      margin-bottom: 80px;
+    }
+    
+    /* 项目卡片 - 手绘风格 */
+    .sketch-card {
+      background: var(--paper-white);
+      position: relative;
+      padding: 20px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    
     .sketch-card::before {
-      content: ''; position: absolute; inset: 0; border: 2px solid var(--ink-black);
-      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
-      transform: rotate(var(--rotate, -0.5deg)); transition: all 0.3s ease;
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--ink-black);
+      border-radius: 
+        255px 15px 225px 15px/15px 225px 15px 255px;
+      transform: rotate(var(--rotate, -0.5deg));
+      transition: all 0.3s ease;
     }
-    .sketch-card:nth-child(odd) { --rotate: 0.5deg; } .sketch-card:nth-child(even) { --rotate: -0.5deg; }
-    .sketch-card:hover { transform: translateY(-5px) scale(1.02); }
-    .sketch-card:hover::before { border-width: 3px; filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.1)); }
-
-    .sketch-area { height: 200px; margin-bottom: 20px; position: relative; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; border: 2px dashed var(--pencil-light); border-radius: 5px; }
+    
+    .sketch-card:nth-child(odd) {
+      --rotate: 0.5deg;
+    }
+    
+    .sketch-card:nth-child(even) {
+      --rotate: -0.5deg;
+    }
+    
+    .sketch-card:hover {
+      transform: translateY(-5px) scale(1.02);
+    }
+    
+    .sketch-card:hover::before {
+      border-width: 3px;
+      filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.1));
+    }
+    
+    /* 草图区域 */
+    .sketch-area {
+      height: 200px;
+      margin-bottom: 20px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-size: cover;
+      background-position: center;
+      border: 2px dashed var(--pencil-light);
+      border-radius: 5px;
+    }
+    
+    /* 默认草图背景 */
     .sketch-area.no-cover {
-      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px);
+      background: 
+        repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 10px,
+          rgba(0,0,0,0.02) 10px,
+          rgba(0,0,0,0.02) 20px
+        );
     }
-    .sketch-drawing { font-size: 80px; color: var(--ink-black); position: relative; animation: sketch-wobble 3s ease-in-out infinite; }
-    @keyframes sketch-wobble { 0%,100% { transform: rotate(-2deg) scale(1); } 50% { transform: rotate(2deg) scale(1.05); } }
-
-    .arrow-sketch { position: absolute; top: 10px; right: 10px; width: 60px; height: 60px; }
-    .arrow-sketch svg { width: 100%; height: 100%; stroke: var(--ink-black); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .draw-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: draw 2s ease forwards; }
-    @keyframes draw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
-
-    .sketch-info { position: relative; padding: 0 10px; }
-    .project-name { font-size: 24px; font-weight: 700; margin-bottom: 10px; position: relative; display: inline-block; }
-    .project-name::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--ink-black); transform: scaleX(0.8) skewX(-20deg); transform-origin: left; }
-    .project-note { font-size: 16px; color: var(--sketch-gray); margin-bottom: 20px; position: relative; padding-left: 20px; min-height: 1.5em; }
-    .project-note::before { content: '→'; position: absolute; left: 0; top: 0; font-size: 20px; }
-
-    .tags-sketch { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
-    .tag-sketch { padding: 5px 12px; border: 1.5px solid var(--ink-black); border-radius: 20px 5px 20px 5px; font-size: 14px; position: relative; transition: all 0.2s; }
-    .tag-sketch:hover { background: var(--ink-black); color: var(--paper-white); transform: rotate(-3deg) scale(1.1); }
-
+    
+    .sketch-drawing {
+      font-size: 80px;
+      color: var(--ink-black);
+      position: relative;
+      animation: sketch-wobble 3s ease-in-out infinite;
+    }
+    
+    @keyframes sketch-wobble {
+      0%, 100% { transform: rotate(-2deg) scale(1); }
+      50% { transform: rotate(2deg) scale(1.05); }
+    }
+    
+    /* 手绘箭头和符号 */
+    .arrow-sketch {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 60px;
+      height: 60px;
+    }
+    
+    .arrow-sketch svg {
+      width: 100%;
+      height: 100%;
+      stroke: var(--ink-black);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    
+    /* 项目信息 */
+    .sketch-info {
+      position: relative;
+      padding: 0 10px;
+    }
+    
+    .project-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .project-name::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--ink-black);
+      transform: scaleX(0.8) skewX(-20deg);
+      transform-origin: left;
+    }
+    
+    .project-note {
+      font-size: 16px;
+      color: var(--sketch-gray);
+      margin-bottom: 20px;
+      position: relative;
+      padding-left: 20px;
+      min-height: 1.5em;
+    }
+    
+    .project-note::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 20px;
+    }
+    
+    /* 手写标签 */
+    .tags-sketch {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+    
+    .tag-sketch {
+      padding: 5px 12px;
+      border: 1.5px solid var(--ink-black);
+      border-radius: 20px 5px 20px 5px;
+      font-size: 14px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    
+    .tag-sketch:hover {
+      background: var(--ink-black);
+      color: var(--paper-white);
+      transform: rotate(-3deg) scale(1.1);
+    }
+    
+    /* 涂鸦按钮 */
     .btn-sketch {
-      display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px;
-      background: none; border: 2.5px solid var(--ink-black); color: var(--ink-black);
-      text-decoration: none; font-size: 18px; font-weight: 700; position: relative; transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: none;
+      border: 2.5px solid var(--ink-black);
+      color: var(--ink-black);
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 700;
+      position: relative;
+      transition: all 0.3s;
       border-radius: 5px 20px 5px 20px;
     }
-    .btn-sketch::before { content: ''; position: absolute; inset: -2px; background: var(--ink-black); border-radius: 5px 20px 5px 20px; z-index: -1; opacity: 0; transition: opacity 0.3s; }
-    .btn-sketch:hover { color: var(--paper-white); transform: rotate(-2deg) translateY(-2px); }
-    .btn-sketch:hover::before { opacity: 1; }
-
-    .margin-notes { position: fixed; left: 10px; top: 50%; transform: translateY(-50%) rotate(-90deg); font-size: 14px; color: var(--pencil-light); letter-spacing: 2px; }
-    .page-number { position: fixed; bottom: 20px; right: 30px; font-size: 16px; color: var(--pencil-light); }
-
-    .corner-doodle { position: fixed; width: 100px; height: 100px; opacity: 0.3; }
-    .corner-doodle.top-left { top: 20px; left: 20px; transform: rotate(-15deg); }
-    .corner-doodle.bottom-right { bottom: 20px; right: 20px; transform: rotate(15deg); }
-
-    .sketch-area img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; filter: grayscale(20%) contrast(1.1); }
-
+    
+    .btn-sketch::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: var(--ink-black);
+      border-radius: 5px 20px 5px 20px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .btn-sketch:hover {
+      color: var(--paper-white);
+      transform: rotate(-2deg) translateY(-2px);
+    }
+    
+    .btn-sketch:hover::before {
+      opacity: 1;
+    }
+    
+    /* 笔记本页边距标记 */
+    .margin-notes {
+      position: fixed;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      font-size: 14px;
+      color: var(--pencil-light);
+      letter-spacing: 2px;
+    }
+    
+    /* 页码 */
+    .page-number {
+      position: fixed;
+      bottom: 20px;
+      right: 30px;
+      font-size: 16px;
+      color: var(--pencil-light);
+    }
+    
+    /* 涂鸦装饰 */
+    .corner-doodle {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      opacity: 0.3;
+    }
+    
+    .corner-doodle.top-left {
+      top: 20px;
+      left: 20px;
+      transform: rotate(-15deg);
+    }
+    
+    .corner-doodle.bottom-right {
+      bottom: 20px;
+      right: 20px;
+      transform: rotate(15deg);
+    }
+    
+    /* 项目封面图片样式 */
+    .sketch-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.9;
+      filter: grayscale(20%) contrast(1.1);
+    }
+    
+    /* 响应式 */
     @media (max-width: 768px) {
-      .sketches { grid-template-columns: 1fr; gap: 30px; }
-      .main-title { font-size: 40px; }
-      .main-title::after { display: none; }
-      .margin-notes, .corner-doodle { display: none; }
+      .sketches {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      
+      .main-title {
+        font-size: 40px;
+      }
+      
+      .main-title::after {
+        display: none;
+      }
+      
+      .margin-notes,
+      .corner-doodle {
+        display: none;
+      }
+    }
+    
+    /* 手绘动画 */
+    @keyframes draw {
+      from {
+        stroke-dashoffset: 1000;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    
+    .draw-line {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: draw 2s ease forwards;
     }
   </style>
 </head>
 <body>
   <!-- 背景涂鸦 -->
   <div class="doodles" id="doodles"></div>
-
-  <!-- 顶部登录条（使用 g.user） -->
-  <div class="topbar" role="banner" aria-label="站点工具栏">
-    <div class="brand">
-      <span class="dot" aria-hidden="true"></span>
-      <span>若水的涂鸦实验室</span>
-    </div>
-    {% set user = g.user if g is defined and g.user else None %}
-    <div class="auth-actions">
-      {% if user %}
-        {% set nick = (user.get('nickname') or user.get('name') or user.get('username') or '用户') %}
-        {% set initials = (nick|trim)[:2]|upper %}
-        <div class="user-chip" title="已登录">
-          {% if user.get('avatar_url') %}
-            <img class="avatar" src="{{ user['avatar_url'] }}" alt="avatar">
-          {% else %}
-            <div class="avatar" aria-hidden="true">{{ initials }}</div>
-          {% endif %}
-          <span class="user-name">{{ nick }}</span>
-        </div>
-      {% else %}
-        <a class="btn-auth" href="/login">登录</a>
-        <a class="btn-auth" href="/register">注册</a>
-      {% endif %}
-    </div>
-  </div>
   
   <!-- 角落装饰 -->
-  <div class="corner-doodle top-left" aria-hidden="true">
+  <div class="corner-doodle top-left">
     <svg viewBox="0 0 100 100">
       <path d="M20,50 Q50,20 80,50 T20,50" stroke="currentColor" stroke-width="2" fill="none"/>
       <circle cx="30" cy="40" r="3" fill="currentColor"/>
       <circle cx="70" cy="40" r="3" fill="currentColor"/>
     </svg>
   </div>
-  <div class="corner-doodle bottom-right" aria-hidden="true">
+  
+  <div class="corner-doodle bottom-right">
     <svg viewBox="0 0 100 100">
       <rect x="20" y="20" width="60" height="60" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(45 50 50)"/>
       <line x1="20" y1="50" x2="80" y2="50" stroke="currentColor" stroke-width="2"/>
       <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" stroke-width="2"/>
     </svg>
   </div>
-
-  <!-- 页边注释与页码 -->
+  
+  <!-- 页边注释 -->
   <div class="margin-notes">EXPERIMENTAL ZONE</div>
+  
+  <!-- 页码 -->
   <div class="page-number">Page 42</div>
-
+  
   <div class="notebook">
     <!-- 标题 -->
     <header class="header">
-      <h1 class="main-title">若水的涂鸦实验室</h1>
+      <h1 class="main-title">SKETCH LAB</h1>
       <p class="subtitle">游戏创意涂鸦本</p>
     </header>
     
-    <!-- 项目草图列表 -->
+    <!-- 项目草图 - 使用 Jinja2 模板语法 -->
     <main class="sketches">
       {% for p in projects %}
       <article class="sketch-card">
-        <div class="arrow-sketch" aria-hidden="true">
+        <div class="arrow-sketch">
           <svg viewBox="0 0 60 60">
             {% if loop.index % 3 == 1 %}
-              <path d="M10,30 L40,30 M40,30 L30,20 M40,30 L30,40" class="draw-line"/>
+            <path d="M10,30 L40,30 M40,30 L30,20 M40,30 L30,40" class="draw-line"/>
             {% elif loop.index % 3 == 2 %}
-              <path d="M30,10 L30,40 M20,30 L30,40 L40,30" class="draw-line"/>
+            <path d="M30,10 L30,40 M20,30 L30,40 L40,30" class="draw-line"/>
             {% else %}
-              <circle cx="30" cy="30" r="20" stroke-dasharray="5,5" class="draw-line"/>
+            <circle cx="30" cy="30" r="20" stroke-dasharray="5,5" class="draw-line"/>
             {% endif %}
           </svg>
         </div>
@@ -229,7 +494,7 @@
         <div class="sketch-area {% if not p.cover %}no-cover{% endif %}"
              {% if p.cover %}style="background-image: url('{{ p.cover }}');"{% endif %}>
           {% if not p.cover %}
-          <div class="sketch-drawing" aria-hidden="true">
+          <div class="sketch-drawing">
             {% if loop.index % 6 == 1 %}⚡
             {% elif loop.index % 6 == 2 %}♫
             {% elif loop.index % 6 == 3 %}✏️
@@ -248,12 +513,13 @@
           {% if p.tags %}
           <div class="tags-sketch">
             {% for tag in p.tags %}
-              <span class="tag-sketch">{{ tag }}</span>
+            <span class="tag-sketch">{{ tag }}</span>
             {% endfor %}
           </div>
           {% endif %}
           
-          <a href="{{ '/play/' ~ p.slug if p.type == 'template' else p.path }}" class="btn-sketch" aria-label="进入 {{ p.title }}">开始探索 →</a>
+          <a href="{{ '/play/' ~ p.slug if p.type == 'template' else p.path }}" 
+             class="btn-sketch">开始探索 →</a>
         </div>
       </article>
       {% endfor %}
@@ -263,38 +529,44 @@
   <script>
     // 生成背景涂鸦
     const doodlesContainer = document.getElementById('doodles');
-    const doodleChars = ['○','△','□','◇','☆','♡','↗','↘','~','×','+','∞'];
+    const doodleChars = ['○', '△', '□', '◇', '☆', '♡', '↗', '↘', '~', '×', '+', '∞'];
+    
     for (let i = 0; i < 30; i++) {
-      const d = document.createElement('div');
-      d.className = 'doodle';
-      d.textContent = doodleChars[Math.floor(Math.random() * doodleChars.length)];
-      d.style.left = Math.random() * 100 + '%';
-      d.style.top = Math.random() * 100 + '%';
-      d.style.setProperty('--rotation', Math.random() * 360 + 'deg');
-      doodlesContainer.appendChild(d);
+      const doodle = document.createElement('div');
+      doodle.className = 'doodle';
+      doodle.textContent = doodleChars[Math.floor(Math.random() * doodleChars.length)];
+      doodle.style.left = Math.random() * 100 + '%';
+      doodle.style.top = Math.random() * 100 + '%';
+      doodle.style.setProperty('--rotation', Math.random() * 360 + 'deg');
+      doodlesContainer.appendChild(doodle);
     }
-
-    // 卡片摇摆
-    document.querySelectorAll('.sketch-card').forEach((card, idx) => {
+    
+    // 卡片摇摆效果
+    document.querySelectorAll('.sketch-card').forEach((card, index) => {
       card.addEventListener('mouseenter', () => {
         card.style.setProperty('--rotate', (Math.random() - 0.5) * 3 + 'deg');
       });
+      
       card.addEventListener('mouseleave', () => {
-        card.style.setProperty('--rotate', idx % 2 === 0 ? '-0.5deg' : '0.5deg');
+        card.style.setProperty('--rotate', index % 2 === 0 ? '-0.5deg' : '0.5deg');
       });
     });
-
-    // 动态绘制
-    const io = new IntersectionObserver((entries) => {
+    
+    // 动态绘制效果
+    const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.querySelectorAll('.draw-line').forEach(line => {
+          const drawLines = entry.target.querySelectorAll('.draw-line');
+          drawLines.forEach(line => {
             line.style.animation = 'draw 2s ease forwards';
           });
         }
       });
     });
-    document.querySelectorAll('.sketch-card').forEach(card => io.observe(card));
+    
+    document.querySelectorAll('.sketch-card').forEach(card => {
+      observer.observe(card);
+    });
   </script>
 </body>
 </html>
