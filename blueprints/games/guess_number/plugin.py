@@ -15,7 +15,6 @@ def _pick_base_pkg(user_pkg: str | None):
             print(f"[plugins] ERROR: base_pkg='{user_pkg}' not importable")
             return None, None
 
-    # 自动探测：先试 blueprints.games，再试 games
     for cand in ("blueprints.games", "games"):
         try:
             pkg = importlib.import_module(cand)
@@ -27,10 +26,6 @@ def _pick_base_pkg(user_pkg: str | None):
     return None, None
 
 def register_plugins(app, base_pkg: str | None = None):
-    """
-    自动发现 <base_pkg>.<child>.plugin，调用 get_meta()/get_blueprint()，
-    并注册到 /g/<slug>/。默认自动探测 base_pkg。
-    """
     global _PLUGINS
     picked, pkg = _pick_base_pkg(base_pkg)
     if not pkg:
@@ -42,7 +37,6 @@ def register_plugins(app, base_pkg: str | None = None):
         try:
             mod = importlib.import_module(mod_name)
         except ModuleNotFoundError:
-            # 子包里没有 plugin.py，跳过
             print(f"[plugins] skip: {mod_name} not found")
             continue
 
