@@ -8,7 +8,8 @@ let currentLineEl = null;
 let transcript = [];
 
 async function loadModels(){
-  const r = await fetch(`${BASE}api/models`);
+  // 只拉取“当前 Key 真可用”的模型
+  const r = await fetch(`${BASE}api/models?available=1`);
   const j = await r.json();
   for(const el of [$("#modelA"), $("#modelB")]){
     el.innerHTML = "";
@@ -54,7 +55,7 @@ async function start(){
     if(!r.ok){ log(`出错了（${r.status}）`); return; }
 
     const reader = r.body.getReader();
-    const td = new TextDecoder();
+    const td = new TextDecoder(); // 默认 UTF-8
     let buf = "";
     let activeSide = null, activeRound = null;
 
