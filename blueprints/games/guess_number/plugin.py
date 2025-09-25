@@ -138,5 +138,5 @@ def track():
         pass
     return ("", 204)  # 不要让前端等
 
-    def get_blueprint():
+def get_blueprint():
     return bp
