@@ -11,7 +11,7 @@ async function start() {
     } else {
       $("#log").innerHTML = "";
     }
-  } catch (e) {
+  } catch {
     log("网络异常");
   }
 }
@@ -40,23 +40,23 @@ async function guess() {
     const j = await r.json();
 
     if (!j.ok) {
-      if (j.error === "DAILY_LIMIT")      line.textContent = "今日次数已用尽";
-      else if (j.error === "BAD_INPUT")   line.textContent = "输入有误";
-      else if (j.error === "BAD_INPUT_RANGE") line.textContent = "请输入 1~100 的整数";
-      else                                line.textContent = "出错了";
+      if (j.error === "DAILY_LIMIT")         line.textContent = "今日次数已用尽";
+      else if (j.error === "BAD_INPUT")      line.textContent = "输入有误";
+      else if (j.error === "BAD_INPUT_RANGE")line.textContent = "请输入 1~100 的整数";
+      else                                   line.textContent = "出错了";
       return;
     }
 
     line.textContent = j.result === "equal"
       ? `🎉 猜对了！共 ${j.tries} 次`
       : (j.result === "low" ? `小了（第 ${j.tries} 次）` : `大了（第 ${j.tries} 次）`);
-  } catch (e) {
+  } catch {
     line.textContent = "网络异常";
   }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  start(); // 可注释掉；/api/guess 会兜底自动开局
+  start(); // 可注释；/api/guess 会兜底自动开局
   $("#btn").addEventListener("click", guess);
   $("#num").addEventListener("keydown", (e) => { if (e.key === "Enter") guess(); });
 });
