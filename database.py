@@ -31,7 +31,8 @@ def _mk_pool():
         minconn=1, maxconn=8, dsn=dsn,
         connect_timeout=3,
         keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=5,
-        sslmode="require"
+        sslmode="require",
+        cursor_factory=RealDictCursor
     )
     return POOL
 
