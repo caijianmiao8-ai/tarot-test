@@ -1,337 +1,158 @@
-<!-- templates/games/ai_duel/index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>AI 斗蛐蛐 · 若水的像素舞台</title>
-  <style>
-    :root{
-      --bg:#f4f6fb;
-      --panel:#ffffff;
-      --ink:#151b26;
-      --muted:#6b778c;
-      --line:#e5e9f2;
-      --brand:#3b82f6;
-      --brand-2:#19b27c;
-      --stone:#e2e8f0;
-      --bubble-a:#e8f0ff;
-      --bubble-b:#e8ffe8;
-      --bubble-j:#fff6e5;
-      --chip:#eef2ff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;background:var(--bg);color:var(--ink);
-      font:14px/1.6 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
-    }
-
-    /* ===== 顶部标题区（新增） ===== */
-    .page-header{
-      background:
-        linear-gradient(180deg,#ffffff 0%, #f7f9ff 70%),
-        repeating-linear-gradient(45deg, transparent 0 10px, rgba(0,0,0,.02) 10px 20px);
-      border-bottom:1px solid var(--line);
-      padding:22px 14px;
-    }
-    .page-header .wrap{
-      max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
-    }
-    .title-block{
-      display:flex;flex-direction:column;gap:6px;
-    }
-    .title{
-      margin:0;
-      font-weight:900;letter-spacing:.5px;
-      font-size: clamp(22px, 2.6vw, 28px);
-      display:inline-flex;align-items:center;gap:10px;
-    }
-    .title .badge{
-      display:inline-block;background:#111;color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:800;
-      box-shadow:2px 2px 0 #00000025;
-    }
-    .subtitle{margin:0;color:var(--muted);font-size:13px}
-    .header-actions{display:flex;align-items:center;gap:8px}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      padding:10px 12px;border:2px solid var(--ink);border-radius:10px;
-      background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #00000010;transition:.15s;
-      text-decoration:none;color:inherit;
-    }
-    .btn:hover{transform:translateY(-1px)}
-    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    .btn-ghost{background:#fff}
-
-    /* ===== 工具栏 ===== */
-    .toolbar{
-      position:sticky;top:0;z-index:20;
-      background:linear-gradient(#ffffff, #f7f9ff);
-      border-bottom:1px solid var(--line);
-      padding:10px 14px;
-    }
-    .tool-grid{
-      max-width:1200px;margin:0 auto;
-      display:grid;grid-template-columns: 1.2fr repeat(3,1fr) 0.9fr 0.9fr auto 120px;
-      gap:10px;align-items:center;
-    }
-    @media (max-width:1100px){
-      .tool-grid{grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
-      .tool-grid > .wide{grid-column:1 / -1}
-    }
-    .input,select,textarea{
-      width:100%;padding:8px 10px;border:2px solid var(--stone);
-      background:#fff;border-radius:8px;font:inherit;color:inherit;
-      outline:none;transition:0.15s;
-    }
-    .input:focus,select:focus,textarea:focus{border-color:var(--brand)}
-    label.small{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
-    .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{
-      border:1px dashed var(--stone);background:var(--chip);
-      padding:6px 10px;border-radius:8px;cursor:pointer;color:#334155
-    }
-    .switch{display:flex;align-items:center;gap:6px}
-    .quota{font-size:12px;color:var(--muted)}
-
-    /* ===== 主布局 ===== */
-    .layout{
-      max-width:1200px;margin:16px auto;padding:0 14px;
-      display:grid;grid-template-columns: 2fr 1fr;gap:16px;
-    }
-    @media (max-width:1100px){ .layout{grid-template-columns:1fr} }
-    .panel{
-      background:var(--panel);border:2px solid #00000014;border-radius:14px;
-      box-shadow: 0 6px 24px rgba(0,0,0,.06);
-    }
-    .panel-header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-    .panel-body{padding:12px 14px}
-
-    /* ===== 聊天区 ===== */
-    .chat{
-      height: calc(100vh - 260px); /* 留出标题/工具栏空间 */
-      min-height: 420px;
-      overflow:auto;padding:10px;background:
-        repeating-linear-gradient(0deg,#fafcff,#fafcff 24px,#f1f5fe 24px,#f1f5fe 25px);
-      border-radius:12px;margin:10px;
-      border:1px solid var(--line);
-    }
-    .msg{display:flex;margin:10px 0;gap:10px;align-items:flex-start}
-    .msg.a{flex-direction:row}
-    .msg.b{flex-direction:row-reverse}
-    .msg.j{justify-content:center}
-    .avatar{
-      width:36px;height:36px;border:2px solid #00000012;border-radius:6px;
-      display:grid;place-items:center;background:#fff;box-shadow:1px 1px 0 #00000010;
-      font-weight:900
-    }
-    .bubble{
-      max-width: min(680px, 88%);
-      background:#fff;border:2px solid #00000018;border-radius:12px;
-      padding:10px 12px;position:relative;
-      box-shadow:2px 2px 0 #00000010, inset 0 0 0 1px #ffffff;
-      word-wrap:break-word;white-space:pre-wrap;
-    }
-    .a .bubble{background:var(--bubble-a)}
-    .b .bubble{background:var(--bubble-b)}
-    .j .bubble{background:var(--bubble-j);max-width:min(760px,92%)}
-    .meta{font-size:12px;color:var(--muted);margin-bottom:4px}
-    .streaming::after{
-      content:"▮";display:inline-block;margin-left:4px;animation:blink .9s steps(1,end) infinite;
-    }
-    @keyframes blink{50%{opacity:0}}
-    .clamp{ max-height:7.5em;overflow:hidden;position:relative; }
-    .clamp::after{
-      content:"";position:absolute;left:0;right:0;bottom:0;height:40px;
-      background:linear-gradient(transparent, rgba(255,255,255,.9));
-    }
-    .toggle{margin-top:6px;font-size:12px;color:#1f3a8a;cursor:pointer;user-select:none}
-
-    .kv{display:grid;grid-template-columns:110px 1fr;gap:10px}
-    .row{margin:10px 0}
-    .section-title{font-weight:800;margin:8px 0 4px}
-    .hint{font-size:12px;color:var(--muted);margin-top:4px}
-
-    /* ===== 预设生成器 Bottom Sheet（修复 z-index） ===== */
-    .sheet{ position:fixed; inset:0; display:none; z-index:1000; }
-    .sheet[aria-hidden="false"]{ display:block; }
-    .sheet__mask{ position:absolute; inset:0; background:rgba(0,0,0,.35); z-index:1000; }
-    .sheet__panel{
-      position:absolute; left:0; right:0; bottom:0; z-index:1001;
-      background:#fff; border-top:2px solid #00000012; border-radius:16px 16px 0 0;
-      max-height:80vh; overflow:auto; padding:14px 14px 20px;
-      box-shadow:0 -10px 40px rgba(0,0,0,.15);
-    }
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width:900px){ .grid2{grid-template-columns:1fr} }
-
-    /* ===== 初始化遮罩（模型目录加载） ===== */
-    #boot-mask{position:fixed;inset:0;display:grid;place-items:center;background:#ffffff;z-index:900}
-    .spinner{
-      width:58px;height:58px;border:5px solid #e2e8f0;border-top-color:var(--brand);
-      border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px
-    }
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .center{display:flex;justify-content:center;align-items:center;gap:10px}
-    .muted{color:var(--muted)}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
 <body>
-
-<!-- 初始化遮罩：模型目录加载完会隐藏 -->
-<div id="boot-mask">
-  <div class="center" style="flex-direction:column">
-    <div class="spinner"></div>
-    <div class="muted">加载模型目录中…</div>
-  </div>
-</div>
-
-<!-- ===== 页面标题区（新增） ===== -->
-<header class="page-header">
-  <div class="wrap">
-    <div class="title-block">
-      <h1 class="title">AI 斗蛐蛐 <span class="badge">若水的像素舞台</span></h1>
-      <p class="subtitle">两个 LLM 扮演不同角色围绕一个问题实时对话，可选裁判点评/终裁。</p>
-    </div>
-    <div class="header-actions">
-      <a href="/" class="btn btn-ghost">返回主页</a>
+<div id="duel-app">
+  <!-- 启动遮罩（最多 1.2s） -->
+  <div id="boot-mask">
+    <div class="boot-box">
+      <div class="spinner"></div>
+      <div class="boot-text">加载模型目录中…</div>
+      <div class="progress">
+        <div class="progress-bar"></div>
+      </div>
     </div>
   </div>
-</header>
 
-<!-- ===== 顶部工具栏 ===== -->
-<div class="toolbar">
-  <div class="tool-grid">
-    <div class="wide">
-      <label class="small">主题</label>
-      <input id="topic" class="input" placeholder="例如：薯条好吃还是汉堡好吃？"/>
-      <div class="chips" id="topicChips" style="margin-top:6px">
-        <span class="chip">薯条 vs 汉堡</span>
-        <span class="chip">猫派 vs 狗派</span>
-        <span class="chip">远程办公 vs 现场办公</span>
-        <span class="chip">TypeScript 要不要上？</span>
-      </div>
-    </div>
+  <!-- Hero 标题 -->
+  <header class="hero">
+    <h1>🤖 AI 斗蛐蛐 · 若水的像素舞台</h1>
+    <div class="sub">两个 LLM 扮演不同角色围绕一个问题实时对话 · 可选裁判点评 / 终局裁决</div>
+  </header>
 
-    <div>
-      <label class="small">回合</label>
-      <select id="rounds" class="input">
-        <option value="2">2</option>
-        <option value="4" selected>4</option>
-        <option value="6">6</option>
-        <option value="8">8</option>
-        <option value="10">10（上限）</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="small">回复长度</label>
-      <select id="replyStyle" class="input">
-        <option value="short">短（1-2句）</option>
-        <option value="medium" selected>中（2-4句）</option>
-        <option value="long">长（4-6句）</option>
-      </select>
-    </div>
-
-    <div class="switch">
-      <input type="checkbox" id="judgeOn" checked/>
-      <label for="judgeOn" class="small">启用裁判</label>
-    </div>
-
-    <div class="switch">
-      <input type="checkbox" id="judgePerRound" checked/>
-      <label for="judgePerRound" class="small">每轮点评</label>
-    </div>
-
-    <div class="center">
-      <button id="btnStart" class="btn btn-primary">开始对战</button>
-    </div>
-
-    <div class="quota" id="quotaBox">配额查询中…</div>
-  </div>
-</div>
-
-<!-- ===== 主布局：聊天 + 设置 ===== -->
-<div class="layout">
-  <!-- 聊天面板 -->
-  <section class="panel">
-    <div class="panel-header">
-      <div><strong>对战聊天</strong></div>
-      <div class="switch">
-        <button id="btnOpenPresetSheet" class="btn btn-ghost">预设生成器</button>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div class="chat" id="chat"></div>
-    </div>
-  </section>
-
-  <!-- 设置面板 -->
-  <aside class="panel">
-    <div class="panel-header"><strong>设置</strong></div>
-    <div class="panel-body">
-      <div class="section-title">模型选择</div>
-      <div class="row kv">
-        <div><label class="small">A 模型</label></div>
-        <div><select id="modelA" class="input"></select></div>
-
-        <div><label class="small">B 模型</label></div>
-        <div><select id="modelB" class="input"></select></div>
-
-        <div><label class="small">裁判模型</label></div>
-        <div><select id="judgeModel" class="input"></select></div>
-      </div>
-
-      <div class="section-title">角色预设</div>
-      <div class="row">
-        <label class="small">A 侧预设</label>
-        <textarea id="mainPresetA" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
-      </div>
-      <div class="row">
-        <label class="small">B 侧预设</label>
-        <textarea id="mainPresetB" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
-      </div>
-      <div class="hint">不想手写？点击上方“预设生成器”一键扩写。</div>
-    </div>
-  </aside>
-</div>
-
-<!-- ===== 预设生成器 Bottom Sheet（遮罩在前，面板在后；并有 z-index） ===== -->
-<div id="presetSheet" class="sheet" aria-hidden="true">
-  <div class="sheet__mask"></div>
-  <div class="sheet__panel">
-    <div class="panel-header" style="border:0;padding:0;margin-bottom:8px">
-      <strong>预设生成器</strong>
-      <button id="btnClosePresetSheet" class="btn">关闭</button>
-    </div>
-    <div class="row">
-      <label class="small">生成模型（仅用于扩写预设，不影响对战）</label>
-      <select id="builderModel" class="input"></select>
-    </div>
-    <div class="row">
-      <label class="small">一句设定</label>
-      <input id="presetSeed" class="input" placeholder="例如：‘美食节目导演 vs 只爱速食的电竞少年’"/>
-    </div>
-    <div class="row">
-      <button id="btnGenPreset" class="btn btn-primary">
-        <span class="spinner" id="genSpin" style="width:16px;height:16px;border-width:2px;display:none"></span>
-        AI 扩写
-      </button>
-    </div>
-    <div class="grid2">
-      <div>
-        <label class="small">A 侧预设</label>
-        <textarea id="presetA" class="input" rows="6"></textarea>
+  <!-- 顶部工具栏 -->
+  <div class="toolbar">
+    <div class="tool-grid">
+      <div class="wide">
+        <label class="small">主题</label>
+        <input id="topic" class="input" placeholder="例如：薯条好吃还是汉堡好吃？"/>
+        <div class="chips" id="topicChips">
+          <span class="chip">薯条 vs 汉堡</span>
+          <span class="chip">猫派 vs 狗派</span>
+          <span class="chip">远程办公 vs 现场办公</span>
+          <span class="chip">TypeScript 要不要上？</span>
+        </div>
       </div>
       <div>
-        <label class="small">B 侧预设</label>
-        <textarea id="presetB" class="input" rows="6"></textarea>
+        <label class="small">回合</label>
+        <select id="rounds" class="input">
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="10">10（上限）</option>
+        </select>
       </div>
+      <div>
+        <label class="small">回复长度</label>
+        <select id="replyStyle" class="input">
+          <option value="short">短（1-2句）</option>
+          <option value="medium" selected>中（2-4句）</option>
+          <option value="long">长（4-6句）</option>
+        </select>
+      </div>
+      <div class="center">
+        <label class="toggle">
+          <input type="checkbox" id="judgeOn" checked>
+          <span>启用裁判</span>
+        </label>
+      </div>
+      <div class="center">
+        <label class="toggle">
+          <input type="checkbox" id="judgePerRound" checked>
+          <span>每轮点评</span>
+        </label>
+      </div>
+      <div class="center">
+        <button id="btnStart" class="btn btn-primary">开始对战</button>
+      </div>
+      <div class="quota" id="quotaBox">配额查询中…</div>
     </div>
-    <div class="row">
-      <button id="btnUsePreset" class="btn" style="border-color:var(--brand-2);color:#064e3b;background:#ecfdf5">
-        应用到对战设置
-      </button>
+  </div>
+
+  <!-- 主布局 -->
+  <div class="layout">
+    <!-- 聊天面板 -->
+    <section class="panel">
+      <div class="panel-header">
+        <div><strong>对战聊天</strong></div>
+        <div>
+          <button id="btnOpenPresetSheet" class="btn btn-ghost">预设生成器</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="chat" id="chat"></div>
+      </div>
+    </section>
+
+    <!-- 设置面板 -->
+    <aside class="panel">
+      <div class="panel-header"><strong>设置</strong></div>
+      <div class="panel-body">
+        <div class="section-title">模型选择</div>
+        <div class="kv">
+          <div><label class="small">A 模型</label></div>
+          <div><select id="modelA" class="input"></select></div>
+          <div><label class="small">B 模型</label></div>
+          <div><select id="modelB" class="input"></select></div>
+          <div><label class="small">裁判模型</label></div>
+          <div><select id="judgeModel" class="input"></select></div>
+        </div>
+
+        <div class="section-title">角色预设</div>
+        <div class="row">
+          <label class="small">A 侧预设</label>
+          <textarea id="mainPresetA" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
+        </div>
+        <div class="row">
+          <label class="small">B 侧预设</label>
+          <textarea id="mainPresetB" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
+        </div>
+        <div class="row"><span class="muted">不想手写？点击上方“预设生成器”一键扩写。</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 预设生成器面板（遮罩先渲染，面板在上） -->
+  <div id="presetSheet" class="sheet" aria-hidden="true">
+    <div class="sheet__mask"></div>
+    <div class="sheet__panel">
+      <div class="panel-header" style="border:0;padding:0;margin-bottom:8px">
+        <strong>预设生成器</strong>
+        <button id="btnClosePresetSheet" class="btn">关闭</button>
+      </div>
+      <div class="row">
+        <label class="small">生成模型（仅用于扩写预设，不影响对战）</label>
+        <select id="builderModel" class="input"></select>
+      </div>
+      <div class="row">
+        <label class="small">一句设定</label>
+        <input id="presetSeed" class="input" placeholder="例如：‘美食节目导演 vs 只爱速食的电竞少年’"/>
+      </div>
+      <div class="row">
+        <button id="btnGenPreset" class="btn btn-primary">
+          <span id="genSpin" class="mini-spinner" aria-hidden="true"></span>
+          AI 扩写
+        </button>
+      </div>
+      <div class="grid2">
+        <div>
+          <label class="small">A 侧预设</label>
+          <textarea id="presetA" class="input" rows="6"></textarea>
+        </div>
+        <div>
+          <label class="small">B 侧预设</label>
+          <textarea id="presetB" class="input" rows="6"></textarea>
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnUsePreset" class="btn btn-apply">应用到对战设置</button>
+      </div>
     </div>
   </div>
 </div>
