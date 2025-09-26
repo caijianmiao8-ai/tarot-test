@@ -1,171 +1,175 @@
+<!-- templates/games/ai_duel/index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>AI 斗蛐蛐 · 若水的像素舞台</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>AI 斗蛐蛐 · 若水的工坊</title>
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
-<body>
-<div id="duel-app">
-  <!-- 启动遮罩（最多 1.2s 自动消失） -->
-  <div id="boot-mask">
-    <div class="boot-box">
-      <div class="spinner"></div>
-      <div class="boot-text">加载模型目录中…</div>
-      <div class="progress"><div class="progress-bar"></div></div>
+<body id="ai-duel" data-base="{{ url_for('ai_duel.page') }}">
+  <!-- 顶栏 -->
+  <header class="duel-header">
+    <div class="brand">
+      <div class="logo-cube" aria-hidden="true"></div>
+      <div class="titles">
+        <h1 class="title">AI 斗蛐蛐</h1>
+        <p class="subtitle">两个 LLM 扮演不同角色围绕一个问题讨论 · 附裁判</p>
+      </div>
     </div>
-  </div>
-
-  <!-- 标题 -->
-  <header class="hero">
-    <h1>🤖 AI 斗蛐蛐 · 若水的像素舞台</h1>
-    <div class="sub">两个 LLM 扮演不同角色围绕一个问题实时对话 · 可选裁判点评 / 终局裁决</div>
+    <div class="header-actions">
+      <button id="open-settings" class="btn ghost">设置 / 预设</button>
+      <a class="btn link" href="{{ url_for('index') }}">← 返回主页</a>
+    </div>
   </header>
 
-  <!-- 工具栏 -->
-  <div class="toolbar">
-    <div class="tool-grid">
-      <div class="wide">
-        <label class="small">主题</label>
-        <input id="topic" class="input" placeholder="例如：薯条好吃还是汉堡好吃？"/>
-        <div class="chips" id="topicChips">
-          <span class="chip">薯条 vs 汉堡</span>
-          <span class="chip">猫派 vs 狗派</span>
-          <span class="chip">远程办公 vs 现场办公</span>
-          <span class="chip">TypeScript 要不要上？</span>
-        </div>
-      </div>
+  <!-- 状态条 -->
+  <section class="statusbar">
+    <div id="quota" class="pill">配额：—</div>
+    <div id="models-state" class="pill">模型目录：加载中…</div>
+    <div id="battle-state" class="pill">状态：待机</div>
+  </section>
 
-      <div>
-        <label class="small">回合</label>
-        <select id="rounds" class="input">
-          <option value="2">2</option>
-          <option value="4" selected>4</option>
-          <option value="6">6</option>
-          <option value="8">8</option>
-          <option value="10">10（上限）</option>
-        </select>
+  <!-- 控制面板（主题、模型、回合、长度、开关） -->
+  <section class="control-panel">
+    <div class="topic-block">
+      <label class="label">话题</label>
+      <input id="topic" class="input" placeholder="例：薯条好吃还是汉堡好吃？" />
+      <div class="chips">
+        <button class="chip" data-topic="程序员需要每天写代码吗？">程序员要日更？</button>
+        <button class="chip" data-topic="AI 会取代大部分工作吗？">AI 取代工作？</button>
+        <button class="chip" data-topic="VR 是否会成为主流计算平台？">VR 主流？</button>
       </div>
-
-      <div>
-        <label class="small">回复长度</label>
-        <select id="replyStyle" class="input">
-          <option value="short">短（1-2句）</option>
-          <option value="medium" selected>中（2-4句）</option>
-          <option value="long">长（4-6句）</option>
-        </select>
-      </div>
-
-      <div class="center">
-        <label class="toggle">
-          <input type="checkbox" id="judgeOn" checked>
-          <span>启用裁判</span>
-        </label>
-      </div>
-      <div class="center">
-        <label class="toggle">
-          <input type="checkbox" id="judgePerRound" checked>
-          <span>每轮点评</span>
-        </label>
-      </div>
-
-      <div class="center btn-group">
-        <button id="btnStart" class="btn btn-primary">开始对战</button>
-        <button id="btnStop"  class="btn btn-danger" disabled>停止对战</button>
-      </div>
-
-      <div class="quota" id="quotaBox">配额查询中…</div>
     </div>
-  </div>
 
-  <!-- 主布局 -->
-  <div class="layout">
-    <!-- 聊天面板 -->
-    <section class="panel">
-      <div class="panel-header">
-        <div><strong>对战聊天</strong></div>
+    <div class="row two">
+      <div>
+        <label class="label">模型 A</label>
+        <select id="modelA" class="select"></select>
+      </div>
+      <div>
+        <label class="label">模型 B</label>
+        <select id="modelB" class="select"></select>
+      </div>
+    </div>
+
+    <div class="row three">
+      <div>
+        <label class="label">轮次</label>
+        <input id="rounds" type="number" class="input" min="1" max="10" step="1" value="4" />
+      </div>
+      <div>
+        <label class="label">回复长度</label>
+        <select id="reply-style" class="select">
+          <option value="short">短（1–2句）</option>
+          <option value="medium" selected>中（2–4句）</option>
+          <option value="long">长（4–6句）</option>
+        </select>
+      </div>
+      <div class="toggle-line">
+        <label class="label">互知人设</label>
+        <label class="toggle">
+          <input id="share-persona" type="checkbox" />
+          <span>开启</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="row judge">
+      <label class="label">裁判</label>
+      <label class="toggle">
+        <input id="judge-on" type="checkbox" checked />
+        <span>启用</span>
+      </label>
+      <label class="toggle">
+        <input id="judge-per-round" type="checkbox" />
+        <span>每轮点评（不勾选则只终局裁决）</span>
+      </label>
+      <select id="judge-model" class="select judge-select"></select>
+    </div>
+
+    <div class="actions">
+      <button id="start" class="btn primary">开始对战</button>
+      <button id="stop" class="btn danger" disabled>停止对战</button>
+      <button id="refresh-models" class="btn ghost">刷新模型目录</button>
+    </div>
+  </section>
+
+  <!-- 聊天舞台 -->
+  <main class="stage">
+    <section class="side side-a">
+      <div class="side-head">
+        <div class="avatar a">A</div>
         <div>
-          <button id="btnOpenPresetSheet" class="btn btn-ghost">预设生成器</button>
+          <div class="side-title">A 方</div>
+          <div id="modelA-name" class="side-sub">—</div>
         </div>
       </div>
-      <div class="panel-body">
-        <div class="chat" id="chat"></div>
-      </div>
+      <div id="chatA" class="chat"></div>
     </section>
 
-    <!-- 设置面板 -->
-    <aside class="panel">
-      <div class="panel-header"><strong>设置</strong></div>
-      <div class="panel-body">
-        <div class="section-title">模型选择</div>
-        <div class="kv">
-          <div><label class="small">A 模型</label></div>
-          <div><select id="modelA" class="input"></select></div>
-          <div><label class="small">B 模型</label></div>
-          <div><select id="modelB" class="input"></select></div>
-          <div><label class="small">裁判模型</label></div>
-          <div><select id="judgeModel" class="input"></select></div>
+    <section class="side side-b">
+      <div class="side-head">
+        <div class="avatar b">B</div>
+        <div>
+          <div class="side-title">B 方</div>
+          <div id="modelB-name" class="side-sub">—</div>
         </div>
-
-        <div class="section-title">角色预设</div>
-        <div class="row">
-          <label class="small">A 侧预设</label>
-          <textarea id="mainPresetA" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
-        </div>
-        <div class="row">
-          <label class="small">B 侧预设</label>
-          <textarea id="mainPresetB" class="input" rows="5" placeholder="可留空，走通用提示；或手写系统预设"></textarea>
-        </div>
-        <div class="row"><span class="muted">不想手写？点击上方“预设生成器”一键扩写。</span></div>
       </div>
+      <div id="chatB" class="chat"></div>
+    </section>
+
+    <aside class="side judge-col">
+      <div class="side-head">
+        <div class="avatar j">J</div>
+        <div>
+          <div class="side-title">裁判</div>
+          <div id="judge-name" class="side-sub">—</div>
+        </div>
+      </div>
+      <div id="chatJ" class="chat"></div>
     </aside>
-  </div>
+  </main>
 
-  <!-- 预设生成器 Bottom Sheet -->
-  <div id="presetSheet" class="sheet" aria-hidden="true">
-    <div class="sheet__mask"></div>
-    <div class="sheet__panel">
-      <div class="panel-header" style="border:0;padding:0;margin-bottom:8px">
-        <strong>预设生成器</strong>
-        <button id="btnClosePresetSheet" class="btn">关闭</button>
-      </div>
+  <!-- 底部抽屉：预设生成器 / 人设编辑 -->
+  <section id="drawer" class="drawer">
+    <div class="drawer-handle">
+      <button id="close-settings" class="btn ghost">收起</button>
+    </div>
 
-      <div class="row">
-        <label class="small">生成模型（仅用于扩写预设，不影响对战）</label>
-        <select id="builderModel" class="input"></select>
-      </div>
-
-      <div class="row">
-        <label class="small">一句设定</label>
-        <input id="presetSeed" class="input" placeholder="例如：‘美食节目导演 vs 只爱速食的电竞少年’"/>
-      </div>
-
-      <div class="row">
-        <button id="btnGenPreset" class="btn btn-primary">
-          <span id="genSpin" class="mini-spinner" aria-hidden="true"></span>
-          AI 扩写
-        </button>
-      </div>
-
-      <div class="grid2">
-        <div>
-          <label class="small">A 侧预设</label>
-          <textarea id="presetA" class="input" rows="6"></textarea>
+    <div class="drawer-grid">
+      <div class="preset-maker card">
+        <h3>预设生成器</h3>
+        <div class="row">
+          <input id="seed" class="input" placeholder="一句设定：例如『一个务实工程师 vs 一个浪漫记者』" />
         </div>
-        <div>
-          <label class="small">B 侧预设</label>
-          <textarea id="presetB" class="input" rows="6"></textarea>
+        <div class="row two">
+          <div>
+            <label class="label">用于扩写的模型</label>
+            <select id="builder-model" class="select"></select>
+          </div>
+          <div class="preset-actions">
+            <button id="btn-build" class="btn">生成预设</button>
+          </div>
         </div>
+        <p class="hint">说明：不会影响 A/B 对战模型，只用于把「一句设定」扩展为两个角色的人设卡。</p>
       </div>
 
-      <div class="row">
-        <button id="btnUsePreset" class="btn btn-apply">应用到对战设置</button>
+      <div class="persona card">
+        <h3>A 方人设（系统预设）</h3>
+        <textarea id="presetA" class="textarea" rows="6" placeholder="你是角色 A…"></textarea>
+      </div>
+
+      <div class="persona card">
+        <h3>B 方人设（系统预设）</h3>
+        <textarea id="presetB" class="textarea" rows="6" placeholder="你是角色 B…"></textarea>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
+  <!-- 全局轻提示 -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
 </body>
 </html>

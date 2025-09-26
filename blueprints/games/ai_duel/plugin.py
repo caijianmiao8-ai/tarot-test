@@ -28,7 +28,7 @@ bp = Blueprint(
 )
 
 # ---------------- 轻身份（cookie） ----------------
-SECRET_KEY   = os.getenv("SECRET_KEY", "dev-secret")
+SECRET_KEY    = os.getenv("SECRET_KEY", "dev-secret")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE","0").lower() in ("1","true","yes")
 SER = URLSafeSerializer(SECRET_KEY, salt=f"{SLUG}-state")
 
@@ -38,7 +38,8 @@ def _ids():
     return user_id, sid
 
 def _ensure_sid(resp):
-    if request.cookies.get("sid"): return resp
+    if request.cookies.get("sid"):
+        return resp
     sid = secrets.token_hex(16)
     resp.set_cookie("sid", sid, max_age=60*60*24*730, httponly=True, samesite="Lax", secure=COOKIE_SECURE)
     return resp
@@ -68,7 +69,11 @@ class ModelCacheDAO:
     @staticmethod
     def get_all():
         with DatabaseManager.get_db() as conn, conn.cursor() as cur:
-            cur.execute("select model_id, model_name, ok, error, checked_at from model_availability order by model_name asc")
+            cur.execute("""
+                select model_id, model_name, ok, error, checked_at
+                from model_availability
+                order by model_name asc
+            """)
             return cur.fetchall()
 
     @staticmethod
@@ -230,7 +235,6 @@ def pick_streamer(model_id: str, app_url: str, app_name: str):
     if prov == "fake":
         return lambda msgs: stream_fake_messages(model_id, msgs)
     else:
-        # ★ 不传 max_tokens
         return lambda msgs: stream_openrouter_messages(model_id, msgs, app_url=app_url, app_name=app_name)
 
 # ---------------- 文本组织/提示词 ----------------
@@ -261,11 +265,21 @@ def cheap_summarize(text: str, max_chars: int = 700) -> str:
     out = " ".join(s)
     return (out[:max_chars] + "…") if len(out)>max_chars else out
 
-def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dict],
-                            side_label: str, reply_style: str,
-                            *, max_ctx_tokens: int = 6000, keep_last_rounds: int = 2):
+def build_messages_for_side(
+    topic: str,
+    preset_system: str,
+    transcript: List[Dict],
+    side_label: str,
+    reply_style: str,
+    *,
+    max_ctx_tokens: int = 6000,
+    keep_last_rounds: int = 2,
+    opponent_preset: str = "",
+    share_persona: bool = False
+):
     """
     reply_style: short / medium / long -> 约束句数与字数
+    share_persona: True 时将在 system 中追加“对手角色卡（参考）”
     """
     style = (reply_style or "medium").lower()
     if style == "short":
@@ -278,7 +292,14 @@ def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dic
     system = (preset_system or "").strip()
     if not system:
         system = (f"你是{side_label}。围绕话题回答，回应要点清晰，引用对方观点进行论证或反驳；"
-                  f"{sentence_hint}，严格≤{char_limit}字，避免长段铺陈。")
+                  f"{sentence_hint}，严格≤{char_limit}字，避免长段。")
+
+    # ★ 互知人设：把对手人设作为参考信息拼进 system（兼容各种提供商）
+    if share_persona and opponent_preset:
+        opp = opponent_preset.strip()
+        if len(opp) > 220:
+            opp = opp[:220] + "…"
+        system += f"\n（对手角色卡【供参考】：{opp}）"
 
     # 最近 N 轮原文 + 早期摘要
     turns = [t for t in transcript if t["type"]=="turn"]
@@ -374,7 +395,7 @@ def api_preset_expand():
 def api_models():
     """
     ?available=1  只返回可用；默认 1
-    ?refresh=1    强制同步刷新（管理员调试用）
+    ?refresh=1    强制同步刷新（管理员）
     """
     only_available = (request.args.get("available","1").lower() in ("1","true","yes"))
     force_refresh  = (request.args.get("refresh","0").lower() in ("1","true","yes"))
@@ -449,18 +470,19 @@ def api_models_check():
 @bp.post("/api/stream")
 def api_stream():
     j = request.get_json(silent=True) or {}
-    topic    = (j.get("topic") or "").strip()
+    topic  = (j.get("topic") or "").strip()
 
-    # ★ 轮次上限（Config 控制）
+    # 轮次上限（Config 控制）
     max_rounds_cfg = int(Config.GAME_FEATURES.get("ai_duel", {}).get("max_rounds", 10))
     rounds  = max(1, min(int(j.get("rounds") or 4), max_rounds_cfg))
 
-    reply_style = (j.get("reply_style") or "medium").lower()
+    reply_style   = (j.get("reply_style") or "medium").lower()
+    share_persona = bool(j.get("sharePersona", False))
 
-    modelA   = j.get("modelA") or "fake/demo"
-    modelB   = j.get("modelB") or "fake/demo"
-    presetA  = (j.get("presetA") or "").strip()
-    presetB  = (j.get("presetB") or "").strip()
+    modelA  = j.get("modelA") or "fake/demo"
+    modelB  = j.get("modelB") or "fake/demo"
+    presetA = (j.get("presetA") or "").strip()
+    presetB = (j.get("presetB") or "").strip()
 
     judge_on        = bool(j.get("judge", False))
     judge_per_round = bool(j.get("judgePerRound", True))
@@ -489,13 +511,15 @@ def api_stream():
 
     def gen():
         nonlocal presetA, presetB
-        # 元信息
+        # 元信息（含互知人设/回复风格）
         yield json.dumps({"type":"meta","topic":topic,"rounds":rounds,
                           "A":modelA,"B":modelB,
+                          "reply_style": reply_style,
+                          "sharePersona": share_persona,
                           "judge": judge_on, "judgePerRound": judge_per_round, "judgeModel": judge_model},
                          ensure_ascii=False) + "\n"
 
-        # 预检（可在前端禁用，但这里仍兜底）
+        # 预检兜底（前端可关，这里仍保证健壮性）
         okA, errA = preflight_model(modelA, app_url, app_name) if not modelA.startswith("fake/") else (True,"")
         okB, errB = preflight_model(modelB, app_url, app_name) if not modelB.startswith("fake/") else (True,"")
         okJ, errJ = (True,"")
@@ -513,9 +537,12 @@ def api_stream():
 
         # 对战循环
         for r in range(1, rounds+1):
-            # A
-            msgsA = build_messages_for_side(topic, presetA, transcript, side_label="A方",
-                                            reply_style=reply_style, max_ctx_tokens=6000, keep_last_rounds=2)
+            # A 发言
+            msgsA = build_messages_for_side(
+                topic, presetA, transcript, side_label="A方", reply_style=reply_style,
+                max_ctx_tokens=6000, keep_last_rounds=2,
+                opponent_preset=presetB, share_persona=share_persona
+            )
             acc = []
             try:
                 for delta in streamA(msgsA):
@@ -528,9 +555,12 @@ def api_stream():
             transcript.append({"type":"turn","side":"A","round":r,"text":fullA})
             yield json.dumps({"type":"turn","side":"A","round":r,"text":fullA}, ensure_ascii=False) + "\n"
 
-            # B
-            msgsB = build_messages_for_side(topic, presetB, transcript, side_label="B方",
-                                            reply_style=reply_style, max_ctx_tokens=6000, keep_last_rounds=2)
+            # B 发言
+            msgsB = build_messages_for_side(
+                topic, presetB, transcript, side_label="B方", reply_style=reply_style,
+                max_ctx_tokens=6000, keep_last_rounds=2,
+                opponent_preset=presetA, share_persona=share_persona
+            )
             acc = []
             try:
                 for delta in streamB(msgsB):
@@ -556,7 +586,7 @@ def api_stream():
                 except Exception as e:
                     yield json.dumps({"type":"error","who":"judge","round":r,"message":str(e)}, ensure_ascii=False) + "\n"
 
-        # 最终裁判（仅在未开启逐轮点评时）
+        # 终局裁判
         if judge_on and not judge_per_round:
             try:
                 msgsJF = build_judge_messages(topic, transcript, final=True, reply_style=reply_style)

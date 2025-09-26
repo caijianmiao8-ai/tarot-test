@@ -1,393 +1,382 @@
-const $  = (s, p=document) => p.querySelector(s);
-const ROOT = $("#duel-app");
+// static/games/ai_duel/main.js
 
-// DOM
-const bootMask      = $("#boot-mask", ROOT);
-const chat          = $("#chat", ROOT);
-const topic         = $("#topic", ROOT);
-const rounds        = $("#rounds", ROOT);
-const replyStyle    = $("#replyStyle", ROOT);
-const judgeOn       = $("#judgeOn", ROOT);
-const judgePerRound = $("#judgePerRound", ROOT);
-const modelA        = $("#modelA", ROOT);
-const modelB        = $("#modelB", ROOT);
-const judgeModel    = $("#judgeModel", ROOT);
-const btnStart      = $("#btnStart", ROOT);
-const btnStop       = $("#btnStop", ROOT);
-const quotaBox      = $("#quotaBox", ROOT);
+const BASE = document.body.dataset.base.replace(/\/?$/, "/"); // 确保以 / 结尾
+const api = (p) => BASE + "api/" + p.replace(/^\//, "");
 
-// 预设主区
-const mainPresetA   = $("#mainPresetA", ROOT);
-const mainPresetB   = $("#mainPresetB", ROOT);
+// ------- DOM -------
+const el = {
+  quota: document.getElementById("quota"),
+  modelsState: document.getElementById("models-state"),
+  battleState: document.getElementById("battle-state"),
 
-// 预设生成器
-const sheet         = $("#presetSheet", ROOT);
-const mask          = $(".sheet__mask", sheet);
-const btnOpenSheet  = $("#btnOpenPresetSheet", ROOT);
-const btnCloseSheet = $("#btnClosePresetSheet", ROOT);
-const builderModel  = $("#builderModel", ROOT);
-const seedInput     = $("#presetSeed", ROOT);
-const btnGenPreset  = $("#btnGenPreset", ROOT);
-const genSpin       = $("#genSpin", ROOT);
-const presetA       = $("#presetA", ROOT);
-const presetB       = $("#presetB", ROOT);
-const btnUsePreset  = $("#btnUsePreset", ROOT);
+  topic: document.getElementById("topic"),
+  chips: document.querySelectorAll(".chip"),
+  modelA: document.getElementById("modelA"),
+  modelB: document.getElementById("modelB"),
+  judgeModel: document.getElementById("judge-model"),
+  rounds: document.getElementById("rounds"),
+  replyStyle: document.getElementById("reply-style"),
+  sharePersona: document.getElementById("share-persona"),
+  judgeOn: document.getElementById("judge-on"),
+  judgePerRound: document.getElementById("judge-per-round"),
 
-// 相对路径，避免 404
-const api = (p) => `./api/${p}`;
+  start: document.getElementById("start"),
+  stop: document.getElementById("stop"),
+  refreshModels: document.getElementById("refresh-models"),
 
-// ===== 启动遮罩：最多 1.2s =====
-const hideBootSoon = setTimeout(() => hideBoot(), 1200);
-function hideBoot(){ bootMask && bootMask.remove(); }
+  chatA: document.getElementById("chatA"),
+  chatB: document.getElementById("chatB"),
+  chatJ: document.getElementById("chatJ"),
+  modelAName: document.getElementById("modelA-name"),
+  modelBName: document.getElementById("modelB-name"),
+  judgeName: document.getElementById("judge-name"),
 
-// ===== 模型目录缓存（30 天） =====
-const CACHE_KEY = "ai_duel_models_v2";
-const CACHE_TTL_MS = 30 * 24 * 3600 * 1000;
+  drawer: document.getElementById("drawer"),
+  openSettings: document.getElementById("open-settings"),
+  closeSettings: document.getElementById("close-settings"),
+  seed: document.getElementById("seed"),
+  builderModel: document.getElementById("builder-model"),
+  btnBuild: document.getElementById("btn-build"),
+  presetA: document.getElementById("presetA"),
+  presetB: document.getElementById("presetB"),
 
-function getCache(){
-  try{
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj.time || !obj.models) return null;
-    if (Date.now() - obj.time > CACHE_TTL_MS) return null;
-    return obj.models;
-  }catch{ return null; }
-}
-function setCache(models){
-  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ time: Date.now(), models })) }catch{}
+  toast: document.getElementById("toast"),
+};
+
+let controller = null; // AbortController
+let inBattle = false;
+let modelsLoaded = false;
+let models = [{ id: "fake/demo", name: "内置演示（无 Key）" }];
+
+// ------- Utils -------
+function toast(msg, ms = 2200) {
+  el.toast.textContent = msg;
+  el.toast.hidden = false;
+  setTimeout(() => (el.toast.hidden = true), ms);
 }
 
-// 填充下拉
-function fillModels(list){
-  const sels = [modelA, modelB, judgeModel, builderModel];
-  for (const sel of sels){
-    if (!sel) continue;
-    sel.innerHTML = "";
-    list.forEach(m=>{
-      const o = document.createElement("option");
-      o.value = m.id; o.textContent = m.name || m.id;
-      sel.appendChild(o);
-    });
-  }
-  // builder 选相对便宜的
-  if (builderModel && builderModel.options.length){
-    const cheap = Array.from(builderModel.options).find(o => /gemma|mistral|deepseek|mini|9b|8b|sonar-mini|llama-3\.1-8b/i.test(o.value));
-    if (cheap) builderModel.value = cheap.value;
+function pill(elm, text) {
+  elm.textContent = text;
+}
+
+function setBattleState(s) {
+  pill(el.battleState, `状态：${s}`);
+}
+function setModelsState(s) {
+  pill(el.modelsState, `模型目录：${s}`);
+}
+
+function optionize(select, list, preferredId = "") {
+  const old = select.value;
+  select.innerHTML = "";
+  list.forEach((m) => {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.name || m.id;
+    select.appendChild(opt);
+  });
+  // 尝试恢复/预选
+  const pick =
+    (preferredId && list.find((x) => x.id === preferredId)?.id) ||
+    (list.find((x) => /qwen|llama|claude|gpt|gemini|deepseek/i.test(x.id))?.id) ||
+    list[0]?.id;
+  select.value = old && list.some((x) => x.id === old) ? old : pick || "";
+}
+
+function clampRoundsInput() {
+  const v = Math.max(1, Math.min(10, parseInt(el.rounds.value || "4", 10)));
+  el.rounds.value = String(v);
+}
+
+// ------- Models (async, non-blocking) -------
+async function loadModelsNonBlocking() {
+  try {
+    setModelsState("加载中…");
+    const resp = await fetch(api("models"));
+    const j = await resp.json();
+    if (!j.ok) throw new Error("加载失败");
+    models = j.models && j.models.length ? j.models : models;
+    modelsLoaded = true;
+    setModelsState(`就绪（缓存${j.cache_age_days ?? 0}天）`);
+  } catch (e) {
+    setModelsState("使用退化清单");
+  } finally {
+    // 填充下拉（包括 builder & judge）
+    optionize(el.modelA, models);
+    optionize(el.modelB, models);
+    optionize(el.judgeModel, models);
+    optionize(el.builderModel, models);
+    // 默认 judge 开在一个轻量模型上
+    if (models.some((m) => m.id.includes("gpt-4o-mini")))
+      el.judgeModel.value = "openai/gpt-4o-mini";
   }
 }
 
-// 加载模型（失败不阻塞）
-async function loadModels(){
-  // 1) 先用缓存（如有）
-  const cached = getCache();
-  if (cached && cached.length){
-    fillModels(cached);
-    hideBoot(); clearTimeout(hideBootSoon);
-  }else{
-    // 没缓存先用兜底项，避免空白
-    fillModels([{id:"fake/demo", name:"内置演示（无 Key）"}]);
-  }
-
-  // 2) 静默拉最新（有超时保护）
-  try{
-    const r = await Promise.race([
-      fetch(api("models?available=1")),
-      new Promise((_, rej)=> setTimeout(()=>rej(new Error("timeout")), 5000))
-    ]);
-    const j = await r.json();
-    if (j && Array.isArray(j.models) && j.models.length){
-      fillModels(j.models);
-      setCache(j.models);
-    }
-  }catch(e){
-    console.warn("models refresh failed:", e.message);
-  }finally{
-    hideBoot(); clearTimeout(hideBootSoon);
+async function refreshModels() {
+  setModelsState("刷新中…");
+  try {
+    const resp = await fetch(api("models") + "?refresh=1");
+    const j = await resp.json();
+    if (!j.ok) throw new Error("刷新失败");
+    models = j.models;
+    optionize(el.modelA, models, el.modelA.value);
+    optionize(el.modelB, models, el.modelB.value);
+    optionize(el.judgeModel, models, el.judgeModel.value);
+    optionize(el.builderModel, models, el.builderModel.value);
+    setModelsState("已刷新");
+  } catch (e) {
+    setModelsState("刷新失败（使用旧缓存）");
   }
 }
 
-// 配额显示
-async function loadQuota(){
-  try{
+// ------- Quota -------
+async function loadQuota() {
+  try {
     const r = await fetch(api("quota"));
     const j = await r.json();
-    if (j.ok) quotaBox.textContent = `今日剩余：${j.left}/${j.limit}`;
-    else quotaBox.textContent = `配额读取失败`;
-  }catch(e){
-    quotaBox.textContent = `配额读取失败`;
+    if (!j.ok) throw new Error();
+    pill(el.quota, `配额：${j.left}/${j.limit}（今日）`);
+    if (j.left <= 0) {
+      el.start.disabled = true;
+      toast("今日配额已用尽");
+    }
+  } catch {
+    pill(el.quota, "配额：—");
   }
 }
 
-// —— 预设生成器 —— //
-btnOpenSheet?.addEventListener("click", ()=> sheet?.setAttribute("aria-hidden","false"));
-btnCloseSheet?.addEventListener("click", ()=> sheet?.setAttribute("aria-hidden","true"));
-mask?.addEventListener("click", ()=> sheet?.setAttribute("aria-hidden","true"));
+// ------- Drawer -------
+function openDrawer() {
+  el.drawer.classList.add("open");
+}
+function closeDrawer() {
+  el.drawer.classList.remove("open");
+}
 
-btnGenPreset?.addEventListener("click", async ()=>{
-  const seed = (seedInput?.value || "").trim();
-  if (!seed){ alert("请先输入一句设定"); return; }
-  btnGenPreset.disabled = true; genSpin.style.display = "inline-block";
-  try{
-    const r = await fetch(api("preset/expand"), {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ seed, builderModel: builderModel?.value || "" })
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || "生成失败");
-    if (presetA) presetA.value = j.presetA || "";
-    if (presetB) presetB.value = j.presetB || "";
-  }catch(e){
-    alert("扩写失败：" + e.message);
-  }finally{
-    btnGenPreset.disabled = false; genSpin.style.display = "none";
-  }
-});
-btnUsePreset?.addEventListener("click", ()=>{
-  if (mainPresetA) mainPresetA.value = presetA.value;
-  if (mainPresetB) mainPresetB.value = presetB.value;
-  sheet?.setAttribute("aria-hidden","true");
-});
-
-// 快捷话题
-$("#topicChips", ROOT)?.addEventListener("click", (e)=>{
-  const chip = e.target.closest(".chip");
-  if (!chip) return;
-  topic.value = chip.textContent.replace(/\s+/g,"");
-});
-
-// 聊天渲染
-function scrollToBottom(){ if (chat) chat.scrollTop = chat.scrollHeight; }
-function makeMsg(kind, round, label){
+// ------- Chat helpers -------
+function addBubble(col, round, who, initial = "") {
+  // who: 'A' | 'B' | 'J'
   const wrap = document.createElement("div");
-  wrap.className = `msg ${kind}`;
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = kind==="a"?"A":kind==="b"?"B":"J";
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.textContent = label + (round ? ` · 第 ${round} 轮` : "");
-  const text = document.createElement("div");
-  text.className = "text streaming";
-  bubble.appendChild(meta); bubble.appendChild(text);
-  wrap.appendChild(avatar); wrap.appendChild(bubble);
-  chat.appendChild(wrap);
-  scrollToBottom();
-  return { wrap, text };
+  wrap.className = "bubble";
+  wrap.dataset.round = String(round);
+  wrap.dataset.who = who;
+  wrap.textContent = initial || "";
+  const typing = document.createElement("span");
+  typing.className = "typing";
+  typing.textContent = "…";
+  wrap.appendChild(typing);
+  col.appendChild(wrap);
+  col.scrollTop = col.scrollHeight;
+  return wrap;
 }
-function clampIfLong(el){
-  const raw = el.textContent || "";
-  if (raw.length > 320){
-    el.classList.add("clamp");
-    const t = document.createElement("div");
-    t.className = "toggle-more"; t.textContent = "展开";
-    t.addEventListener("click", ()=>{
-      if (el.classList.contains("clamp")){ el.classList.remove("clamp"); t.textContent="收起"; }
-      else { el.classList.add("clamp"); t.textContent="展开"; }
-      scrollToBottom();
-    });
-    el.parentElement.appendChild(t);
+function finalizeBubble(b) {
+  b.classList.add("final");
+  const t = b.querySelector(".typing");
+  if (t) t.remove();
+}
+
+function ensureCol(side) {
+  return side === "A" ? el.chatA : side === "B" ? el.chatB : el.chatJ;
+}
+
+// ------- Streaming -------
+async function startDuel() {
+  clampRoundsInput();
+  const topic = el.topic.value.trim();
+  if (!topic) {
+    toast("请先填写话题");
+    el.topic.focus();
+    return;
   }
-}
-function finalize(el){
-  el.classList.remove("streaming");
-  clampIfLong(el);
-}
-
-// 开始/停止
-let controller = null;
-function setRunning(on){
-  btnStart.disabled = on;
-  btnStop.disabled  = !on;
-}
-
-btnStop?.addEventListener("click", ()=>{
-  if (controller){ controller.abort(); }
-  setRunning(false);
-  const t = makeMsg("j", null, "系统").text;
-  t.textContent = "已停止对战。";
-  finalize(t);
-  loadQuota();
-});
-
-// 开始对战（NDJSON 流）
-async function startDuel(){
+  const rounds = parseInt(el.rounds.value || "4", 10);
   const payload = {
-    topic: (topic.value || "").trim(),
-    rounds: parseInt(rounds.value || "4", 10),
-    reply_style: (replyStyle.value || "medium"),
-    modelA: modelA?.value || "fake/demo",
-    modelB: modelB?.value || "fake/demo",
-    judge: !!judgeOn.checked,
-    judgePerRound: !!judgePerRound.checked,
-    judgeModel: judgeModel?.value || "fake/demo",
-    presetA: (mainPresetA?.value || "").trim(),
-    presetB: (mainPresetB?.value || "").trim(),
+    topic,
+    rounds,
+    modelA: el.modelA.value,
+    modelB: el.modelB.value,
+    presetA: el.presetA.value.trim(),
+    presetB: el.presetB.value.trim(),
+    reply_style: el.replyStyle.value,
+    sharePersona: el.sharePersona.checked,
+    judge: el.judgeOn.checked,
+    judgePerRound: el.judgePerRound.checked,
+    judgeModel: el.judgeModel.value,
   };
-  if (!payload.topic){ alert("请输入主题"); return; }
 
-  chat.innerHTML = "";
-  setRunning(true);
-  quotaBox.textContent = "对战进行中…";
+  // UI 状态
+  inBattle = true;
+  el.start.disabled = true;
+  el.stop.disabled = false;
+  setBattleState("进行中");
+  el.chatA.innerHTML = "";
+  el.chatB.innerHTML = "";
+  el.chatJ.innerHTML = "";
+  el.modelAName.textContent = "—";
+  el.modelBName.textContent = "—";
+  el.judgeName.textContent = payload.judge ? "—" : "未启用";
 
+  // 建立流
   controller = new AbortController();
-  let res;
-  try{
-    res = await fetch(api("stream"), {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-  }catch(e){
-    setRunning(false);
-    const t = makeMsg("j", null, "错误").text; t.textContent = "连接失败：" + e.message; finalize(t);
+  const resp = await fetch(api("stream"), {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json" },
+    signal: controller.signal,
+  }).catch((e) => ({ ok: false, error: e.message }));
+
+  if (!resp || !resp.ok || !resp.body) {
+    toast("请求失败，请检查网络或配额");
+    stopDuel(true);
     return;
   }
 
-  if (res.status === 429){
-    const j = await res.json().catch(()=>({}));
-    quotaBox.textContent = `今日次数已用尽（剩余 ${j?.left ?? 0}）`;
-    setRunning(false); return;
-  }
-  if (!res.ok){
-    quotaBox.textContent = `启动失败：${res.status}`;
-    const t = makeMsg("j", null, "错误").text; t.textContent = "服务器返回错误"; finalize(t);
-    setRunning(false); return;
-  }
+  // 解析 NDJSON
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  // 当前轮的气泡缓存：{ A: {...}, B: {...}, J: {...} }
+  let current = { A: null, B: null, J: null };
+  let firstDelta = { A: false, B: false, J: false };
 
-  let curA=null, curB=null, curJ=null;
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  let buf = "";
-
-  (function pump(){
-    reader.read().then(({done, value})=>{
-      if (done){
-        setRunning(false); loadQuota(); return;
+  function applyEvent(obj) {
+    const t = obj.type;
+    if (t === "meta") {
+      el.modelAName.textContent = obj.A || "—";
+      el.modelBName.textContent = obj.B || "—";
+      if (obj.judge) el.judgeName.textContent = obj.judgeModel || "—";
+      return;
+    }
+    if (t === "error") {
+      const who = obj.side || obj.who || "系统";
+      toast(`⚠️ ${who}：${obj.message || "出错"}`, 2800);
+      return;
+    }
+    if (t === "chunk" || t === "judge_chunk") {
+      const side = t === "chunk" ? obj.side : "J";
+      const col = ensureCol(side);
+      if (!current[side]) {
+        current[side] = addBubble(col, obj.round || 0, side, "");
       }
-      buf += dec.decode(value, {stream:true});
-      const lines = buf.split("\n"); buf = lines.pop();
-      for (const line of lines){
-        const s = line.trim(); if (!s) continue;
-        let obj=null; try{ obj = JSON.parse(s);}catch{ continue; }
+      // 有些提供商第一包是空字符串，做个保护：只在首次非空时创建可见文本
+      if (obj.delta && obj.delta.length) {
+        firstDelta[side] = true;
+        current[side].firstChild && (current[side].firstChild.nodeValue += obj.delta);
+      }
+      return;
+    }
+    if (t === "turn" || t === "judge_turn" || t === "judge_final") {
+      const side = t === "turn" ? obj.side : "J";
+      const col = ensureCol(side);
+      if (!current[side]) {
+        // 异常情况下没有 chunk，直接出 turn
+        current[side] = addBubble(col, obj.round || 0, side, "");
+      }
+      // turn 文本兜底：如果之前没收到任何 delta，则直接写入最终文案，避免“空白回合”
+      if (!firstDelta[side]) {
+        current[side].firstChild && (current[side].firstChild.nodeValue = (obj.text || "").trim() || "（无内容）");
+      }
+      finalizeBubble(current[side]);
+      current[side] = null;
+      firstDelta[side] = false;
+      return;
+    }
+    if (t === "preset") {
+      // 收到后端扩写的人设（如果你走 /api/stream 内置扩写）
+      if (obj.A) el.presetA.value = obj.A;
+      if (obj.B) el.presetB.value = obj.B;
+      return;
+    }
+    if (t === "end") {
+      stopDuel();
+      return;
+    }
+  }
 
-        switch(obj.type){
-          case "meta":{
-            const t = makeMsg("j", null, "系统").text;
-            t.textContent = `主题：${obj.topic} · 回合：${obj.rounds} · 裁判：${obj.judge ? "开" : "关"}`;
-            finalize(t);
-            break;
-          }
-          case "preset":{
-            if (mainPresetA && obj.A) mainPresetA.value = obj.A;
-            if (mainPresetB && obj.B) mainPresetB.value = obj.B;
-            const t = makeMsg("j", null, "系统").text;
-            t.textContent = "已根据设定扩写 A/B 预设并应用。";
-            finalize(t);
-            break;
-          }
-          case "chunk":{
-            if (obj.side==="A"){
-              if (!curA || curA.round!==obj.round){ const el=makeMsg("a", obj.round, "A 方"); curA={round:obj.round, text:el.text, seen:true}; }
-              curA.text.textContent += (obj.delta || "");
-            }else{
-              if (!curB || curB.round!==obj.round){ const el=makeMsg("b", obj.round, "B 方"); curB={round:obj.round, text:el.text, seen:true}; }
-              curB.text.textContent += (obj.delta || "");
-            }
-            break;
-          }
-          case "turn":{
-            // ★ 关键兜底：有些模型不发 chunk，只在 turn 给完整文本
-            if (obj.side==="A"){
-              if (!curA || curA.round!==obj.round){
-                const el = makeMsg("a", obj.round, "A 方");
-                el.text.textContent = (obj.text || "（无回应）");
-                finalize(el.text);
-                curA = { round: obj.round, text: el.text, seen: false };
-              }else{
-                if (!curA.text.textContent.trim()){
-                  curA.text.textContent = (obj.text || "（无回应）");
-                }
-                finalize(curA.text);
-              }
-            }else{
-              if (!curB || curB.round!==obj.round){
-                const el = makeMsg("b", obj.round, "B 方");
-                el.text.textContent = (obj.text || "（无回应）");
-                finalize(el.text);
-                curB = { round: obj.round, text: el.text, seen: false };
-              }else{
-                if (!curB.text.textContent.trim()){
-                  curB.text.textContent = (obj.text || "（无回应）");
-                }
-                finalize(curB.text);
-              }
-            }
-            break;
-          }
-          case "judge_chunk":{
-            if (!curJ || curJ.round!==obj.round){ const el=makeMsg("j", obj.round, "裁判点评"); curJ={round:obj.round, text:el.text}; }
-            curJ.text.textContent += (obj.delta || "");
-            break;
-          }
-          case "judge_turn":{
-            if (curJ){
-              if (!curJ.text.textContent.trim()){
-                curJ.text.textContent = (obj.text || "（无回应）");
-              }
-              finalize(curJ.text);
-            }
-            break;
-          }
-          case "judge_final_chunk":{
-            if (!curJ || curJ.round!==-1){ const el=makeMsg("j", null, "最终裁决"); curJ={round:-1, text:el.text}; }
-            curJ.text.textContent += (obj.delta || "");
-            break;
-          }
-          case "judge_final":{
-            if (curJ){
-              if (!curJ.text.textContent.trim()){
-                curJ.text.textContent = (obj.text || "（无回应）");
-              }
-              finalize(curJ.text);
-            }
-            break;
-          }
-          case "error":{
-            const kind = obj.side==="A"?"a":obj.side==="B"?"b":"j";
-            const t = makeMsg(kind, obj.round||null, "错误").text;
-            t.textContent = obj.message || "未知错误";
-            finalize(t);
-            break;
-          }
-          case "end":{
-            const t = makeMsg("j", null, "系统").text;
-            t.textContent = "对战结束。";
-            finalize(t);
-            setRunning(false);
-            loadQuota();
-            break;
-          }
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (!line) continue;
+        try {
+          const obj = JSON.parse(line);
+          applyEvent(obj);
+        } catch {
+          // 略过非 JSON 行
         }
       }
-      scrollToBottom();
-      pump();
-    }).catch(err=>{
-      const t = makeMsg("j", null, "错误").text;
-      t.textContent = "连接中断：" + err.message;
-      finalize(t);
-      setRunning(false);
-      loadQuota();
-    });
-  })();
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") {
+      toast("流中断：" + e.message);
+    }
+  } finally {
+    stopDuel(true); // 确保按钮状态与状态条复位
+  }
 }
 
-btnStart?.addEventListener("click", startDuel);
+function stopDuel(silent = false) {
+  if (controller) {
+    try { controller.abort(); } catch {}
+    controller = null;
+  }
+  if (!silent) toast("已停止对战");
+  inBattle = false;
+  el.start.disabled = false;
+  el.stop.disabled = true;
+  setBattleState("待机");
+}
 
-// 初始化
-loadModels();
+// ------- Preset builder -------
+async function buildPresets() {
+  const seed = el.seed.value.trim();
+  if (!seed) {
+    toast("请输入一句设定");
+    el.seed.focus();
+    return;
+  }
+  const model = el.builderModel.value || "openai/gpt-4o-mini";
+  el.btnBuild.disabled = true;
+  el.btnBuild.textContent = "生成中…";
+  try {
+    const r = await fetch(api("preset/expand"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seed, builderModel: model }),
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "生成失败");
+    el.presetA.value = j.presetA || "";
+    el.presetB.value = j.presetB || "";
+    toast("已生成预设，可手工微调");
+  } catch (e) {
+    toast("预设生成失败：" + e.message);
+  } finally {
+    el.btnBuild.disabled = false;
+    el.btnBuild.textContent = "生成预设";
+  }
+}
+
+// ------- Bindings -------
+el.openSettings.addEventListener("click", openDrawer);
+el.closeSettings.addEventListener("click", closeDrawer);
+el.refreshModels.addEventListener("click", refreshModels);
+el.start.addEventListener("click", startDuel);
+el.stop.addEventListener("click", () => stopDuel());
+el.btnBuild.addEventListener("click", buildPresets);
+el.judgeOn.addEventListener("change", () => {
+  el.judgeModel.disabled = !el.judgeOn.checked;
+  el.judgePerRound.disabled = !el.judgeOn.checked;
+});
+el.chips.forEach((c) => c.addEventListener("click", () => (el.topic.value = c.dataset.topic)));
+el.rounds.addEventListener("change", clampRoundsInput);
+
+// ------- Boot -------
+loadModelsNonBlocking();
 loadQuota();
+setBattleState("待机");
+el.judgeOn.dispatchEvent(new Event("change"));
