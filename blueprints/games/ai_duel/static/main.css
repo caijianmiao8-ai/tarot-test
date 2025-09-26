@@ -751,6 +751,10 @@ body {
   gap: 4px;
 }
 
+.msg.right .msg-content {
+  align-items: flex-end; /* B方的内容右对齐 */
+}
+
 .msg.judge .msg-content {
   align-items: center;
 }
