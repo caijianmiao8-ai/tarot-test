@@ -1,8 +1,6 @@
-// static/games/ai_duel/main.js
 const $  = (s, r=document)=>r.querySelector(s);
 const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
 
-// 安全 BASE & 拼接
 const rawBase = window.DUEL_BASE || "/g/ai_duel/";
 const BASE = rawBase.endsWith('/') ? rawBase : rawBase + '/';
 const api = (p)=> BASE + (p.startsWith('/') ? p.slice(1) : p);
@@ -27,14 +25,20 @@ const btnToggle= $("#btn-toggle");
 const btnSave  = $("#btn-save");
 const quotaEl  = $("#quota");
 const modelsInfo = $("#modelsInfo");
-const nameAEl  = $("#nameA");
-const nameBEl  = $("#nameB");
 const modelAName = $("#modelAName");
 const modelBName = $("#modelBName");
 const toastEl = $("#toast");
-
-// boot overlay
 const boot = $("#boot"), bar=$("#bar"), bootTip=$("#bootTip");
+
+// 回答长度分段
+const lenSeg = $("#lenSeg");
+let replyStyle = "short";
+lenSeg.addEventListener("click", (e)=>{
+  const btn = e.target.closest(".seg-btn"); if(!btn) return;
+  $$(".seg-btn", lenSeg).forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  replyStyle = btn.dataset.len || "short";
+});
 
 // state
 let controller = null;
@@ -42,55 +46,139 @@ let running = false;
 let lastBubbleA = null;
 let lastBubbleB = null;
 
-// ui utils
-function toast(msg, ms=2200){
-  toastEl.textContent = msg;
-  toastEl.hidden = false;
-  setTimeout(()=> toastEl.hidden = true, ms);
+// utils
+function toast(msg, ms=2200){ toastEl.textContent = msg; toastEl.hidden = false; setTimeout(()=>toastEl.hidden=true, ms); }
+function logBannerTitle(text){ const b=$(".banner"); if(!b) return; const t=$(".banner-title",b); if(t) t.textContent=text; }
+
+// 懒创建：只有在收到第一块 chunk 时，才创建对应泡泡，避免“空打字框”残留
+function getBubble(side){
+  if(side==="A"){
+    if(!lastBubbleA){
+      lastBubbleA = createMsg('a');
+    }
+    return lastBubbleA;
+  }else{
+    if(!lastBubbleB){
+      lastBubbleB = createMsg('b');
+    }
+    return lastBubbleB;
+  }
 }
-function logBannerTitle(text){
-  const b = $(".banner"); if(!b) return;
-  const t = $(".banner-title", b); if(t) t.textContent = text;
-}
-function addMsg(side, text="", withTime=true){
+function createMsg(side){
   const wrap = document.createElement("div");
-  wrap.className = `msg ${side}`;
-  const time = withTime ? `<div class="time">${new Date().toLocaleTimeString()}</div>` : '';
-  wrap.innerHTML = `
-    <div class="bubble">${text || '<span class="typing"></span>'}</div>
-    ${time}
-  `;
+  wrap.className = `msg ${side==='A'?'a':'b'}`;
+  wrap.innerHTML = `<div class="bubble"><span class="typing"></span></div><div class="time">${new Date().toLocaleTimeString()}</div>`;
   chat.appendChild(wrap);
   chat.scrollTop = chat.scrollHeight;
   return $(".bubble", wrap);
 }
 function appendChunk(bubble, delta){
-  if(!bubble) return;
   const typing = $(".typing", bubble);
   if(typing) typing.remove();
   bubble.textContent += delta;
   chat.scrollTop = chat.scrollHeight;
 }
-function setModelLabels(){
-  const a = modelA.selectedOptions[0]?.text || "模型 A";
-  const b = modelB.selectedOptions[0]?.text || "模型 B";
-  modelAName.textContent = a;
-  modelBName.textContent = b;
+function finalizeBubble(bubble){
+  if(!bubble) return;
+  // 去除 typing，若为空则移除整个消息
+  const typing = $(".typing", bubble);
+  if(typing) typing.remove();
+  const text = bubble.textContent.trim();
+  if(!text){
+    const msg = bubble.parentElement;
+    msg?.parentElement?.removeChild(msg);
+    return;
+  }
+  // 长文折叠
+  requestAnimationFrame(()=>{
+    if(bubble.scrollHeight > 260){
+      bubble.classList.add("collapsed");
+      let btn = document.createElement("span");
+      btn.className = "more-btn";
+      btn.textContent = "展开全文";
+      btn.addEventListener("click", ()=>{
+        if(bubble.classList.contains("collapsed")){
+          bubble.classList.remove("collapsed");
+          btn.textContent = "收起";
+        }else{
+          bubble.classList.add("collapsed");
+          btn.textContent = "展开全文";
+        }
+      });
+      bubble.parentElement.appendChild(btn);
+    }
+  });
 }
 
-// sheet
-$("#sheetClose").addEventListener("click", ()=> sheet.classList.remove("open"));
-btnToggle.addEventListener("click", ()=> sheet.classList.toggle("open"));
-btnSave.addEventListener("click", ()=>{ setModelLabels(); sheet.classList.remove("open"); });
+function ensureJudgeBox(){
+  let box = $("#judgeBox");
+  if(!box){
+    box = document.createElement("div");
+    box.id = "judgeBox";
+    box.className = "banner";
+    box.innerHTML = `<div class="banner-title">裁判</div><div class="banner-note"></div>`;
+    chat.appendChild(box);
+  }
+  return $(".banner-note", box);
+}
 
-// 快捷题目
-chat.addEventListener("click", (e)=>{
-  const btn = e.target.closest(".chip");
-  if(!btn || !btn.dataset.topic) return;
-  topicInp.value = btn.dataset.topic;
+// 预载遮罩
+function bootShow(){ boot.hidden = false; }
+function bootHide(){ boot.hidden = true; }
+function bootStep(p, tip){ bar.style.width = `${Math.max(0, Math.min(100, p))}%`; if(tip) bootTip.textContent = tip; }
+
+// 模型与配额
+async function loadModels(){
+  bootShow(); bootStep(20, "加载可用模型…");
+  try{
+    const r = await fetch(api('api/models?available=1'));
+    const j = await r.json();
+    const models = j.models || [];
+    const fill = (sel)=>{
+      sel.innerHTML = "";
+      models.forEach(m=>{
+        const op = document.createElement("option");
+        op.value = m.id; op.textContent = m.name;
+        sel.appendChild(op);
+      });
+    };
+    fill(modelA); fill(modelB); fill(judgeSel);
+    modelA.selectedIndex = 0;
+    modelB.selectedIndex = Math.min(1, modelB.options.length-1);
+    judgeSel.selectedIndex = 0;
+
+    modelAName.textContent = modelA.selectedOptions[0]?.text || "模型 A";
+    modelBName.textContent = modelB.selectedOptions[0]?.text || "模型 B";
+    modelsInfo.textContent = models.length ? `已载入 ${models.length} 个可用模型` : "未获取到可用模型（读缓存失败）";
+    bootStep(100, "完成");
+  }catch(e){
+    modelsInfo.textContent = "模型目录载入失败";
+  }finally{
+    setTimeout(bootHide, 150);
+  }
+}
+async function loadQuota(){
+  try{
+    const r = await fetch(api('api/quota'));
+    const j = await r.json();
+    if(j.ok) quotaEl.textContent = `今日对战配额：剩 ${j.left}/${j.limit}`;
+  }catch{}
+}
+
+// 设置面板
+$("#sheetClose").addEventListener("click", ()=> sheet.classList.remove("open"));
+$("#btn-toggle").addEventListener("click", ()=> sheet.classList.toggle("open"));
+$("#btn-save").addEventListener("click", ()=>{ 
+  modelAName.textContent = modelA.selectedOptions[0]?.text || "模型 A";
+  modelBName.textContent = modelB.selectedOptions[0]?.text || "模型 B";
+  sheet.classList.remove("open");
 });
 
-// 快捷角色
+// 快捷题目/角色
+chat.addEventListener("click", (e)=>{
+  const c = e.target.closest(".chip");
+  if(c?.dataset.topic) topicInp.value = c.dataset.topic;
+});
 $$(".chip.role").forEach(ch=>{
   ch.addEventListener("click", ()=>{
     presetA.value = ch.dataset.a || "";
@@ -98,93 +186,35 @@ $$(".chip.role").forEach(ch=>{
   });
 });
 
-// boot overlay
-function bootShow(){ boot.hidden = false; }
-function bootHide(){ boot.hidden = true; }
-function bootStep(p, tip){ bar.style.width = `${Math.max(0, Math.min(100, p))}%`; if(tip) bootTip.textContent = tip; }
-
-// models
-async function loadModels(){
-  bootShow(); bootStep(10, "读取模型缓存…");
-  try{
-    const r = await fetch(api('api/models?available=1'));
-    const j = await r.json();
-    const models = j.models || [];
-
-    const fill = (sel)=>{
-      sel.innerHTML = "";
-      for(const m of models){
-        const op = document.createElement("option");
-        op.value = m.id; op.textContent = m.name;
-        sel.appendChild(op);
-      }
-    };
-    fill(modelA); fill(modelB); fill(judgeSel);
-
-    modelA.selectedIndex = 0;
-    modelB.selectedIndex = Math.min(1, modelB.options.length-1);
-    judgeSel.selectedIndex = 0;
-
-    setModelLabels();
-    modelsInfo.textContent = models.length ? `已载入 ${models.length} 个可用模型` : "未获取到可用模型（请检查缓存）";
-    bootStep(100, "完成");
-  }catch(e){
-    modelsInfo.textContent = "模型目录载入失败";
-  }finally{
-    setTimeout(bootHide, 200);
-  }
-}
-
-// quota
-async function loadQuota(){
-  try{
-    const r = await fetch(api('api/quota'));
-    const j = await r.json();
-    if(j.ok){
-      quotaEl.textContent = `今日对战配额：剩 ${j.left}/${j.limit}`;
-    }
-  }catch{}
-}
-
-// 生成预设（依赖后端 /api/presets；若 404 则退化为把 seed 套入）
+// 预设生成（后端 LLM），失败自动退化
 btnGen.addEventListener("click", async ()=>{
   const seed = seedInp.value.trim();
   const topic = topicInp.value.trim();
   if(!seed && !topic){ toast("请先填写题目或一句设定"); return; }
-
   try{
     const r = await fetch(api('api/presets'), {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        topic,
-        seed,
-        modelA: modelA.value,
-        modelB: modelB.value
-      })
+      body: JSON.stringify({ topic, seed, modelA: modelA.value, modelB: modelB.value })
     });
     if(r.ok){
       const j = await r.json();
       if(j.ok){
-        presetA.value = j.presetA || presetA.value;
-        presetB.value = j.presetB || presetB.value;
+        if(j.presetA) presetA.value = j.presetA;
+        if(j.presetB) presetB.value = j.presetB;
         toast("已生成角色预设");
         return;
       }
     }
-    // 不 ok：退化
     fallbackSeed();
-  }catch(e){
-    fallbackSeed();
-  }
-
+  }catch{ fallbackSeed(); }
   function fallbackSeed(){
     if(seed){
       if(!presetA.value) presetA.value = `角色 A：${seed}`;
       if(!presetB.value) presetB.value = `角色 B：${seed}`;
-      toast("已用一句设定填入 A/B（后端未启用 /api/presets）");
+      toast("后端未启用 /api/presets，已用一句设定填入 A/B");
     }else{
-      toast("生成失败，且无一句设定可用");
+      toast("生成失败");
     }
   }
 });
@@ -200,24 +230,21 @@ function start(){
   const rounds = Math.max(1, Math.min(parseInt(roundsInp.value||"4",10), 10));
   if(!topic){ topicInp.focus(); toast("请先填写题目"); return; }
 
-  // 重置视图
+  // 重置状态（不提前放“打字框”，避免残留）
   logBannerTitle("对战进行中");
-  lastBubbleA = addMsg('a', "", true); // A typing
+  lastBubbleA = null;
   lastBubbleB = null;
 
-  // payload（注意保留 judge 逐回合 / 终局）
   const payload = {
-    topic,
-    rounds,
-    modelA: modelA.value,
-    modelB: modelB.value,
-    presetA: presetA.value.trim(),
-    presetB: presetB.value.trim(),
+    topic, rounds,
+    modelA: modelA.value, modelB: modelB.value,
+    presetA: presetA.value.trim(), presetB: presetB.value.trim(),
     seed: seedInp.value.trim(),
     judge: (judgePer.checked || judgeFinal.checked),
     judgePerRound: !!judgePer.checked,
     judgeFinal: !!judgeFinal.checked,
-    judgeModel: judgeSel.value
+    judgeModel: judgeSel.value,
+    reply_style: replyStyle   // ★ 新增：回答长度偏好
   };
 
   btnStart.disabled = true;
@@ -226,7 +253,7 @@ function start(){
   controller = new AbortController();
 
   stream(payload).catch(err=>{
-    addMsg('a', `❌ 错误：${err.message || err}`, true);
+    getBubble("A"); appendChunk(lastBubbleA, `❌ 错误：${err.message || err}`);
   }).finally(()=>{
     running = false;
     btnStart.disabled = false;
@@ -234,7 +261,6 @@ function start(){
     loadQuota();
   });
 }
-
 function stop(){
   try{ controller?.abort(); }catch{}
   running = false;
@@ -256,13 +282,14 @@ async function stream(body){
     try{
       const j = await r.json();
       if(r.status===429 && j.error==="DAILY_LIMIT"){
-        addMsg('a', `❌ 今日开始次数已用完（剩余 ${j.left} 次）`, true);
+        getBubble("A"); appendChunk(lastBubbleA, `❌ 今日开始次数已用完（剩余 ${j.left} 次）`);
       }else{
-        addMsg('a', `❌ 启动失败（${r.status}）：${j.error || 'Unknown'}`, true);
+        getBubble("A"); appendChunk(lastBubbleA, `❌ 启动失败（${r.status}）：${j.error || 'Unknown'}`);
       }
     }catch{
-      addMsg('a', `❌ 启动失败（${r.status}）`, true);
+      getBubble("A"); appendChunk(lastBubbleA, `❌ 启动失败（${r.status}）`);
     }
+    finalizeAll();
     return;
   }
 
@@ -281,56 +308,46 @@ async function stream(body){
       handleEvent(line);
     }
   }
+  // 正常结束，保底收尾
+  finalizeAll();
 }
 
-function ensureJudgeBox(){
-  let box = $("#judgeBox");
-  if(!box){
-    box = document.createElement("div");
-    box.id = "judgeBox";
-    box.className = "banner";
-    box.innerHTML = `<div class="banner-title">裁判</div><div class="banner-note"></div>`;
-    chat.appendChild(box);
-  }
-  return $(".banner-note", box);
+function finalizeAll(){
+  finalizeBubble(lastBubbleA);
+  finalizeBubble(lastBubbleB);
+  // 清理所有 typing 残留 & 空消息
+  $$(".bubble").forEach(b=>{
+    const t = $(".typing", b); if(t) t.remove();
+    if(!b.textContent.trim()){
+      const msg = b.parentElement; msg?.parentElement?.removeChild(msg);
+    }
+  });
 }
 
-// 事件处理（不遗漏：meta、preset、chunk、turn、judge_chunk、judge_turn、judge_final、end、error）
 function handleEvent(line){
-  let j;
-  try{ j = JSON.parse(line); }catch{ return; }
+  let j; try{ j = JSON.parse(line); }catch{ return; }
 
   switch(j.type){
     case "meta":{
-      if(j.A){ modelAName.textContent = j.A; }
-      if(j.B){ modelBName.textContent = j.B; }
+      if(j.A) modelAName.textContent = j.A;
+      if(j.B) modelBName.textContent = j.B;
       break;
     }
     case "preset":{
-      if(j.A){ presetA.value = j.A; }
-      if(j.B){ presetB.value = j.B; }
+      if(j.A) presetA.value = j.A;
+      if(j.B) presetB.value = j.B;
       break;
     }
     case "chunk":{
-      if(j.side === "A"){
-        if(!lastBubbleA) lastBubbleA = addMsg('a', "", true);
-        appendChunk(lastBubbleA, j.delta || "");
-      }else if(j.side === "B"){
-        if(!lastBubbleB) lastBubbleB = addMsg('b', "", true);
-        appendChunk(lastBubbleB, j.delta || "");
-      }
+      const side = j.side==="B" ? "B" : "A";
+      const bubble = getBubble(side);
+      appendChunk(bubble, j.delta || "");
       break;
     }
     case "turn":{
-      if(j.side === "A"){
-        if(!lastBubbleA) lastBubbleA = addMsg('a', "", true);
-        appendChunk(lastBubbleA, "\n");
-        lastBubbleB = addMsg('b', "", true); // 轮到 B typing
-      }else if(j.side === "B"){
-        if(!lastBubbleB) lastBubbleB = addMsg('b', "", true);
-        appendChunk(lastBubbleB, "\n");
-        lastBubbleA = addMsg('a', "", true); // 新一轮 A typing
-      }
+      // 仅结束当前说话方；不再“预放下一个打字框”，避免无裁判/最后一轮时出现空框
+      if(j.side==="A"){ finalizeBubble(lastBubbleA); }
+      else if(j.side==="B"){ finalizeBubble(lastBubbleB); }
       break;
     }
     case "judge_chunk":{
@@ -347,20 +364,18 @@ function handleEvent(line){
     }
     case "error":{
       const who = j.side || j.who || "system";
-      addMsg('a', `❌ ${who} 出错：${j.message || '未知错误'}`, true);
+      getBubble("A"); appendChunk(lastBubbleA, `❌ ${who} 出错：${j.message || '未知错误'}`);
       break;
     }
     case "end":{
       logBannerTitle("对战结束");
+      // 收尾由 finalizeAll() 完成
       break;
     }
-    default:
-      // 兼容服务端扩展类型：忽略
   }
 }
 
 // 初始化
 (async function init(){
-  await loadModels();
-  await loadQuota();
+  bootShow(); await loadModels(); await loadQuota(); bootHide();
 })();

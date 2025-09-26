@@ -298,15 +298,21 @@ def chat_once_openrouter(model_id: str, messages: List[Dict], app_url: str, app_
 
 def stream_openrouter_messages(model_id: str, messages: List[Dict],
                                app_url: str | None = None,
-                               app_name: str | None = None) -> Iterable[str]:
+                               app_name: str | None = None,
+                               *, max_tokens: int = 256, temperature: float = 0.7) -> Iterable[str]:
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("缺少 OPENROUTER_API_KEY 环境变量")
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = _headers(app_url or "", app_name or "")
-    with requests.post(url, headers=headers,
-                       json={"model": model_id, "messages": messages, "temperature": 0.7, "stream": True},
-                       stream=True, timeout=600) as r:
+    payload = {
+        "model": model_id,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
+    with requests.post(url, headers=headers, json=payload, stream=True, timeout=600) as r:
         if r.status_code != 200:
             try:
                 j = r.json()
@@ -315,20 +321,34 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
                 msg = r.text
             raise RuntimeError(f"OpenRouter {r.status_code}: {msg}")
         for raw in r.iter_lines(decode_unicode=False):
-            if not raw: continue
+            if not raw:
+                continue
             try:
                 line = raw.decode("utf-8", errors="replace").strip()
             except Exception:
                 continue
-            if not line.startswith("data:"): continue
+            if not line.startswith("data:"):
+                continue
             data = line[5:].strip()
-            if data == "[DONE]": break
+            if data == "[DONE]":
+                break
             try:
                 obj = json.loads(data)
                 delta = obj["choices"][0]["delta"].get("content") or ""
-                if delta: yield delta
+                if delta:
+                    yield delta
             except Exception:
                 continue
+
+def pick_streamer(model_id: str, app_url: str, app_name: str, **opts):
+    prov = model_id.split("/", 1)[0]
+    if prov == "fake":
+        return lambda msgs: stream_fake_messages(model_id, msgs)
+    else:
+        return lambda msgs: stream_openrouter_messages(
+            model_id, msgs, app_url=app_url, app_name=app_name, **opts
+        )
+
 
 def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
     last = messages[-1]["content"] if messages else "开始发言。"
@@ -337,12 +357,6 @@ def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
         yield ch
         time.sleep(0.01)
 
-def pick_streamer(model_id: str, app_url: str, app_name: str):
-    prov = model_id.split("/", 1)[0]
-    if prov == "fake":
-        return lambda msgs: stream_fake_messages(model_id, msgs)
-    else:
-        return lambda msgs: stream_openrouter_messages(model_id, msgs, app_url=app_url, app_name=app_name)
 
 # ---------------- 文本组织：转录、摘要、消息构造 ----------------
 def est_tokens(text: str) -> int:
@@ -373,16 +387,17 @@ def cheap_summarize(text: str, max_chars: int = 700) -> str:
     return (out[:max_chars] + "…") if len(out)>max_chars else out
 
 def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dict],
-                            side_label: str, *, max_ctx_tokens: int = 6000, keep_last_rounds: int = 2):
-    """
-    preset_system: 用户或扩写后的“角色系统预设”（可不是单纯正反方）
-    """
+                            side_label: str, *,
+                            style_hint: str = "请控制在 2-4 句内，言简意赅。",
+                            max_ctx_tokens: int = 6000, keep_last_rounds: int = 2):
     system = (preset_system or "").strip()
     if not system:
-        system = f"你是{side_label}角色。请就话题「{topic}」进行讨论。每轮≤150字，引用对方要点进行论证或反驳。"
+        system = f"你是{side_label}角色。请就话题「{topic}」进行讨论。"
+    # 把长度要求直接写进系统提示，效果比写在 user 提示更稳定
+    system = f"{system}\n回答要求：{style_hint}\n避免寒暄，直达要点。"
 
     # 最近 N 轮原文 + 早期摘要
-    turns = [t for t in transcript if t["type"]=="turn"]
+    turns = [t for t in transcript if t["type"] == "turn"]
     recent_rounds = []
     if turns:
         max_round = max(t["round"] for t in turns)
@@ -392,7 +407,37 @@ def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dic
     earlier = [t for t in turns if t not in recent_rounds]
     summary_text = cheap_summarize(join_turns(earlier)) if earlier else ""
 
-    next_round = (turns[-1]["round"] if turns else 0) + (1 if (not turns or turns[-1]["side"]=="B") else 0)
+    # 预测下一轮编号（仅用于提示）
+    next_round = (turns[-1]["round"] if turns else 0) + (1 if (not turns or turns[-1]["side"] == "B") else 0)
+
+    def compose(summ, recent):
+        blocks = [f"【话题】{topic}"]
+        if summ:
+            blocks.append(f"【既往摘要】{summ}")
+        if recent:
+            blocks.append(f"【最近几轮】\n{recent}")
+        blocks.append(f"请给出你的第 {next_round} 轮回应：")
+        return "\n\n".join(blocks)
+
+    user = compose(summary_text, recent_text)
+    budget = max_ctx_tokens - (est_tokens(system) + 300)
+
+    # 动态瘦身
+    k = keep_last_rounds
+    while est_tokens(user) > budget and k > 0:
+        k -= 1
+        if turns:
+            max_round = max(t["round"] for t in turns)
+            lo = max(1, max_round - k + 1)
+            recent_rounds = [t for t in turns if t["round"] >= lo]
+            recent_text = join_turns(recent_rounds) if recent_rounds else ""
+        user = compose(summary_text, recent_text)
+    while est_tokens(user) > budget and summary_text:
+        summary_text = summary_text[: max(50, len(summary_text) - 200)]
+        user = compose(summary_text, recent_text)
+
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
 
     def compose(summ, recent):
         blocks = []
@@ -490,6 +535,13 @@ def api_stream():
     judge_on        = bool(j.get("judge", False))
     judge_per_round = bool(j.get("judgePerRound", True))
     judge_model     = (j.get("judgeModel") or "").strip() or ("fake/demo" if not judge_on else "openai/gpt-4o-mini")
+    reply_style = (j.get("reply_style") or "short").lower()
+    style_hint = {
+        "short":  "请控制在 1-2 句内，简洁有力。",
+        "medium": "请控制在 2-4 句内，言简意赅。",
+        "long":   "请控制在 4-6 句内，层次清晰。"
+    }.get(reply_style, "请控制在 2-4 句内，言简意赅。")
+    max_tokens_reply = {"short": 128, "medium": 256, "long": 384}.get(reply_style, 256)
 
     if not topic:
         return jsonify({"ok": False, "error": "NO_TOPIC"}), 400
@@ -511,8 +563,8 @@ def api_stream():
     # ↓↓↓ 你原先的流式生成逻辑（gen / Response）保持不动
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
     app_name = os.getenv("APP_NAME", "AI Duel Arena")
-    streamA  = pick_streamer(modelA, app_url, app_name)
-    streamB  = pick_streamer(modelB, app_url, app_name)
+    streamA  = pick_streamer(modelA, app_url, app_name, max_tokens=max_tokens_reply)
+    streamB  = pick_streamer(modelB, app_url, app_name, max_tokens=max_tokens_reply)
 
     transcript: List[Dict] = []
 
@@ -575,8 +627,10 @@ def api_stream():
         # 对战
         for r in range(1, rounds+1):
             # A
-            msgsA = build_messages_for_side(topic, presetA, transcript, side_label="A方",
-                                            max_ctx_tokens=6000, keep_last_rounds=2)
+            msgsA = build_messages_for_side(
+                topic, presetA, transcript, side_label="A方",
+                style_hint=style_hint, max_ctx_tokens=6000, keep_last_rounds=2
+            )
             acc = []
             try:
                 for delta in streamA(msgsA):
@@ -590,8 +644,11 @@ def api_stream():
             yield json.dumps({"type":"turn","side":"A","round":r,"text":fullA}, ensure_ascii=False) + "\n"
 
             # B
-            msgsB = build_messages_for_side(topic, presetB, transcript, side_label="B方",
-                                            max_ctx_tokens=6000, keep_last_rounds=2)
+            msgsB = build_messages_for_side(
+                topic, presetB, transcript, side_label="B方",
+                style_hint=style_hint, max_ctx_tokens=6000, keep_last_rounds=2
+            )
+
             acc = []
             try:
                 for delta in streamB(msgsB):
@@ -653,6 +710,57 @@ def api_quota():
     limits = Config.GAME_FEATURES.get("ai_duel", {})
     limit  = limits.get('daily_limit_user' if user_id else 'daily_limit_guest', 5)
     return jsonify({"ok": True, "left": left, "limit": limit})
+
+# 在 ai_duel 的 plugin.py -> get_blueprint() 里，添加：
+import os, requests
+
+@bp.post("/api/presets")
+def api_presets():
+    data = request.get_json(silent=True) or {}
+    topic = (data.get("topic") or "").strip()
+    seed  = (data.get("seed") or "").strip()
+    # 任选一个便宜稳定的模型来扩写预设（你也可改成你常用的）
+    model = os.getenv("DUEL_PRESET_MODEL", "google/gemma-2-9b-it")
+    api_key = os.getenv("OPENROUTER_API_KEY")
+
+    if not api_key:
+        return jsonify({"ok": False, "error": "NO_API_KEY"}), 500
+    if not (topic or seed):
+        return jsonify({"ok": False, "error": "EMPTY"}), 400
+
+    prompt = f"""请为一场围绕“{topic or seed}”的讨论，分别生成两个角色的扮演预设（中文），语言风格、关注点与价值取向要形成对比。每个预设 2-4 句，简短有辨识度。输出 JSON：
+{{"presetA":"...","presetB":"..."}}"""
+
+    try:
+        resp = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL","https://example.com"),
+                "X-Title": "AI Duel Preset Builder",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role":"system","content":"你是资深 Prompt 设计师，擅长将一句设定扩展成对立角色预设。"},
+                    {"role":"user","content": prompt}
+                ],
+                "temperature": 0.7
+            },
+            timeout=30
+        )
+        resp.raise_for_status()
+        txt = resp.json()["choices"][0]["message"]["content"]
+        # 宽松解析 JSON（允许大括号内包含换行）
+        import re, json as pyjson
+        m = re.search(r"\{[\s\S]*\}", txt)
+        if not m:
+            return jsonify({"ok": False, "error": "PARSE_FAIL"}), 500
+        data = pyjson.loads(m.group(0))
+        return jsonify({"ok": True, "presetA": data.get("presetA",""), "presetB": data.get("presetB","")})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 def get_blueprint():

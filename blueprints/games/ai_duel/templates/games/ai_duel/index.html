@@ -1,4 +1,3 @@
-<!-- templates/games/ai_duel/index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -6,16 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>AI 斗蛐蛐 · 对战间</title>
 
-  <!-- 机械像素+中文字体 -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- 可留可删 -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
-
   <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
 </head>
 <body id="duel-app">
-  <!-- 顶栏：标题 + 今日配额 -->
+  <!-- 顶栏 -->
   <header class="topbar">
     <div class="brand">
       <span class="vox"></span>
@@ -25,9 +19,8 @@
     <div class="quota" id="quota">—</div>
   </header>
 
-  <!-- 舞台：左右机器人 + 中间聊天 -->
+  <!-- 舞台（居中三栏） -->
   <main class="stage">
-    <!-- 左：A -->
     <aside class="side side-a">
       <div class="bot-card">
         <div class="bot-avatar a"></div>
@@ -38,12 +31,11 @@
       </div>
     </aside>
 
-    <!-- 中：聊天 -->
+    <!-- 聊天区（更宽，IM风气泡） -->
     <section class="chat" id="chat">
-      <!-- 欢迎卡片 + 快捷题目 -->
       <div class="banner">
         <div class="banner-title">准备开战</div>
-        <div class="banner-note">输入题目或直接点下面的快捷按钮；复杂选项在底部设置里。</div>
+        <div class="banner-note">输入题目或直接点快捷按钮；高级设置在底部。</div>
         <div class="quick-row">
           <button class="chip" data-topic="薯条好吃还是汉堡好吃？">薯条 vs 汉堡</button>
           <button class="chip" data-topic="AI 会在十年内取代程序员吗？">AI vs 程序员</button>
@@ -54,7 +46,6 @@
       </div>
     </section>
 
-    <!-- 右：B -->
     <aside class="side side-b">
       <div class="bot-card">
         <div class="bot-avatar b"></div>
@@ -78,7 +69,7 @@
     </div>
   </div>
 
-  <!-- 底部弹出设置（保留所有高级项 + 预设生成） -->
+  <!-- 底部设置面板（含：预设生成、裁判、回答长度 3 档） -->
   <div class="sheet" id="sheet">
     <div class="sheet-handle" id="sheetClose" title="收起">—</div>
     <div class="sheet-content">
@@ -105,7 +96,16 @@
               <input id="seed" type="text" placeholder="如：两位美食评论家围绕快餐健康性展开讨论">
               <button id="btn-gen" class="btn secondary">✨ 生成预设</button>
             </div>
-            <small class="muted">不填也可手动写下方 A/B 预设；生成依赖后端 /api/presets</small>
+            <small class="muted">依赖后端 /api/presets；失败会退化为把这句设定填入 A/B。</small>
+          </div>
+
+          <div class="group small">
+            <label>回答长度</label>
+            <div class="seg" id="lenSeg">
+              <button class="seg-btn active" data-len="short">短（1–2句）</button>
+              <button class="seg-btn" data-len="medium">中（2–4句）</button>
+              <button class="seg-btn" data-len="long">长（4–6句）</button>
+            </div>
           </div>
         </div>
 
@@ -120,8 +120,8 @@
           </div>
 
           <div class="group small">
-            <label class="inline"><input id="judgePer" type="checkbox" checked> 逐回合裁判点评</label>
-            <label class="inline"><input id="judgeFinal" type="checkbox" checked> 终局裁判总结</label>
+            <label class="inline"><input id="judgePer" type="checkbox" checked> 逐回合裁判</label>
+            <label class="inline"><input id="judgeFinal" type="checkbox" checked> 终局裁判</label>
             <select id="judgeModel" class="inline"></select>
           </div>
 
@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <!-- 载入遮罩 / 进度 -->
+  <!-- 预载遮罩 -->
   <div class="boot" id="boot" hidden>
     <div class="boot-box">
       <div class="boot-title">初始化模型目录…</div>
@@ -153,10 +153,9 @@
     </div>
   </div>
 
-  <!-- 轻量级吐司 -->
+  <!-- 吐司 -->
   <div id="toast" class="toast" hidden></div>
 
-  <!-- base 前缀，确保以 / 结尾 -->
   <script>
     const baseRaw = {{ url_for('ai_duel.page') | tojson }};
     window.DUEL_BASE = baseRaw.endsWith('/') ? baseRaw : baseRaw + '/';
