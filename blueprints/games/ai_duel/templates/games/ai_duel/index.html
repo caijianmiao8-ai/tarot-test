@@ -8,24 +8,22 @@
 </head>
 <body>
 <div id="duel-app">
-  <!-- 启动遮罩（最多 1.2s） -->
+  <!-- 启动遮罩（最多 1.2s 自动消失） -->
   <div id="boot-mask">
     <div class="boot-box">
       <div class="spinner"></div>
       <div class="boot-text">加载模型目录中…</div>
-      <div class="progress">
-        <div class="progress-bar"></div>
-      </div>
+      <div class="progress"><div class="progress-bar"></div></div>
     </div>
   </div>
 
-  <!-- Hero 标题 -->
+  <!-- 标题 -->
   <header class="hero">
     <h1>🤖 AI 斗蛐蛐 · 若水的像素舞台</h1>
     <div class="sub">两个 LLM 扮演不同角色围绕一个问题实时对话 · 可选裁判点评 / 终局裁决</div>
   </header>
 
-  <!-- 顶部工具栏 -->
+  <!-- 工具栏 -->
   <div class="toolbar">
     <div class="tool-grid">
       <div class="wide">
@@ -38,6 +36,7 @@
           <span class="chip">TypeScript 要不要上？</span>
         </div>
       </div>
+
       <div>
         <label class="small">回合</label>
         <select id="rounds" class="input">
@@ -48,6 +47,7 @@
           <option value="10">10（上限）</option>
         </select>
       </div>
+
       <div>
         <label class="small">回复长度</label>
         <select id="replyStyle" class="input">
@@ -56,6 +56,7 @@
           <option value="long">长（4-6句）</option>
         </select>
       </div>
+
       <div class="center">
         <label class="toggle">
           <input type="checkbox" id="judgeOn" checked>
@@ -68,9 +69,12 @@
           <span>每轮点评</span>
         </label>
       </div>
-      <div class="center">
+
+      <div class="center btn-group">
         <button id="btnStart" class="btn btn-primary">开始对战</button>
+        <button id="btnStop"  class="btn btn-danger" disabled>停止对战</button>
       </div>
+
       <div class="quota" id="quotaBox">配额查询中…</div>
     </div>
   </div>
@@ -118,7 +122,7 @@
     </aside>
   </div>
 
-  <!-- 预设生成器面板（遮罩先渲染，面板在上） -->
+  <!-- 预设生成器 Bottom Sheet -->
   <div id="presetSheet" class="sheet" aria-hidden="true">
     <div class="sheet__mask"></div>
     <div class="sheet__panel">
@@ -126,20 +130,24 @@
         <strong>预设生成器</strong>
         <button id="btnClosePresetSheet" class="btn">关闭</button>
       </div>
+
       <div class="row">
         <label class="small">生成模型（仅用于扩写预设，不影响对战）</label>
         <select id="builderModel" class="input"></select>
       </div>
+
       <div class="row">
         <label class="small">一句设定</label>
         <input id="presetSeed" class="input" placeholder="例如：‘美食节目导演 vs 只爱速食的电竞少年’"/>
       </div>
+
       <div class="row">
         <button id="btnGenPreset" class="btn btn-primary">
           <span id="genSpin" class="mini-spinner" aria-hidden="true"></span>
           AI 扩写
         </button>
       </div>
+
       <div class="grid2">
         <div>
           <label class="small">A 侧预设</label>
@@ -150,6 +158,7 @@
           <textarea id="presetB" class="input" rows="6"></textarea>
         </div>
       </div>
+
       <div class="row">
         <button id="btnUsePreset" class="btn btn-apply">应用到对战设置</button>
       </div>

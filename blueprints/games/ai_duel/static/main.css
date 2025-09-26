@@ -32,6 +32,7 @@
   max-width:1200px;margin:0 auto;
 }
 #duel-app .tool-grid .wide{ grid-column:1 / 2 }
+#duel-app .btn-group{ display:flex; gap:8px; justify-content:center }
 @media (max-width:1100px){
   #duel-app .tool-grid{ grid-template-columns:1fr 1fr 1fr 1fr }
   #duel-app .tool-grid .wide{ grid-column:1 / -1 }
@@ -46,6 +47,7 @@
 #duel-app .btn-primary{ background:var(--brand); color:#fff; border-color:var(--brand) }
 #duel-app .btn-ghost{ background:#fff }
 #duel-app .btn-apply{ border-color:var(--accent); color:#064e3b; background:#ecfdf5 }
+#duel-app .btn-danger{ background:#ef4444; color:#fff; border-color:#ef4444 }
 #duel-app .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:#334155}
 #duel-app .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 #duel-app .chip{border:1px dashed #e2e8f0;background:var(--chip);padding:6px 10px;border-radius:8px;cursor:pointer;color:#334155}
@@ -61,7 +63,7 @@
 #duel-app .row{margin:10px 0}
 #duel-app .muted{color:var(--muted);font-size:13px}
 
-/* 聊天区 */
+/* 聊天区（折叠长文，左右分栏） */
 #duel-app .chat{
   height: calc(100vh - 260px); min-height:420px; overflow:auto; padding:10px;
   background: repeating-linear-gradient(0deg,#fafcff,#fafcff 24px,#f1f5fe 24px,#f1f5fe 25px);
@@ -87,7 +89,7 @@
 #duel-app .clamp::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(transparent, rgba(255,255,255,.9))}
 #duel-app .toggle-more{margin-top:6px;font-size:12px;color:#1f3a8a;cursor:pointer;user-select:none}
 
-/* Bottom Sheet（面板层级高于遮罩） */
+/* Bottom Sheet */
 #duel-app .sheet{ position:fixed; inset:0; display:none; z-index:1000; pointer-events:none; }
 #duel-app .sheet[aria-hidden="false"]{ display:block; }
 #duel-app .sheet__mask{ position:absolute; inset:0; background:rgba(0,0,0,.35); z-index:1000; pointer-events:auto; }

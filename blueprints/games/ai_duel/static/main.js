@@ -13,6 +13,7 @@ const modelA        = $("#modelA", ROOT);
 const modelB        = $("#modelB", ROOT);
 const judgeModel    = $("#judgeModel", ROOT);
 const btnStart      = $("#btnStart", ROOT);
+const btnStop       = $("#btnStop", ROOT);
 const quotaBox      = $("#quotaBox", ROOT);
 
 // 预设主区
@@ -100,7 +101,6 @@ async function loadModels(){
       setCache(j.models);
     }
   }catch(e){
-    // 静默失败：保留已填数据
     console.warn("models refresh failed:", e.message);
   }finally{
     hideBoot(); clearTimeout(hideBootSoon);
@@ -178,8 +178,7 @@ function makeMsg(kind, round, label){
   scrollToBottom();
   return { wrap, text };
 }
-function finalize(el){
-  el.classList.remove("streaming");
+function clampIfLong(el){
   const raw = el.textContent || "";
   if (raw.length > 320){
     el.classList.add("clamp");
@@ -193,9 +192,28 @@ function finalize(el){
     el.parentElement.appendChild(t);
   }
 }
+function finalize(el){
+  el.classList.remove("streaming");
+  clampIfLong(el);
+}
+
+// 开始/停止
+let controller = null;
+function setRunning(on){
+  btnStart.disabled = on;
+  btnStop.disabled  = !on;
+}
+
+btnStop?.addEventListener("click", ()=>{
+  if (controller){ controller.abort(); }
+  setRunning(false);
+  const t = makeMsg("j", null, "系统").text;
+  t.textContent = "已停止对战。";
+  finalize(t);
+  loadQuota();
+});
 
 // 开始对战（NDJSON 流）
-let controller = null;
 async function startDuel(){
   const payload = {
     topic: (topic.value || "").trim(),
@@ -212,7 +230,7 @@ async function startDuel(){
   if (!payload.topic){ alert("请输入主题"); return; }
 
   chat.innerHTML = "";
-  btnStart.disabled = true;
+  setRunning(true);
   quotaBox.textContent = "对战进行中…";
 
   controller = new AbortController();
@@ -225,7 +243,7 @@ async function startDuel(){
       signal: controller.signal
     });
   }catch(e){
-    btnStart.disabled = false;
+    setRunning(false);
     const t = makeMsg("j", null, "错误").text; t.textContent = "连接失败：" + e.message; finalize(t);
     return;
   }
@@ -233,12 +251,12 @@ async function startDuel(){
   if (res.status === 429){
     const j = await res.json().catch(()=>({}));
     quotaBox.textContent = `今日次数已用尽（剩余 ${j?.left ?? 0}）`;
-    btnStart.disabled = false; return;
+    setRunning(false); return;
   }
   if (!res.ok){
     quotaBox.textContent = `启动失败：${res.status}`;
     const t = makeMsg("j", null, "错误").text; t.textContent = "服务器返回错误"; finalize(t);
-    btnStart.disabled = false; return;
+    setRunning(false); return;
   }
 
   let curA=null, curB=null, curJ=null;
@@ -249,7 +267,7 @@ async function startDuel(){
   (function pump(){
     reader.read().then(({done, value})=>{
       if (done){
-        btnStart.disabled = false; loadQuota(); return;
+        setRunning(false); loadQuota(); return;
       }
       buf += dec.decode(value, {stream:true});
       const lines = buf.split("\n"); buf = lines.pop();
@@ -274,34 +292,70 @@ async function startDuel(){
           }
           case "chunk":{
             if (obj.side==="A"){
-              if (!curA || curA.round!==obj.round){ const el=makeMsg("a", obj.round, "A 方"); curA={round:obj.round, text:el.text}; }
-              curA.text.textContent += obj.delta || "";
+              if (!curA || curA.round!==obj.round){ const el=makeMsg("a", obj.round, "A 方"); curA={round:obj.round, text:el.text, seen:true}; }
+              curA.text.textContent += (obj.delta || "");
             }else{
-              if (!curB || curB.round!==obj.round){ const el=makeMsg("b", obj.round, "B 方"); curB={round:obj.round, text:el.text}; }
-              curB.text.textContent += obj.delta || "";
+              if (!curB || curB.round!==obj.round){ const el=makeMsg("b", obj.round, "B 方"); curB={round:obj.round, text:el.text, seen:true}; }
+              curB.text.textContent += (obj.delta || "");
             }
             break;
           }
           case "turn":{
-            if (obj.side==="A" && curA) finalize(curA.text);
-            if (obj.side==="B" && curB) finalize(curB.text);
+            // ★ 关键兜底：有些模型不发 chunk，只在 turn 给完整文本
+            if (obj.side==="A"){
+              if (!curA || curA.round!==obj.round){
+                const el = makeMsg("a", obj.round, "A 方");
+                el.text.textContent = (obj.text || "（无回应）");
+                finalize(el.text);
+                curA = { round: obj.round, text: el.text, seen: false };
+              }else{
+                if (!curA.text.textContent.trim()){
+                  curA.text.textContent = (obj.text || "（无回应）");
+                }
+                finalize(curA.text);
+              }
+            }else{
+              if (!curB || curB.round!==obj.round){
+                const el = makeMsg("b", obj.round, "B 方");
+                el.text.textContent = (obj.text || "（无回应）");
+                finalize(el.text);
+                curB = { round: obj.round, text: el.text, seen: false };
+              }else{
+                if (!curB.text.textContent.trim()){
+                  curB.text.textContent = (obj.text || "（无回应）");
+                }
+                finalize(curB.text);
+              }
+            }
             break;
           }
           case "judge_chunk":{
             if (!curJ || curJ.round!==obj.round){ const el=makeMsg("j", obj.round, "裁判点评"); curJ={round:obj.round, text:el.text}; }
-            curJ.text.textContent += obj.delta || "";
+            curJ.text.textContent += (obj.delta || "");
             break;
           }
           case "judge_turn":{
-            if (curJ) finalize(curJ.text); break;
+            if (curJ){
+              if (!curJ.text.textContent.trim()){
+                curJ.text.textContent = (obj.text || "（无回应）");
+              }
+              finalize(curJ.text);
+            }
+            break;
           }
           case "judge_final_chunk":{
             if (!curJ || curJ.round!==-1){ const el=makeMsg("j", null, "最终裁决"); curJ={round:-1, text:el.text}; }
-            curJ.text.textContent += obj.delta || "";
+            curJ.text.textContent += (obj.delta || "");
             break;
           }
           case "judge_final":{
-            if (curJ) finalize(curJ.text); break;
+            if (curJ){
+              if (!curJ.text.textContent.trim()){
+                curJ.text.textContent = (obj.text || "（无回应）");
+              }
+              finalize(curJ.text);
+            }
+            break;
           }
           case "error":{
             const kind = obj.side==="A"?"a":obj.side==="B"?"b":"j";
@@ -314,7 +368,7 @@ async function startDuel(){
             const t = makeMsg("j", null, "系统").text;
             t.textContent = "对战结束。";
             finalize(t);
-            btnStart.disabled = false;
+            setRunning(false);
             loadQuota();
             break;
           }
@@ -326,7 +380,7 @@ async function startDuel(){
       const t = makeMsg("j", null, "错误").text;
       t.textContent = "连接中断：" + err.message;
       finalize(t);
-      btnStart.disabled = false;
+      setRunning(false);
       loadQuota();
     });
   })();

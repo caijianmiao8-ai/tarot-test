@@ -296,23 +296,52 @@ def chat_once_openrouter(model_id: str, messages: List[Dict], app_url: str, app_
     j = r.json()
     return (j["choices"][0]["message"]["content"] or "").strip()
 
+def _extract_text_from_chunk(obj) -> str:
+    """
+    兼容多供应商的 SSE 数据结构，尽可能提取文本。
+    """
+    try:
+        choices = obj.get("choices") or []
+        if not choices:
+            return ""
+        ch0 = choices[0] or {}
+        # 1) OpenAI 兼容：delta.content 是字符串
+        delta = ch0.get("delta") or {}
+        c = delta.get("content")
+        if isinstance(c, str):
+            return c or ""
+        # 2) 某些把 content 做成数组 [{type:'text'/'output_text', text:'...'}]
+        if isinstance(c, list):
+            out = []
+            for piece in c:
+                if isinstance(piece, dict):
+                    if piece.get("type") in ("text", "output_text"):
+                        txt = piece.get("text") or piece.get("content") or ""
+                        if txt: out.append(txt)
+            if out:
+                return "".join(out)
+        # 3) 有的直接给 text 字段
+        if isinstance(ch0.get("text"), str):
+            return ch0["text"] or ""
+        # 4) 有的只在末尾给 message.content
+        msg = ch0.get("message") or {}
+        if isinstance(msg.get("content"), str):
+            return msg["content"] or ""
+    except Exception:
+        return ""
+    return ""
+
 def stream_openrouter_messages(model_id: str, messages: List[Dict],
                                app_url: str | None = None,
-                               app_name: str | None = None,
-                               *, max_tokens: int = 256, temperature: float = 0.7) -> Iterable[str]:
+                               app_name: str | None = None) -> Iterable[str]:
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        raise RuntimeError("缺少 OPENROUTER_API_KEY 环境变量")
+        raise RuntimeError("缺少 OPENROUTER_API_KEY")
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = _headers(app_url or "", app_name or "")
-    payload = {
-        "model": model_id,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stream": True,
-    }
-    with requests.post(url, headers=headers, json=payload, stream=True, timeout=600) as r:
+    with requests.post(url, headers=headers,
+                       json={"model": model_id, "messages": messages, "temperature": 0.7, "stream": True},
+                       stream=True, timeout=600) as r:
         if r.status_code != 200:
             try:
                 j = r.json()
@@ -334,20 +363,23 @@ def stream_openrouter_messages(model_id: str, messages: List[Dict],
                 break
             try:
                 obj = json.loads(data)
-                delta = obj["choices"][0]["delta"].get("content") or ""
-                if delta:
-                    yield delta
             except Exception:
                 continue
+            # 兼容多结构抽取
+            delta_txt = _extract_text_from_chunk(obj)
+            if delta_txt:
+                yield delta_txt
 
-def pick_streamer(model_id: str, app_url: str, app_name: str, **opts):
+
+def pick_streamer(model_id: str, app_url: str, app_name: str, max_tokens: int):
     prov = model_id.split("/", 1)[0]
     if prov == "fake":
         return lambda msgs: stream_fake_messages(model_id, msgs)
     else:
         return lambda msgs: stream_openrouter_messages(
-            model_id, msgs, app_url=app_url, app_name=app_name, **opts
+            model_id, msgs, app_url=app_url, app_name=app_name, max_tokens=max_tokens
         )
+
 
 
 def stream_fake_messages(model: str, messages: List[Dict]) -> Iterable[str]:
@@ -386,17 +418,45 @@ def cheap_summarize(text: str, max_chars: int = 700) -> str:
     out = " ".join(s)
     return (out[:max_chars] + "…") if len(out)>max_chars else out
 
-def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dict],
-                            side_label: str, *,
-                            style_hint: str = "请控制在 2-4 句内，言简意赅。",
-                            max_ctx_tokens: int = 6000, keep_last_rounds: int = 2):
-    system = (preset_system or "").strip()
-    if not system:
-        system = f"你是{side_label}角色。请就话题「{topic}」进行讨论。"
-    # 把长度要求直接写进系统提示，效果比写在 user 提示更稳定
-    system = f"{system}\n回答要求：{style_hint}\n避免寒暄，直达要点。"
+def build_messages_for_side(topic: str,
+                            preset_system: str,
+                            opponent_preset: str,
+                            transcript: List[Dict],
+                            side_label: str,
+                            opponent_label: str,
+                            *,
+                            reply_len: str = "medium",
+                            max_ctx_tokens: int = 6000,
+                            keep_last_rounds: int = 2):
+    """
+    - preset_system: 本方系统预设
+    - opponent_preset: 对手系统预设（用于告知对手人设）
+    - reply_len: 'short'/'medium'/'long'（决定字符上限）
+    """
+    # 字数上限映射（再配合 max_tokens 双保险）
+    limit_map = {"short": 70, "medium": 140, "long": 220}
+    limit_chars = limit_map.get(reply_len, 140)
 
-    # 最近 N 轮原文 + 早期摘要
+    # —— 系统提示：明确本方 + 对手的人设，并要求互动 —— 
+    self_profile = (preset_system or "").strip()
+    opp_profile  = (opponent_preset or "").strip()
+    if not self_profile:
+        self_profile = f"你是{side_label}角色。"
+    if not opp_profile:
+        opp_profile = f"你的对手是{opponent_label}角色。"
+
+    system = (
+        f"{self_profile}\n\n"
+        f"【对手设定】{opp_profile}\n\n"
+        "对话要求：\n"
+        "1) 回应必须紧扣对手要点，直接点名对手并引用其关键信息进行反驳/补充；\n"
+        "2) 语言简洁有力，避免空话；\n"
+        f"3) 单轮不超过 {limit_chars} 个汉字；\n"
+        "4) 如有数据/示例，请简短引用来源或给出类比；\n"
+        "5) 切勿重复整段论点，尽量推进讨论。"
+    )
+
+    # —— 最近 N 轮原文 + 更早摘要 —— 
     turns = [t for t in transcript if t["type"] == "turn"]
     recent_rounds = []
     if turns:
@@ -407,8 +467,40 @@ def build_messages_for_side(topic: str, preset_system: str, transcript: List[Dic
     earlier = [t for t in turns if t not in recent_rounds]
     summary_text = cheap_summarize(join_turns(earlier)) if earlier else ""
 
-    # 预测下一轮编号（仅用于提示）
     next_round = (turns[-1]["round"] if turns else 0) + (1 if (not turns or turns[-1]["side"] == "B") else 0)
+
+    def compose(summ, recent):
+        blocks = []
+        blocks.append(f"【话题】{topic}")
+        if summ:   blocks.append(f"【既往摘要】{summ}")
+        if recent: blocks.append(f"【最近几轮】\n{recent}")
+        blocks.append(
+            f"请给出你的第 {next_round} 轮回应（≤{limit_chars}字，直入要点，必要时引用对手内容并明确称呼“{opponent_label}”）："
+        )
+        return "\n\n".join(blocks)
+
+    user = compose(summary_text, recent_text)
+    budget = max_ctx_tokens - (est_tokens(system) + 300)
+
+    # 动态瘦身
+    k = keep_last_rounds
+    while est_tokens(user) > budget and k > 0:
+        k -= 1
+        if turns:
+            max_round = max(t["round"] for t in turns)
+            lo = max(1, max_round - k + 1)
+            recent_rounds = [t for t in turns if t["round"] >= lo]
+            recent_text = join_turns(recent_rounds) if recent_rounds else ""
+        user = compose(summary_text, recent_text)
+    while est_tokens(user) > budget and summary_text:
+        summary_text = summary_text[: max(50, len(summary_text) - 200)]
+        user = compose(summary_text, recent_text)
+
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user}
+    ]
+
 
     def compose(summ, recent):
         blocks = [f"【话题】{topic}"]
@@ -535,13 +627,12 @@ def api_stream():
     judge_on        = bool(j.get("judge", False))
     judge_per_round = bool(j.get("judgePerRound", True))
     judge_model     = (j.get("judgeModel") or "").strip() or ("fake/demo" if not judge_on else "openai/gpt-4o-mini")
-    reply_style = (j.get("reply_style") or "short").lower()
-    style_hint = {
-        "short":  "请控制在 1-2 句内，简洁有力。",
-        "medium": "请控制在 2-4 句内，言简意赅。",
-        "long":   "请控制在 4-6 句内，层次清晰。"
-    }.get(reply_style, "请控制在 2-4 句内，言简意赅。")
-    max_tokens_reply = {"short": 128, "medium": 256, "long": 384}.get(reply_style, 256)
+    reply_style = (j.get("reply_style") or "medium").strip().lower()
+    if reply_style not in ("short","medium","long"):
+        reply_style = "medium"
+    # 给流式的 max_tokens 一个映射（和上面 limit_chars 相匹配）
+    mt_map = {"short": 120, "medium": 220, "long": 360}
+    side_max_tokens = mt_map.get(reply_style, 220)
 
     if not topic:
         return jsonify({"ok": False, "error": "NO_TOPIC"}), 400
@@ -563,8 +654,8 @@ def api_stream():
     # ↓↓↓ 你原先的流式生成逻辑（gen / Response）保持不动
     app_url  = os.getenv("APP_URL") or request.host_url.rstrip("/")
     app_name = os.getenv("APP_NAME", "AI Duel Arena")
-    streamA  = pick_streamer(modelA, app_url, app_name, max_tokens=max_tokens_reply)
-    streamB  = pick_streamer(modelB, app_url, app_name, max_tokens=max_tokens_reply)
+    streamA  = pick_streamer(modelA, app_url, app_name, max_tokens=side_max_tokens)
+    streamB  = pick_streamer(modelB, app_url, app_name, max_tokens=side_max_tokens)
 
     transcript: List[Dict] = []
 
@@ -628,8 +719,9 @@ def api_stream():
         for r in range(1, rounds+1):
             # A
             msgsA = build_messages_for_side(
-                topic, presetA, transcript, side_label="A方",
-                style_hint=style_hint, max_ctx_tokens=6000, keep_last_rounds=2
+                topic, presetA, presetB, transcript,
+                side_label="A方", opponent_label="B方",
+                reply_len=reply_style, max_ctx_tokens=6000, keep_last_rounds=2
             )
             acc = []
             try:
@@ -645,8 +737,9 @@ def api_stream():
 
             # B
             msgsB = build_messages_for_side(
-                topic, presetB, transcript, side_label="B方",
-                style_hint=style_hint, max_ctx_tokens=6000, keep_last_rounds=2
+                topic, presetB, presetA, transcript,
+                side_label="B方", opponent_label="A方",
+                reply_len=reply_style, max_ctx_tokens=6000, keep_last_rounds=2
             )
 
             acc = []
