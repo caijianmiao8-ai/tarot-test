@@ -1,152 +1,108 @@
 /* static/games/ai_duel/main.css */
+/* 清爽亮色 + 轻像素装饰，聊天框风格 */
 
-/* 变量：像素赛博 + 温润亮色 */
 :root{
-  --bg: #0f172a;            /* 深蓝底 */
-  --panel: #111827;         /* 面板 */
-  --soft: #0b1224;
-  --card: #0d1530;
-  --text: #e5e7eb;          /* 主文字 */
-  --sub: #9ca3af;           /* 次文字 */
-  --a: #34d399;             /* A 绿松 */
-  --b: #60a5fa;             /* B 天蓝 */
-  --j: #fbbf24;             /* 裁判琥珀 */
-  --accent: #22d3ee;        /* 青蓝强调 */
-  --danger: #ef4444;
-  --ok: #22c55e;
-  --muted: #374151;
-  --border: #1f2937;
-  --ring: rgba(34,211,238,.25);
+  --bg:#f7f7fb;
+  --card:#ffffff;
+  --ink:#1f2937;
+  --sub:#6b7280;
+  --muted:#e5e7eb;
+  --accent:#3b82f6;
+  --ok:#10b981;
+  --danger:#ef4444;
+  --a:#16a34a;
+  --b:#2563eb;
+  --j:#f59e0b;
+  --ring: rgba(59,130,246,.22);
 }
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,"PingFang SC","Noto Sans SC",Arial}
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0; font-family: ui-sans-serif, system-ui, "PingFang SC", "Noto Sans SC", Arial, sans-serif;
-  color:var(--text); background:
-   radial-gradient(1200px 600px at 10% -20%, #132144 0%, transparent 60%),
-   radial-gradient(1000px 800px at 110% 10%, #18233f 0%, transparent 55%),
-   var(--bg);
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px clamp(14px,3vw,28px); background:var(--card);
+  border-bottom:1px solid var(--muted); position:sticky; top:0; z-index:10;
 }
+.brand{display:flex;gap:12px;align-items:center}
+.mark{width:28px;height:28px;border-radius:6px;background:
+  linear-gradient(135deg,#22d3ee,#818cf8); box-shadow:0 0 0 1px rgba(0,0,0,.06) inset}
+.title{margin:0;font-size:18px}
+.subtitle{margin:2px 0 0;color:var(--sub);font-size:12px}
+.actions{display:flex;gap:8px}
 
-/* 顶栏 */
-.duel-header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:18px clamp(16px, 3vw, 32px);
-  border-bottom:1px solid var(--border); background:linear-gradient(to bottom, rgba(255,255,255,.02), rgba(255,255,255,0));
-}
-.brand{display:flex; gap:14px; align-items:center}
-.logo-cube{width:36px; height:36px; background:linear-gradient(135deg, var(--accent), #7c3aed);
-  border-radius:6px; box-shadow:0 0 0 2px rgba(255,255,255,.08) inset, 0 10px 30px rgba(34,211,238,.18);
-}
-.title{margin:0; font-size:22px; letter-spacing:.5px}
-.subtitle{margin:2px 0 0; color:var(--sub); font-size:13px}
-.header-actions{display:flex; gap:8px}
-
-/* 状态条 */
-.statusbar{display:flex; gap:8px; padding:12px clamp(16px, 3vw, 32px); flex-wrap:wrap}
-.pill{
-  background:var(--panel); border:1px solid var(--border); border-radius:999px;
-  padding:6px 10px; color:var(--sub); font-size:12px;
-}
-
-/* 控制面板 */
-.control-panel{
-  padding:16px clamp(16px, 3vw, 32px);
-  display:grid; gap:14px;
-  background:linear-gradient(to bottom, rgba(255,255,255,.02), rgba(255,255,255,0));
-  border-bottom:1px solid var(--border);
-}
-.label{font-size:12px; color:var(--sub); margin-bottom:6px; display:inline-block}
-.input, .select, .textarea{
-  width:100%; background:var(--soft); color:var(--text);
-  border:1px solid var(--border); border-radius:10px; padding:10px 12px; outline:none;
-}
-.input:focus, .select:focus, .textarea:focus{box-shadow:0 0 0 3px var(--ring); border-color:var(--accent)}
-.row{display:grid; gap:12px}
-.row.two{grid-template-columns:1fr 1fr}
-.row.three{grid-template-columns:160px 1fr 1fr}
-.judge{grid-template-columns:auto auto 1fr}
-.judge-select{min-width:260px}
-.toggle{display:inline-flex; align-items:center; gap:8px; user-select:none}
-.toggle input{accent-color:var(--accent)}
-.actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-.chips{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
-.chip{
-  border:1px dashed var(--muted); background:transparent; color:var(--sub);
-  padding:6px 10px; border-radius:999px; cursor:pointer;
-}
-.chip:hover{border-color:var(--accent); color:#bfefff}
+.status{display:flex;gap:8px;flex-wrap:wrap;padding:10px clamp(14px,3vw,28px)}
+.pill{padding:6px 10px;border-radius:999px;background:#eef2ff;color:#334155;font-size:12px;border:1px solid #e2e8f0}
 
 .btn{
-  display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding:10px 14px; border-radius:10px; cursor:pointer; border:1px solid var(--border);
-  color:var(--text); background:var(--panel);
+  border:1px solid #d1d5db;background:#fff;color:#111827;padding:8px 12px;border-radius:10px;cursor:pointer
 }
-.btn.ghost{background:transparent}
-.btn.primary{background:linear-gradient(180deg, #1ebdd6, #0ea5b1); border-color:transparent}
-.btn.primary:hover{filter:brightness(1.05)}
-.btn.danger{background:linear-gradient(180deg, #ef4444, #b91c1c); border-color:transparent}
-.btn.link{background:transparent; border-color:transparent; color:#9cc7ff; padding:8px}
-.btn:disabled{opacity:.6; cursor:not-allowed}
+.btn.ghost{background:#f9fafb}
+.btn.link{border-color:transparent;background:transparent;color:#2563eb}
+.btn.primary{background:linear-gradient(180deg,#60a5fa,#3b82f6);border-color:#3b82f6;color:#fff}
+.btn.primary:disabled{opacity:.6}
+.btn.danger{background:linear-gradient(180deg,#f87171,#ef4444);border-color:#ef4444;color:#fff}
+.btn:focus{outline:none;box-shadow:0 0 0 3px var(--ring)}
 
-/* 舞台布局：A / B / Judge 三列，自适应 */
-.stage{
-  padding:20px clamp(16px, 3vw, 32px) 40px;
-  display:grid; gap:18px; grid-template-columns:1fr 1fr 420px;
+.chatboard{max-width:980px;margin:0 auto;padding:6px clamp(12px,3vw,28px) 90px}
+.chat{display:flex;flex-direction:column;gap:12px}
+
+.msg{
+  display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:start
 }
-@media (max-width:1200px){ .stage{grid-template-columns:1fr 1fr} .judge-col{grid-column:1 / -1}}
-@media (max-width:860px){ .stage{grid-template-columns:1fr} .judge-col{grid-column:auto}}
+.msg.right{grid-template-columns:1fr 48px}
+.msg.right .bubble{justify-self:end}
+.msg.judge{grid-template-columns:1fr}
+.msg.judge .bubble{margin:0 auto}
 
-.side{background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden}
-.side-head{display:flex; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.02)}
-.side-title{font-weight:700}
-.side-sub{color:var(--sub); font-size:12px}
 .avatar{
-  width:32px; height:32px; border-radius:8px;
-  display:grid; place-items:center; font-weight:800; color:#0b1022;
-  box-shadow:0 6px 20px rgba(0,0,0,.25)
+  width:36px;height:36px;border-radius:8px;background:#e5e7eb;display:grid;place-items:center;font-weight:800;color:#111827
 }
-.avatar.a{background:var(--a)}
-.avatar.b{background:var(--b)}
-.avatar.j{background:var(--j)}
-.chat{padding:14px; display:flex; flex-direction:column; gap:10px; min-height:300px}
+.avatar.a{background:#dcfce7;color:#065f46}
+.avatar.b{background:#dbeafe;color:#1e3a8a}
+.avatar.j{background:#fef3c7;color:#78350f}
 
-/* 气泡 */
+.who{font-size:12px;color:var(--sub);margin:2px 0 0}
 .bubble{
-  max-width: min(90%, 780px);
-  padding:12px 14px; border-radius:12px;
-  position:relative; white-space:pre-wrap; line-height:1.55;
-  background:#0f1a37; border:1px solid #1c2b54;
+  max-width:min(80%,720px); background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:10px 12px;position:relative;
+  white-space:pre-wrap;line-height:1.6;word-wrap:break-word
 }
-.side-a .bubble{ align-self:flex-start; background:#0d2a21; border-color:#174a3a }
-.side-b .bubble{ align-self:flex-start; background:#0e2137; border-color:#1b3a68 }
-.judge-col .bubble{ align-self:flex-start; background:#2b230a; border-color:#6b5210 }
-.bubble.final{box-shadow:0 0 0 1px rgba(255,255,255,.04) inset}
+.msg.left .bubble{border-left:3px solid var(--a)}
+.msg.right .bubble{border-right:3px solid var(--b)}
+.msg.judge .bubble{border-bottom:3px solid var(--j)}
+.content{display:inline}
+.typing{display:inline-block;width:1ch;animation:blink 1s infinite steps(1)}
+@keyframes blink{0%,100%{opacity:0}50%{opacity:1}}
+.final{box-shadow:0 0 0 1px rgba(0,0,0,.04) inset}
 
-/* 进行中小点点 */
-.typing{
-  display:inline-block; width:1ch; animation:blink 1s infinite steps(1);
+.dock{
+  position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--muted);
+  padding:10px clamp(14px,3vw,28px);display:flex;justify-content:space-between;align-items:center;z-index:5
 }
-@keyframes blink { 0%,100%{opacity:0} 50%{opacity:1} }
 
-/* Drawer */
-.drawer{
-  position:sticky; bottom:0; width:100%;
-  background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.02)), var(--panel);
-  border-top:1px solid var(--border); padding:14px clamp(16px, 3vw, 32px);
+.settings{
+  background:#fafafa;border-top:1px solid var(--muted);
+  padding:12px clamp(14px,3vw,28px); transition:max-height .25s ease;
+  max-height:0; overflow:hidden;
 }
-.drawer-handle{display:flex; justify-content:flex-end}
-.drawer-grid{display:grid; gap:12px; grid-template-columns:2fr 1fr 1fr}
-@media (max-width:1024px){ .drawer-grid{grid-template-columns:1fr} }
-.card{
-  background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px;
+.settings.open{max-height:1000px}
+.grid{display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--muted);border-radius:12px;padding:12px}
+.two{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.inner{grid-template-columns:1fr auto}
+.h3{margin:0 0 8px 0}
+.lab{display:block;font-size:12px;color:var(--sub);margin-bottom:6px}
+.input,.select,.textarea{
+  width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;color:#111827
 }
-.preset-actions{display:flex; align-items:flex-end; height:100%}
+.input:focus,.select:focus,.textarea:focus{outline:none;box-shadow:0 0 0 3px var(--ring)}
+.switchline{display:flex;align-items:center;justify-content:space-between}
+.switch{display:inline-flex;align-items:center;gap:8px}
+.switch input{accent-color:var(--accent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{border:1px dashed #d1d5db;background:#fff;color:#374151;padding:6px 10px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:#93c5fd;background:#f0f9ff}
 
-/* Toast */
 .toast{
-  position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
-  background:#101826; border:1px solid var(--border); padding:10px 14px; border-radius:10px; color:var(--text);
-  box-shadow:0 10px 30px rgba(0,0,0,.35); z-index:50;
+  position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
+  background:#111827;color:#fff;padding:8px 12px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:50
 }
