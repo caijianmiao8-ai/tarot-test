@@ -1,245 +1,357 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>我的塔罗统计</title>
-  <meta name="theme-color" content="#1a1625" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Ruoshui Lab · 我的塔罗统计</title>
 
-  <!-- 本地化 Bootstrap / FontAwesome 与 index 保持一致 -->
+  <!-- 与项目一致的本地资源 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <!-- 与 home 同款字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== 宇宙暗色主题令牌（与 index / result 对齐） ===== */
     :root{
-      --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
-      --bg1:#2d1b4e; --bg2:#1a1625; --panel:rgba(255,255,255,.06); --panel-2:rgba(255,255,255,.08);
-      --border:rgba(255,255,255,.12); --text:#ffffff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
-      --success:#10b981; --warning:#f59e0b;
+      /* hand-drawn / notebook palette（与 home 对齐） */
+      --ink-black:#1a1a1a; --paper-white:#fdfcf8; --sketch-gray:#4a4a4a;
+      --eraser:#f0f0ed; --pencil-light:#888; --highlight:#ffeb3b;
+      /* 状态色（替代正逆位条） */
+      --ok:#10b981; --warn:#f59e0b;
     }
-
     *{box-sizing:border-box}
-    html,body{min-height:100dvh;min-height:calc(var(--vh,1vh)*100)}
+    html,body{min-height:100dvh}
     body{
-      font-family:'Noto Serif SC',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
-      color:var(--text); display:flex; flex-direction:column; align-items:center; padding:20px; position:relative; overflow-x:hidden;
-      background:
-        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
-        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
-        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+      font-family:'Kalam','Noto Sans SC',cursive;
+      background:var(--paper-white);
+      color:var(--ink-black);
+      overflow-x:hidden; position:relative;
+    }
+    /* 纸张纹理（同 home） */
+    body::before{
+      content:''; position:fixed; inset:0; opacity:.5; pointer-events:none; z-index:0;
+      background-image:
+        repeating-linear-gradient(0deg,transparent,transparent 28px,#e5e5e5 28px,#e5e5e5 29px),
+        repeating-linear-gradient(90deg,transparent,transparent 1px,rgba(0,0,0,.03) 1px,rgba(0,0,0,.03) 2px);
+    }
+    /* 背景涂鸦（同 home） */
+    .doodles{position:fixed; inset:0; pointer-events:none; opacity:.1; z-index:0}
+    .doodle{position:absolute; font-size:20px; transform:rotate(var(--rotation)); filter:blur(.5px)}
+
+    /* ===== 顶部用户条（与 home 统一） ===== */
+    .auth-bar{
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      background:rgba(253,252,248,.95);
+      backdrop-filter:saturate(1.1);
+      border-bottom:2px dashed rgba(0,0,0,.15);
+      box-shadow:0 6px 12px rgba(0,0,0,.06);
+    }
+    .auth-inner{
+      max-width:1200px; margin:0 auto; padding:10px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .brand-sketch{
+      font-weight:700; letter-spacing:.5px; display:inline-flex; align-items:center; gap:8px;
+      transform:rotate(-1deg);
+    }
+    .brand-sketch::after{
+      content:''; height:10px; background:var(--highlight); opacity:.35; display:block;
+      transform:skewX(-15deg) translateY(-2px); border-radius:4px; width:64px;
+    }
+    .user-pill{
+      display:flex; align-items:center; gap:10px;
+      padding:6px 10px; border:2px solid var(--ink-black);
+      border-radius:20px 6px 20px 6px; background:#fff; font-weight:700;
+      box-shadow:3px 3px 0 rgba(0,0,0,.15);
+    }
+    .user-avatar{
+      width:28px;height:28px;border-radius:50%;
+      background:repeating-linear-gradient(135deg,#333,#333 6px,#666 6px,#666 12px);
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      border:2px solid var(--ink-black); font-size:.95rem;
+    }
+    .user-name{font-weight:700}
+    .auth-actions{display:flex; gap:10px; flex-wrap:wrap}
+    .btn-sketch{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 14px; background:#fff; color:var(--ink-black);
+      border:2px solid var(--ink-black);
+      border-radius:6px 20px 6px 20px;
+      font-weight:700; text-decoration:none; transition:.2s;
+      box-shadow:3px 3px 0 rgba(0,0,0,.15);
+    }
+    .btn-sketch:hover{transform:translateY(-2px) rotate(-1deg)}
+    .btn-sketch.ghost{background:transparent}
+    .btn-sketch i{font-size:.95rem}
+
+    /* ===== 主容器（与 home 的 notebook 一致留白） ===== */
+    .notebook{
+      max-width:1200px; margin:0 auto;
+      padding: calc(40px + 70px) 20px 40px; /* 预留顶部条高度 */
+      position:relative; z-index:1;
     }
 
-    /* 背景层（与 index 同款） */
-    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.25;background-image:
-      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
-      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
-      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
-      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
-      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
-      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none}
-    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
-    .bg-veil{position:fixed; inset:-10% -10% 0 -10%; z-index:-5; pointer-events:none; opacity:.9; filter:blur(2px);
-      background:
-        radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
-        radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
-        radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%);
-      animation:veilDrift 50s linear infinite alternate}
-    @keyframes veilDrift{to{transform:translate3d(-10px,8px,0)}}
+    /* ===== 标题（沿用 home 的 main-title/subtitle 体系） ===== */
+    .header{text-align:center; margin-bottom:28px; position:relative}
+    .main-title{
+      font-size:clamp(36px,6.5vw,56px); font-weight:700; display:inline-block; transform:rotate(-1deg); position:relative;
+    }
+    .main-title::before{
+      content:''; position:absolute; bottom:-5px; left:-10px; right:-10px; height:18px;
+      background:var(--highlight); opacity:.4; transform:rotate(1deg) skewX(-15deg); z-index:-1;
+    }
+    .subtitle{
+      font-size:18px; color:var(--sketch-gray); margin-top:10px; display:inline-block; position:relative;
+    }
+    .subtitle::before,.subtitle::after{
+      content:'~'; position:absolute; top:50%; transform:translateY(-50%); font-size:28px; color:var(--pencil-light);
+    }
+    .subtitle::before{left:-26px} .subtitle::after{right:-26px}
 
-    /* 顶部用户栏（完全复用 index 风格） */
-    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-    .user-bar-content{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
-    .user-info{display:flex;align-items:center;gap:12px}
-    .user-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border)}
-    .user-name{color:var(--gold-light);font-weight:600;letter-spacing:.5px}
-    .user-actions{display:flex;gap:10px}
-    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:var(--panel)}
-    .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
+    /* ===== 统计卡片（手绘风） ===== */
+    .stats-grid{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px; margin-top:10px;
+    }
+    .stat-card{
+      background:#fff; position:relative; padding:18px 18px 20px;
+      border:2px solid var(--ink-black);
+      border-radius:255px 15px 225px 15px/15px 225px 15px 255px; /* 手绘弧角 */
+      box-shadow:4px 4px 0 rgba(0,0,0,.12);
+      transform:rotate(var(--rotate,-.5deg)); transition:all .25s ease;
+    }
+    .stat-card:nth-child(odd){--rotate:.5deg} .stat-card:nth-child(even){--rotate:-.5deg}
+    .stat-card:hover{transform:translateY(-3px) scale(1.01) rotate(var(--rotate))}
+    .stat-icon{
+      font-size:1.4rem; line-height:1; margin-bottom:6px; color:#222;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .stat-number{
+      font-size:2.4rem; font-weight:800; line-height:1; margin:6px 0 4px; letter-spacing:.5px;
+    }
+    .stat-label{font-size:1rem; color:var(--sketch-gray)}
 
-    /* 统计主容器（对齐 result 的玻璃质感） */
-    .stats-container{max-width:900px;width:100%;margin:88px auto 20px;padding:28px;background:var(--panel);border-radius:20px;border:1px solid var(--border);box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);position:relative;overflow:hidden}
-    .header{text-align:center;margin-bottom:24px}
-    .header h1{font-size:2.2rem;font-weight:800;color:var(--gold-light);text-shadow:0 2px 8px rgba(0,0,0,.25)}
-    .header p{font-size:1.05rem;color:var(--text-muted);margin-top:8px}
+    /* ===== 最近记录（手账条目） ===== */
+    .section-title{
+      font-size:1.4rem; font-weight:800; margin:28px 0 14px; position:relative; display:inline-block; transform:rotate(-1deg);
+    }
+    .section-title::after{
+      content:''; position:absolute; left:-6px; right:-6px; bottom:-4px; height:10px;
+      background:var(--highlight); opacity:.35; transform:skewX(-12deg);
+      z-index:-1; border-radius:3px;
+    }
+    .readings-list{
+      background:#fff; border:2px solid var(--ink-black); border-radius:12px;
+      box-shadow:4px 4px 0 rgba(0,0,0,.12); padding:14px;
+    }
+    .reading-item{
+      display:flex; justify-content:space-between; align-items:center; gap:14px;
+      padding:12px 12px; margin-bottom:12px; position:relative;
+      border:2px dashed rgba(0,0,0,.20); border-radius:10px;
+      background:repeating-linear-gradient(0deg,transparent,transparent 26px,rgba(0,0,0,.04) 26px,rgba(0,0,0,.04) 27px);
+      transform:rotate(var(--rot, -.3deg)); transition:.25s;
+    }
+    .reading-item:last-child{margin-bottom:0}
+    .reading-item:hover{transform:translateY(-2px) rotate(var(--rot))}
+    .reading-info{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+    .reading-date{
+      background:#fff; border:2px solid var(--ink-black); border-radius:18px 6px 18px 6px; padding:6px 12px;
+      font-weight:800; font-size:.95rem; box-shadow:2px 2px 0 rgba(0,0,0,.12);
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .card-name{font-weight:800; font-size:1.05rem; letter-spacing:.3px}
+    .direction-badge{
+      border:2px solid var(--ink-black); border-radius:18px 6px 18px 6px; padding:6px 12px;
+      font-size:.95rem; font-weight:800; display:inline-flex; align-items:center; gap:8px;
+      box-shadow:2px 2px 0 rgba(0,0,0,.12); background:#fff;
+    }
+    .direction-badge i{font-size:.9rem}
+    .direction-badge.ok{color:#064e3b; background:#e8f9e9}
+    .direction-badge.rev{color:#7c4a03; background:#fff3d9}
 
-    /* 统计卡片网格 */
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:24px}
-    .stat-card{background:var(--panel-2);border-radius:14px;padding:22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18);transition:.25s;border:1px solid var(--border);position:relative;overflow:hidden}
-    .stat-card::before{content:"";position:absolute;inset:-50% -50%;background:radial-gradient(circle, rgba(157,126,168,.16), transparent 70%);transform:rotate(45deg);opacity:0;transition:.5s}
-    .stat-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.24)}
-    .stat-card:hover::before{opacity:1}
-    .stat-card i{font-size:2.4rem;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
-    .stat-number{font-size:2.2rem;font-weight:800;color:#fff;line-height:1;margin:8px 0}
-    .stat-label{font-size:1rem;color:var(--text-muted)}
+    /* 空状态（素描化） */
+    .empty-state{text-align:center; padding:40px 10px; color:#444}
+    .empty-state i{font-size:3rem; display:block; margin-bottom:10px}
+    .empty-state h3{font-weight:800; margin-bottom:6px}
 
-    /* 最近记录 */
-    .recent-section{margin-top:20px}
-    .section-title{font-size:1.5rem;color:var(--gold-light);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-    .readings-list{background:var(--panel);border-radius:14px;padding:18px;border:1px solid var(--border);box-shadow:0 6px 16px rgba(0,0,0,.18)}
-    .reading-item{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;margin-bottom:12px;background:rgba(255,255,255,.04);border-radius:12px;border-left:4px solid var(--primary);transition:.25s;position:relative;overflow:hidden;border:1px solid var(--border)}
-    .reading-item::before{content:"";position:absolute;left:0;top:0;height:100%;width:4px;background:linear-gradient(180deg,var(--primary),var(--secondary));transition:.25s;z-index:0}
-    .reading-item:hover{transform:translateX(6px);box-shadow:0 8px 20px rgba(0,0,0,.22);background:rgba(255,255,255,.06)}
-    .reading-item:hover::before{width:6px;filter:brightness(1.2)}
-    .reading-info{display:flex;align-items:center;gap:16px;z-index:1}
-    .reading-date{background:linear-gradient(135deg,var(--secondary), #d4c5b0);color:#1a1625;padding:6px 12px;border-radius:18px;font-weight:700;font-size:.9rem;min-width:86px;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,.18)}
-    .card-name{font-weight:700;color:#fff;font-size:1.05rem;display:flex;align-items:center;gap:8px}
-    .card-name i{font-size:1rem;opacity:.6}
-    .direction-badge{background:linear-gradient(135deg,var(--success),#16a34a);color:#fff;padding:6px 12px;border-radius:18px;font-size:.9rem;font-weight:800;display:flex;align-items:center;gap:6px;z-index:1;box-shadow:0 3px 8px rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.12)}
-    .direction-badge.reverse{background:linear-gradient(135deg,var(--warning),#d97706)}
+    /* 行为按钮（用 hand-drawn 样式） */
+    .actions{display:flex; justify-content:center; gap:12px; margin-top:18px; flex-wrap:wrap}
+    .btn-sketch.secondary{background:transparent}
 
-    /* 空状态 */
-    .empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
-    .empty-state i{font-size:3.6rem;margin-bottom:16px;color:var(--gold-light);opacity:.6}
-    .empty-state h3{font-size:1.4rem;margin-bottom:6px;color:#fff}
-
-    /* 按钮（与其他页统一） */
-    .action-buttons{display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap}
-    .btn-tarot{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:12px 28px;border:none;border-radius:26px;font-size:1rem;font-weight:800;cursor:pointer;text-decoration:none;transition:.25s;box-shadow:0 12px 26px rgba(157,126,168,.4)}
-    .btn-tarot:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(157,126,168,.5)}
-    .btn-tarot.secondary{background:transparent;color:var(--text-light);border:1px solid var(--border)}
-    .btn-tarot.secondary:hover{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff}
-
-    .info-message{text-align:center;margin-top:18px;padding:14px;background:rgba(157,126,168,.10);border-radius:14px;color:var(--gold-light);border:1px solid var(--border)}
+    /* 信息提示（素描化） */
+    .info-message{
+      margin-top:16px; background:#fff; border:2px solid var(--ink-black);
+      border-radius:12px 6px 12px 6px; padding:12px 14px; box-shadow:3px 3px 0 rgba(0,0,0,.12);
+      color:#222; display:flex; align-items:center; gap:10px; justify-content:center;
+    }
 
     /* 响应式 */
     @media (max-width:768px){
-      .stats-container{padding:20px;margin-top:calc(70px + env(safe-area-inset-top,0px))}
-      .header h1{font-size:1.9rem}
-      .stat-number{font-size:2rem}
-      .reading-item{flex-direction:column;align-items:flex-start;gap:10px;padding:12px}
-      .reading-info{width:100%;justify-content:space-between}
-      .btn-tarot{width:100%}
+      .auth-inner{padding:8px 12px}
+      .brand-sketch{font-size:.95rem}
+      .auth-actions .btn-sketch{padding:7px 12px}
+      .notebook{padding: calc(36px + 64px) 14px 28px}
+      .stats-grid{grid-template-columns:1fr; gap:16px}
+      .reading-item{flex-direction:column; align-items:flex-start}
+      .actions .btn-sketch{width:100%; justify-content:center}
     }
 
     /* 计数动画（沿用原逻辑） */
-    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
     .stat-card.loading{animation:pulse 2s infinite}
   </style>
 </head>
 <body>
-  <!-- 背景层 -->
-  <div class="bg-stars"></div>
-  <div class="bg-veil" aria-hidden="true"></div>
+  <!-- 背景涂鸦（与 home 一致） -->
+  <div class="doodles" id="doodles"></div>
 
-  <!-- 用户栏（统一导航：首页/今日运势/登录注册/统计/退出） -->
-  <div class="user-bar">
-    <div class="user-bar-content">
-      <div class="user-info">
-        <div class="user-icon">
-          {% if user and user.username %}
-            {{ user.username[0]|upper }}
-          {% else %}
-            <i class="fas fa-user"></i>
-          {% endif %}
-        </div>
-        <span class="user-name">{{ user.username if user and user.username else "神秘访客" }}</span>
+  <!-- 顶部手绘用户条（与 home 一致） -->
+  <div class="auth-bar">
+    <div class="auth-inner">
+      <div class="auth-left">
+        <div class="brand-sketch">Ruoshui Lab</div>
       </div>
-      <div class="user-actions">
-        <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 首页</a>
-        {% if user and (not user.is_guest) %}
-          <a href="{{ url_for('result') }}"><i class="fas fa-moon"></i> 今日运势</a>
-          <a href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
-          <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
+      <div class="auth-right">
+        {% if user.is_guest %}
+          <div class="auth-actions">
+            <a class="btn-sketch" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
+            <a class="btn-sketch" href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
+          </div>
         {% else %}
-          <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
-          <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
+          <div class="user-pill" title="{{ user.username }}">
+            <div class="user-avatar">{{ user.username[0]|upper }}</div>
+            <span class="user-name">{{ user.username }}</span>
+          </div>
+          <div class="auth-actions" style="margin-left:10px">
+            <a class="btn-sketch ghost" href="{{ url_for('index') }}"><i class="fas fa-home"></i> 首页</a>
+            <a class="btn-sketch ghost" href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
+            <a class="btn-sketch" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
+          </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <div class="stats-container">
-    <div class="header">
-      <h1><i class="fas fa-chart-line"></i> 我的塔罗统计</h1>
-      <p>探索您的占卜历程和能量轨迹</p>
-    </div>
+  <!-- 主体（与 home 的 notebook 留白对齐） -->
+  <main class="notebook">
+    <header class="header">
+      <h1 class="main-title">我的塔罗统计</h1>
+      <p class="subtitle">看看你与卡牌的缘分轨迹</p>
+    </header>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <i class="fas fa-layer-group"></i>
+    <!-- 统计卡片 -->
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-icon"><i class="fas fa-layer-group"></i> 累计抽牌次数</div>
         <div class="stat-number" data-target="{{ total_readings }}">0</div>
-        <div class="stat-label">累计抽牌次数</div>
-      </div>
+        <div class="stat-label">你已经与命运之轮擦肩了这么多次</div>
+      </article>
 
-      <div class="stat-card">
-        <i class="fas fa-calendar-check"></i>
+      <article class="stat-card">
+        <div class="stat-icon"><i class="fas fa-calendar-check"></i> 访问次数</div>
         <div class="stat-number" data-target="{{ user.visit_count if user else 1 }}">0</div>
-        <div class="stat-label">访问次数</div>
-      </div>
+        <div class="stat-label">回到 Ruoshui 的次数</div>
+      </article>
 
-      <div class="stat-card">
-        <i class="fas fa-fire"></i>
+      <article class="stat-card">
+        <div class="stat-icon"><i class="fas fa-fire"></i> 使用天数</div>
         <div class="stat-number" data-target="{% if user and user.first_visit %}{{ ((user.last_visit - user.first_visit).days + 1) if user.last_visit and user.first_visit else 1 }}{% else %}1{% endif %}">0</div>
-        <div class="stat-label">使用天数</div>
-      </div>
-    </div>
+        <div class="stat-label">和占卜师做朋友的总天数</div>
+      </article>
+    </section>
 
-    <div class="recent-section">
+    <!-- 最近记录 -->
+    <section class="recent-section">
       <h2 class="section-title"><i class="fas fa-history"></i> 最近的占卜记录</h2>
       <div class="readings-list">
         {% if recent_readings %}
           {% for reading in recent_readings %}
-          <div class="reading-item" style="animation-delay: {{ loop.index * 0.1 }}s">
+          <div class="reading-item" style="--rot: {{ (loop.index % 2 == 0) and '-.3deg' or '.3deg' }};">
             <div class="reading-info">
               <div class="reading-date"><i class="fas fa-calendar-day"></i> {{ reading.date.strftime('%m-%d') if reading.date else '未知' }}</div>
-              <div class="card-name"><i class="fas fa-moon"></i> {{ reading.card_name or '未知卡牌' }}</div>
+              <div class="card-name"><i class="fas fa-moon" style="opacity:.6"></i> {{ reading.card_name or '未知卡牌' }}</div>
             </div>
-            <div class="direction-badge {% if reading.direction == '逆位' %}reverse{% endif %}">
+            {% set is_rev = (reading.direction == '逆位') %}
+            <div class="direction-badge {{ 'rev' if is_rev else 'ok' }}">
               {{ reading.direction or '正位' }}
-              <i class="fas {% if reading.direction == '逆位' %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+              <i class="fas {{ 'fa-arrow-down' if is_rev else 'fa-arrow-up' }}"></i>
             </div>
           </div>
           {% endfor %}
         {% else %}
           <div class="empty-state">
-            <i class="fas fa-sparkles"></i>
+            <i>✎</i>
             <h3>还没有占卜记录</h3>
-            <p>开始您的第一次塔罗占卜，探索宇宙的智慧吧</p>
+            <p>从今天开始，写下你的第一行塔罗手账吧</p>
           </div>
         {% endif %}
       </div>
-    </div>
+    </section>
 
-    <div class="action-buttons">
-      <a href="{{ url_for('index') }}" class="btn-tarot secondary"><i class="fas fa-home"></i> 返回首页</a>
+    <!-- 行为按钮（与 home 风格一致） -->
+    <div class="actions">
+      <a href="{{ url_for('index') }}" class="btn-sketch ghost"><i class="fas fa-home"></i> 返回首页</a>
       {% if total_readings == 0 %}
-      <a href="{{ url_for('index') }}" class="btn-tarot"><i class="fas fa-star"></i> 开始占卜</a>
+        <a href="{{ url_for('index') }}" class="btn-sketch"><i class="fas fa-star"></i> 开始占卜</a>
       {% else %}
-      <a href="{{ url_for('result') }}" class="btn-tarot"><i class="fas fa-eye"></i> 查看今日运势</a>
+        <a href="{{ url_for('result') }}" class="btn-sketch"><i class="fas fa-eye"></i> 查看今日运势</a>
       {% endif %}
     </div>
 
+    <!-- 信息提示（素描化） -->
     <div class="info-message">
-      <p><i class="fas fa-shield-alt"></i> 您的占卜记录已安全保存，可在不同设备间同步访问</p>
+      <i class="fas fa-shield-alt"></i>
+      <span>您的占卜记录已安全保存，可在不同设备间同步访问</span>
     </div>
-  </div>
+  </main>
 
   <script>
-    // 视口高度 --vh（iOS 适配，保持与 index 同步）
-    function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01 + 'px'); }
-    setVh(); window.addEventListener('resize', setVh);
+    // 背景涂鸦（与 home 同步）
+    const doodlesContainer = document.getElementById('doodles');
+    const doodleChars = ['○','△','□','◇','☆','♡','↗','↘','~','×','+','∞'];
+    for(let i=0;i<30;i++){
+      const d=document.createElement('div');
+      d.className='doodle';
+      d.textContent=doodleChars[Math.floor(Math.random()*doodleChars.length)];
+      d.style.left=Math.random()*100+'%';
+      d.style.top=Math.random()*100+'%';
+      d.style.setProperty('--rotation', Math.random()*360+'deg');
+      doodlesContainer.appendChild(d);
+    }
 
-    // 数字动画效果（保留原逻辑）
+    // 统计数字动画（保留原有逻辑）
     document.addEventListener('DOMContentLoaded', function(){
       const statNumbers = document.querySelectorAll('.stat-number');
       const animateNumber = (el)=>{
         const target = parseInt(el.getAttribute('data-target')) || 0;
-        const duration = 1500; const start = 0; const increment = target / (duration / 16); let current = start;
-        const update = ()=>{ current += increment; if(current >= target){ el.textContent = target; el.closest('.stat-card')?.classList.remove('loading'); } else { el.textContent = Math.floor(current); requestAnimationFrame(update); } };
-        el.closest('.stat-card')?.classList.add('loading'); update();
+        const duration = 1500; const start = 0; const step = Math.max(1, Math.ceil(target / (duration / 16)));
+        let current = start;
+        const card = el.closest('.stat-card'); card?.classList.add('loading');
+        const update = ()=>{
+          current += step;
+          if(current >= target){
+            el.textContent = target;
+            card?.classList.remove('loading');
+          }else{
+            el.textContent = current;
+            requestAnimationFrame(update);
+          }
+        };
+        update();
       };
-      const observer = new IntersectionObserver((entries)=>{
-        entries.forEach(entry=>{ if(entry.isIntersecting){ animateNumber(entry.target); observer.unobserve(entry.target); } });
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{ if(e.isIntersecting){ animateNumber(e.target); io.unobserve(e.target); } });
       }, { threshold:.5 });
-      statNumbers.forEach(num=>observer.observe(num));
+      statNumbers.forEach(n=>io.observe(n));
 
-      // 记录项淡入动画（保留）
+      // 最近记录条目轻微淡入（与原先一致的入场感觉）
       const readingItems = document.querySelectorAll('.reading-item');
       readingItems.forEach((item, idx)=>{
-        item.style.opacity = '0'; item.style.transform = 'translateY(20px)';
-        setTimeout(()=>{ item.style.transition = 'all .5s ease'; item.style.opacity = '1'; item.style.transform = 'translateY(0)'; }, 100 + (idx*100));
+        item.style.opacity='0'; item.style.transform='translateY(14px)';
+        setTimeout(()=>{ item.style.transition='all .4s ease';
+          item.style.opacity='1'; item.style.transform='translateY(0)'; }, 100 + idx*80);
       });
     });
   </script>
