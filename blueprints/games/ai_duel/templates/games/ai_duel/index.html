@@ -7,19 +7,17 @@
   <title>AI 斗蛐蛐 · 若水的像素舞台</title>
   <style>
     :root{
-      --bg:#f4f6fb;           /* 明亮背景 */
+      --bg:#f4f6fb;
       --panel:#ffffff;
-      --ink:#151b26;          /* 文字主色 */
+      --ink:#151b26;
       --muted:#6b778c;
       --line:#e5e9f2;
-      --brand:#3b82f6;        /* 主色（蓝）*/
-      --brand-2:#19b27c;      /* 强调（绿）*/
-      --warn:#f59e0b;
-      --danger:#ef4444;
+      --brand:#3b82f6;
+      --brand-2:#19b27c;
       --stone:#e2e8f0;
-      --bubble-a:#e8f0ff;     /* A气泡 */
-      --bubble-b:#e8ffe8;     /* B气泡 */
-      --bubble-j:#fff6e5;     /* 裁判 */
+      --bubble-a:#e8f0ff;
+      --bubble-b:#e8ffe8;
+      --bubble-j:#fff6e5;
       --chip:#eef2ff;
     }
     *{box-sizing:border-box}
@@ -28,7 +26,44 @@
       margin:0;background:var(--bg);color:var(--ink);
       font:14px/1.6 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
     }
-    /* 顶部工具栏 */
+
+    /* ===== 顶部标题区（新增） ===== */
+    .page-header{
+      background:
+        linear-gradient(180deg,#ffffff 0%, #f7f9ff 70%),
+        repeating-linear-gradient(45deg, transparent 0 10px, rgba(0,0,0,.02) 10px 20px);
+      border-bottom:1px solid var(--line);
+      padding:22px 14px;
+    }
+    .page-header .wrap{
+      max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
+    }
+    .title-block{
+      display:flex;flex-direction:column;gap:6px;
+    }
+    .title{
+      margin:0;
+      font-weight:900;letter-spacing:.5px;
+      font-size: clamp(22px, 2.6vw, 28px);
+      display:inline-flex;align-items:center;gap:10px;
+    }
+    .title .badge{
+      display:inline-block;background:#111;color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:800;
+      box-shadow:2px 2px 0 #00000025;
+    }
+    .subtitle{margin:0;color:var(--muted);font-size:13px}
+    .header-actions{display:flex;align-items:center;gap:8px}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:10px 12px;border:2px solid var(--ink);border-radius:10px;
+      background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #00000010;transition:.15s;
+      text-decoration:none;color:inherit;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .btn-ghost{background:#fff}
+
+    /* ===== 工具栏 ===== */
     .toolbar{
       position:sticky;top:0;z-index:20;
       background:linear-gradient(#ffffff, #f7f9ff);
@@ -36,6 +71,7 @@
       padding:10px 14px;
     }
     .tool-grid{
+      max-width:1200px;margin:0 auto;
       display:grid;grid-template-columns: 1.2fr repeat(3,1fr) 0.9fr 0.9fr auto 120px;
       gap:10px;align-items:center;
     }
@@ -50,20 +86,15 @@
     }
     .input:focus,select:focus,textarea:focus{border-color:var(--brand)}
     label.small{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      padding:10px 12px;border:2px solid var(--ink);border-radius:10px;
-      background:#fff;cursor:pointer;font-weight:700;
-      box-shadow:2px 2px 0 #00000010;transition:.15s;
-    }
-    .btn:hover{transform:translateY(-1px)}
-    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    .btn-ghost{background:#fff}
     .chips{display:flex;flex-wrap:wrap;gap:8px}
     .chip{
       border:1px dashed var(--stone);background:var(--chip);
       padding:6px 10px;border-radius:8px;cursor:pointer;color:#334155
     }
+    .switch{display:flex;align-items:center;gap:6px}
+    .quota{font-size:12px;color:var(--muted)}
+
+    /* ===== 主布局 ===== */
     .layout{
       max-width:1200px;margin:16px auto;padding:0 14px;
       display:grid;grid-template-columns: 2fr 1fr;gap:16px;
@@ -75,9 +106,10 @@
     }
     .panel-header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
     .panel-body{padding:12px 14px}
-    /* 聊天区 */
+
+    /* ===== 聊天区 ===== */
     .chat{
-      height: calc(100vh - 210px);
+      height: calc(100vh - 260px); /* 留出标题/工具栏空间 */
       min-height: 420px;
       overflow:auto;padding:10px;background:
         repeating-linear-gradient(0deg,#fafcff,#fafcff 24px,#f1f5fe 24px,#f1f5fe 25px);
@@ -108,45 +140,45 @@
       content:"▮";display:inline-block;margin-left:4px;animation:blink .9s steps(1,end) infinite;
     }
     @keyframes blink{50%{opacity:0}}
-    .clamp{
-      max-height:7.5em;overflow:hidden;position:relative;
-    }
+    .clamp{ max-height:7.5em;overflow:hidden;position:relative; }
     .clamp::after{
       content:"";position:absolute;left:0;right:0;bottom:0;height:40px;
       background:linear-gradient(transparent, rgba(255,255,255,.9));
     }
     .toggle{margin-top:6px;font-size:12px;color:#1f3a8a;cursor:pointer;user-select:none}
+
     .kv{display:grid;grid-template-columns:110px 1fr;gap:10px}
-    .switch{display:flex;align-items:center;gap:6px}
-    .quota{font-size:12px;color:var(--muted)}
-    /* 预设生成器 Bottom Sheet */
-    .sheet{position:fixed;inset:0;display:none;z-index:50}
-    .sheet[aria-hidden="false"]{display:block}
-    .sheet__mask{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+    .row{margin:10px 0}
+    .section-title{font-weight:800;margin:8px 0 4px}
+    .hint{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* ===== 预设生成器 Bottom Sheet（修复 z-index） ===== */
+    .sheet{ position:fixed; inset:0; display:none; z-index:1000; }
+    .sheet[aria-hidden="false"]{ display:block; }
+    .sheet__mask{ position:absolute; inset:0; background:rgba(0,0,0,.35); z-index:1000; }
     .sheet__panel{
-      position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:2px solid #00000012;border-radius:16px 16px 0 0;
-      max-height:80vh;overflow:auto;padding:14px 14px 20px;
+      position:absolute; left:0; right:0; bottom:0; z-index:1001;
+      background:#fff; border-top:2px solid #00000012; border-radius:16px 16px 0 0;
+      max-height:80vh; overflow:auto; padding:14px 14px 20px;
       box-shadow:0 -10px 40px rgba(0,0,0,.15);
     }
-    .row{margin:10px 0}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media (max-width:900px){ .grid2{grid-template-columns:1fr} }
-    /* 全屏加载遮罩（仅初始化使用） */
-    #boot-mask{position:fixed;inset:0;display:grid;place-items:center;background:#ffffff;z-index:80}
+
+    /* ===== 初始化遮罩（模型目录加载） ===== */
+    #boot-mask{position:fixed;inset:0;display:grid;place-items:center;background:#ffffff;z-index:900}
     .spinner{
       width:58px;height:58px;border:5px solid #e2e8f0;border-top-color:var(--brand);
       border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px
     }
     @keyframes spin{to{transform:rotate(360deg)}}
-    .muted{color:var(--muted)}
-    .hint{font-size:12px;color:var(--muted);margin-top:4px}
-    .section-title{font-weight:800;margin:8px 0 4px}
     .center{display:flex;justify-content:center;align-items:center;gap:10px}
+    .muted{color:var(--muted)}
   </style>
 </head>
 <body>
 
-<!-- 初始化遮罩，模型目录加载完会隐藏 -->
+<!-- 初始化遮罩：模型目录加载完会隐藏 -->
 <div id="boot-mask">
   <div class="center" style="flex-direction:column">
     <div class="spinner"></div>
@@ -154,7 +186,20 @@
   </div>
 </div>
 
-<!-- 顶部工具栏 -->
+<!-- ===== 页面标题区（新增） ===== -->
+<header class="page-header">
+  <div class="wrap">
+    <div class="title-block">
+      <h1 class="title">AI 斗蛐蛐 <span class="badge">若水的像素舞台</span></h1>
+      <p class="subtitle">两个 LLM 扮演不同角色围绕一个问题实时对话，可选裁判点评/终裁。</p>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="btn btn-ghost">返回主页</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 顶部工具栏 ===== -->
 <div class="toolbar">
   <div class="tool-grid">
     <div class="wide">
@@ -206,7 +251,7 @@
   </div>
 </div>
 
-<!-- 主布局 -->
+<!-- ===== 主布局：聊天 + 设置 ===== -->
 <div class="layout">
   <!-- 聊天面板 -->
   <section class="panel">
@@ -226,7 +271,7 @@
     <div class="panel-header"><strong>设置</strong></div>
     <div class="panel-body">
       <div class="section-title">模型选择</div>
-      <div class="kv">
+      <div class="row kv">
         <div><label class="small">A 模型</label></div>
         <div><select id="modelA" class="input"></select></div>
 
@@ -251,8 +296,9 @@
   </aside>
 </div>
 
-<!-- 预设生成器 Bottom Sheet -->
+<!-- ===== 预设生成器 Bottom Sheet（遮罩在前，面板在后；并有 z-index） ===== -->
 <div id="presetSheet" class="sheet" aria-hidden="true">
+  <div class="sheet__mask"></div>
   <div class="sheet__panel">
     <div class="panel-header" style="border:0;padding:0;margin-bottom:8px">
       <strong>预设生成器</strong>
@@ -267,7 +313,10 @@
       <input id="presetSeed" class="input" placeholder="例如：‘美食节目导演 vs 只爱速食的电竞少年’"/>
     </div>
     <div class="row">
-      <button id="btnGenPreset" class="btn btn-primary"><span class="spinner" style="width:16px;height:16px;border-width:2px;display:none" id="genSpin"></span> AI 扩写</button>
+      <button id="btnGenPreset" class="btn btn-primary">
+        <span class="spinner" id="genSpin" style="width:16px;height:16px;border-width:2px;display:none"></span>
+        AI 扩写
+      </button>
     </div>
     <div class="grid2">
       <div>
@@ -280,10 +329,11 @@
       </div>
     </div>
     <div class="row">
-      <button id="btnUsePreset" class="btn" style="border-color:var(--brand-2);color:#064e3b;background:#ecfdf5">应用到对战设置</button>
+      <button id="btnUsePreset" class="btn" style="border-color:var(--brand-2);color:#064e3b;background:#ecfdf5">
+        应用到对战设置
+      </button>
     </div>
   </div>
-  <div class="sheet__mask"></div>
 </div>
 
 <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
