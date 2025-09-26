@@ -159,7 +159,7 @@ body {
   border: var(--pixel-unit) solid var(--pixel-border);
   box-shadow: 
     var(--pixel-unit) var(--pixel-unit) 0 var(--pixel-shadow);
-  overflow: visible; /* 修复选择框被裁切 */
+  overflow: hidden; /* 改回hidden防止内容溢出 */
 }
 
 .character-header {
@@ -209,6 +209,15 @@ body {
 
 .character-body {
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.character-body .pixel-select,
+.character-body .pixel-textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mini-label {
@@ -572,6 +581,11 @@ body {
   gap: 5px;
 }
 
+.setting-item .pixel-select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .pixel-label {
   font-size: 11px;
   color: var(--text-sub);
@@ -583,6 +597,7 @@ body {
 .pixel-input,
 .pixel-select,
 .pixel-textarea {
+  width: 100%;
   padding: 8px 10px;
   background: white;
   border: 2px solid var(--pixel-border);
@@ -590,6 +605,7 @@ body {
   font-size: 12px;
   color: var(--text-main);
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  box-sizing: border-box; /* 确保边框包含在宽度内 */
 }
 
 .pixel-input:focus,
@@ -657,11 +673,21 @@ body {
   gap: 10px;
 }
 
+.generator-box .pixel-input,
+.generator-box .pixel-select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .generator-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
+}
+
+.generator-row .pixel-select {
+  width: 100%;
 }
 
 .setting-hint {
