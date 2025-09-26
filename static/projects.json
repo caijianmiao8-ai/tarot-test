@@ -2,9 +2,9 @@
   {
     "slug": "tarot",
     "title": "塔罗 · 每日指引",
-    "subtitle": "你当前的主功能",
+    "subtitle": "塔罗牌占卜&你的AI占卜师好友",
     "cover": "/static/images/covers/tarot.jpg",
-    "tags": ["Tarot", "LLM", "Dify"],
+    "tags": ["Tarot", "AI对话", "长期记忆"],
     "type": "link",
     "path": "/tarot"
   },
@@ -16,24 +16,5 @@
     "tags": ["AI", "辩论"],
     "type": "link",
     "path": "/g/ai_duel/"
-  },
-  {
-  "slug": "guess-number",
-  "title": "猜数字（示例）",
-  "subtitle": "最小蓝图骨架",
-  "cover": "/static/images/covers/guess-number.jpg",
-  "tags": ["Demo", "Blueprint"],
-  "type": "link",
-  "path": "/g/guess_number/"
-},
-{
-  "slug": "reaction-timer",
-  "title": "反应速度测试",
-  "subtitle": "看到绿色立刻点！键鼠皆可",
-  "cover": "/static/images/covers/reaction-timer.jpg",
-  "tags": ["Arcade", "Timing", "Neon"],
-  "type": "link",
-  "path": "/g/reaction_timer/"
-}
-
+  }
 ]
