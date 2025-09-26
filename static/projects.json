@@ -6,7 +6,7 @@
     "cover": "/static/images/covers/tarot.jpg",
     "tags": ["Tarot", "LLM", "Dify"],
     "type": "link",
-    "path": "/tarot_index"
+    "path": "/tarot"
   },
   {
     "slug": "ai-duel",
