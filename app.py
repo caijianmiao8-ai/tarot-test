@@ -94,8 +94,10 @@ def load_projects():
     return _PROJECTS_CACHE
 
 # --- 新增主面板路由 ---
-@app.route("/hub")
-def hub():
+# --- Home：作为新的首页 ---
+@app.route("/", endpoint="index")    # 新增：'index' 现在代表 Home
+@app.route("/hub")                   # 保留 /hub 兼容
+def home():
     projects = load_projects()
     return render_template("home.html", projects=projects)
 
@@ -1402,7 +1404,7 @@ def share_card():
 
     if not reading:
         flash("请先抽取今日塔罗牌", "info")
-        return redirect(url_for("index"))
+        return redirect(url_for("tarot_index"))
 
     return render_template(
         "share_card.html",
@@ -1419,7 +1421,7 @@ def view_share(share_id):
     share_data = ShareService.get_share_data(share_id)
     if not share_data:
         flash("分享链接已失效", "info")
-        return redirect(url_for("index"))
+        return redirect(url_for("tarot_index"))
 
     # 计数
     ShareService.increment_view_count(share_id)
@@ -2514,8 +2516,8 @@ def api_spread_today():
     })
 
 # ===== 路由 =====
-@app.route("/")
-def index():
+@app.route("/tarot", endpoint="tarot_index")
+def tarot_index():
     user = g.user
     today = DateTimeService.get_beijing_date()
     has_drawn = False
@@ -2584,7 +2586,7 @@ def chat_page():
     
     if not reading:
         flash("请先抽取今日塔罗牌", "info")
-        return redirect(url_for("index"))
+        return redirect(url_for("tarot_index"))
     
     # 检查对话限制
     can_chat, remaining_chats = ChatService.can_start_chat(
@@ -2814,7 +2816,7 @@ def draw_card():
     card, direction = TarotService.draw_card()
     if not card:
         flash("数据库中没有塔罗牌数据", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("tarot_index"))
     
     # 保存记录
     if not user["is_guest"]:
@@ -2837,7 +2839,7 @@ def result():
         reading = TarotService.get_today_reading(user["id"], today)
         if not reading:
             flash("请先抽取今日塔罗牌", "info")
-            return redirect(url_for("index"))
+            return redirect(url_for("tarot_index"))
         
         card_data = {
             "id": reading["card_id"],
@@ -2854,7 +2856,7 @@ def result():
         reading = SessionService.get_guest_reading(session, today)
         if not reading:
             flash("请先抽取塔罗牌", "info")
-            return redirect(url_for("index"))
+            return redirect(url_for("tarot_index"))
         
         card_data = {
             "id": reading.get("card_id"),
@@ -2936,7 +2938,7 @@ def export_reading():
     reading = SessionService.get_guest_reading(session, today)
     if not reading:
         flash("没有找到今日的解读记录", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("tarot_index"))
     
     # 生成导出内容
     export_content = f"""塔罗每日指引
@@ -2986,7 +2988,7 @@ def clear_cache():
     ReadingDAO.delete_today(user_id, today)
     
     flash("已清除今日抽牌记录", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("tarot_index"))
 
 
 @app.route("/api/regenerate", methods=["POST"])
