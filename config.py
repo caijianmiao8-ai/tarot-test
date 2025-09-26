@@ -14,8 +14,8 @@ class Config:
       "reaction_timer": {"daily_limit_guest": 9999, "daily_limit_user": 9999},
       "ai_duel": {  # ★ 新增
         "daily_limit_guest": 5,   # 游客每日可开始的对战次数
-        "daily_limit_user": 50,    # 登录用户每日可开始的对战次数
-        "max_rounds": 10          # 轮次上限
+        "daily_limit_user": 5,    # 登录用户每日可开始的对战次数
+        "max_rounds": 5          # 轮次上限
     },
       # ...
     }
