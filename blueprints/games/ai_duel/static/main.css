@@ -159,7 +159,7 @@ body {
   border: var(--pixel-unit) solid var(--pixel-border);
   box-shadow: 
     var(--pixel-unit) var(--pixel-unit) 0 var(--pixel-shadow);
-  overflow: hidden;
+  overflow: visible; /* 修复选择框被裁切 */
 }
 
 .character-header {
@@ -295,12 +295,12 @@ body {
   gap: 15px;
 }
 
-/* 消息样式 */
+/* 消息样式 - 真实聊天框风格 */
 .msg {
   display: flex;
-  gap: 10px;
   align-items: flex-start;
   animation: messageSlide 0.3s ease;
+  width: 100%;
 }
 
 @keyframes messageSlide {
@@ -315,15 +315,37 @@ body {
 }
 
 .msg.left {
-  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.msg.left .msg-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 75%;
 }
 
 .msg.right {
+  justify-content: flex-end;
+}
+
+.msg.right .msg-wrapper {
+  display: flex;
   flex-direction: row-reverse;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 75%;
 }
 
 .msg.judge {
   justify-content: center;
+}
+
+.msg.judge .msg-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 85%;
 }
 
 .avatar {
@@ -363,7 +385,6 @@ body {
 }
 
 .bubble {
-  max-width: 75%;
   background: white;
   border: 2px solid var(--pixel-border);
   padding: 12px 14px;
@@ -372,6 +393,7 @@ body {
   line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
+  width: fit-content;
 }
 
 .msg.left .bubble {
@@ -387,7 +409,6 @@ body {
 }
 
 .msg.judge .bubble {
-  max-width: 85%;
   border-top-width: 4px;
   border-top-color: var(--color-judge);
   background: linear-gradient(180deg, rgba(245, 158, 11, 0.05), white);
@@ -628,11 +649,17 @@ body {
   font-weight: bold;
 }
 
-/* 生成器盒子 */
+/* 生成器盒子 - 修复布局 */
 .generator-box {
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generator-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
 }
@@ -691,7 +718,18 @@ body {
   background: var(--text-sub);
 }
 
-/* 响应式 */
+/* 消息内容区 */
+.msg-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg.judge .msg-content {
+  align-items: center;
+}
+
+/* 响应式 - 修复移动端 */
 @media (max-width: 1024px) {
   .main-container {
     grid-template-columns: 1fr;
@@ -741,7 +779,11 @@ body {
     grid-template-columns: 1fr;
   }
   
-  .generator-box {
+  .msg-wrapper {
+    max-width: 85% !important;
+  }
+  
+  .generator-row {
     grid-template-columns: 1fr;
   }
   

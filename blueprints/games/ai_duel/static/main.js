@@ -156,56 +156,68 @@ async function buildPresets() {
 }
 
 // 聊天渲染 —— 统一单列，A 左 / B 右 / J 居中
-function addMsg({ side, round, initial = "" }) {
-  const wrap = document.createElement("div");
-  wrap.className = "msg " + (side === "A" ? "left" : side === "B" ? "right" : "judge");
-  wrap.dataset.side = side;
-  wrap.dataset.round = String(round || 0);
+// 修改 main.js 中的 addMsg 函数
+// 请将原有的 addMsg 函数替换为以下代码：
 
+function addMsg({ side, round, initial = "" }) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + (side === "A" ? "left" : side === "B" ? "right" : "judge");
+  msg.dataset.side = side;
+  msg.dataset.round = String(round || 0);
+
+  // 创建消息包装器
+  const wrapper = document.createElement("div");
+  wrapper.className = "msg-wrapper";
+
+  // 创建头像
   const avatar = document.createElement("div");
   avatar.className = "avatar " + (side === "A" ? "a" : side === "B" ? "b" : "j");
   avatar.textContent = side === "J" ? "J" : side;
 
+  // 创建消息内容区
+  const msgContent = document.createElement("div");
+  msgContent.className = "msg-content";
+
+  // 创建身份标签
   const who = document.createElement("div");
   who.className = "who";
   who.textContent = side === "A" ? "A 方" : side === "B" ? "B 方" : "裁判";
 
+  // 创建气泡
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  // （关键修复）专门的内容容器，避免首 token 丢失
+  
+  // 创建内容和打字指示器
   const content = document.createElement("span");
   content.className = "content";
   content.textContent = initial;
   bubble.appendChild(content);
+  
   const typing = document.createElement("span");
   typing.className = "typing";
-  typing.textContent = "…";
+  typing.textContent = "";
   bubble.appendChild(typing);
 
-  if (side === "A") {
-    wrap.appendChild(avatar);
-    const col = document.createElement("div");
-    col.appendChild(who);
-    col.appendChild(bubble);
-    wrap.appendChild(col);
-  } else if (side === "B") {
-    const col = document.createElement("div");
-    col.appendChild(who);
-    col.appendChild(bubble);
-    wrap.appendChild(col);
-    wrap.appendChild(avatar);
+  // 组装消息结构
+  msgContent.appendChild(who);
+  msgContent.appendChild(bubble);
+
+  if (side === "J") {
+    // 裁判消息：居中显示，头像在上
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(msgContent);
   } else {
-    // 裁判居中
-    const col = document.createElement("div");
-    col.appendChild(who);
-    col.appendChild(bubble);
-    wrap.appendChild(col);
+    // A/B消息：添加头像和内容
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(msgContent);
   }
 
-  el.chat.appendChild(wrap);
+  msg.appendChild(wrapper);
+  el.chat.appendChild(msg);
   el.chat.scrollTop = el.chat.scrollHeight;
-  return wrap;
+  return msg;
 }
+
 function appendDelta(msgEl, delta) {
   if (!delta) return;
   const content = msgEl.querySelector(".content");
