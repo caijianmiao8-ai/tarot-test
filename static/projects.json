@@ -16,5 +16,14 @@
     "tags": ["AI", "辩论"],
     "type": "link",
     "path": "/g/ai_duel/"
+  },
+  {
+    "slug": "tic_tac_toe",
+    "title": "井字棋",
+    "subtitle": "弱智ai",
+    "cover": "/static/images/covers/tic_tac_toe.jpg",
+    "tags": ["AI", "下棋"],
+    "type": "link",
+    "path": "/g/tic_tac_toe/"
   }
 ]
