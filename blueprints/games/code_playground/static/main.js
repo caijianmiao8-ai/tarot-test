@@ -158,6 +158,10 @@ export default function RemoteDesktopDemo() {
     overlay.textContent = message;
     overlay.classList.add("visible");
     setCompileInfo(label, false);
+  function showError(message) {
+    overlay.textContent = message;
+    overlay.classList.add("visible");
+    setCompileInfo("编译失败", false);
     setStatus("出现错误", "error");
   }
 
@@ -315,6 +319,22 @@ ${polyfills}
     'lucide-react': (function () {
       const mod = window.lucideReact || {};
       return wrapModule(mod);
+  const requireMap = {
+    react: (function () {
+      const mod = window.React || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'react-dom': (function () {
+      const mod = window.ReactDOM || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'react-dom/client': (function () {
+      const mod = window.ReactDOMClient || window.ReactDOM || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'lucide-react': (function () {
+      const mod = window.lucideReact || {};
+      return Object.assign({ default: mod }, mod);
     })(),
   };
 
@@ -420,6 +440,8 @@ ${polyfills}
     }
 
     lastSource = source;
+    lastSource = source;
+    hideError();
     setCompileInfo("编译中…", true);
     setStatus("编译中", "running");
 
@@ -434,6 +456,9 @@ ${polyfills}
       currentBlobUrl = URL.createObjectURL(blob);
       frame.removeAttribute("srcdoc");
       frame.src = currentBlobUrl;
+      frame.srcdoc = html;
+      setCompileInfo("预览已更新", true);
+      setStatus("实时预览", "idle");
     } catch (err) {
       console.error(err);
       showError(err.message);
@@ -479,6 +504,14 @@ ${polyfills}
         setStatus("格式化工具加载中", "running");
         setTimeout(() => setStatus("实时预览"), 1500);
       }
+    if (action === "format" && window.js_beautify) {
+      const formatted = window.js_beautify(editor.value, {
+        indent_size: 2,
+        max_preserve_newlines: 2,
+        space_in_empty_paren: false,
+      });
+      editor.value = formatted;
+      scheduleUpdate(true);
     }
   }
 
@@ -515,6 +548,7 @@ ${polyfills}
     } else {
       waitForBabel(triggerInitialRender);
     }
+    scheduleUpdate(true);
   }
 
   if (document.readyState === "loading") {
