@@ -6,12 +6,8 @@
   const statusLabel = document.getElementById("status-label");
   const buttons = document.querySelectorAll("[data-action]");
   const STORAGE_KEY = "code-playground-source";
-  const BABEL_SOURCES = [
-    "https://unpkg.com/@babel/standalone@7.23.9/babel.min.js",
-    "https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.9/babel.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js",
-  ];
-  let babelLoadingPromise = null;
+  let babelRetryTimer = null;
+  let pendingInitialRender = false;
 
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) {
@@ -162,6 +158,10 @@ export default function RemoteDesktopDemo() {
     overlay.textContent = message;
     overlay.classList.add("visible");
     setCompileInfo(label, false);
+  function showError(message) {
+    overlay.textContent = message;
+    overlay.classList.add("visible");
+    setCompileInfo("编译失败", false);
     setStatus("出现错误", "error");
   }
 
@@ -174,96 +174,26 @@ export default function RemoteDesktopDemo() {
     return Boolean(window.Babel && typeof window.Babel.transform === "function");
   }
 
-  function ensureBabelLoaded() {
+  function waitForBabel(callback, attempt = 0) {
     if (isBabelReady()) {
-      return Promise.resolve();
+      if (babelRetryTimer) {
+        clearTimeout(babelRetryTimer);
+        babelRetryTimer = null;
+      }
+      callback();
+      return;
     }
 
-    if (babelLoadingPromise) {
-      return babelLoadingPromise;
+    const delay = Math.min(600, 120 + attempt * 80);
+    if (!babelRetryTimer) {
+      setCompileInfo("等待编译器…", true);
+      setStatus("等待 Babel 编译器", "running");
     }
 
-    setCompileInfo("加载编译器…", true);
-    setStatus("加载 Babel 编译器", "running");
-
-    const existingScript = document.querySelector('[data-babel-loader]');
-    const sources = BABEL_SOURCES.slice();
-    if (existingScript && existingScript.src) {
-      sources.unshift(existingScript.src);
-    }
-
-    babelLoadingPromise = new Promise((resolve, reject) => {
-      let index = 0;
-
-      const attempt = () => {
-        if (isBabelReady()) {
-          resolve();
-          return;
-        }
-
-        if (index >= sources.length) {
-          reject(new Error("无法加载 Babel 编译器，预览功能不可用。"));
-          return;
-        }
-
-        const src = sources[index++];
-        let script = null;
-
-        if (existingScript && existingScript.src === src && !existingScript.dataset.babelTried) {
-          script = existingScript;
-          script.dataset.babelTried = "true";
-        } else {
-          script = document.createElement("script");
-          script.src = src;
-          script.async = true;
-          script.crossOrigin = "anonymous";
-          script.dataset.injected = "true";
-          document.head.appendChild(script);
-        }
-
-        const cleanup = () => {
-          script.removeEventListener("load", handleLoad);
-          script.removeEventListener("error", handleError);
-        };
-
-        function handleLoad() {
-          setTimeout(() => {
-            cleanup();
-            if (isBabelReady()) {
-              resolve();
-            } else {
-              attempt();
-            }
-          }, 0);
-        }
-
-        function handleError() {
-          cleanup();
-          if (script !== existingScript) {
-            script.remove();
-          }
-          attempt();
-        }
-
-        script.addEventListener("load", handleLoad);
-        script.addEventListener("error", handleError, { once: true });
-      };
-
-      attempt();
-    })
-      .then(() => {
-        setCompileInfo("编译器已就绪", true);
-        setStatus("实时预览", "idle");
-      })
-      .catch((error) => {
-        setCompileInfo("编译器加载失败", false);
-        throw error;
-      })
-      .finally(() => {
-        babelLoadingPromise = null;
-      });
-
-    return babelLoadingPromise;
+    babelRetryTimer = setTimeout(() => {
+      babelRetryTimer = null;
+      waitForBabel(callback, attempt + 1);
+    }, delay);
   }
 
   function normalizeSource(source) {
@@ -389,6 +319,22 @@ ${polyfills}
     'lucide-react': (function () {
       const mod = window.lucideReact || {};
       return wrapModule(mod);
+  const requireMap = {
+    react: (function () {
+      const mod = window.React || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'react-dom': (function () {
+      const mod = window.ReactDOM || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'react-dom/client': (function () {
+      const mod = window.ReactDOMClient || window.ReactDOM || {};
+      return Object.assign({ default: mod }, mod);
+    })(),
+    'lucide-react': (function () {
+      const mod = window.lucideReact || {};
+      return Object.assign({ default: mod }, mod);
     })(),
   };
 
@@ -481,28 +427,21 @@ ${polyfills}
     }
   });
 
-  function handleBabelFailure(error) {
-    const message = (error && error.message) || "无法加载 Babel 编译器，暂时无法编译预览。";
-    showError(message, "加载失败");
-    setStatus("编译器加载失败", "error");
-  }
-
-  async function updatePreview(immediate = false) {
+  function updatePreview(immediate = false) {
     const source = normalizeSource(editor.value);
     if (source === lastSource && !immediate) {
       return;
     }
     hideError();
 
-    try {
-      await ensureBabelLoaded();
-    } catch (err) {
-      console.error(err);
-      handleBabelFailure(err);
+    if (!isBabelReady()) {
+      waitForBabel(() => updatePreview(true));
       return;
     }
 
     lastSource = source;
+    lastSource = source;
+    hideError();
     setCompileInfo("编译中…", true);
     setStatus("编译中", "running");
 
@@ -517,6 +456,9 @@ ${polyfills}
       currentBlobUrl = URL.createObjectURL(blob);
       frame.removeAttribute("srcdoc");
       frame.src = currentBlobUrl;
+      frame.srcdoc = html;
+      setCompileInfo("预览已更新", true);
+      setStatus("实时预览", "idle");
     } catch (err) {
       console.error(err);
       showError(err.message);
@@ -531,9 +473,7 @@ ${polyfills}
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
-    debounceTimer = setTimeout(() => {
-      updatePreview(false);
-    }, 320);
+    debounceTimer = setTimeout(() => updatePreview(false), 320);
   }
 
   function handleAction(event) {
@@ -564,6 +504,14 @@ ${polyfills}
         setStatus("格式化工具加载中", "running");
         setTimeout(() => setStatus("实时预览"), 1500);
       }
+    if (action === "format" && window.js_beautify) {
+      const formatted = window.js_beautify(editor.value, {
+        indent_size: 2,
+        max_preserve_newlines: 2,
+        space_in_empty_paren: false,
+      });
+      editor.value = formatted;
+      scheduleUpdate(true);
     }
   }
 
@@ -576,14 +524,31 @@ ${polyfills}
     });
     buttons.forEach((btn) => btn.addEventListener("click", handleAction));
 
-    ensureBabelLoaded()
-      .then(() => {
+    const babelScript = document.querySelector('script[src*="babel.min.js"]');
+    const triggerInitialRender = () => {
+      if (pendingInitialRender) {
+        return;
+      }
+      pendingInitialRender = true;
+      if (babelScript) {
+        babelScript.removeEventListener("load", triggerInitialRender);
+      }
+      if (document.readyState === "complete" || isBabelReady()) {
         scheduleUpdate(true);
-      })
-      .catch((error) => {
-        console.error(error);
-        handleBabelFailure(error);
-      });
+      } else {
+        waitForBabel(() => scheduleUpdate(true));
+      }
+    };
+
+    if (isBabelReady()) {
+      triggerInitialRender();
+    } else if (babelScript) {
+      babelScript.addEventListener("load", triggerInitialRender, { once: true });
+      waitForBabel(triggerInitialRender);
+    } else {
+      waitForBabel(triggerInitialRender);
+    }
+    scheduleUpdate(true);
   }
 
   if (document.readyState === "loading") {
