@@ -413,6 +413,16 @@ ${polyfills}
         }
         if (!cache[prop]) {
           cache[prop] = createIconStub(prop);
+          try {
+            Object.defineProperty(target, prop, {
+              configurable: true,
+              enumerable: true,
+              writable: true,
+              value: cache[prop],
+            });
+          } catch (_) {
+            target[prop] = cache[prop];
+          }
         }
         return cache[prop];
       }
