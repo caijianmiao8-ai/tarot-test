@@ -25,5 +25,14 @@
     "tags": ["AI", "下棋"],
     "type": "link",
     "path": "/g/tic_tac_toe/"
+  },
+  {
+    "slug": "code_playground",
+    "title": "实时画布",
+    "subtitle": "写代码 · 看预览",
+    "cover": "/static/images/covers/code_playground.svg",
+    "tags": ["React", "Playground"],
+    "type": "link",
+    "path": "/g/code_playground/"
   }
 ]
