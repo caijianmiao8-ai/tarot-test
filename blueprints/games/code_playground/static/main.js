@@ -6,6 +6,17 @@
   const statusLabel = document.getElementById("status-label");
   const buttons = document.querySelectorAll("[data-action]");
   const STORAGE_KEY = "code-playground-source";
+  let babelRetryTimer = null;
+  let pendingInitialRender = false;
+
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data || event.source !== frame.contentWindow) {
+      return;
+    }
+    if (event.data.type === "CODE_PLAYGROUND_ERROR") {
+      showError(event.data.message || "运行时出现错误", "运行时错误");
+    }
+  });
 
   const DEFAULT_SOURCE = `import React, { useState } from 'react';
 import { Monitor, Smartphone, Settings, Sun, Moon, Wifi, Gamepad2 } from 'lucide-react';
@@ -143,6 +154,10 @@ export default function RemoteDesktopDemo() {
     compileBadge.style.color = good ? "#38bdf8" : "#f87171";
   }
 
+  function showError(message, label = "编译失败") {
+    overlay.textContent = message;
+    overlay.classList.add("visible");
+    setCompileInfo(label, false);
   function showError(message) {
     overlay.textContent = message;
     overlay.classList.add("visible");
@@ -153,6 +168,32 @@ export default function RemoteDesktopDemo() {
   function hideError() {
     overlay.textContent = "";
     overlay.classList.remove("visible");
+  }
+
+  function isBabelReady() {
+    return Boolean(window.Babel && typeof window.Babel.transform === "function");
+  }
+
+  function waitForBabel(callback, attempt = 0) {
+    if (isBabelReady()) {
+      if (babelRetryTimer) {
+        clearTimeout(babelRetryTimer);
+        babelRetryTimer = null;
+      }
+      callback();
+      return;
+    }
+
+    const delay = Math.min(600, 120 + attempt * 80);
+    if (!babelRetryTimer) {
+      setCompileInfo("等待编译器…", true);
+      setStatus("等待 Babel 编译器", "running");
+    }
+
+    babelRetryTimer = setTimeout(() => {
+      babelRetryTimer = null;
+      waitForBabel(callback, attempt + 1);
+    }, delay);
   }
 
   function normalizeSource(source) {
@@ -222,6 +263,62 @@ ${polyfills}
 <div id="preview-root"></div>
 <script>
   const __compiled = ${encodedCode};
+  function wrapModule(mod) {
+    if (mod && (typeof mod === 'object' || typeof mod === 'function')) {
+      return Object.assign({ __esModule: true, default: mod }, mod);
+    }
+    return { __esModule: true, default: mod };
+  }
+  function reportError(payload) {
+    if (window.parent && window.parent !== window) {
+      const message = typeof payload === 'string' ? payload : (payload && (payload.stack || payload.message)) || 'Unknown error';
+      window.parent.postMessage({ type: 'CODE_PLAYGROUND_ERROR', message }, '*');
+    }
+  }
+  function createJsxRuntimeModule() {
+    const runtime = window.ReactJSXRuntime || null;
+    if (runtime && runtime.jsx && runtime.jsxs) {
+      return wrapModule(runtime);
+    }
+    if (window.React && typeof window.React.createElement === 'function') {
+      const shim = {
+        Fragment: window.React.Fragment,
+        jsx(type, props, key) {
+          if (key !== undefined) props = Object.assign({}, props, { key });
+          return window.React.createElement(type, props);
+        },
+        jsxs(type, props, key) {
+          if (key !== undefined) props = Object.assign({}, props, { key });
+          return window.React.createElement(type, props);
+        },
+        jsxDEV(type, props, key) {
+          if (key !== undefined) props = Object.assign({}, props, { key });
+          return window.React.createElement(type, props);
+        }
+      };
+      return wrapModule(shim);
+    }
+    return wrapModule(null);
+  }
+
+  const requireMap = {
+    react: (function () {
+      const mod = window.React || {};
+      return wrapModule(mod);
+    })(),
+    'react-dom': (function () {
+      const mod = window.ReactDOM || {};
+      return wrapModule(mod);
+    })(),
+    'react-dom/client': (function () {
+      const mod = window.ReactDOMClient || window.ReactDOM || {};
+      return wrapModule(mod);
+    })(),
+    'react/jsx-runtime': createJsxRuntimeModule(),
+    'react/jsx-dev-runtime': createJsxRuntimeModule(),
+    'lucide-react': (function () {
+      const mod = window.lucideReact || {};
+      return wrapModule(mod);
   const requireMap = {
     react: (function () {
       const mod = window.React || {};
@@ -268,6 +365,7 @@ ${polyfills}
       window.ReactDOM.render(window.React.createElement(App), rootElement);
     }
   } catch (err) {
+    reportError(err);
     const pre = document.createElement('pre');
     pre.textContent = err.stack || err.message;
     pre.style.padding = '24px';
@@ -279,6 +377,12 @@ ${polyfills}
     document.body.innerHTML = '';
     document.body.appendChild(pre);
   }
+  window.addEventListener('error', function (event) {
+    reportError(event.error || event.message || '脚本错误');
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    reportError(event.reason || event);
+  });
 </script>
 </body>
 </html>`;
@@ -307,12 +411,35 @@ ${polyfills}
 
   let debounceTimer = null;
   let lastSource = "";
+  let currentBlobUrl = null;
+
+  function handleFrameLoad() {
+    setCompileInfo("预览已更新", true);
+    setStatus("实时预览", "idle");
+    hideError();
+  }
+  frame.addEventListener("load", handleFrameLoad);
+
+  window.addEventListener("beforeunload", () => {
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = null;
+    }
+  });
 
   function updatePreview(immediate = false) {
     const source = normalizeSource(editor.value);
     if (source === lastSource && !immediate) {
       return;
     }
+    hideError();
+
+    if (!isBabelReady()) {
+      waitForBabel(() => updatePreview(true));
+      return;
+    }
+
+    lastSource = source;
     lastSource = source;
     hideError();
     setCompileInfo("编译中…", true);
@@ -321,6 +448,14 @@ ${polyfills}
     try {
       const compiled = transpile(source);
       const html = buildPreviewHtml(compiled);
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+        currentBlobUrl = null;
+      }
+      const blob = new Blob([html], { type: "text/html" });
+      currentBlobUrl = URL.createObjectURL(blob);
+      frame.removeAttribute("srcdoc");
+      frame.src = currentBlobUrl;
       frame.srcdoc = html;
       setCompileInfo("预览已更新", true);
       setStatus("实时预览", "idle");
@@ -356,6 +491,19 @@ ${polyfills}
         setStatus("复制失败", "error");
       });
     }
+    if (action === "format") {
+      if (window.js_beautify) {
+        const formatted = window.js_beautify(editor.value, {
+          indent_size: 2,
+          max_preserve_newlines: 2,
+          space_in_empty_paren: false,
+        });
+        editor.value = formatted;
+        scheduleUpdate(true);
+      } else {
+        setStatus("格式化工具加载中", "running");
+        setTimeout(() => setStatus("实时预览"), 1500);
+      }
     if (action === "format" && window.js_beautify) {
       const formatted = window.js_beautify(editor.value, {
         indent_size: 2,
@@ -375,6 +523,31 @@ ${polyfills}
       scheduleUpdate();
     });
     buttons.forEach((btn) => btn.addEventListener("click", handleAction));
+
+    const babelScript = document.querySelector('script[src*="babel.min.js"]');
+    const triggerInitialRender = () => {
+      if (pendingInitialRender) {
+        return;
+      }
+      pendingInitialRender = true;
+      if (babelScript) {
+        babelScript.removeEventListener("load", triggerInitialRender);
+      }
+      if (document.readyState === "complete" || isBabelReady()) {
+        scheduleUpdate(true);
+      } else {
+        waitForBabel(() => scheduleUpdate(true));
+      }
+    };
+
+    if (isBabelReady()) {
+      triggerInitialRender();
+    } else if (babelScript) {
+      babelScript.addEventListener("load", triggerInitialRender, { once: true });
+      waitForBabel(triggerInitialRender);
+    } else {
+      waitForBabel(triggerInitialRender);
+    }
     scheduleUpdate(true);
   }
 
