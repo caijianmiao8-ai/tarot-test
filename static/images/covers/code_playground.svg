@@ -1,0 +1,40 @@
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="360" rx="32" fill="#0F172A"/>
+  <rect x="36" y="48" width="240" height="264" rx="24" fill="url(#paint0_linear)" opacity="0.82"/>
+  <rect x="296" y="96" width="308" height="200" rx="26" fill="#020617" stroke="rgba(148,163,184,0.25)" stroke-width="2"/>
+  <rect x="56" y="76" width="200" height="24" rx="12" fill="rgba(148,163,184,0.18)"/>
+  <rect x="56" y="116" width="200" height="24" rx="12" fill="rgba(148,163,184,0.12)"/>
+  <rect x="56" y="156" width="200" height="24" rx="12" fill="rgba(148,163,184,0.12)"/>
+  <rect x="56" y="196" width="200" height="24" rx="12" fill="rgba(148,163,184,0.12)"/>
+  <rect x="56" y="236" width="200" height="24" rx="12" fill="rgba(148,163,184,0.12)"/>
+  <rect x="56" y="276" width="120" height="24" rx="12" fill="#38BDF8" opacity="0.75"/>
+  <rect x="320" y="132" width="260" height="132" rx="18" fill="url(#paint1_linear)" opacity="0.88"/>
+  <rect x="336" y="146" width="228" height="28" rx="14" fill="rgba(15,23,42,0.74)" stroke="rgba(56,189,248,0.35)"/>
+  <rect x="336" y="186" width="152" height="20" rx="10" fill="rgba(15,23,42,0.74)" stroke="rgba(56,189,248,0.35)"/>
+  <rect x="336" y="214" width="196" height="20" rx="10" fill="rgba(15,23,42,0.74)" stroke="rgba(56,189,248,0.2)"/>
+  <rect x="336" y="242" width="124" height="20" rx="10" fill="rgba(15,23,42,0.74)" stroke="rgba(56,189,248,0.2)"/>
+  <circle cx="96" cy="102" r="6" fill="#38BDF8"/>
+  <circle cx="116" cy="142" r="6" fill="#818CF8"/>
+  <circle cx="136" cy="182" r="6" fill="#F472B6"/>
+  <path d="M360 82L376 66" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M360 290L380 310" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M560 82L540 62" stroke="#F472B6" stroke-width="2.5" stroke-linecap="round"/>
+  <g opacity="0.9">
+    <rect x="308" y="48" width="96" height="28" rx="14" fill="rgba(56,189,248,0.2)"/>
+    <text x="328" y="68" fill="#E2E8F0" font-family="'Inter', sans-serif" font-size="14" font-weight="600">Live Preview</text>
+  </g>
+  <g opacity="0.86">
+    <rect x="424" y="292" width="152" height="36" rx="18" fill="rgba(56,189,248,0.18)"/>
+    <text x="448" y="315" fill="#BAE6FD" font-family="'Inter', sans-serif" font-size="14" font-weight="500">React · JSX Playground</text>
+  </g>
+  <defs>
+    <linearGradient id="paint0_linear" x1="36" y1="48" x2="220" y2="312" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="paint1_linear" x1="320" y1="132" x2="580" y2="276" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#1E293B" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+</svg>
