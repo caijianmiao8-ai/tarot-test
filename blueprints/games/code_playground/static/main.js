@@ -363,6 +363,61 @@ ${polyfills}
     }
     return { __esModule: true, default: mod };
   }
+  function createIconStub(name) {
+    return function IconStub(props) {
+      const size = (props && props.size) || 16;
+      const label = typeof name === 'string' ? name.slice(0, 2).toUpperCase() : 'I';
+      return window.React.createElement(
+        'span',
+        {
+          style: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            background: 'rgba(148,163,184,0.18)',
+            color: '#94a3b8',
+            fontSize: size * 0.45,
+            fontWeight: 600,
+            textTransform: 'uppercase'
+          }
+        },
+        label || 'I'
+      );
+    };
+  }
+  function createLucideModule(mod) {
+    const source = mod && mod.default && Object.keys(mod).length === 1 ? mod.default : mod;
+    const base = wrapModule(source || {});
+    const cache = {};
+    return new Proxy(base, {
+      get(target, prop, receiver) {
+        if (prop === '__esModule' || prop === Symbol.toStringTag) {
+          return true;
+        }
+        if (prop === 'default') {
+          return base.default;
+        }
+        if (prop in target) {
+          return Reflect.get(target, prop, receiver);
+        }
+        if (source && source[prop]) {
+          target[prop] = source[prop];
+          return target[prop];
+        }
+        if (source && source.icons && source.icons[prop]) {
+          target[prop] = source.icons[prop];
+          return target[prop];
+        }
+        if (!cache[prop]) {
+          cache[prop] = createIconStub(prop);
+        }
+        return cache[prop];
+      }
+    });
+  }
   function reportError(payload) {
     if (window.parent && window.parent !== window) {
       const message = typeof payload === 'string' ? payload : (payload && (payload.stack || payload.message)) || 'Unknown error';
@@ -411,8 +466,8 @@ ${polyfills}
     'react/jsx-runtime': createJsxRuntimeModule(),
     'react/jsx-dev-runtime': createJsxRuntimeModule(),
     'lucide-react': (function () {
-      const mod = window.lucideReact || {};
-      return wrapModule(mod);
+      const mod = window.lucideReact || window.lucide || {};
+      return createLucideModule(mod);
     })(),
   };
 
