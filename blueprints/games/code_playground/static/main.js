@@ -6,6 +6,8 @@
   const statusLabel = document.getElementById("status-label");
   const buttons = document.querySelectorAll("[data-action]");
   const STORAGE_KEY = "code-playground-source";
+  let babelRetryTimer = null;
+  let pendingInitialRender = false;
 
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) {
@@ -162,6 +164,32 @@ export default function RemoteDesktopDemo() {
   function hideError() {
     overlay.textContent = "";
     overlay.classList.remove("visible");
+  }
+
+  function isBabelReady() {
+    return Boolean(window.Babel && typeof window.Babel.transform === "function");
+  }
+
+  function waitForBabel(callback, attempt = 0) {
+    if (isBabelReady()) {
+      if (babelRetryTimer) {
+        clearTimeout(babelRetryTimer);
+        babelRetryTimer = null;
+      }
+      callback();
+      return;
+    }
+
+    const delay = Math.min(600, 120 + attempt * 80);
+    if (!babelRetryTimer) {
+      setCompileInfo("等待编译器…", true);
+      setStatus("等待 Babel 编译器", "running");
+    }
+
+    babelRetryTimer = setTimeout(() => {
+      babelRetryTimer = null;
+      waitForBabel(callback, attempt + 1);
+    }, delay);
   }
 
   function normalizeSource(source) {
@@ -384,8 +412,14 @@ ${polyfills}
     if (source === lastSource && !immediate) {
       return;
     }
-    lastSource = source;
     hideError();
+
+    if (!isBabelReady()) {
+      waitForBabel(() => updatePreview(true));
+      return;
+    }
+
+    lastSource = source;
     setCompileInfo("编译中…", true);
     setStatus("编译中", "running");
 
@@ -398,8 +432,8 @@ ${polyfills}
       }
       const blob = new Blob([html], { type: "text/html" });
       currentBlobUrl = URL.createObjectURL(blob);
+      frame.removeAttribute("srcdoc");
       frame.src = currentBlobUrl;
-      frame.setAttribute("srcdoc", html);
     } catch (err) {
       console.error(err);
       showError(err.message);
@@ -432,14 +466,19 @@ ${polyfills}
         setStatus("复制失败", "error");
       });
     }
-    if (action === "format" && window.js_beautify) {
-      const formatted = window.js_beautify(editor.value, {
-        indent_size: 2,
-        max_preserve_newlines: 2,
-        space_in_empty_paren: false,
-      });
-      editor.value = formatted;
-      scheduleUpdate(true);
+    if (action === "format") {
+      if (window.js_beautify) {
+        const formatted = window.js_beautify(editor.value, {
+          indent_size: 2,
+          max_preserve_newlines: 2,
+          space_in_empty_paren: false,
+        });
+        editor.value = formatted;
+        scheduleUpdate(true);
+      } else {
+        setStatus("格式化工具加载中", "running");
+        setTimeout(() => setStatus("实时预览"), 1500);
+      }
     }
   }
 
@@ -451,7 +490,31 @@ ${polyfills}
       scheduleUpdate();
     });
     buttons.forEach((btn) => btn.addEventListener("click", handleAction));
-    scheduleUpdate(true);
+
+    const babelScript = document.querySelector('script[src*="babel.min.js"]');
+    const triggerInitialRender = () => {
+      if (pendingInitialRender) {
+        return;
+      }
+      pendingInitialRender = true;
+      if (babelScript) {
+        babelScript.removeEventListener("load", triggerInitialRender);
+      }
+      if (document.readyState === "complete" || isBabelReady()) {
+        scheduleUpdate(true);
+      } else {
+        waitForBabel(() => scheduleUpdate(true));
+      }
+    };
+
+    if (isBabelReady()) {
+      triggerInitialRender();
+    } else if (babelScript) {
+      babelScript.addEventListener("load", triggerInitialRender, { once: true });
+      waitForBabel(triggerInitialRender);
+    } else {
+      waitForBabel(triggerInitialRender);
+    }
   }
 
   if (document.readyState === "loading") {
