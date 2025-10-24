@@ -6,7 +6,7 @@
     <title>实时画布 · Code Playground</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer data-babel-loader></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" integrity="sha512-WzCKsCg1o1t4bm/FkV0GUaRcY74to/zl+VX6CLGrhPMvAtGjAc+iDZf85VkpLuEDiMxDlRn2OKdp5AybG9YLow==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
       :root {
@@ -31,6 +31,7 @@
       .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 1.25rem; backdrop-filter: blur(28px); box-shadow: 0 40px 120px rgba(15, 23, 42, 0.45); display: flex; flex-direction: column; overflow: hidden; position: relative; }
       .panel::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
       .panel-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(148, 163, 184, 0.12); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+      .panel-actions { display: flex; align-items: center; gap: 0.5rem; }
       .panel-title { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
       .status-label { font-size: 0.78rem; color: var(--accent); background: rgba(56, 189, 248, 0.12); padding: 0.35rem 0.7rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem; }
       .status-dot { width: 0.55rem; height: 0.55rem; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.35); animation: pulse 2s infinite; }
@@ -46,6 +47,10 @@
       iframe { border: none; width: 100%; height: 100%; background: transparent; }
       .preview-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.78); color: #f87171; font-size: 0.88rem; line-height: 1.5; padding: 1.5rem; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
       .preview-overlay.visible { opacity: 1; pointer-events: auto; }
+      .retry-button { display: none; background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35); color: var(--accent); padding: 0.35rem 0.7rem; border-radius: 999px; font-size: 0.7rem; letter-spacing: 0.02em; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
+      .retry-button:hover { background: rgba(56, 189, 248, 0.24); transform: translateY(-1px); }
+      .retry-button:active { transform: translateY(0); }
+      .retry-button.is-visible { display: inline-flex; align-items: center; gap: 0.35rem; }
       .bottom-hint { margin: 0 1.75rem 1rem; color: rgba(148, 163, 184, 0.65); font-size: 0.75rem; text-align: right; }
       @media (max-width: 1200px) { main { grid-template-columns: 1fr; } header { flex-direction: column; align-items: flex-start; } .panel { min-height: 360px; } }
     </style>
@@ -76,7 +81,13 @@
       <section class="panel" aria-label="实时预览">
         <div class="panel-header">
           <div class="panel-title">实时预览</div>
-          <div class="badge" id="compile-info">等待中</div>
+          <div class="panel-actions">
+            <div class="badge" id="compile-info">等待中</div>
+            <button type="button" class="retry-button" data-action="reload-compiler" aria-label="重新加载编译器">
+              <span aria-hidden="true">⟳</span>
+              <span>重试编译器</span>
+            </button>
+          </div>
         </div>
         <div class="preview-stage">
           <iframe id="preview-frame" title="实时预览画布"></iframe>
