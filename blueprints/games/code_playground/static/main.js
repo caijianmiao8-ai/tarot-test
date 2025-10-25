@@ -694,8 +694,18 @@ button:focus { outline: none; }
   function waitForDependencies() {
     return new Promise((resolve) => {
       const checkInterval = setInterval(() => {
-        if (window.React && window.ReactDOM) {
+        // 检查所有必需的依赖
+        const hasReact = window.React;
+        const hasReactDOM = window.ReactDOM;
+        const hasLucide = window.lucideReact || window.LucideReact || window['lucide-react'];
+        
+        if (hasReact && hasReactDOM && hasLucide) {
           clearInterval(checkInterval);
+          console.log('✅ 所有依赖加载完成', {
+            React: !!hasReact,
+            ReactDOM: !!hasReactDOM,
+            LucideReact: !!hasLucide
+          });
           resolve();
         }
       }, 50);
@@ -703,19 +713,53 @@ button:focus { outline: none; }
       // 超时保护
       setTimeout(() => {
         clearInterval(checkInterval);
-        if (!window.React || !window.ReactDOM) {
+        const hasReact = window.React;
+        const hasReactDOM = window.ReactDOM;
+        const hasLucide = window.lucideReact || window.LucideReact || window['lucide-react'];
+        
+        if (!hasReact || !hasReactDOM) {
           reportError(new Error('React 加载超时'));
+        } else if (!hasLucide) {
+          console.warn('⚠️ Lucide React 图标库加载超时，图标可能无法显示');
         }
         resolve();
-      }, 5000);
+      }, 8000);
     });
   }
   
   waitForDependencies().then(() => {
     try {
+      // ===== 🎯 创建模块解析系统 =====
       const exports = {};
+      const module = { exports: exports };
+      
+      // 创建 require 函数来解析模块
+      const require = function(moduleName) {
+        // React 模块
+        if (moduleName === 'react') {
+          return window.React;
+        }
+        
+        // ReactDOM 模块
+        if (moduleName === 'react-dom') {
+          return window.ReactDOM;
+        }
+        
+        // Lucide React 图标库
+        if (moduleName === 'lucide-react') {
+          // lucide-react UMD 会暴露为 window.lucideReact 或 window.LucideReact
+          return window.lucideReact || window.LucideReact || window['lucide-react'] || {};
+        }
+        
+        // 如果模块未找到，返回空对象
+        console.warn('Module not found:', moduleName);
+        return {};
+      };
+      
+      // 执行编译后的代码
       ${compiledCode}
-      const App = exports.default || exports;
+      
+      const App = exports.default || module.exports.default || module.exports || exports;
       
       if (!App || typeof App !== 'function') {
         throw new Error('无效的组件导出：请确保使用 export default');
