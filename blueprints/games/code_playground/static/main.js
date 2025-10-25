@@ -377,6 +377,10 @@ button:focus { outline: none; }
     mark('inline-fallback');
   }
 
+  function installFallbackStyles() {
+    ensureInlineStyles();
+  }
+
   function installInlineUtilities() {
     ensureInlineStyles();
   }
