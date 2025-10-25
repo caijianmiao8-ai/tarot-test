@@ -152,7 +152,8 @@ export default function RemoteDesktopDemo() {
     'https://unpkg.com/@tailwindcss/browser@3.4.1?plugins=forms,typography,aspect-ratio',
     'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@3.4.1?plugins=forms,typography,aspect-ratio',
   ];
-  const TAILWIND_FALLBACK_STYLESHEET = 'https://fastly.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css';
+  const TAILWIND_BASELINE_STYLESHEET = 'https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css';
+  const TAILWIND_BASELINE_STYLESHEET_FALLBACK = 'https://unpkg.com/tailwindcss@3.4.1/dist/tailwind.min.css';
   const TAILWIND_INLINE_FALLBACK_CSS = `:root { color-scheme: dark; --tw-bg-opacity:1; --tw-text-opacity:1; }
 *,
 *::before,
@@ -340,7 +341,8 @@ button:focus { outline: none; }
 
   function getTailwindFallbackRuntime() {
     const loaderSources = JSON.stringify(TAILWIND_CDN_SOURCES);
-    const fallbackStylesheet = JSON.stringify(TAILWIND_FALLBACK_STYLESHEET);
+    const baselineStylesheet = JSON.stringify(TAILWIND_BASELINE_STYLESHEET);
+    const baselineFallback = JSON.stringify(TAILWIND_BASELINE_STYLESHEET_FALLBACK);
     const inlineCss = JSON.stringify(TAILWIND_INLINE_FALLBACK_CSS);
     return `
 <script>
@@ -350,7 +352,8 @@ button:focus { outline: none; }
   }
   window.__TAILWIND_RUNTIME_LOADED__ = true;
   var sources = ${loaderSources};
-  var fallbackStylesheet = ${fallbackStylesheet};
+  var baselineStylesheet = ${baselineStylesheet};
+  var baselineFallback = ${baselineFallback};
   var inlineCss = ${inlineCss};
   var attempt = 0;
   var loaded = false;
@@ -374,32 +377,71 @@ button:focus { outline: none; }
     mark('inline-fallback');
   }
 
-  function installFallbackStyles() {
-    if (!fallbackStylesheet) {
-      ensureInlineStyles();
-      return;
-    }
-    if (document.getElementById('tailwind-fallback-link')) {
-      return;
-    }
-    var link = document.createElement('link');
-    link.id = 'tailwind-fallback-link';
-    link.rel = 'stylesheet';
-    link.href = fallbackStylesheet;
-    link.crossOrigin = 'anonymous';
-    link.referrerPolicy = 'no-referrer';
-    link.onload = function () {
-      mark('stylesheet-fallback');
-    };
-    link.onerror = function () {
-      ensureInlineStyles();
-    };
-    document.head.appendChild(link);
+  function installInlineUtilities() {
+    ensureInlineStyles();
   }
+
+  function ensureBaselineStyles() {
+    if (!baselineStylesheet && !baselineFallback) {
+      return;
+    }
+
+    if (!document.getElementById('tailwind-baseline-link') && baselineStylesheet) {
+      var link = document.createElement('link');
+      link.id = 'tailwind-baseline-link';
+      link.rel = 'stylesheet';
+      link.href = baselineStylesheet;
+      link.crossOrigin = 'anonymous';
+      link.referrerPolicy = 'no-referrer';
+      link.onload = function () {
+        mark('baseline-stylesheet');
+      };
+      link.onerror = function () {
+        link.remove();
+        if (baselineFallback) {
+          var alt = document.createElement('link');
+          alt.id = 'tailwind-baseline-link';
+          alt.rel = 'stylesheet';
+          alt.href = baselineFallback;
+          alt.crossOrigin = 'anonymous';
+          alt.referrerPolicy = 'no-referrer';
+          alt.onload = function () {
+            mark('baseline-stylesheet');
+          };
+          alt.onerror = function () {
+            installInlineUtilities();
+          };
+          document.head.appendChild(alt);
+        } else {
+          installInlineUtilities();
+        }
+      };
+      document.head.appendChild(link);
+      return;
+    }
+
+    if (!document.getElementById('tailwind-baseline-link') && baselineFallback) {
+      var fallbackLink = document.createElement('link');
+      fallbackLink.id = 'tailwind-baseline-link';
+      fallbackLink.rel = 'stylesheet';
+      fallbackLink.href = baselineFallback;
+      fallbackLink.crossOrigin = 'anonymous';
+      fallbackLink.referrerPolicy = 'no-referrer';
+      fallbackLink.onload = function () {
+        mark('baseline-stylesheet');
+      };
+      fallbackLink.onerror = function () {
+        installInlineUtilities();
+      };
+      document.head.appendChild(fallbackLink);
+    }
+  }
+
+  ensureBaselineStyles();
 
   function loadNext() {
     if (attempt >= sources.length) {
-      installFallbackStyles();
+      installInlineUtilities();
       return;
     }
     var src = sources[attempt++];
