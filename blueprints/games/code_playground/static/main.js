@@ -1,249 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>React Playground - Enhanced Edition</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-      background: #0a0a0a; 
-      color: #e0e0e0; 
-      overflow: hidden;
-    }
-    
-    .container { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      height: 100vh; 
-      gap: 0;
-    }
-    
-    .editor-panel, .preview-panel { 
-      display: flex; 
-      flex-direction: column; 
-      position: relative;
-      background: #1a1a1a;
-    }
-    
-    .panel-header { 
-      background: linear-gradient(135deg, #2a2a2a, #1f1f1f); 
-      padding: 12px 20px; 
-      border-bottom: 1px solid #333;
-      display: flex; 
-      align-items: center; 
-      justify-content: space-between;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    
-    .panel-title { 
-      font-size: 14px; 
-      font-weight: 600; 
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: #2563eb;
-      color: white;
-      transition: all 0.3s;
-    }
-    
-    .status-badge.is-running { background: #f59e0b; animation: pulse 1.5s infinite; }
-    .status-badge.is-error { background: #ef4444; }
-    .status-badge.is-success { background: #10b981; }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    .compile-badge {
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 10px;
-      background: rgba(59, 130, 246, 0.1);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-    
-    .compile-badge.is-compiling {
-      animation: pulse 1s infinite;
-    }
-    
-    .toolbar { 
-      display: flex; 
-      gap: 8px; 
-      align-items: center;
-    }
-    
-    .btn { 
-      padding: 6px 14px; 
-      border: none; 
-      border-radius: 8px; 
-      font-size: 12px; 
-      font-weight: 500;
-      cursor: pointer; 
-      transition: all 0.2s;
-      background: rgba(255,255,255,0.05);
-      color: #e0e0e0;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .btn:hover { 
-      background: rgba(255,255,255,0.1); 
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    
-    .btn:active { transform: translateY(0); }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      color: white;
-      border: none;
-    }
-    
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    }
-    
-    .btn.is-visible { display: block; }
-    .btn:not(.is-visible) { display: none; }
-    
-    #code-editor { 
-      flex: 1; 
-      padding: 20px; 
-      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; 
-      font-size: 13px; 
-      line-height: 1.6;
-      background: #1a1a1a; 
-      color: #e0e0e0; 
-      border: none; 
-      resize: none; 
-      outline: none;
-      tab-size: 2;
-    }
-    
-    #code-editor::-webkit-scrollbar { width: 12px; }
-    #code-editor::-webkit-scrollbar-track { background: #1a1a1a; }
-    #code-editor::-webkit-scrollbar-thumb { 
-      background: #333; 
-      border-radius: 6px;
-      border: 2px solid #1a1a1a;
-    }
-    #code-editor::-webkit-scrollbar-thumb:hover { background: #444; }
-    
-    .preview-container { 
-      flex: 1; 
-      position: relative; 
-      background: white;
-    }
-    
-    #preview-frame { 
-      width: 100%; 
-      height: 100%; 
-      border: none; 
-      background: white;
-    }
-    
-    #error-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.95);
-      padding: 32px;
-      overflow: auto;
-      display: none;
-      backdrop-filter: blur(10px);
-    }
-    
-    #error-overlay pre {
-      background: #1a1a1a;
-      padding: 20px;
-      border-radius: 12px;
-      border-left: 4px solid #ef4444;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    
-    .feature-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-      z-index: 10;
-      animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-    
-    @media (max-width: 1024px) {
-      .container { 
-        grid-template-columns: 1fr; 
-        grid-template-rows: 1fr 1fr; 
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="feature-badge">✨ Enhanced Tailwind Support</div>
-  
-  <div class="container">
-    <!-- 编辑器面板 -->
-    <div class="editor-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span>📝</span>
-          <span>React Editor</span>
-          <span class="compile-badge" id="compile-info">就绪</span>
-        </div>
-        <div class="toolbar">
-          <button class="btn" data-action="format">格式化</button>
-          <button class="btn" data-action="copy">复制代码</button>
-          <button class="btn" data-action="reset">重置</button>
-          <button class="btn btn-primary" data-action="reload-compiler">重试编译器</button>
-        </div>
-      </div>
-      <textarea id="code-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-    </div>
-    
-    <!-- 预览面板 -->
-    <div class="preview-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span>👀</span>
-          <span>Live Preview</span>
-          <span class="status-badge" id="status-label">就绪</span>
-        </div>
-      </div>
-      <div class="preview-container">
-        <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
-        <div id="error-overlay"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 增强版 Playground 脚本 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
-  <script>
 (function () {
   const editor = document.getElementById("code-editor");
   const frame = document.getElementById("preview-frame");
@@ -271,131 +25,522 @@
   });
 
   const DEFAULT_SOURCE = `import React, { useState } from 'react';
-import { Monitor, Smartphone, Settings, Sun, Moon, Wifi } from 'lucide-react';
+import { Monitor, Smartphone, Settings, Sun, Moon, Wifi, Gamepad2 } from 'lucide-react';
 
-export default function App() {
-  const [darkMode, setDarkMode] = useState(true);
+const devices = [
+  { id: 1, name: '我的工作电脑', delay: '5ms', status: 'online' },
+  { id: 2, name: '家里的 MacBook', delay: '12ms', status: 'online' },
+  { id: 3, name: 'Linux 服务器', delay: '-', status: 'offline' }
+];
+
+export default function RemoteDesktopDemo() {
+  const [darkMode, setDarkMode] = useState(false);
+  const [selected, setSelected] = useState(devices[0]);
+
+  const theme = darkMode
+    ? { bg: 'from-slate-900 via-slate-950 to-black', text: 'text-slate-100', card: 'bg-slate-900/70 border-slate-700/60', badge: 'bg-emerald-400/15 text-emerald-300' }
+    : { bg: 'from-sky-100 via-white to-zinc-50', text: 'text-slate-900', card: 'bg-white/80 border-slate-200/70', badge: 'bg-emerald-500/10 text-emerald-600' };
 
   return (
-    <div className={"min-h-screen transition-all duration-300 " + (darkMode ? "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" : "bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50")}>
-      <div className="p-8">
-        {/* 顶部卡片 */}
-        <div className={"rounded-3xl p-8 shadow-2xl backdrop-blur-xl border transition-all " + (darkMode ? "bg-slate-900/80 border-slate-800/50 shadow-blue-500/20" : "bg-white/80 border-gray-200/60 shadow-blue-500/10")}>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className={"text-3xl font-bold " + (darkMode ? "text-white" : "text-slate-900")}>
-              🚀 Enhanced Playground
-            </h1>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={"p-3 rounded-xl transition-all duration-300 transform hover:scale-110 active:scale-95 " + (darkMode ? "bg-slate-800 hover:bg-slate-700" : "bg-gray-100 hover:bg-gray-200")}
-            >
-              {darkMode ? <Sun size={24} className="text-yellow-400" /> : <Moon size={24} className="text-indigo-600" />}
-            </button>
+    <div className={"min-h-screen font-sans transition-colors duration-300 bg-gradient-to-br " + theme.bg}>
+      <header className="px-10 py-8 flex items-center justify-between">
+        <div>
+          <h1 className={"text-3xl font-semibold " + theme.text}>RemoteDesktop</h1>
+          <p className="text-slate-500 mt-1">实时远程桌面体验</p>
+        </div>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/10 hover:bg-slate-900/20 text-sm"
+        >
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          {darkMode ? '浅色模式' : '深色模式'}
+        </button>
+      </header>
+
+      <main className="px-10 pb-10 grid gap-6 lg:grid-cols-[320px_1fr]">
+        <aside className={"rounded-3xl border shadow-xl p-6 space-y-4 " + theme.card}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">设备列表</h2>
+            <span className={"text-xs px-2 py-1 rounded-full " + theme.badge}>
+              <Wifi size={12} className="inline mr-1" />{devices.filter(d => d.status === 'online').length} 在线
+            </span>
           </div>
-          
-          <p className={"text-lg mb-8 " + (darkMode ? "text-slate-400" : "text-slate-600")}>
-            ✨ 现在支持完整的 Tailwind CSS 效果！
-          </p>
-          
-          {/* 功能展示卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { icon: '💫', title: '毛玻璃效果', desc: 'backdrop-blur-xl', color: 'blue' },
-              { icon: '🎨', title: '渐变背景', desc: 'gradient-to-br', color: 'purple' },
-              { icon: '✨', title: '彩色阴影', desc: 'shadow-blue-500', color: 'green' }
-            ].map((item, i) => (
-              <div
-                key={i}
-                className={"rounded-2xl p-6 transition-all duration-300 transform hover:scale-105 hover:-translate-y-2 cursor-pointer " + 
-                  (darkMode 
-                    ? "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:shadow-xl hover:shadow-" + item.color + "-500/30"
-                    : "bg-white/50 hover:bg-white border border-gray-200/50 hover:shadow-xl hover:shadow-" + item.color + "-500/20"
-                  )
-                }
+          <div className="space-y-3">
+            {devices.map(device => (
+              <button
+                key={device.id}
+                onClick={() => setSelected(device)}
+                className={"w-full text-left px-4 py-3 rounded-2xl transition-all border " +
+                  (selected.id === device.id ? 'border-sky-400 bg-sky-400/10 text-sky-200' : 'border-transparent hover:bg-slate-900/5')}
               >
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className={"text-lg font-bold mb-2 " + (darkMode ? "text-white" : "text-slate-900")}>{item.title}</h3>
-                <code className={"text-sm font-mono px-2 py-1 rounded " + (darkMode ? "bg-slate-900/50 text-blue-400" : "bg-gray-100 text-blue-600")}>
-                  {item.desc}
-                </code>
-              </div>
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{device.name}</p>
+                  <span className="text-xs font-mono">{device.delay}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {device.status === 'online' ? '在线 - 极速通道' : '离线 - 等待激活'}
+                </p>
+              </button>
             ))}
           </div>
-          
-          {/* 状态指示器 */}
-          <div className="mt-8 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className={"w-3 h-3 rounded-full animate-pulse " + (darkMode ? "bg-green-500" : "bg-green-600")}></div>
-              <span className={"text-sm font-medium " + (darkMode ? "text-slate-400" : "text-slate-600")}>Tailwind 增强版已启用</span>
+          <button className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white transition">
+            <Smartphone size={18} /> 手机远程控制
+          </button>
+        </aside>
+
+        <section className={"rounded-3xl border shadow-2xl p-8 relative overflow-hidden " + theme.card}>
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 via-transparent to-purple-500/10" aria-hidden="true"></div>
+          <div className="relative z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-400">当前连接</p>
+                <h2 className={"mt-1 text-2xl font-semibold " + theme.text}>{selected.name}</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-300">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                  <span className="text-xs font-medium">稳定连接</span>
+                </div>
+                <button className="px-3 py-1.5 rounded-full bg-slate-900/20 hover:bg-slate-900/30 text-xs">
+                  <Settings size={14} />
+                </button>
+              </div>
             </div>
-            <Wifi size={16} className="text-green-500" />
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl bg-slate-900/20 p-4 border border-slate-900/30">
+                <p className="text-xs text-slate-400">延迟</p>
+                <p className="mt-1 text-3xl font-semibold text-sky-300">{selected.delay}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-900/20 p-4 border border-slate-900/30">
+                <p className="text-xs text-slate-400">帧率</p>
+                <p className="mt-1 text-3xl font-semibold text-sky-300">60fps</p>
+              </div>
+              <div className="rounded-2xl bg-slate-900/20 p-4 border border-slate-900/30">
+                <p className="text-xs text-slate-400">控制模式</p>
+                <p className="mt-1 text-lg flex items-center gap-2 text-sky-200">
+                  <Gamepad2 size={18} /> 键鼠 + 手柄
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 h-[360px] rounded-3xl bg-slate-950/60 border border-slate-800/60 p-6">
+              <div className="flex items-center gap-3 text-slate-400 text-xs">
+                <Monitor size={16} />
+                <span>实时画布</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300">低延迟模式</span>
+              </div>
+              <div className="mt-4 h-[280px] rounded-2xl bg-slate-900/80 border border-slate-800/70 flex items-center justify-center">
+                <p className="text-slate-500 text-sm">在这里渲染你自定义的 UI 或可视化效果</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
-}`;
+}
+`;
 
   const CDN_POLYFILLS = {
-    react: "https://unpkg.com/react@18/umd/react.development.js",
-    "react-dom": "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
-    "lucide-react": "https://unpkg.com/lucide-react@0.379.0/dist/lucide-react.umd.js",
+    react: `https://unpkg.com/react@18/umd/react.development.js`,
+    "react-dom": `https://unpkg.com/react-dom@18/umd/react-dom.development.js`,
+    "lucide-react": `https://unpkg.com/lucide-react@0.379.0/dist/lucide-react.umd.js`,
   };
   
   const TAILWIND_CDN_SOURCES = [
     'https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio',
     'https://unpkg.com/@tailwindcss/browser@3.4.1?plugins=forms,typography,aspect-ratio',
+    'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@3.4.1?plugins=forms,typography,aspect-ratio',
   ];
+  
+  const TAILWIND_BASELINE_STYLESHEET = 'https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css';
+  const TAILWIND_BASELINE_STYLESHEET_FALLBACK = 'https://unpkg.com/tailwindcss@3.4.1/dist/tailwind.min.css';
+  
+  // ===== 🚀 增强版 Tailwind Fallback CSS =====
+  // 包含更多常用的 Tailwind 类，特别是视觉效果相关的
+  const TAILWIND_ENHANCED_FALLBACK_CSS = `:root { 
+  color-scheme: dark; 
+  --tw-bg-opacity: 1; 
+  --tw-text-opacity: 1;
+  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+}
 
-  // 精简后的核心 CSS，包含所有关键特性
-  const CORE_TAILWIND_CSS = \`/* 🚀 Enhanced Tailwind Core - 支持所有现代特效 */
-:root{color-scheme:dark;--tw-bg-opacity:1;--tw-text-opacity:1}*,*::before,*::after{box-sizing:border-box;border:0 solid}body{margin:0;font-family:-apple-system,sans-serif;background:#020617;color:#e2e8f0;line-height:1.5;-webkit-font-smoothing:antialiased}button{cursor:pointer;background:none;border:none}
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
 
-/* 布局 */
-.flex{display:flex!important}.inline-flex{display:inline-flex!important}.grid{display:grid!important}.relative{position:relative!important}.absolute{position:absolute!important}.fixed{position:fixed!important}.inset-0{inset:0!important}.z-10{z-index:10!important}.items-center{align-items:center!important}.justify-between{justify-content:space-between!important}.justify-center{justify-content:center!important}.flex-col{flex-direction:column!important}.gap-2{gap:.5rem!important}.gap-3{gap:.75rem!important}.gap-4{gap:1rem!important}.gap-6{gap:1.5rem!important}.gap-8{gap:2rem!important}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))!important}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}.overflow-hidden{overflow:hidden!important}
+body { 
+  margin: 0; 
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+  background: #020617; 
+  color: rgba(226, 232, 240, 1); 
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-/* 间距 */
-.p-3{padding:.75rem!important}.p-6{padding:1.5rem!important}.p-8{padding:2rem!important}.px-2{padding-left:.5rem!important;padding-right:.5rem!important}.py-1{padding-top:.25rem!important;padding-bottom:.25rem!important}.mb-2{margin-bottom:.5rem!important}.mb-3{margin-bottom:.75rem!important}.mb-6{margin-bottom:1.5rem!important}.mb-8{margin-bottom:2rem!important}.mt-8{margin-top:2rem!important}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; background: none; border: none; padding: 0; }
+button:focus { outline: none; }
 
-/* 尺寸 */
-.w-3{width:.75rem!important}.h-3{height:.75rem!important}.min-h-screen{min-height:100vh!important}
+/* ===== 布局 ===== */
+.font-sans { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; }
+.antialiased { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.min-h-screen { min-height: 100vh !important; }
+.flex { display: flex !important; }
+.inline-flex { display: inline-flex !important; }
+.grid { display: grid !important; }
+.relative { position: relative !important; }
+.absolute { position: absolute !important; }
+.fixed { position: fixed !important; }
+.pointer-events-none { pointer-events: none !important; }
+.inset-0 { top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important; }
+.z-10 { z-index: 10 !important; }
+.z-50 { z-index: 50 !important; }
 
-/* 文字 */
-.text-sm{font-size:.875rem!important;line-height:1.25rem!important}.text-lg{font-size:1.125rem!important;line-height:1.75rem!important}.text-xl{font-size:1.25rem!important;line-height:1.75rem!important}.text-3xl{font-size:1.875rem!important;line-height:2.25rem!important}.text-4xl{font-size:2.25rem!important}.font-medium{font-weight:500!important}.font-bold{font-weight:700!important}.font-mono{font-family:monospace!important}
+/* ===== Flexbox & Grid ===== */
+.items-center { align-items: center !important; }
+.items-start { align-items: flex-start !important; }
+.justify-between { justify-content: space-between !important; }
+.justify-center { justify-content: center !important; }
+.justify-around { justify-content: space-around !important; }
+.flex-col { flex-direction: column !important; }
+.flex-1 { flex: 1 1 0% !important; }
+.flex-shrink-0 { flex-shrink: 0 !important; }
+.overflow-hidden { overflow: hidden !important; }
+.overflow-y-auto { overflow-y: auto !important; }
 
-/* 颜色 */
-.text-white{color:#fff!important}.text-slate-400{color:#94a3b8!important}.text-slate-600{color:#475569!important}.text-slate-900{color:#0f172a!important}.text-blue-400{color:#60a5fa!important}.text-blue-600{color:#2563eb!important}.text-green-500{color:#22c55e!important}.text-indigo-600{color:#4f46e5!important}.text-yellow-400{color:#facc15!important}.bg-white{background:#fff!important}.bg-slate-800{background:#1e293b!important}.bg-slate-900{background:#0f172a!important}.bg-slate-900\\/50{background:rgba(15,23,42,.5)!important}.bg-gray-100{background:#f3f4f6!important}.bg-gray-200{background:#e5e7eb!important}.bg-blue-500{background:#3b82f6!important}
+.gap-1 { gap: 0.25rem !important; }
+.gap-2 { gap: 0.5rem !important; }
+.gap-3 { gap: 0.75rem !important; }
+.gap-4 { gap: 1rem !important; }
+.gap-6 { gap: 1.5rem !important; }
+.gap-8 { gap: 2rem !important; }
 
-/* 🌟 渐变 */
-.bg-gradient-to-br{background-image:linear-gradient(to bottom right,var(--tw-gradient-stops))!important}.from-slate-950{--tw-gradient-from:#020617;--tw-gradient-stops:var(--tw-gradient-from),transparent}.via-slate-900{--tw-gradient-stops:var(--tw-gradient-from),#0f172a,transparent}.to-slate-950{--tw-gradient-to:#020617}.from-gray-50{--tw-gradient-from:#f9fafb;--tw-gradient-stops:var(--tw-gradient-from),transparent}.via-blue-50\\/30{--tw-gradient-stops:var(--tw-gradient-from),rgba(239,246,255,.3),transparent}.to-gray-50{--tw-gradient-to:#f9fafb}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem !important; }
+.space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem !important; }
+.space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem !important; }
 
-/* 边框 */
-.border{border-width:1px!important}.border-slate-700\\/50{border-color:rgba(51,65,85,.5)!important}.border-slate-800\\/50{border-color:rgba(30,41,59,.5)!important}.border-gray-200{border-color:#e5e7eb!important}.border-gray-200\\/50{border-color:rgba(229,231,235,.5)!important}.border-gray-200\\/60{border-color:rgba(229,231,235,.6)!important}.rounded-xl{border-radius:.75rem!important}.rounded-2xl{border-radius:1rem!important}.rounded-3xl{border-radius:1.5rem!important}.rounded-full{border-radius:9999px!important}
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 
-/* 💫 阴影 - 关键特性！ */
-.shadow-xl{box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1)!important}.shadow-2xl{box-shadow:0 25px 50px -12px rgba(0,0,0,.25)!important}.shadow-blue-500\\/10{box-shadow:0 20px 25px -5px rgba(59,130,246,.1)!important}.shadow-blue-500\\/20{box-shadow:0 20px 25px -5px rgba(59,130,246,.2)!important}.shadow-blue-500\\/30{box-shadow:0 20px 25px -5px rgba(59,130,246,.3)!important}.shadow-green-500\\/20{box-shadow:0 20px 25px -5px rgba(34,197,94,.2)!important}.shadow-purple-500\\/20{box-shadow:0 20px 25px -5px rgba(168,85,247,.2)!important}
+/* ===== 间距 ===== */
+.p-2 { padding: 0.5rem !important; }
+.p-3 { padding: 0.75rem !important; }
+.p-4 { padding: 1rem !important; }
+.p-6 { padding: 1.5rem !important; }
+.p-8 { padding: 2rem !important; }
+.px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+.px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.px-5 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+.px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+.px-8 { padding-left: 2rem !important; padding-right: 2rem !important; }
+.py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+.py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+.py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+.py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.pl-12 { padding-left: 3rem !important; }
+.pr-4 { padding-right: 1rem !important; }
+.pr-12 { padding-right: 3rem !important; }
+.pt-3 { padding-top: 0.75rem !important; }
+.pt-4 { padding-top: 1rem !important; }
+.pb-3 { padding-bottom: 0.75rem !important; }
 
-/* ✨ 毛玻璃 - 关键特性！ */
-.backdrop-blur-xl{backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}.bg-slate-900\\/80{background:rgba(15,23,42,.8)!important}.bg-slate-800\\/50{background:rgba(30,41,59,.5)!important}.bg-white\\/50{background:rgba(255,255,255,.5)!important}.bg-white\\/80{background:rgba(255,255,255,.8)!important}
+.m-0 { margin: 0 !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 0.75rem !important; }
+.mb-4 { margin-bottom: 1rem !important; }
+.mb-6 { margin-bottom: 1.5rem !important; }
+.mb-8 { margin-bottom: 2rem !important; }
+.mt-1 { margin-top: 0.25rem !important; }
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-3 { margin-top: 0.75rem !important; }
+.mt-4 { margin-top: 1rem !important; }
+.mt-6 { margin-top: 1.5rem !important; }
+.mt-8 { margin-top: 2rem !important; }
+.mt-auto { margin-top: auto !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
 
-/* 🎬 过渡动画 */
-.transition-all{transition:all .15s cubic-bezier(.4,0,.2,1)!important}.duration-300{transition-duration:.3s!important}.transform{transform:translate(var(--tw-translate-x,0),var(--tw-translate-y,0))!important}.scale-95{transform:scale(.95)!important}.scale-105{transform:scale(1.05)!important}.scale-110{transform:scale(1.1)!important}.-translate-y-2{transform:translateY(-.5rem)!important}
+/* ===== 尺寸 ===== */
+.w-full { width: 100% !important; }
+.w-1 { width: 0.25rem !important; }
+.w-2 { width: 0.5rem !important; }
+.w-12 { width: 3rem !important; }
+.w-14 { width: 3.5rem !important; }
+.w-16 { width: 4rem !important; }
+.w-20 { width: 5rem !important; }
+.w-24 { width: 6rem !important; }
+.w-32 { width: 8rem !important; }
+.w-64 { width: 16rem !important; }
+.max-w-md { max-width: 28rem !important; }
+.max-w-4xl { max-width: 56rem !important; }
+.max-w-7xl { max-width: 80rem !important; }
 
-/* 🔄 动画 */
-.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite!important}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.h-full { height: 100% !important; }
+.h-1 { height: 0.25rem !important; }
+.h-2 { height: 0.5rem !important; }
+.h-12 { height: 3rem !important; }
+.h-14 { height: 3.5rem !important; }
+.h-16 { height: 4rem !important; }
+.h-20 { height: 5rem !important; }
+.h-24 { height: 6rem !important; }
+.h-32 { height: 8rem !important; }
 
-/* 悬停状态 */
-.hover\\:scale-105:hover{transform:scale(1.05)!important}.hover\\:scale-110:hover{transform:scale(1.1)!important}.hover\\:-translate-y-2:hover{transform:translateY(-.5rem)!important}.hover\\:bg-slate-700:hover{background:#334155!important}.hover\\:bg-slate-800:hover{background:#1e293b!important}.hover\\:bg-white:hover{background:#fff!important}.hover\\:shadow-xl:hover{box-shadow:0 20px 25px -5px rgba(0,0,0,.1)!important}.hover\\:shadow-blue-500\\/30:hover{box-shadow:0 20px 25px -5px rgba(59,130,246,.3)!important}.hover\\:shadow-green-500\\/20:hover{box-shadow:0 20px 25px -5px rgba(34,197,94,.2)!important}.hover\\:shadow-purple-500\\/20:hover{box-shadow:0 20px 25px -5px rgba(168,85,247,.2)!important}
+/* ===== 文字 ===== */
+.text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
+.text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
+.text-base { font-size: 1rem !important; line-height: 1.5rem !important; }
+.text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+.text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+.text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+.text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+.text-4xl { font-size: 2.25rem !important; line-height: 2.5rem !important; }
+.text-5xl { font-size: 3rem !important; line-height: 1 !important; }
 
-/* 激活状态 */
-.active\\:scale-95:active{transform:scale(.95)!important}
+.font-medium { font-weight: 500 !important; }
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
 
-/* 其他 */
-.cursor-pointer{cursor:pointer!important}
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+.uppercase { text-transform: uppercase !important; }
+.truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.tracking-wider { letter-spacing: 0.05em !important; }
 
-/* 响应式 */
-@media(min-width:768px){.md\\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-\`;
+/* ===== 颜色 ===== */
+.text-white { color: rgb(255 255 255) !important; }
+.text-slate-50 { color: rgb(248 250 252) !important; }
+.text-slate-100 { color: rgb(241 245 249) !important; }
+.text-slate-200 { color: rgb(226 232 240) !important; }
+.text-slate-400 { color: rgb(148 163 184) !important; }
+.text-slate-500 { color: rgb(100 116 139) !important; }
+.text-slate-600 { color: rgb(71 85 105) !important; }
+.text-slate-900 { color: rgb(15 23 42) !important; }
+.text-gray-400 { color: rgb(156 163 175) !important; }
+.text-gray-500 { color: rgb(107 114 128) !important; }
+.text-gray-600 { color: rgb(75 85 99) !important; }
+.text-red-500 { color: rgb(239 68 68) !important; }
+.text-green-400 { color: rgb(74 222 128) !important; }
+.text-green-500 { color: rgb(34 197 94) !important; }
+.text-blue-500 { color: rgb(59 130 246) !important; }
+.text-blue-600 { color: rgb(37 99 235) !important; }
+.text-purple-500 { color: rgb(168 85 247) !important; }
+.text-indigo-600 { color: rgb(79 70 229) !important; }
+.text-yellow-400 { color: rgb(250 204 21) !important; }
+
+.bg-white { background-color: rgb(255 255 255) !important; }
+.bg-black { background-color: rgb(0 0 0) !important; }
+.bg-slate-50 { background-color: rgb(248 250 252) !important; }
+.bg-slate-800 { background-color: rgb(30 41 59) !important; }
+.bg-slate-900 { background-color: rgb(15 23 42) !important; }
+.bg-slate-950 { background-color: rgb(2 6 23) !important; }
+.bg-gray-200 { background-color: rgb(229 231 235) !important; }
+.bg-gray-400 { background-color: rgb(156 163 175) !important; }
+.bg-blue-500 { background-color: rgb(59 130 246) !important; }
+.bg-blue-600 { background-color: rgb(37 99 235) !important; }
+.bg-green-500 { background-color: rgb(34 197 94) !important; }
+
+/* ===== 🌟 背景渐变 (增强) ===== */
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)) !important; }
+.bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)) !important; }
+.bg-gradient-to-t { background-image: linear-gradient(to top, var(--tw-gradient-stops)) !important; }
+.bg-gradient-to-b { background-image: linear-gradient(to bottom, var(--tw-gradient-stops)) !important; }
+
+.from-slate-900 { --tw-gradient-from: rgb(15 23 42); --tw-gradient-to: rgb(15 23 42 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-slate-950 { --tw-gradient-from: rgb(2 6 23); --tw-gradient-to: rgb(2 6 23 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-gray-50 { --tw-gradient-from: rgb(249 250 251); --tw-gradient-to: rgb(249 250 251 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-blue-400 { --tw-gradient-from: rgb(96 165 250); --tw-gradient-to: rgb(96 165 250 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-blue-500 { --tw-gradient-from: rgb(59 130 246); --tw-gradient-to: rgb(59 130 246 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-blue-600 { --tw-gradient-from: rgb(37 99 235); --tw-gradient-to: rgb(37 99 235 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-green-400 { --tw-gradient-from: rgb(74 222 128); --tw-gradient-to: rgb(74 222 128 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-purple-400 { --tw-gradient-from: rgb(192 132 252); --tw-gradient-to: rgb(192 132 252 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-purple-500 { --tw-gradient-from: rgb(168 85 247); --tw-gradient-to: rgb(168 85 247 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.from-transparent { --tw-gradient-from: transparent; --tw-gradient-to: transparent; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+
+.via-slate-950 { --tw-gradient-to: rgb(2 6 23 / 0); --tw-gradient-stops: var(--tw-gradient-from), rgb(2 6 23), var(--tw-gradient-to); }
+.via-blue-50\/30 { --tw-gradient-to: rgb(239 246 255 / 0); --tw-gradient-stops: var(--tw-gradient-from), rgb(239 246 255 / 0.3), var(--tw-gradient-to); }
+.via-white { --tw-gradient-to: rgb(255 255 255 / 0); --tw-gradient-stops: var(--tw-gradient-from), rgb(255 255 255), var(--tw-gradient-to); }
+.via-white\/5 { --tw-gradient-to: rgb(255 255 255 / 0); --tw-gradient-stops: var(--tw-gradient-from), rgb(255 255 255 / 0.05), var(--tw-gradient-to); }
+.via-transparent { --tw-gradient-to: transparent; --tw-gradient-stops: var(--tw-gradient-from), transparent, var(--tw-gradient-to); }
+
+.to-black { --tw-gradient-to: rgb(0 0 0); }
+.to-slate-950 { --tw-gradient-to: rgb(2 6 23); }
+.to-gray-50 { --tw-gradient-to: rgb(249 250 251); }
+.to-blue-500 { --tw-gradient-to: rgb(59 130 246); }
+.to-blue-600 { --tw-gradient-to: rgb(37 99 235); }
+.to-blue-700 { --tw-gradient-to: rgb(29 78 216); }
+.to-green-600 { --tw-gradient-to: rgb(22 163 74); }
+.to-purple-500 { --tw-gradient-to: rgb(168 85 247); }
+.to-purple-600 { --tw-gradient-to: rgb(147 51 234); }
+.to-transparent { --tw-gradient-to: transparent; }
+
+/* ===== 边框 ===== */
+.border { border-width: 1px !important; }
+.border-t { border-top-width: 1px !important; }
+.border-b { border-bottom-width: 1px !important; }
+.border-l { border-left-width: 1px !important; }
+.border-r { border-right-width: 1px !important; }
+.border-l-4 { border-left-width: 4px !important; }
+
+.border-white { border-color: rgb(255 255 255) !important; }
+.border-slate-200 { border-color: rgb(226 232 240) !important; }
+.border-slate-200\/10 { border-color: rgb(226 232 240 / 0.1) !important; }
+.border-slate-200\/60 { border-color: rgb(226 232 240 / 0.6) !important; }
+.border-slate-300 { border-color: rgb(203 213 225) !important; }
+.border-slate-700 { border-color: rgb(51 65 85) !important; }
+.border-slate-700\/50 { border-color: rgb(51 65 85 / 0.5) !important; }
+.border-slate-800 { border-color: rgb(30 41 59) !important; }
+.border-slate-800\/50 { border-color: rgb(30 41 59 / 0.5) !important; }
+.border-gray-200\/10 { border-color: rgb(229 231 235 / 0.1) !important; }
+.border-gray-400\/20 { border-color: rgb(156 163 175 / 0.2) !important; }
+.border-blue-500 { border-color: rgb(59 130 246) !important; }
+.border-blue-500\/20 { border-color: rgb(59 130 246 / 0.2) !important; }
+.border-green-500\/20 { border-color: rgb(34 197 94 / 0.2) !important; }
+.border-transparent { border-color: transparent !important; }
+
+.rounded-xl { border-radius: 0.75rem !important; }
+.rounded-2xl { border-radius: 1rem !important; }
+.rounded-3xl { border-radius: 1.5rem !important; }
+.rounded-full { border-radius: 9999px !important; }
+.rounded-t-3xl { border-top-left-radius: 1.5rem !important; border-top-right-radius: 1.5rem !important; }
+
+/* ===== 🎨 阴影效果 (增强) ===== */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important; }
+.shadow { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important; }
+.shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important; }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; }
+.shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important; }
+.shadow-2xl { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25) !important; }
+.shadow-inner { box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05) !important; }
+
+/* 彩色阴影 */
+.shadow-blue-500\/10 { box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.1), 0 8px 10px -6px rgb(59 130 246 / 0.1) !important; }
+.shadow-blue-500\/20 { box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.2), 0 8px 10px -6px rgb(59 130 246 / 0.2) !important; }
+.shadow-blue-500\/30 { box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.3), 0 8px 10px -6px rgb(59 130 246 / 0.3) !important; }
+.shadow-blue-500\/40 { box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.4), 0 8px 10px -6px rgb(59 130 246 / 0.4) !important; }
+.shadow-green-500\/30 { box-shadow: 0 20px 25px -5px rgb(34 197 94 / 0.3), 0 8px 10px -6px rgb(34 197 94 / 0.3) !important; }
+.shadow-purple-500\/30 { box-shadow: 0 20px 25px -5px rgb(168 85 247 / 0.3), 0 8px 10px -6px rgb(168 85 247 / 0.3) !important; }
+
+/* ===== 💫 毛玻璃效果 (backdrop-blur) ===== */
+.backdrop-blur-sm { backdrop-filter: blur(4px) !important; }
+.backdrop-blur { backdrop-filter: blur(8px) !important; }
+.backdrop-blur-md { backdrop-filter: blur(12px) !important; }
+.backdrop-blur-lg { backdrop-filter: blur(16px) !important; }
+.backdrop-blur-xl { backdrop-filter: blur(24px) !important; }
+.backdrop-blur-2xl { backdrop-filter: blur(40px) !important; }
+
+/* ===== 透明度 ===== */
+.bg-white\/80 { background-color: rgb(255 255 255 / 0.8) !important; }
+.bg-white\/90 { background-color: rgb(255 255 255 / 0.9) !important; }
+.bg-black\/50 { background-color: rgb(0 0 0 / 0.5) !important; }
+.bg-slate-900\/80 { background-color: rgb(15 23 42 / 0.8) !important; }
+.bg-slate-900\/90 { background-color: rgb(15 23 42 / 0.9) !important; }
+.bg-blue-500\/10 { background-color: rgb(59 130 246 / 0.1) !important; }
+.bg-blue-500\/20 { background-color: rgb(59 130 246 / 0.2) !important; }
+.bg-green-500\/10 { background-color: rgb(34 197 94 / 0.1) !important; }
+.bg-green-500\/15 { background-color: rgb(34 197 94 / 0.15) !important; }
+.bg-purple-500\/10 { background-color: rgb(168 85 247 / 0.1) !important; }
+
+/* ===== ✨ 过渡动画 (transition) ===== */
+.transition { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter !important; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important; transition-duration: 150ms !important; }
+.transition-all { transition-property: all !important; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important; transition-duration: 150ms !important; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important; transition-duration: 150ms !important; }
+.transition-transform { transition-property: transform !important; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important; transition-duration: 150ms !important; }
+
+.duration-150 { transition-duration: 150ms !important; }
+.duration-200 { transition-duration: 200ms !important; }
+.duration-300 { transition-duration: 300ms !important; }
+.duration-500 { transition-duration: 500ms !important; }
+
+/* ===== 🎯 Transform ===== */
+.transform { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)) !important; }
+.scale-95 { --tw-scale-x: 0.95; --tw-scale-y: 0.95; transform: scale(0.95) !important; }
+.scale-105 { --tw-scale-x: 1.05; --tw-scale-y: 1.05; transform: scale(1.05) !important; }
+.scale-110 { --tw-scale-x: 1.1; --tw-scale-y: 1.1; transform: scale(1.1) !important; }
+.-translate-x-1\/2 { --tw-translate-x: -50%; transform: translateX(-50%) !important; }
+.-translate-y-1\/2 { --tw-translate-y: -50%; transform: translateY(-50%) !important; }
+.translate-y-0 { --tw-translate-y: 0px; transform: translateY(0) !important; }
+.-translate-y-2 { --tw-translate-y: -0.5rem; transform: translateY(-0.5rem) !important; }
+.rotate-12 { --tw-rotate: 12deg; transform: rotate(12deg) !important; }
+
+/* ===== 🎬 动画 ===== */
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important; }
+.animate-bounce { animation: bounce 1s infinite !important; }
+.animate-spin { animation: spin 1s linear infinite !important; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+  50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Hover状态 ===== */
+.hover\\:bg-slate-50:hover { background-color: rgb(248 250 252) !important; }
+.hover\\:bg-slate-800:hover { background-color: rgb(30 41 59) !important; }
+.hover\\:bg-slate-800\\/60:hover { background-color: rgb(30 41 59 / 0.6) !important; }
+.hover\\:bg-blue-600:hover { background-color: rgb(37 99 235) !important; }
+.hover\\:bg-blue-700:hover { background-color: rgb(29 78 216) !important; }
+.hover\\:text-blue-500:hover { color: rgb(59 130 246) !important; }
+.hover\\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; }
+.hover\\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important; }
+.hover\\:shadow-2xl:hover { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25) !important; }
+.hover\\:shadow-blue-500\\/30:hover { box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.3), 0 8px 10px -6px rgb(59 130 246 / 0.3) !important; }
+.hover\\:scale-105:hover { transform: scale(1.05) !important; }
+.hover\\:scale-110:hover { transform: scale(1.1) !important; }
+.hover\\:-translate-y-2:hover { transform: translateY(-0.5rem) !important; }
+
+/* ===== Active状态 ===== */
+.active\\:scale-95:active { transform: scale(0.95) !important; }
+
+/* ===== Focus状态 ===== */
+.focus\\:outline-none:focus { outline: 2px solid transparent !important; outline-offset: 2px !important; }
+.focus\\:ring-2:focus { box-shadow: 0 0 0 3px var(--tw-ring-color) !important; }
+.focus\\:ring-blue-500:focus { --tw-ring-color: rgb(59 130 246 / 0.5); }
+.focus\\:border-transparent:focus { border-color: transparent !important; }
+.focus\\:border-blue-500:focus { border-color: rgb(59 130 246) !important; }
+
+/* ===== 响应式 ===== */
+@media (min-width: 768px) {
+  .md\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (min-width: 1024px) {
+  .lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .lg\\:grid-cols-\\[320px_1fr\\] { grid-template-columns: 320px 1fr !important; }
+}
+
+/* ===== 暗色模式支持 ===== */
+.dark\\:bg-zinc-900:is(.dark *) { background-color: rgb(24 24 27) !important; }
+.dark\\:text-white:is(.dark *) { color: rgb(255 255 255) !important; }
+.dark\\:from-white\\/5:is(.dark *) { --tw-gradient-from: rgb(255 255 255 / 0.05); --tw-gradient-to: rgb(255 255 255 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark\\:from-white\\/10:is(.dark *) { --tw-gradient-from: rgb(255 255 255 / 0.1); --tw-gradient-to: rgb(255 255 255 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+
+/* ===== 其他实用类 ===== */
+.cursor-pointer { cursor: pointer !important; }
+.select-none { user-select: none !important; }
+.appearance-none { appearance: none !important; }
+.outline-none { outline: 2px solid transparent !important; outline-offset: 2px !important; }
+`;
 
   function setStatus(text = "实时预览", state = "idle") {
     if (!statusLabel) return;
@@ -407,13 +552,18 @@ export default function App() {
   function setCompileInfo(text, loading = false) {
     if (!compileBadge) return;
     compileBadge.textContent = text;
-    compileBadge.classList.toggle("is-compiling", loading);
+    if (loading) {
+      compileBadge.classList.add("is-compiling");
+    } else {
+      compileBadge.classList.remove("is-compiling");
+    }
   }
 
   function showError(message, title = "编译错误") {
     if (overlay) {
       const pre = overlay.querySelector("pre") || document.createElement("pre");
       pre.textContent = message;
+      pre.style.cssText = "color:#fca5a5;font-family:monospace;white-space:pre-wrap;line-height:1.6";
       if (!overlay.querySelector("pre")) {
         const heading = document.createElement("h3");
         heading.textContent = title;
@@ -428,7 +578,13 @@ export default function App() {
   }
 
   function hideError() {
-    if (overlay) overlay.style.display = "none";
+    if (overlay) {
+      overlay.style.display = "none";
+    }
+  }
+
+  function normalizeSource(src) {
+    return (src || "").trim();
   }
 
   async function loadScript(url, timeout = 8000) {
@@ -436,7 +592,7 @@ export default function App() {
       const script = document.createElement("script");
       const timer = setTimeout(() => {
         script.remove();
-        reject(new Error(\`加载超时: \${url}\`));
+        reject(new Error(`加载超时: ${url}`));
       }, timeout);
       script.onload = () => {
         clearTimeout(timer);
@@ -445,7 +601,7 @@ export default function App() {
       script.onerror = () => {
         clearTimeout(timer);
         script.remove();
-        reject(new Error(\`加载失败: \${url}\`));
+        reject(new Error(`加载失败: ${url}`));
       };
       script.src = url;
       document.head.appendChild(script);
@@ -457,64 +613,111 @@ export default function App() {
       try {
         await loadScript(src, BABEL_ATTEMPT_TIMEOUT);
         if (window.Babel) {
-          console.log(\`✅ Babel 加载成功: \${src}\`);
+          console.log(`✅ Babel 加载成功: ${src}`);
           return;
         }
       } catch (err) {
-        console.warn(\`⚠️ Babel 加载失败: \${src}\`, err);
+        console.warn(`⚠️ Babel 加载失败: ${src}`, err);
       }
     }
     throw new Error("所有 Babel CDN 源均加载失败");
   }
 
   function ensureBabelLoaded() {
-    if (window.Babel) return Promise.resolve();
-    if (babelLoadingPromise) return babelLoadingPromise;
+    if (window.Babel) {
+      return Promise.resolve();
+    }
+    if (babelLoadingPromise) {
+      return babelLoadingPromise;
+    }
     babelLoadingPromise = tryLoadBabel();
     return babelLoadingPromise;
   }
 
   function buildPreviewHtml(compiledCode) {
-    return \`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Preview</title>
-  <script src="\${TAILWIND_CDN_SOURCES[0]}" crossorigin="anonymous"></script>
-  <style>\${CORE_TAILWIND_CSS}</style>
-  \${Object.entries(CDN_POLYFILLS).map(([, url]) => \`<script src="\${url}" crossorigin></script>\`).join("\\n  ")}
+  <!-- ===== 🚀 优先加载增强版 Tailwind CSS ===== -->
+  <script src="${TAILWIND_CDN_SOURCES[0]}" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="${TAILWIND_BASELINE_STYLESHEET}" crossorigin="anonymous">
+  <style>
+    /* ===== 增强版 Fallback CSS - 包含更多效果类 ===== */
+    ${TAILWIND_ENHANCED_FALLBACK_CSS}
+  </style>
+  ${Object.entries(CDN_POLYFILLS).map(
+    ([, url]) => `<script src="${url}" crossorigin="anonymous"></script>`
+  ).join("\n  ")}
 </head>
 <body>
 <div id="root"></div>
 <script>
   function reportError(err) {
-    window.parent.postMessage({type:'CODE_PLAYGROUND_ERROR',message:err?.message||String(err)},'*');
+    if (window.parent && window.parent.postMessage) {
+      window.parent.postMessage({
+        type: 'CODE_PLAYGROUND_ERROR',
+        message: err && err.message ? err.message : String(err)
+      }, '*');
+    }
   }
   try {
-    \${compiledCode}
+    ${compiledCode}
     const App = exports.default || exports;
-    if (!App || typeof App !== 'function') throw new Error('无效的组件导出');
-    const root = document.getElementById('root');
-    const renderer = window.ReactDOM.createRoot ? window.ReactDOM.createRoot(root) : window.ReactDOM.render;
-    renderer.render ? renderer.render(React.createElement(App)) : window.ReactDOM.render(React.createElement(App), root);
+    if (!App || typeof App !== 'function') {
+      throw new Error('导出的组件无效，请确保使用 export default 导出一个 React 组件');
+    }
+    const rootElement = document.getElementById('root');
+    const root = window.ReactDOM.createRoot
+      ? window.ReactDOM.createRoot(rootElement)
+      : window.ReactDOM.render;
+    if (root && root.render) {
+      root.render(window.React.createElement(App));
+    } else {
+      window.ReactDOM.render(window.React.createElement(App), rootElement);
+    }
   } catch (err) {
     reportError(err);
-    document.body.innerHTML = '<pre style="padding:24px;color:#fca5a5;font-family:monospace">' + (err.stack || err.message) + '</pre>';
+    const pre = document.createElement('pre');
+    pre.textContent = err.stack || err.message;
+    pre.style.padding = '24px';
+    pre.style.margin = '0';
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.lineHeight = '1.5';
+    pre.style.color = '#fca5a5';
+    pre.style.fontFamily = 'JetBrains Mono, monospace';
+    document.body.innerHTML = '';
+    document.body.appendChild(pre);
   }
-  window.addEventListener('error', e => reportError(e.error || e.message));
-  window.addEventListener('unhandledrejection', e => reportError(e.reason));
+  window.addEventListener('error', function (event) {
+    reportError(event.error || event.message || '脚本错误');
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    reportError(event.reason || event);
+  });
 </script>
 </body>
-</html>\`;
+</html>`;
   }
 
   function transpile(source) {
-    if (!window.Babel) throw new Error("Babel 尚未加载完成");
+    if (!window.Babel) {
+      throw new Error("Babel 尚未加载完成");
+    }
     return window.Babel.transform(source, {
       sourceType: "module",
-      presets: [["react", { runtime: "classic" }]],
-      plugins: ["transform-modules-commonjs", "proposal-class-properties", "proposal-object-rest-spread", "proposal-optional-chaining", "proposal-nullish-coalescing-operator"],
+      presets: [
+        ["react", { runtime: "classic" }],
+      ],
+      plugins: [
+        "transform-modules-commonjs",
+        "proposal-class-properties",
+        "proposal-object-rest-spread",
+        "proposal-optional-chaining",
+        "proposal-nullish-coalescing-operator",
+      ],
       filename: "App.jsx",
       retainLines: true,
     }).code;
@@ -525,7 +728,7 @@ export default function App() {
   let currentBlobUrl = null;
 
   function handleFrameLoad() {
-    setCompileInfo("✨ 预览已更新", false);
+    setCompileInfo("预览已更新 ✨", true);
     setStatus("实时预览", "idle");
     hideError();
   }
@@ -538,18 +741,28 @@ export default function App() {
     }
   });
 
+  function handleBabelFailure(error) {
+    const message = (error && error.message) || "无法加载 Babel 编译器，暂时无法编译预览。";
+    const guidance = `${message}\n请检查网络连接或点击"重试编译器"按钮后再试。`;
+    showError(guidance, "加载失败");
+    setStatus("编译器加载失败", "error");
+    if (compilerRetryButton) {
+      compilerRetryButton.classList.add("is-visible");
+    }
+  }
+
   async function updatePreview(immediate = false) {
-    const source = (editor.value || "").trim();
-    if (source === lastSource && !immediate) return;
+    const source = normalizeSource(editor.value);
+    if (source === lastSource && !immediate) {
+      return;
+    }
     hideError();
 
     try {
       await ensureBabelLoaded();
     } catch (err) {
       console.error(err);
-      showError("无法加载 Babel 编译器\\n请检查网络连接或点击\\"重试编译器\\"", "加载失败");
-      setStatus("编译器加载失败", "error");
-      if (compilerRetryButton) compilerRetryButton.classList.add("is-visible");
+      handleBabelFailure(err);
       return;
     }
 
@@ -579,8 +792,12 @@ export default function App() {
       updatePreview(true);
       return;
     }
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => updatePreview(false), 320);
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      updatePreview(false);
+    }, 320);
   }
 
   function handleAction(event) {
@@ -592,32 +809,58 @@ export default function App() {
     }
     if (action === "copy") {
       navigator.clipboard.writeText(editor.value).then(() => {
-        setStatus("已复制", "success");
+        setStatus("已复制到剪贴板", "success");
         setTimeout(() => setStatus("实时预览"), 1600);
+      }).catch(() => {
+        setStatus("复制失败", "error");
       });
     }
     if (action === "format") {
       if (window.js_beautify) {
-        editor.value = window.js_beautify(editor.value, { indent_size: 2, max_preserve_newlines: 2 });
+        const formatted = window.js_beautify(editor.value, {
+          indent_size: 2,
+          max_preserve_newlines: 2,
+          space_in_empty_paren: false,
+        });
+        editor.value = formatted;
         scheduleUpdate(true);
+      } else {
+        setStatus("格式化工具加载中", "running");
+        setTimeout(() => setStatus("实时预览"), 1500);
       }
     }
     if (action === "reload-compiler") {
       setCompileInfo("重新加载中…", true);
-      ensureBabelLoaded().then(() => scheduleUpdate(true));
+      setStatus("重新加载编译器", "running");
+      ensureBabelLoaded()
+        .then(() => {
+          scheduleUpdate(true);
+        })
+        .catch((error) => {
+          console.error(error);
+          handleBabelFailure(error);
+        });
     }
   }
 
   function init() {
-    console.log("🚀 Enhanced Playground 已启动！支持完整 Tailwind 特效！");
+    console.log("🚀 Playground Enhanced - 已加载增强版 Tailwind 支持！");
     const stored = localStorage.getItem(STORAGE_KEY);
     editor.value = stored || DEFAULT_SOURCE;
     editor.addEventListener("input", () => {
       localStorage.setItem(STORAGE_KEY, editor.value);
       scheduleUpdate();
     });
-    buttons.forEach(btn => btn.addEventListener("click", handleAction));
-    ensureBabelLoaded().then(() => scheduleUpdate(true));
+    buttons.forEach((btn) => btn.addEventListener("click", handleAction));
+
+    ensureBabelLoaded()
+      .then(() => {
+        scheduleUpdate(true);
+      })
+      .catch((error) => {
+        console.error(error);
+        handleBabelFailure(error);
+      });
   }
 
   if (document.readyState === "loading") {
@@ -626,6 +869,3 @@ export default function App() {
     init();
   }
 })();
-  </script>
-</body>
-</html>
