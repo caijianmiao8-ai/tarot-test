@@ -305,6 +305,29 @@ export default function RemoteDesktopDemo() {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+  window.tailwind = window.tailwind || {};
+  window.tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        },
+        colors: {
+          midnight: '#0f172a',
+          lagoon: '#38bdf8',
+        },
+        boxShadow: {
+          'glow-lg': '0 40px 120px rgba(15, 23, 42, 0.45)',
+        },
+      },
+    },
+  };
+</script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio" crossorigin="anonymous"></script>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #020617; color: #e2e8f0; }
