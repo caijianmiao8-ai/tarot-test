@@ -9,30 +9,35 @@
 
   const STORAGE_KEY = "code-playground-source";
 
-  // Babel 备用 CDN 列表，逐个尝试
+  // 多个 Babel CDN 兜底
   const BABEL_SOURCES = [
     "https://unpkg.com/@babel/standalone@7.23.9/babel.min.js",
     "https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.9/babel.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js",
   ];
-
   const BABEL_ATTEMPT_TIMEOUT = 8000;
   let babelLoadingPromise = null;
 
-  // React / ReactDOM / lucide-react UMD CDN
+  // React / ReactDOM / lucide-react
   const CDN_POLYFILLS = {
     react: `https://unpkg.com/react@18/umd/react.development.js`,
     "react-dom": `https://unpkg.com/react-dom@18/umd/react-dom.development.js`,
     "lucide-react": `https://unpkg.com/lucide-react@0.379.0/dist/lucide-react.umd.js`,
   };
 
-  // 我们自己内置的一小撮 Tailwind 风格类 + 全局深色 UI 皮肤
-  // 这样就算完全离线，右侧预览 iframe 也能长得像“高质感远程桌面控制台”，而不是素生 div
+  // -------------------------------------------------
+  // 扩容版“离线 Tailwind 子集”
+  // 目标：让你那套 RemoteDesktopUI / PhoneFrame / PC 控制台
+  // 基本不依赖外网，也能在右侧 iframe 接近真实样子
+  // -------------------------------------------------
   const CORE_CSS = `
 :root {
   color-scheme: dark;
   --tw-bg-opacity:1;
   --tw-text-opacity:1;
+  --tw-from: rgba(15,23,42,1);
+  --tw-via: rgba(15,23,42,0.85);
+  --tw-to: rgba(2,6,23,1);
 }
 *,
 *::before,
@@ -45,6 +50,8 @@ body {
   background:#020617;
   color:rgba(226,232,240,1);
   line-height:1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 a {
   color: inherit;
@@ -60,14 +67,17 @@ button {
 button:focus {
   outline: none;
 }
-
+img,svg {
+  display:block;
+  max-width:100%;
+}
 #preview-root {
   width:100vw;
   height:100vh;
   overflow:hidden;
 }
 
-/* 自定义滚动条，细、半透明，接近苹果 */
+/* 滚动条（类 iOS / macOS 薄滚动条） */
 ::-webkit-scrollbar {
   width:10px;
   height:10px;
@@ -77,41 +87,150 @@ button:focus {
   border-radius:999px;
 }
 
-/* 布局 / Flex / Grid / 响应式列 */
+/* ===== 布局 / Flex / Grid / 位置 ===== */
 .flex { display:flex !important; }
-.flex-col { flex-direction:column !important; }
 .inline-flex { display:inline-flex !important; }
-.grid { display:grid !important; }
-.grid-cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
-@media (min-width:768px){
-  .md\\:grid-cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
-}
-@media (min-width:1024px){
-  .lg\\:grid-cols-[320px_1fr] { grid-template-columns:320px 1fr !important; }
-}
-
-.relative { position:relative !important; }
-.absolute { position:absolute !important; }
-.inset-0 { top:0 !important; right:0 !important; bottom:0 !important; left:0 !important; }
-.z-10 { z-index:10 !important; }
+.flex-col { flex-direction:column !important; }
+.flex-1 { flex:1 1 0% !important; }
+.flex-shrink-0 { flex-shrink:0 !important; }
 
 .items-center { align-items:center !important; }
 .items-start { align-items:flex-start !important; }
 .justify-between { justify-content:space-between !important; }
+.justify-around { justify-content:space-around !important; }
 .justify-center { justify-content:center !important; }
 
-.text-left { text-align:left !important; }
+.grid { display:grid !important; }
+.grid-cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+.grid-cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+@media (min-width:768px){
+  .md\\:grid-cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+}
+@media (min-width:1024px){
+  .lg\\:grid-cols-\\[320px_1fr\\] { grid-template-columns:320px 1fr !important; }
+  .grid-cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+}
 
-/* 间距 / gap / padding / margin */
+/* 尺寸 / 盒子 */
+.min-h-screen { min-height:100vh !important; }
+.h-screen { height:100vh !important; }
+.h-full { height:100% !important; }
+.w-full { width:100% !important; }
+
+.h-\\[280px\\] { height:280px !important; }
+.h-\\[360px\\] { height:360px !important; }
+.w-64 { width:16rem !important; }
+
+.w-12 { width:3rem !important; }
+.h-12 { height:3rem !important; }
+.w-14 { width:3.5rem !important; }
+.h-14 { height:3.5rem !important; }
+.w-16 { width:4rem !important; }
+.h-16 { height:4rem !important; }
+.w-20 { width:5rem !important; }
+.h-20 { height:5rem !important; }
+.w-24 { width:6rem !important; }
+.h-24 { height:6rem !important; }
+.w-40 { width:10rem !important; }
+.h-7 { height:1.75rem !important; }
+
+.w-8 { width:2rem !important; }
+.h-8 { height:2rem !important; }
+.w-10 { width:2.5rem !important; }
+.h-10 { height:2.5rem !important; }
+
+.w-1 { width:0.25rem !important; }
+.h-1 { height:0.25rem !important; }
+.w-1\\.5 { width:0.375rem !important; }
+.h-1\\.5 { height:0.375rem !important; }
+.w-2 { width:0.5rem !important; }
+.h-2 { height:0.5rem !important; }
+.w-2\\.5 { width:0.625rem !important; }
+.h-2\\.5 { height:0.625rem !important; }
+.w-3 { width:0.75rem !important; }
+.h-3 { height:0.75rem !important; }
+.w-5 { width:1.25rem !important; }
+.h-5 { height:1.25rem !important; }
+.w-px { width:1px !important; }
+.h-3 { height:0.75rem !important; }
+.h-12 { height:3rem !important; }
+
+.left-0 { left:0 !important; }
+.right-0 { right:0 !important; }
+.top-0 { top:0 !important; }
+.bottom-0 { bottom:0 !important; }
+
+.left-6 { left:1.5rem !important; }
+.right-6 { right:1.5rem !important; }
+.left-1\\/2 { left:50% !important; }
+.right-0 { right:0 !important; }
+.top-1\\/2 { top:50% !important; }
+.top-12 { top:3rem !important; }
+.top-32 { top:8rem !important; }
+.top-40 { top:10rem !important; }
+.top-48 { top:12rem !important; }
+.bottom-6 { bottom:1.5rem !important; }
+
+.top-1\\/4 { top:25% !important; }
+.left-6 { left:1.5rem !important; }
+.right-6 { right:1.5rem !important; }
+.h-1\\/3 { height:33.333333% !important; }
+
+.inset-0 { top:0 !important; right:0 !important; bottom:0 !important; left:0 !important; }
+
+.fixed { position:fixed !important; }
+.absolute { position:absolute !important; }
+.relative { position:relative !important; }
+.z-10 { z-index:10 !important; }
+.z-20 { z-index:20 !important; }
+.z-30 { z-index:30 !important; }
+.z-40 { z-index:40 !important; }
+.z-50 { z-index:50 !important; }
+
+/* safe-area 底部内边距 */
+.pb-\\[env\\(safe-area-inset-bottom\\)\\] {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+.bottom-\\[calc\\(5rem\\+env\\(safe-area-inset-bottom\\)\\)\\] {
+  bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important;
+}
+
+/* translate / rotate transform 组合，尽量接近 tailwind 的变量模型 */
+.transform {
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate));
+}
+.-translate-x-1\\/2 { --tw-translate-x:-50%; }
+.-translate-y-1\\/2 { --tw-translate-y:-50%; }
+.rotate-180 { --tw-rotate:180deg; }
+
+/* overflow / scroll */
+.overflow-hidden { overflow:hidden !important; }
+.overflow-y-auto { overflow-y:auto !important; }
+.overscroll-contain { overscroll-behavior:contain !important; }
+
+/* pointer-events */
+.pointer-events-none { pointer-events:none !important; }
+
+/* flex utils */
+.flex-1 { flex:1 1 0% !important; }
+.flex-shrink-0 { flex-shrink:0 !important; }
+
+/* ===== 间距 / gap / padding / margin ===== */
 .gap-1 { gap:0.25rem !important; }
 .gap-2 { gap:0.5rem !important; }
 .gap-3 { gap:0.75rem !important; }
 .gap-4 { gap:1rem !important; }
 .gap-6 { gap:1.5rem !important; }
 
+.space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top:0.5rem !important; }
 .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top:0.75rem !important; }
 .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top:1rem !important; }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top:1.5rem !important; }
 
+.p-3 { padding:0.75rem !important; }
 .p-4 { padding:1rem !important; }
 .p-6 { padding:1.5rem !important; }
 .p-8 { padding:2rem !important; }
@@ -119,6 +238,8 @@ button:focus {
 .px-2 { padding-left:0.5rem !important; padding-right:0.5rem !important; }
 .px-3 { padding-left:0.75rem !important; padding-right:0.75rem !important; }
 .px-4 { padding-left:1rem !important; padding-right:1rem !important; }
+.px-6 { padding-left:1.5rem !important; padding-right:1.5rem !important; }
+.px-8 { padding-left:2rem !important; padding-right:2rem !important; }
 .px-10 { padding-left:2.5rem !important; padding-right:2.5rem !important; }
 
 .py-0\\.5 { padding-top:0.125rem !important; padding-bottom:0.125rem !important; }
@@ -126,34 +247,41 @@ button:focus {
 .py-1\\.5 { padding-top:0.375rem !important; padding-bottom:0.375rem !important; }
 .py-2 { padding-top:0.5rem !important; padding-bottom:0.5rem !important; }
 .py-3 { padding-top:0.75rem !important; padding-bottom:0.75rem !important; }
+.py-4 { padding-top:1rem !important; padding-bottom:1rem !important; }
 .py-8 { padding-top:2rem !important; padding-bottom:2rem !important; }
 
 .pb-10 { padding-bottom:2.5rem !important; }
-
 .mt-1 { margin-top:0.25rem !important; }
 .mt-4 { margin-top:1rem !important; }
 .mt-6 { margin-top:1.5rem !important; }
 .mt-8 { margin-top:2rem !important; }
-
 .mb-2 { margin-bottom:0.5rem !important; }
 .mb-4 { margin-bottom:1rem !important; }
 .mb-6 { margin-bottom:1.5rem !important; }
 .mb-8 { margin-bottom:2rem !important; }
+.mx-auto { margin-left:auto !important; margin-right:auto !important; }
 
-/* 尺寸 */
-.w-full { width:100% !important; }
-.h-full { height:100% !important; }
-.h-\\[280px\\] { height:280px !important; }
-.h-\\[360px\\] { height:360px !important; }
-
-.w-2 { width:0.5rem !important; }
-.h-2 { height:0.5rem !important; }
-
-/* 圆角 / 阴影 / 边框 */
+/* ===== 圆角 / 阴影 / 边框 ===== */
 .rounded-full { border-radius:9999px !important; }
 .rounded-2xl { border-radius:1rem !important; }
 .rounded-3xl { border-radius:1.5rem !important; }
+.rounded-xl { border-radius:0.75rem !important; }
+.rounded-lg { border-radius:0.5rem !important; }
+.rounded-l { border-top-left-radius:0.25rem !important; border-bottom-left-radius:0.25rem !important; }
+.rounded-r { border-top-right-radius:0.25rem !important; border-bottom-right-radius:0.25rem !important; }
+.rounded-b-3xl { border-bottom-left-radius:1.5rem !important; border-bottom-right-radius:1.5rem !important; }
+.rounded-\\[3rem\\] { border-radius:3rem !important; }
+.rounded-\\[2\\.5rem\\] { border-radius:2.5rem !important; }
 
+.shadow-sm {
+  box-shadow:0 10px 20px rgba(0,0,0,0.4) !important;
+}
+.shadow-md {
+  box-shadow:0 20px 40px rgba(0,0,0,0.45) !important;
+}
+.shadow-lg {
+  box-shadow:0 30px 60px rgba(0,0,0,0.5) !important;
+}
 .shadow-xl {
   box-shadow:0 25px 50px -12px rgba(15,23,42,0.45) !important;
 }
@@ -161,23 +289,72 @@ button:focus {
   box-shadow:0 35px 70px -20px rgba(14,21,38,0.55) !important;
 }
 
-.border {
-  border-width:1px !important;
-  border-style:solid !important;
-  border-color:rgba(148,163,184,0.18) !important;
-}
+.border { border-width:1px !important; border-style:solid !important; border-color:rgba(148,163,184,0.18) !important; }
+.border-t { border-top-width:1px !important; border-top-style:solid !important; }
+.border-b { border-bottom-width:1px !important; border-bottom-style:solid !important; }
+.border-r { border-right-width:1px !important; border-right-style:solid !important; }
+.border-l { border-left-width:1px !important; border-left-style:solid !important; }
+
 .border-transparent { border-color:transparent !important; }
 .border-slate-700\\/60 { border-color:rgba(51,65,85,0.6) !important; }
 .border-slate-800\\/60 { border-color:rgba(30,41,59,0.6) !important; }
 .border-slate-800\\/70 { border-color:rgba(30,41,59,0.7) !important; }
 .border-slate-900\\/30 { border-color:rgba(15,23,42,0.3) !important; }
 .border-slate-900\\/60 { border-color:rgba(15,23,42,0.6) !important; }
-.border-sky-400 { border-color:rgba(56,189,248,1) !important; }
 
-/* 背景 / 毛玻璃风格 / HUD 感 */
+.border-gray-200 { border-color:rgba(229,231,235,1) !important; }
+.border-zinc-800 { border-color:rgba(39,39,42,1) !important; }
+.border-zinc-700 { border-color:rgba(63,63,70,1) !important; }
+.border-white\\/20 { border-color:rgba(255,255,255,0.2) !important; }
+.border-red-500\\/20 { border-color:rgba(239,68,68,0.2) !important; }
+
+/* 用在“分割线” */
+.border-gray-200 { border-color:rgba(229,231,235,1) !important; }
+.dark\\:border-zinc-800 { border-color:rgba(39,39,42,1) !important; }
+
+/* ===== 背景色 / 半透明玻璃 / 渐变 ===== */
+
+/* 渐变变量系统（简化版 tailwind） */
 .bg-gradient-to-br {
-  background-image:linear-gradient(135deg,rgba(15,23,42,1),rgba(15,23,42,0.85),rgba(2,6,23,1)) !important;
+  background-image: linear-gradient(
+    135deg,
+    var(--tw-from, rgba(15,23,42,1)),
+    var(--tw-via, rgba(15,23,42,0.85)),
+    var(--tw-to, rgba(2,6,23,1))
+  ) !important;
 }
+
+/* 深色默认渐变 */
+.from-slate-900 { --tw-from: rgba(15,23,42,1) !important; }
+.via-slate-950 { --tw-via: rgba(2,6,23,0.75) !important; }
+.to-black { --tw-to: rgba(0,0,0,1) !important; }
+
+/* 蓝色桌面背景 */
+.from-blue-600 { --tw-from: rgba(37,99,235,1) !important; }
+.via-blue-700 { --tw-via: rgba(29,78,216,1) !important; }
+.to-blue-900 { --tw-to: rgba(30,58,138,1) !important; }
+
+/* 卡片内 overlay: 天蓝到透明到紫色 */
+.from-sky-500\\/10 { --tw-from: rgba(14,165,233,0.1) !important; }
+.via-transparent { --tw-via: transparent !important; }
+.to-purple-500\\/10 { --tw-to: rgba(168,85,247,0.1) !important; }
+
+/* 一般背景块 */
+.bg-black\\/60 { background-color:rgba(0,0,0,0.6) !important; color:#fff !important; }
+.bg-black\\/70 { background-color:rgba(0,0,0,0.7) !important; color:#fff !important; }
+.bg-black\\/90 { background-color:rgba(0,0,0,0.9) !important; color:#fff !important; }
+
+.bg-white { background-color:#ffffff !important; color:#0f172a !important; }
+.bg-white\\/20 { background-color:rgba(255,255,255,0.2) !important; }
+.bg-white\\/30 { background-color:rgba(255,255,255,0.3) !important; }
+.bg-white\\/95 { background-color:rgba(255,255,255,0.95) !important; color:#0f172a !important; }
+
+.bg-gray-50 { background-color:rgba(249,250,251,1) !important; color:#0f172a !important; }
+.bg-gray-100 { background-color:rgba(243,244,246,1) !important; color:#0f172a !important; }
+.bg-gray-400 { background-color:rgba(156,163,175,1) !important; color:#fff !important; }
+
+.bg-zinc-900 { background-color:rgba(24,24,27,1) !important; color:#fff !important; }
+.bg-zinc-900\\/50 { background-color:rgba(24,24,27,0.5) !important; color:#fff !important; }
 
 .bg-slate-900\\/80 { background-color:rgba(15,23,42,0.8) !important; }
 .bg-slate-900\\/70 { background-color:rgba(15,23,42,0.7) !important; }
@@ -194,45 +371,109 @@ button:focus {
 .bg-sky-500 { background-color:rgba(14,165,233,1) !important; color:#0f172a !important; }
 .bg-sky-600 { background-color:rgba(2,132,199,1) !important; color:#e0f2fe !important; }
 
+.bg-blue-500 { background-color:rgba(59,130,246,1) !important; color:#0f172a !important; }
+.bg-blue-500\\/10 { background-color:rgba(59,130,246,0.1) !important; color:rgba(59,130,246,1) !important; }
+.bg-blue-600 { background-color:rgba(37,99,235,1) !important; color:#fff !important; }
+.bg-blue-700 { background-color:rgba(29,78,216,1) !important; color:#fff !important; }
+
+.bg-green-500 { background-color:rgba(16,185,129,1) !important; color:#022c22 !important; }
+.bg-green-500\\/10 { background-color:rgba(16,185,129,0.1) !important; color:rgba(16,185,129,1) !important; }
+.bg-green-500\\/20 { background-color:rgba(16,185,129,0.2) !important; color:rgba(16,185,129,1) !important; }
+
+.bg-emerald-500\\/15 { background-color:rgba(16,185,129,0.15) !important; color:rgba(16,185,129,1) !important; }
 .bg-emerald-400\\/15 { background-color:rgba(74,222,128,0.15) !important; }
-.bg-emerald-500\\/15 { background-color:rgba(16,185,129,0.15) !important; }
 
-.bg-emerald-500\\/20 { background-color:rgba(16,185,129,0.2) !important; }
-.bg-red-500\\/10 { background-color:rgba(239,68,68,0.1) !important; }
-.bg-red-500\\/20 { background-color:rgba(239,68,68,0.2) !important; }
-.bg-red-500\\/30 { background-color:rgba(239,68,68,0.3) !important; }
+.bg-purple-500\\/10 { background-color:rgba(168,85,247,0.1) !important; color:rgba(168,85,247,1) !important; }
 
-/* 文本色 / 字重 / 字号 */
+.bg-orange-500\\/10 { background-color:rgba(249,115,22,0.1) !important; color:rgba(249,115,22,1) !important; }
+.bg-orange-500 { background-color:rgba(249,115,22,1) !important; color:#fff !important; }
+
+.bg-red-500 { background-color:rgba(239,68,68,1) !important; color:#fff !important; }
+.bg-red-500\\/10 { background-color:rgba(239,68,68,0.1) !important; color:rgba(239,68,68,1) !important; }
+.bg-red-500\\/20 { background-color:rgba(239,68,68,0.2) !important; color:rgba(239,68,68,1) !important; }
+.bg-red-500\\/30 { background-color:rgba(239,68,68,0.3) !important; color:rgba(239,68,68,1) !important; }
+
+.bg-yellow-500 { background-color:rgba(234,179,8,1) !important; color:#000 !important; }
+
+/* 玻璃态毛玻璃 */
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.backdrop-blur-xl {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+.backdrop-blur {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+/* ===== 字体 / 颜色 / 文本样式 ===== */
+.font-sans { font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif !important; }
+.font-mono { font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace !important; }
+.font-medium { font-weight:500 !important; }
+.font-semibold { font-weight:600 !important; }
+.antialiased { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+.text-left { text-align:left !important; }
+.text-center { text-align:center !important; }
+
+.text-xs { font-size:0.75rem !important; line-height:1rem !important; }
+.text-sm { font-size:0.875rem !important; line-height:1.25rem !important; }
+.text-lg { font-size:1.125rem !important; line-height:1.75rem !important; }
+.text-xl { font-size:1.25rem !important; line-height:1.75rem !important; }
+.text-2xl { font-size:1.5rem !important; line-height:2rem !important; }
+.text-3xl { font-size:1.875rem !important; line-height:2.25rem !important; }
+.text-4xl { font-size:2.25rem !important; line-height:2.5rem !important; }
+
 .text-white { color:#ffffff !important; }
+.text-gray-700 { color:rgba(55,65,81,1) !important; }
+.text-gray-900 { color:rgba(17,24,39,1) !important; }
+.text-gray-400 { color:rgba(156,163,175,1) !important; }
+.text-gray-500 { color:rgba(107,114,128,1) !important; }
 .text-slate-100 { color:rgba(241,245,249,1) !important; }
 .text-slate-200 { color:rgba(226,232,240,1) !important; }
 .text-slate-300 { color:rgba(203,213,225,1) !important; }
 .text-slate-400 { color:rgba(148,163,184,1) !important; }
 .text-slate-500 { color:rgba(100,116,139,1) !important; }
+.text-slate-900 { color:rgba(15,23,42,1) !important; }
 
-.text-sky-200 { color:rgba(186,230,253,1) !important; }
-.text-sky-300 { color:rgba(125,211,252,1) !important; }
+.text-zinc-400 { color:rgba(161,161,170,1) !important; }
+.text-zinc-500 { color:rgba(113,113,122,1) !important; }
+
+.text-blue-500 { color:rgba(59,130,246,1) !important; }
+.text-green-500 { color:rgba(16,185,129,1) !important; }
 .text-emerald-300 { color:rgba(110,231,183,1) !important; }
 .text-emerald-400 { color:rgba(74,222,128,1) !important; }
+.text-red-400 { color:rgba(248,113,113,1) !important; }
+.text-red-500 { color:rgba(239,68,68,1) !important; }
+.text-orange-500 { color:rgba(249,115,22,1) !important; }
+.text-purple-500 { color:rgba(168,85,247,1) !important; }
+.text-yellow-400 { color:rgba(250,204,21,1) !important; }
+.text-sky-200 { color:rgba(186,230,253,1) !important; }
+.text-sky-300 { color:rgba(125,211,252,1) !important; }
 
-.font-sans { font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif !important; }
-.font-semibold { font-weight:600 !important; }
-.font-medium { font-weight:500 !important; }
-.font-mono { font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace !important; }
+.uppercase { text-transform:uppercase !important; }
 
-.text-xs { font-size:0.75rem !important; line-height:1rem !important; }
-.text-sm { font-size:0.875rem !important; line-height:1.25rem !important; }
-.text-lg { font-size:1.125rem !important; line-height:1.75rem !important; }
-.text-2xl { font-size:1.5rem !important; line-height:2rem !important; }
-.text-3xl { font-size:1.875rem !important; line-height:2.25rem !important; }
+/* ===== 透明度 / pulse 动画 ===== */
+.opacity-60 { opacity:0.6 !important; }
+.opacity-80 { opacity:0.8 !important; }
+.animate-pulse {
+  animation:pulse 1.5s cubic-bezier(0.4,0,0.6,1) infinite !important;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50% { opacity:0.5; }
+}
 
-.min-h-screen { min-height:100vh !important; }
-
-.overflow-hidden { overflow:hidden !important; }
-
-/* 过渡 / 动效 */
-.transition { transition: all .2s ease-in-out !important; }
-.transition-all { transition: all .25s ease-in-out !important; }
+/* ===== 过渡 / hover ===== */
+.transition {
+  transition: all .2s ease-in-out !important;
+}
+.transition-all {
+  transition: all .25s ease-in-out !important;
+}
 .transition-colors {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important;
   transition-duration:150ms !important;
@@ -242,21 +483,21 @@ button:focus {
 .hover\\:bg-slate-900\\/5:hover { background-color:rgba(15,23,42,0.05) !important; }
 .hover\\:bg-slate-900\\/20:hover { background-color:rgba(15,23,42,0.2) !important; }
 .hover\\:bg-slate-900\\/30:hover { background-color:rgba(15,23,42,0.3) !important; }
-.hover\\:bg-sky-600:hover {
-  background-color:rgba(2,132,199,1) !important;
-  color:#e0f2fe !important;
-}
+.hover\\:bg-sky-600:hover { background-color:rgba(2,132,199,1) !important; color:#e0f2fe !important; }
+.hover\\:shadow-md:hover { box-shadow:0 20px 40px rgba(0,0,0,0.45) !important; }
+.hover\\:shadow-xl:hover { box-shadow:0 20px 50px -12px rgba(15,23,42,0.5) !important; }
+.hover\\:bg-red-500\\/30:hover { background-color:rgba(239,68,68,0.3) !important; }
+.hover\\:bg-red-500\\/10:hover { background-color:rgba(239,68,68,0.1) !important; }
 
-@keyframes pulse {
-  0%,100% { opacity:1; }
-  50% { opacity:0.5; }
-}
-.animate-pulse {
-  animation:pulse 1.5s cubic-bezier(0.4,0,0.6,1) infinite !important;
+/* helper: text truncation */
+.truncate {
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
 }
 `;
 
-  // 右侧 iframe 可能会把错误往父窗口抛回来，我们接一下显示到 overlay
+  // 父 <-> iframe 错误通信
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) {
       return;
@@ -266,7 +507,8 @@ button:focus {
     }
   });
 
-  // 这段是给编辑器初始代码（用户可以改），我们强制 darkMode=true 保证走深色皮肤
+  // 这段是默认展示在左侧代码编辑区里的示例 React 代码
+  // 注意：darkMode 初始为 true，这样我们预置的深色 CSS 会更贴脸
   const DEFAULT_SOURCE = `import React, { useState } from 'react';
 import { Monitor, Smartphone, Settings, Sun, Moon, Wifi, Gamepad2 } from 'lucide-react';
 
@@ -277,7 +519,7 @@ const devices = [
 ];
 
 export default function RemoteDesktopDemo() {
-  const [darkMode, setDarkMode] = useState(true); // 默认深色，以适配我们内置的 CORE_CSS
+  const [darkMode, setDarkMode] = useState(true);
   const [selected, setSelected] = useState(devices[0]);
 
   const theme = darkMode
@@ -385,9 +627,7 @@ export default function RemoteDesktopDemo() {
 }
 `;
 
-  // -----------------------------
-  // 状态显示 / 错误显示的小工具函数
-  // -----------------------------
+  // 状态提示 / 错误 UI
   function setStatus(message, state = "idle") {
     const span = statusLabel.querySelector("span:last-child");
     span.textContent = message;
@@ -400,10 +640,8 @@ export default function RemoteDesktopDemo() {
       ? "rgba(56,189,248,0.18)"
       : "rgba(248,113,113,0.12)";
     compileBadge.style.color = good ? "#38bdf8" : "#f87171";
-    if (compilerRetryButton) {
-      if (good) {
-        compilerRetryButton.classList.remove("is-visible");
-      }
+    if (compilerRetryButton && good) {
+      compilerRetryButton.classList.remove("is-visible");
     }
   }
 
@@ -419,9 +657,7 @@ export default function RemoteDesktopDemo() {
     overlay.classList.remove("visible");
   }
 
-  // -----------------------------
-  // Babel 相关
-  // -----------------------------
+  // ========== Babel 加载 ==========
   function isBabelReady() {
     return Boolean(
       window.Babel && typeof window.Babel.transform === "function"
@@ -443,7 +679,6 @@ export default function RemoteDesktopDemo() {
     const existingScript = document.querySelector("[data-babel-loader]");
     const sources = BABEL_SOURCES.slice();
     if (existingScript && existingScript.src) {
-      // 优先再试一下已经存在的 script.src
       sources.unshift(existingScript.src);
     }
 
@@ -545,11 +780,8 @@ export default function RemoteDesktopDemo() {
     return babelLoadingPromise;
   }
 
-  // -----------------------------
-  // 源码处理 / 编译 / iframe HTML
-  // -----------------------------
+  // ========== 处理源码 / iframe 构建 ==========
   function normalizeSource(source) {
-    // 防止 tab 导致缩进太乱
     return source.replace(/\t/g, "  ");
   }
 
@@ -573,7 +805,7 @@ ${CORE_CSS}
 </style>
 ${polyfills}
 <script>
-  // ReactDOM <18 兼容：如果没有 createRoot，就用老的 render
+  // ReactDOM <18 兼容：如果没有 createRoot，就用 render
   window.ReactDOMClient = window.ReactDOM;
   if (!window.ReactDOMClient || !window.ReactDOMClient.createRoot) {
     window.ReactDOMClient = {
@@ -587,7 +819,7 @@ ${polyfills}
     };
   }
 
-  // lucide-react fallback：如果图标模块没正确导出组件，给个兜底的圆形小标签，避免 "Element type is invalid"
+  // lucide-react fallback: 如果某个图标组件拿不到，就给个圆点占位
   window.lucideReact = window.lucideReact || window.lucide;
   if (!window.lucideReact) {
     const fallback = new Proxy({}, {
@@ -604,12 +836,12 @@ ${polyfills}
                 display:'inline-flex',
                 alignItems:'center',
                 justifyContent:'center',
-                width:size,
-                height:size,
+                width:size+'px',
+                height:size+'px',
                 borderRadius:'50%',
                 background:'rgba(148,163,184,0.18)',
                 color:'#94a3b8',
-                fontSize:(size*0.45),
+                fontSize:(size*0.45)+'px',
                 fontWeight:600,
                 textTransform:'uppercase'
               }
@@ -672,12 +904,12 @@ ${polyfills}
             display:'inline-flex',
             alignItems:'center',
             justifyContent:'center',
-            width:size,
-            height:size,
+            width:size+'px',
+            height:size+'px',
             borderRadius:'50%',
             background:'rgba(148,163,184,0.18)',
             color:'#94a3b8',
-            fontSize:size*0.45,
+            fontSize:(size*0.45)+'px',
             fontWeight:600,
             textTransform:'uppercase'
           }
@@ -764,11 +996,10 @@ ${polyfills}
   const exports = module.exports;
 
   try {
-    // 把编译后的代码当成 CommonJS 模块执行
+    // 执行用户代码（Babel 编出来的 CommonJS）
     const factory = new Function('exports','require','module','__filename','__dirname', __compiled);
     factory(exports, require, module, 'App.jsx', '/');
 
-    // 取出导出的组件
     const App =
       module.exports?.default ||
       module.exports.App ||
@@ -778,7 +1009,6 @@ ${polyfills}
       throw new Error('请导出一个 React 组件，例如 export default function App() {...}');
     }
 
-    // 挂到预览 root 上
     const rootElement = document.getElementById('preview-root');
     const root = (window.ReactDOMClient && window.ReactDOMClient.createRoot)
       ? window.ReactDOMClient.createRoot(rootElement)
@@ -835,9 +1065,7 @@ ${polyfills}
     }).code;
   }
 
-  // -----------------------------
-  // 预览刷新 / 去抖
-  // -----------------------------
+  // ========== 刷新预览 / 去抖 ==========
   let debounceTimer = null;
   let lastSource = "";
   let currentBlobUrl = null;
@@ -860,7 +1088,7 @@ ${polyfills}
     const message =
       (error && error.message) ||
       "无法加载 Babel 编译器，暂时无法编译预览。";
-    const guidance = `${message}\n请检查网络连接或点击“重试编译器”按钮后再试。`;
+    const guidance = message + "\\n请检查网络连接或点击“重试编译器”按钮后再试。";
     showError(guidance, "加载失败");
     setStatus("编译器加载失败", "error");
     if (compilerRetryButton) {
@@ -920,9 +1148,7 @@ ${polyfills}
     }, 320);
   }
 
-  // -----------------------------
-  // 按钮行为 (reset / copy / format / reload-compiler)
-  // -----------------------------
+  // ========== 交互按钮：reset / copy / format / reload-compiler ==========
   function handleAction(event) {
     const action = event.currentTarget.dataset.action;
     if (action === "reset") {
@@ -969,9 +1195,7 @@ ${polyfills}
     }
   }
 
-  // -----------------------------
-  // 初始化
-  // -----------------------------
+  // ========== 初始化 ==========
   function init() {
     const stored = localStorage.getItem(STORAGE_KEY);
     editor.value = stored || DEFAULT_SOURCE;
