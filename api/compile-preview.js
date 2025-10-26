@@ -342,3 +342,17 @@ module.exports = async function handler(req, res) {
     res.status(statusCode).json({ error: message });
   }
 };
+
+module.exports.config = {
+  includeFiles: [
+    "../tailwind.config.js",
+    "../tailwind.config.cjs",
+    "../tailwind.config.mjs",
+    "../tailwind.config.ts",
+    "../styles/tailwind.config.js",
+    "../styles/tailwind.config.cjs",
+    "../styles/tailwind.config.mjs",
+    "../src/tailwind.config.js",
+    "../src/styles/tailwind.config.js",
+  ],
+};
