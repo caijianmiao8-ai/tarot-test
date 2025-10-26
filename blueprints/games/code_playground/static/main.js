@@ -181,7 +181,7 @@ export default function RemoteDesktopDemo() {
   }
 
   /**
-   * 🔥 最终修复版：使用开发版 React + 正确的 lucide CDN
+   * 🔥 完整修复版：使用开发版 React + 正确的 lucide CDN
    */
   function buildPreviewHtml(js, css) {
     const script = sanitizeScriptContent(js);
@@ -235,17 +235,16 @@ ${script}
   }
 
   function applyPreview(js, css) {
-    const html = buildPreviewHtml(js, css);
-    
     if (currentBlobUrl) {
       try {
         URL.revokeObjectURL(currentBlobUrl);
       } catch (err) {
-        console.warn("Failed to revoke blob URL:", err);
+        console.warn("revokeObjectURL cleanup failed:", err);
       }
       currentBlobUrl = null;
     }
 
+    const html = buildPreviewHtml(js, css);
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     currentBlobUrl = url;
