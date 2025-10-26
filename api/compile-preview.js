@@ -10,7 +10,7 @@ const fs = require("fs/promises");
 const os = require("os");
 
 /**
- * 可能的 tailwind 配置文件名
+ * Tailwind 配置文件的常见命名
  */
 const TAILWIND_CONFIG_FILENAMES = [
   "tailwind.config.js",
@@ -20,12 +20,13 @@ const TAILWIND_CONFIG_FILENAMES = [
 ];
 
 /**
- * 可能出现的子路径（有些人会把 config 放到 styles/ 或 src/ 下）
+ * 还有一些人会把配置放到 styles/ 或 src/ 下面
  */
 const EXTRA_CONFIG_LOCATIONS = [
   "styles/tailwind.config.js",
   "styles/tailwind.config.cjs",
   "styles/tailwind.config.mjs",
+  "styles/tailwind.config.ts",
   "src/tailwind.config.js",
   "src/tailwind.config.cjs",
   "src/tailwind.config.mjs",
@@ -37,22 +38,35 @@ const EXTRA_CONFIG_LOCATIONS = [
 ];
 
 /**
- * 这些文件需要在 Vercel 打包 serverless 函数时被带上。
- * 我们包括 './tailwind.config.js' 和 '../tailwind.config.js'
- * 方便在函数运行目录是 /var/task/api 的情况也能取到上层的真实配置文件。
+ * 我们需要把某些文件强制打包进 Vercel 的 serverless 函数运行环境。
+ *
+ * 场景：
+ *  - Vercel 会把函数和依赖打成一个 /var/task 包
+ *  - 但不会自动把 tailwindcss 的内部资源文件 (比如 lib/css/preflight.css) 全带上
+ *  - 如果缺了就会报 ENOENT: preflight.css not found
+ *
+ * includeFiles 允许我们手动指定“把这些额外文件/目录也一起打进函数包里”。
+ *
+ * 我们要带：
+ *  1. 项目根目录下的 tailwind.config.js（以及它的各种可能命名）
+ *  2. 上一级的 tailwind.config.js（如果函数的 cwd 变成 /var/task/api）
+ *  3. 整个 node_modules/tailwindcss/**/* 目录，这样 preflight.css 之类的内置资源不会丢
  */
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
+    // tailwind.config.* at cwd
     ...TAILWIND_CONFIG_FILENAMES.map((name) => name),
+    // tailwind.config.* at parent of cwd (to handle /var/task/api runtime)
     ...TAILWIND_CONFIG_FILENAMES.map((name) =>
       path.posix.join("..", name)
     ),
+    // and ship Tailwind's own package assets
+    "node_modules/tailwindcss/**/*",
   ])
 );
 
 /**
- * 用户允许 import 的外部模块白名单
- * 其他模块一律禁止（防止越权）
+ * 允许 import 的包白名单（防止用户代码随便 require 任何东西）
  */
 const ALLOWED_MODULES = new Set([
   "react",
@@ -64,7 +78,7 @@ const ALLOWED_MODULES = new Set([
 ]);
 
 /**
- * Node 内置模块（预览中禁掉）
+ * Node 内置模块 - 在预览环境里禁用
  */
 const NODE_BUILTINS = new Set([
   ...builtinModules,
@@ -72,19 +86,28 @@ const NODE_BUILTINS = new Set([
   "process",
 ]);
 
+/**
+ * 我们用虚拟模块名来表示用户的代码输入，和我们自动生成的入口
+ */
 const USER_CODE_VIRTUAL_PATH = "user-code";
 const VIRTUAL_ENTRY_PATH = "virtual-entry";
 
+/**
+ * 基础 CSS 指令。Tailwind 会把 @tailwind base/components/utilities 展开成完整样式
+ */
 const BASE_CSS =
   "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
 
-// 运行时缓存，避免重复加载
+/**
+ * 缓存，避免每次请求都重新生成
+ */
 let cachedTailwindConfig = null;
 let cachedTailwindConfigPath = null;
 let cachedResolveDirPromise = null;
 
 /**
- * 给 esbuild 用的安全工作目录（避免用户 import ../.. 逃出沙箱）
+ * esbuild 需要一个“安全的根目录”来解析相对路径 import
+ * 我们用 tmp 目录，防止用户 import ../../../../etc/passwd 这种东西
  */
 async function ensureResolveDir() {
   if (!cachedResolveDirPromise) {
@@ -96,14 +119,14 @@ async function ensureResolveDir() {
 }
 
 /**
- * 在 Vercel 里，serverless 函数的 cwd 可能是：
- *   /var/task
- *   /var/task/api
- * __dirname 可能是：
- *   /var/task/api
+ * Vercel 的 serverless 函数运行时，可能有两种常见形态：
+ *   cwd         = /var/task
+ *   __dirname   = /var/task/api
  *
- * 但 tailwind.config.js 通常在仓库根（/var/task）。
- * 我们就广撒网：cwd、本级父目录、__dirname、__dirname的父目录，全部尝试。
+ * 或者反过来。
+ *
+ * 你的 tailwind.config.js 大概率在仓库根（/var/task）。
+ * 我们需要往多个“可能的基准目录”里去找。
  */
 function getAllCandidateConfigPaths() {
   const baseDirs = Array.from(
@@ -131,7 +154,7 @@ function getAllCandidateConfigPaths() {
 }
 
 /**
- * 真正去找 tailwind.config.* 存不存在
+ * 实际上尝试访问 tailwind.config.*，找到第一个存在的
  */
 async function findTailwindConfig() {
   if (cachedTailwindConfigPath) {
@@ -151,7 +174,7 @@ async function findTailwindConfig() {
       );
       return cachedTailwindConfigPath;
     } catch {
-      // 没找到就试下一个
+      // ignore this one
     }
   }
 
@@ -164,12 +187,13 @@ __dirname=${__dirname}`
 }
 
 /**
- * 载入 tailwind 配置：
- * - 如果真的能找到 tailwind.config.js，就用它
- * - 如果找不到，就用 fallback（带 Inter 字体、玻璃态圆角、大阴影等你想要的质感）
+ * 加载 tailwind 配置：
+ * - 如果找到真实的 tailwind.config.js（或 .cjs/.mjs/.ts），就用它
+ * - 如果找不到，就使用 fallbackConfig（内置你要的那套高质感主题：Inter 字体、圆角玻璃面板、阴影）
  *
- * 这个 fallback 很关键：它让画布即使拿不到真正的 config，也不会崩成 500，
- * 而是还能正常显示高质 UI（而不是一堆没样式的方块）。
+ * 重点：我们不再因为没找到 config 就直接抛 500。
+ * 这样即使在某些部署形态下 Vercel 没正确把配置文件塞进函数包，
+ * 右侧画布依然能渲染高质量 UI，而不是报错和空白。
  */
 async function loadTailwindConfigOrFallback() {
   if (cachedTailwindConfig) {
@@ -190,7 +214,7 @@ async function loadTailwindConfigOrFallback() {
           error?.stack || error
         }`
       );
-      // 继续往下走 fallback
+      // fall through to fallback
     }
   }
 
@@ -198,7 +222,7 @@ async function loadTailwindConfigOrFallback() {
     "[compile-preview] Using internal fallback Tailwind config (preview will still render)"
   );
 
-  // 内置兜底：把你预览那套高质感 UI 需要的核心主题扩进去
+  // fallback: 内置一份“够漂亮”的 tailwind 主题扩展，保证 UI 不会退化成土砖块
   cachedTailwindConfig = {
     darkMode: "class",
     theme: {
@@ -243,21 +267,21 @@ async function loadTailwindConfigOrFallback() {
 
 /**
  * esbuild 安全插件：
- * - 禁 Node 内置模块
- * - 禁止 import 不在白名单的包
- * - 禁止用户用相对路径逃出我们临时目录
+ * - 禁止用户代码 import Node 内置模块（fs/process等）
+ * - 禁止 import 不在白名单里的第三方包
+ * - 禁止用相对路径逃出我们的安全 tmp 目录
  */
 function createSecurityPlugin(resolveDir) {
   return {
     name: "preview-security",
     setup(build) {
       build.onResolve({ filter: /.*/ }, (args) => {
-        // 用户代码虚拟模块
+        // 虚拟用户模块
         if (args.namespace === "user") {
           return { path: args.path, namespace: "user" };
         }
 
-        // 禁 Node 内置模块
+        // ban Node 内置
         if (NODE_BUILTINS.has(args.path)) {
           return {
             errors: [
@@ -268,12 +292,12 @@ function createSecurityPlugin(resolveDir) {
           };
         }
 
-        // 处理相对/绝对路径 import
+        // 相对路径 / 绝对路径 import
         if (args.path.startsWith(".") || path.isAbsolute(args.path)) {
           const baseDir = args.resolveDir || resolveDir;
           const resolved = path.resolve(baseDir, args.path);
 
-          // sandbox 防逃逸：不允许跳出我们的临时根目录
+          // 防止逃逸 tmp 根目录
           if (!resolved.startsWith(baseDir)) {
             return {
               errors: [
@@ -287,7 +311,7 @@ function createSecurityPlugin(resolveDir) {
           return { path: resolved };
         }
 
-        // 允许白名单依赖（react / react-dom / lucide-react）
+        // 允许白名单依赖
         if (
           ALLOWED_MODULES.has(args.path) ||
           (args.importer && args.importer.includes("node_modules"))
@@ -308,8 +332,8 @@ function createSecurityPlugin(resolveDir) {
 }
 
 /**
- * 把 esbuild 的报错信息（可能一大坨对象）变成人类可读的多行文本
- * 方便直接在右侧 overlay 里展示
+ * 把 esbuild 的报错清洗成人类读得懂的多行文本
+ * （这样右上角红色 overlay 可以直接显示）
  */
 function formatEsbuildError(error) {
   if (error && Array.isArray(error.errors) && error.errors.length > 0) {
@@ -327,10 +351,12 @@ function formatEsbuildError(error) {
 }
 
 /**
- * 用 esbuild 打包用户代码：
- * - 构建一个虚拟入口 virtual-entry，把用户组件渲染进 #root
- * - 捕捉运行时 error/unhandledrejection，通过 postMessage 回传父窗口
- * - 输出一个 IIFE（立即执行脚本），浏览器直接拿来跑
+ * 把用户源代码打成可执行预览脚本：
+ * - 我们构造一个 virtual-entry，它做的事是：
+ *   - import 用户组件
+ *   - createRoot(#root).render(<用户组件 />)
+ *   - 捕捉运行时错误并 postMessage 给父窗口
+ * - esbuild 输出 IIFE（立即执行函数），浏览器 iframe 直接跑
  */
 async function bundleSource(source) {
   const resolveDir = await ensureResolveDir();
@@ -370,14 +396,18 @@ import UserComponent from "${USER_CODE_VIRTUAL_PATH}";
 
 const reportError = (payload) => {
   try {
-    const detail = payload && (payload.stack || payload.message)
-      ? payload.stack || payload.message
-      : String(payload);
+    const detail =
+      payload && (payload.stack || payload.message)
+        ? payload.stack || payload.message
+        : String(payload);
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage({
-        type: "CODE_PLAYGROUND_ERROR",
-        message: detail
-      }, "*");
+      window.parent.postMessage(
+        {
+          type: "CODE_PLAYGROUND_ERROR",
+          message: detail
+        },
+        "*"
+      );
     }
   } catch (err) {
     console.error(err);
@@ -390,7 +420,6 @@ const mount = () => {
     reportError(new Error("未找到用于渲染的 #root 容器"));
     return;
   }
-
   try {
     const root = createRoot(container);
     root.render(React.createElement(UserComponent));
@@ -400,7 +429,7 @@ const mount = () => {
   }
 };
 
-// 捕捉运行时错误并回传到父页面的 overlay
+// 捕捉运行时报错 / 未处理 Promise 拒绝
 window.addEventListener("error", (event) => {
   if (!event) return;
   if (event.error) {
@@ -424,7 +453,7 @@ if (document.readyState === "loading") {
 `,
           }));
 
-          // 用户组件本体 user-code
+          // 用户代码模块 user-code
           build.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({
@@ -453,13 +482,14 @@ if (document.readyState === "loading") {
 }
 
 /**
- * 调用 Tailwind JIT，按需生成 CSS：
- * - 把用户当前的 JSX 当成 content 传给 Tailwind
- * - Tailwind 只会吐出真正用到的 class
- * - 这就是右侧预览能瞬间有玻璃卡片、渐变、圆角等完整质感的原因
+ * 把 Tailwind 作为 PostCSS 插件跑一遍，生成按需 CSS：
+ * - content 是用户当前编辑的 React 源码
+ * - 这样返回的 CSS 就只包含你真的用到的类（玻璃态、圆角、渐变、flex/grid等）
+ * - 用不到的不会塞进来 → 右侧 iframe 更轻
  *
- * 现在不会因为没找到 tailwind.config.js 就直接 500，
- * 而是自动 fallback 内置主题。
+ * 注意：现在我们用 loadTailwindConfigOrFallback()
+ * 即使真实 config 没被打包进去，也会 fallback，
+ * 不再直接 500。
  */
 async function generateTailwindCSS(source) {
   const loadedConfig = await loadTailwindConfigOrFallback();
@@ -478,8 +508,7 @@ async function generateTailwindCSS(source) {
 }
 
 /**
- * 帮我们解析请求体（POST /api/compile-preview）
- * 允许 body 是字符串或对象
+ * 从 req.body 取出 { source }，兼容字符串/JSON
  */
 function parseRequestBody(req) {
   if (!req.body) {
@@ -496,9 +525,8 @@ function parseRequestBody(req) {
 }
 
 /**
- * 入口处理函数（Vercel serverless）
- * 成功时返回 { js, css }
- * 出错时返回 { error }
+ * /api/compile-preview 入口
+ * 返回 { js, css } 或 { error }
  */
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -547,10 +575,11 @@ module.exports = async function handler(req, res) {
 };
 
 /**
- * 告诉 Vercel：打包这个无服务器函数时，
- * 也把 tailwind.config.js 带上（不管是在根目录还是上级目录）。
+ * 告诉 Vercel：
+ * - 把 tailwind.config.js 带进来（无论函数 cwd 是根目录还是 api 子目录）
+ * - 把整个 node_modules/tailwindcss 包带进来（里面有 lib/css/preflight.css 等运行时必需的文件）
  *
- * 这个是关键，不然部署后函数运行环境里可能压根没有配置文件可读。
+ * 这一步就是修复 ENOENT: preflight.css 的关键。
  */
 module.exports.config = {
   includeFiles: TAILWIND_INCLUDE_FILES,
