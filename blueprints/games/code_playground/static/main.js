@@ -181,7 +181,7 @@ export default function RemoteDesktopDemo() {
   }
 
   /**
-   * 🔥 关键修改：添加 CDN script 标签
+   * 🔥 最终修复版：使用开发版 React + 正确的 lucide CDN
    */
   function buildPreviewHtml(js, css) {
     const script = sanitizeScriptContent(js);
@@ -210,10 +210,21 @@ ${styles}
 <body style="margin:0;">
   <div id="root"></div>
   
-  <!-- 🔥 CDN 依赖加载 -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- 🔥 CDN 依赖：使用开发版便于调试 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+  
+  <!-- 调试：检查全局变量 -->
+  <script>
+    console.log('[Preview] React loaded:', typeof window.React !== 'undefined');
+    console.log('[Preview] ReactDOM loaded:', typeof window.ReactDOM !== 'undefined');
+    console.log('[Preview] ReactDOM.createRoot:', typeof window.ReactDOM?.createRoot === 'function');
+    console.log('[Preview] Lucide loaded:', typeof window.lucide !== 'undefined');
+    if (window.lucide) {
+      console.log('[Preview] Lucide icons sample:', Object.keys(window.lucide).slice(0, 5));
+    }
+  </script>
   
   <!-- 用户编译后的代码 -->
   <script>
@@ -226,7 +237,6 @@ ${script}
   function applyPreview(js, css) {
     const html = buildPreviewHtml(js, css);
     
-    // 清理旧的 Blob URL
     if (currentBlobUrl) {
       try {
         URL.revokeObjectURL(currentBlobUrl);
@@ -243,7 +253,6 @@ ${script}
     frame.removeAttribute("srcdoc");
     frame.src = url;
 
-    // 清理超时
     const cleanupTimeout = setTimeout(() => {
       if (currentBlobUrl === url) {
         try {
@@ -306,7 +315,6 @@ ${script}
     setStatus("编译中", "running");
     hideError();
 
-    // 添加超时保护
     const timeoutId = setTimeout(() => {
       controller.abort();
       if (requestId === activeRequestId) {

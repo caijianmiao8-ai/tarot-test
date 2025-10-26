@@ -1,4 +1,4 @@
-// api/compile-preview.js (修复版)
+// api/compile-preview.js (最终修复版)
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -9,9 +9,6 @@ const loadConfig = require("tailwindcss/loadConfig");
 const fs = require("fs/promises");
 const os = require("os");
 
-/**
- * Tailwind 配置文件可能的命名
- */
 const TAILWIND_CONFIG_FILENAMES = [
   "tailwind.config.js",
   "tailwind.config.cjs",
@@ -28,10 +25,6 @@ const EXTRA_CONFIG_LOCATIONS = [
   "src/tailwind.config.cjs",
   "src/tailwind.config.mjs",
   "src/tailwind.config.ts",
-  "src/styles/tailwind.config.js",
-  "src/styles/tailwind.config.cjs",
-  "src/styles/tailwind.config.mjs",
-  "src/styles/tailwind.config.ts",
 ];
 
 const TAILWIND_INCLUDE_FILES = Array.from(
@@ -43,7 +36,7 @@ const TAILWIND_INCLUDE_FILES = Array.from(
 );
 
 /**
- * 🔥 关键修改：这些模块标记为 external，不打包，改用 CDN
+ * 这些模块标记为 external，不打包，改用 CDN
  */
 const EXTERNAL_MODULES = new Set([
   "react",
@@ -54,21 +47,6 @@ const EXTERNAL_MODULES = new Set([
   "lucide-react",
 ]);
 
-/**
- * 映射到 CDN 的全局变量名
- */
-const EXTERNAL_GLOBALS = {
-  "react": "React",
-  "react-dom": "ReactDOM",
-  "react-dom/client": "ReactDOM",
-  "react/jsx-runtime": "React",
-  "react/jsx-dev-runtime": "React",
-  "lucide-react": "LucideReact",
-};
-
-/**
- * Node 内置模块
- */
 const NODE_BUILTINS = new Set([
   ...builtinModules,
   ...builtinModules.map((name) => `node:${name}`),
@@ -124,7 +102,6 @@ async function findTailwindConfig() {
 
   for (const fullPath of candidates) {
     try {
-      console.info(`[compile-preview] checking Tailwind config at: ${fullPath}`);
       await fs.access(fullPath);
       cachedTailwindConfigPath = fullPath;
       console.info(`[compile-preview] Tailwind config FOUND at: ${fullPath}`);
@@ -149,21 +126,16 @@ async function loadTailwindConfigOrFallback() {
 
   if (configPath) {
     try {
-      console.info(`[compile-preview] loading Tailwind config from: ${configPath}`);
       cachedTailwindConfig = loadConfig(configPath);
       return cachedTailwindConfig;
     } catch (error) {
       console.error(
-        `[compile-preview] Failed to load Tailwind config ${configPath}: ${
-          error?.stack || error
-        }`
+        `[compile-preview] Failed to load Tailwind config: ${error?.stack || error}`
       );
     }
   }
 
-  console.warn(
-    "[compile-preview] Using internal fallback Tailwind config (preview will still render)"
-  );
+  console.warn("[compile-preview] Using internal fallback Tailwind config");
 
   cachedTailwindConfig = {
     darkMode: "class",
@@ -176,10 +148,6 @@ async function loadTailwindConfigOrFallback() {
             "-apple-system",
             "BlinkMacSystemFont",
             "Segoe UI",
-            "Roboto",
-            "Helvetica Neue",
-            "Arial",
-            "Noto Sans",
             "sans-serif",
           ],
           mono: [
@@ -187,7 +155,6 @@ async function loadTailwindConfigOrFallback() {
             "ui-monospace",
             "SFMono-Regular",
             "Menlo",
-            "Consolas",
             "monospace",
           ],
         },
@@ -208,13 +175,12 @@ async function loadTailwindConfigOrFallback() {
 }
 
 /**
- * 🔥 核心修改：新的安全插件，将 external 模块映射到全局变量
+ * 🔥 修复版：正确处理 external 模块映射
  */
 function createSecurityPlugin(resolveDir) {
   return {
     name: "preview-security",
     setup(build) {
-      // 1. 拦截 external 模块，映射到全局变量
       build.onResolve({ filter: /.*/ }, (args) => {
         // 检查是否是 external 模块
         if (EXTERNAL_MODULES.has(args.path)) {
@@ -245,30 +211,32 @@ function createSecurityPlugin(resolveDir) {
           return { path: resolved };
         }
 
-        // 其他模块一律拒绝（除非是 external）
+        // 其他模块拒绝
         return {
           errors: [{ text: `模块 "${args.path}" 不在允许的依赖白名单中。` }],
         };
       });
 
-      // 2. 为 external 模块提供全局变量映射
+      // 🔥 关键修复：正确映射全局变量
       build.onLoad({ filter: /.*/, namespace: "external-globals" }, (args) => {
-        const globalName = EXTERNAL_GLOBALS[args.path];
-        
-        if (!globalName) {
-          return {
-            errors: [{ text: `找不到模块 "${args.path}" 的全局变量映射` }],
-          };
-        }
-
-        // 根据不同的导入方式返回不同的代码
         let contents = "";
 
         if (args.path === "react") {
-          contents = `module.exports = window.${globalName};`;
+          // React 主模块
+          contents = `module.exports = window.React;`;
         } else if (args.path === "react-dom/client") {
+          // 🔥 修复：createRoot 在 ReactDOM 对象下
+          contents = `
+            const ReactDOM = window.ReactDOM;
+            if (!ReactDOM || !ReactDOM.createRoot) {
+              throw new Error('ReactDOM.createRoot not found. Make sure React DOM 18+ is loaded.');
+            }
+            module.exports = { createRoot: ReactDOM.createRoot.bind(ReactDOM) };
+          `;
+        } else if (args.path === "react-dom") {
           contents = `module.exports = window.ReactDOM;`;
         } else if (args.path === "react/jsx-runtime") {
+          // JSX runtime
           contents = `
             const React = window.React;
             module.exports = {
@@ -286,9 +254,18 @@ function createSecurityPlugin(resolveDir) {
             };
           `;
         } else if (args.path === "lucide-react") {
-          contents = `module.exports = window.${globalName};`;
+          // 🔥 修复：lucide-react 的全局变量是 window.lucide (小写)
+          contents = `
+            const lucide = window.lucide || window.LucideReact;
+            if (!lucide) {
+              throw new Error('lucide-react not loaded. Make sure the CDN script is included.');
+            }
+            module.exports = lucide;
+          `;
         } else {
-          contents = `module.exports = window.${globalName};`;
+          return {
+            errors: [{ text: `未知的 external 模块: ${args.path}` }],
+          };
         }
 
         return {
