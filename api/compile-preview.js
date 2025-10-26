@@ -19,6 +19,10 @@ const TAILWIND_CONFIG_CANDIDATES = [
   "src/styles/tailwind.config.js",
 ];
 
+const TAILWIND_INCLUDE_FILES = TAILWIND_CONFIG_CANDIDATES.map((candidate) =>
+  path.posix.join("..", candidate)
+);
+
 const ALLOWED_MODULES = new Set([
   "react",
   "react-dom",
@@ -344,7 +348,5 @@ module.exports = async function handler(req, res) {
 };
 
 module.exports.config = {
-  includeFiles: TAILWIND_CONFIG_CANDIDATES.map((candidate) =>
-    path.posix.join("..", candidate)
-  ),
+  includeFiles: TAILWIND_INCLUDE_FILES,
 };
