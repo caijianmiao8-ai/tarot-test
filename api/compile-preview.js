@@ -19,9 +19,17 @@ const TAILWIND_CONFIG_CANDIDATES = [
   "src/styles/tailwind.config.js",
 ];
 
-const TAILWIND_INCLUDE_FILES = TAILWIND_CONFIG_CANDIDATES.map((candidate) =>
-  path.posix.join("..", candidate)
-);
+const TAILWIND_INCLUDE_FILES = [
+  "../tailwind.config.js",
+  "../tailwind.config.cjs",
+  "../tailwind.config.mjs",
+  "../tailwind.config.ts",
+  "../styles/tailwind.config.js",
+  "../styles/tailwind.config.cjs",
+  "../styles/tailwind.config.mjs",
+  "../src/tailwind.config.js",
+  "../src/styles/tailwind.config.js",
+];
 
 const ALLOWED_MODULES = new Set([
   "react",
