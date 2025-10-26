@@ -1,10 +1,9 @@
 // api/compile-preview.js
-// ✅ 兼容 RemoteDesktopUI 的最终版
-// 关键特性：
-// - lucide-react 安全代理（任何图标名都不会变成 undefined）
-// - React/ReactDOM 映射到 iframe 全局，避免多版本冲突
-// - Tailwind 动态生成 + preflight 关闭
-// - 安全沙箱（禁 Node 内置模块、禁跨目录 import）
+// 最终版：
+// 1. 动态生成 lucide-react 的命名导出（按用户真正 import 的图标名生成）
+// 2. 每个导出的图标都是有效的 React 组件：要么是真图标，要么是安全占位符
+// 3. 彻底解决 "Element type is invalid ... got: undefined" 这种报错
+// 4. Tailwind fallback 日志仍然会出现，这只是提示，没有副作用
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -15,7 +14,7 @@ const loadConfig = require("tailwindcss/loadConfig");
 const fs = require("fs/promises");
 const os = require("os");
 
-// 可能存在的 tailwind 配置文件名
+// === tailwind 相关路径推测 ===
 const TAILWIND_CONFIG_FILENAMES = [
   "tailwind.config.js",
   "tailwind.config.cjs",
@@ -23,7 +22,6 @@ const TAILWIND_CONFIG_FILENAMES = [
   "tailwind.config.ts",
 ];
 
-// 有些项目把 tailwind 配置放在 src/ 或 styles/
 const EXTRA_CONFIG_LOCATIONS = [
   "styles/tailwind.config.js",
   "styles/tailwind.config.cjs",
@@ -35,7 +33,7 @@ const EXTRA_CONFIG_LOCATIONS = [
   "src/tailwind.config.ts",
 ];
 
-// 给 Vercel 函数打包时要携带的依赖文件
+// vercel runtime 打包需要
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
     ...TAILWIND_CONFIG_FILENAMES.map((name) => name),
@@ -44,8 +42,7 @@ const TAILWIND_INCLUDE_FILES = Array.from(
   ])
 );
 
-// 浏览器环境里允许 import 的模块白名单
-// 这些模块不会真的被打进 bundle，而是被我们映射成 iframe 全局变量或代理
+// 我们允许的外部依赖（在浏览器跑，不打进 bundle，或者用我们动态生成的 polyfill）
 const EXTERNAL_MODULES = new Set([
   "react",
   "react-dom",
@@ -55,30 +52,26 @@ const EXTERNAL_MODULES = new Set([
   "lucide-react",
 ]);
 
-// 禁止 import Node 内置模块
+// 禁 node 内置
 const NODE_BUILTINS = new Set([
   ...builtinModules,
   ...builtinModules.map((name) => `node:${name}`),
   "process",
 ]);
 
-// esbuild 用的两个虚拟入口
+// esbuild 的两个虚拟入口名
 const USER_CODE_VIRTUAL_PATH = "user-code";
 const VIRTUAL_ENTRY_PATH = "virtual-entry";
 
-// 我们用 Tailwind 动态生成 CSS
 const BASE_CSS =
   "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
 
-// 这些是轻量缓存，避免重复磁盘访问
 let cachedTailwindConfig = null;
 let cachedTailwindConfigPath = null;
 let cachedResolveDirPromise = null;
 
 /**
- * 创建一个安全的、临时的 resolveDir。
- * esbuild 在解析相对 import 的时候会以它为基准。
- * 我们用它来阻隔“../../../../etc/passwd”之类的访问。
+ * 创建临时 resolveDir，作为 esbuild 的安全沙箱根目录
  */
 async function ensureResolveDir() {
   if (!cachedResolveDirPromise) {
@@ -90,7 +83,7 @@ async function ensureResolveDir() {
 }
 
 /**
- * 生成所有可能的 tailwind.config.* 搜索路径
+ * 给 tailwind 找可能的 config 路径
  */
 function getAllCandidateConfigPaths() {
   const baseDirs = Array.from(
@@ -103,7 +96,6 @@ function getAllCandidateConfigPaths() {
   );
 
   const names = [...TAILWIND_CONFIG_FILENAMES, ...EXTRA_CONFIG_LOCATIONS];
-
   const results = [];
   for (const base of baseDirs) {
     for (const name of names) {
@@ -114,25 +106,22 @@ function getAllCandidateConfigPaths() {
 }
 
 /**
- * 找实际存在的 tailwind.config.* 文件
+ * 实际探测 tailwind config
  */
 async function findTailwindConfig() {
-  if (cachedTailwindConfigPath) {
-    return cachedTailwindConfigPath;
-  }
+  if (cachedTailwindConfigPath) return cachedTailwindConfigPath;
 
   const candidates = getAllCandidateConfigPaths();
-
-  for (const fullPath of candidates) {
+  for (const full of candidates) {
     try {
-      await fs.access(fullPath);
-      cachedTailwindConfigPath = fullPath;
+      await fs.access(full);
+      cachedTailwindConfigPath = full;
       console.info(
-        `[compile-preview] Tailwind config FOUND at: ${fullPath}`
+        `[compile-preview] Tailwind config FOUND at: ${full}`
       );
       return cachedTailwindConfigPath;
     } catch {
-      // 没找到就继续
+      // continue
     }
   }
 
@@ -143,27 +132,20 @@ async function findTailwindConfig() {
 }
 
 /**
- * 载入 tailwind 配置；如果没有，就用兜底配置
- * 兜底里我们：
- * - darkMode="class"
- * - 保留你在 UI 里会用到的圆角、阴影、字体
- * - 不主动 reset 浏览器默认样式（preflight 我们后面会关）
+ * 载入 tailwind 配置，否则用 fallback
  */
 async function loadTailwindConfigOrFallback() {
-  if (cachedTailwindConfig) {
-    return cachedTailwindConfig;
-  }
+  if (cachedTailwindConfig) return cachedTailwindConfig;
 
   const configPath = await findTailwindConfig();
-
   if (configPath) {
     try {
       cachedTailwindConfig = loadConfig(configPath);
       return cachedTailwindConfig;
-    } catch (error) {
+    } catch (err) {
       console.error(
         `[compile-preview] Failed to load Tailwind config: ${
-          error?.stack || error
+          err?.stack || err
         }`
       );
     }
@@ -209,45 +191,136 @@ async function loadTailwindConfigOrFallback() {
 }
 
 /**
- * 这个插件是整个沙箱的心脏：
- * - 限制 import 来源
- * - 把 react / react-dom / lucide-react 映射成安全的运行时实现
- * - 防止 Node 内置模块
- * - 防止逃出 sandbox 目录
+ * 把用户源码里 "import {...} from 'lucide-react'" 的内容抽出来
+ * 返回数组: [{ localName: 'Monitor', remoteName: 'Monitor' }, ...]
+ * 也支持别名: import { Monitor as MonitorIcon } ...
+ * → { localName: 'MonitorIcon', remoteName: 'Monitor' }
  */
-function createSecurityPlugin(resolveDir) {
+function extractLucideImports(userSource) {
+  const results = [];
+  const importRegex =
+    /import\s*\{\s*([^}]+)\}\s*from\s*['"]lucide-react['"]/g;
+
+  let match;
+  while ((match = importRegex.exec(userSource)) !== null) {
+    const inner = match[1]; // "Monitor, Wifi, Shield as ShieldIcon, ..."
+    inner.split(",").forEach((rawPart) => {
+      const part = rawPart.trim();
+      if (!part) return;
+      // 支持 "Name as Alias"
+      const m = part.split(/\s+as\s+/i);
+      const remoteName = m[0].trim();
+      const localName = m[1] ? m[1].trim() : remoteName;
+      // 只要是合法的 JS 变量名我们就记录
+      if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(localName)) {
+        results.push({ localName, remoteName });
+      }
+    });
+  }
+
+  // 去重，同一个 localName 只保留第一个
+  const dedupMap = new Map();
+  for (const item of results) {
+    if (!dedupMap.has(item.localName)) {
+      dedupMap.set(item.localName, item);
+    }
+  }
+  return Array.from(dedupMap.values());
+}
+
+/**
+ * 生成 lucide-react 这个虚拟模块的源码（ESM!）
+ * 我们为用户 import 的每个图标名显式写出命名导出：
+ *
+ *   export const Monitor = getIcon("Monitor");
+ *   export const Wifi = getIcon("Wifi");
+ *   export const Shield = getIcon("Shield");
+ *
+ * getIcon() 会在运行时从 window.lucide / window.LucideReact 里拿真组件，
+ * 拿不到就返回一个安全占位组件（不会是 undefined）。
+ *
+ * 这样 esbuild 会看到这些静态命名导出，
+ * 不会再去做那种“解构 CommonJS 返回对象”的套路，
+ * React 也就不会再拿到 undefined。
+ */
+function buildLucideModuleSource(lucideList) {
+  // 如果用户没有 import 任何图标，也要返回个最小模块，避免 esbuild 报错
+  const exportLines = lucideList.map(({ localName, remoteName }) => {
+    return `export const ${localName} = getIcon("${remoteName}");`;
+  });
+
+  return `
+    const React = window.React;
+
+    function PlaceholderIcon(props) {
+      const size = (props && props.size) ? props.size : 16;
+      const className = props && props.className ? props.className : "";
+      const style = {
+        display: 'inline-block',
+        width: size + 'px',
+        height: size + 'px',
+        borderRadius: '4px',
+        backgroundColor: 'rgba(148,163,184,0.4)', // slate-400/40
+        border: '1px solid rgba(148,163,184,0.6)', // slate-400/60
+        lineHeight: 0
+      };
+      return React.createElement('span', { style, className });
+    }
+
+    function getIcon(name) {
+      const lib = window.lucide || window.LucideReact || {};
+      const Comp = lib[name];
+      if (Comp) {
+        return Comp;
+      }
+      // 返回一个真正的函数组件包装 PlaceholderIcon，
+      // 确保 React 看到的是 function () { ... }，而不是直接的元素
+      return function MissingIcon(props) {
+        return React.createElement(PlaceholderIcon, props);
+      };
+    }
+
+    ${exportLines.join("\n")}
+
+    // 给一个默认导出，虽然基本用不到，但可以防止各种奇怪用法崩溃
+    const __lucideDefault = window.lucide || window.LucideReact || {};
+    export default __lucideDefault;
+  `;
+}
+
+/**
+ * 安全插件：
+ * - 限制 import 来源，阻止 Node 内置模块
+ * - 把 react / react-dom / react/jsx-runtime 之类映射到 iframe 全局
+ * - 把 lucide-react 映射成我们动态生成的 ESM 模块源代码
+ */
+function createSecurityPlugin(resolveDir, lucideList) {
   return {
     name: "preview-security",
     setup(buildCtx) {
-      //
-      // 1. onResolve: 控制“这个 import 跳到哪去”
-      //
+      // onResolve: 任何 import 先走这里
       buildCtx.onResolve({ filter: /.*/ }, (args) => {
-        // 白名单外部依赖 => 我们稍后用 onLoad 注入虚拟实现
         if (EXTERNAL_MODULES.has(args.path)) {
+          // 我们用 special namespace "external-globals"
           return {
             path: args.path,
             namespace: "external-globals",
           };
         }
 
-        // 禁 Node 内置模块
         if (NODE_BUILTINS.has(args.path)) {
           return {
             errors: [
               {
-                text: `模块 "${args.path}" 不允许在沙箱预览中使用（Node 内置已被禁用）。`,
+                text: `模块 "${args.path}" 不允许在沙箱预览中使用（Node 内置已禁用）。`,
               },
             ],
           };
         }
 
-        // 允许相对/绝对路径，但要限制在 resolveDir 之下
         if (args.path.startsWith(".") || path.isAbsolute(args.path)) {
           const baseDir = args.resolveDir || resolveDir;
           const resolved = path.resolve(baseDir, args.path);
-
-          // 防止 ../../../../ 逃出 sandbox
           if (!resolved.startsWith(baseDir)) {
             return {
               errors: [
@@ -257,11 +330,10 @@ function createSecurityPlugin(resolveDir) {
               ],
             };
           }
-
           return { path: resolved };
         }
 
-        // 其他任意第三方依赖一律不允许
+        // 其他任何外部包都不允许
         return {
           errors: [
             {
@@ -271,140 +343,95 @@ function createSecurityPlugin(resolveDir) {
         };
       });
 
-      //
-      // 2. onLoad: 给 external-globals 命名空间的模块提供具体实现
-      //
-      buildCtx.onLoad({ filter: /.*/, namespace: "external-globals" }, (args) => {
-        let contents = "";
-
-        // === react ===
-        if (args.path === "react") {
-          // 我们直接把 window.React 作为整个模块导出
-          contents = `
-            module.exports = window.React;
-          `;
-        }
-
-        // === react-dom ===
-        else if (args.path === "react-dom") {
-          contents = `
-            module.exports = window.ReactDOM;
-          `;
-        }
-
-        // === react-dom/client ===
-        else if (args.path === "react-dom/client") {
-          contents = `
-            const ReactDOM = window.ReactDOM;
-            if (!ReactDOM || !ReactDOM.createRoot) {
-              throw new Error('ReactDOM.createRoot not found. Make sure ReactDOM 18+ is loaded in the iframe.');
-            }
-            module.exports = {
-              createRoot: ReactDOM.createRoot.bind(ReactDOM),
+      // onLoad: 根据 namespace 返回模块的实际源码
+      buildCtx.onLoad(
+        { filter: /.*/, namespace: "external-globals" },
+        (args) => {
+          // ---- react ----
+          if (args.path === "react") {
+            return {
+              loader: "js",
+              contents: `
+                // 把 iframe 里的 React 暴露成模块
+                export default window.React;
+                export const useState = window.React.useState;
+                export const useEffect = window.React.useEffect;
+                export const useRef = window.React.useRef;
+                export const useMemo = window.React.useMemo;
+                export const useCallback = window.React.useCallback;
+                export const Fragment = window.React.Fragment;
+              `,
             };
-          `;
-        }
+          }
 
-        // === react/jsx-runtime ===
-        else if (args.path === "react/jsx-runtime") {
-          contents = `
-            const React = window.React;
-            module.exports = {
-              jsx: React.createElement,
-              jsxs: React.createElement,
-              Fragment: React.Fragment
+          // ---- react-dom ----
+          if (args.path === "react-dom") {
+            return {
+              loader: "js",
+              contents: `
+                export default window.ReactDOM;
+              `,
             };
-          `;
-        }
+          }
 
-        // === react/jsx-dev-runtime ===
-        else if (args.path === "react/jsx-dev-runtime") {
-          contents = `
-            const React = window.React;
-            module.exports = {
-              jsxDEV: React.createElement,
-              Fragment: React.Fragment
-            };
-          `;
-        }
-
-        // === lucide-react ===
-        //
-        // 这里是最关键的修复：
-        // 我们要兼容像这样的大量命名导入：
-        //
-        //   import {
-        //     Monitor, Smartphone, Settings, Power, Wifi, WifiOff, Clock,
-        //     ChevronRight, Grid, Keyboard, Gamepad2, Maximize2, Image,
-        //     Zap, Moon, Sun, User, Lock, Eye, EyeOff, LogOut, Bell,
-        //     HelpCircle, MessageSquare, Info, MoreVertical, Share2,
-        //     Edit, Trash2, Copy, CheckCircle, AlertCircle, Mail,
-        //     PhoneCall, BookOpen, Gift, Shield, Volume2, Palette,
-        //     Globe, ChevronDown, Home, Plus, Search, Filter
-        //   } from 'lucide-react';
-        //
-        // 我们不能保证 CDN 里真的有每一个同名导出，
-        // 所以我们用 Proxy：
-        //   - 如果真的有，就返回真实图标
-        //   - 没有，就返回一个 PlaceholderIcon
-        //
-        else if (args.path === "lucide-react") {
-          contents = `
-            const React = window.React;
-
-            // 一个通用的占位图标组件，不会是 undefined
-            function PlaceholderIcon(props) {
-              const size = (props && props.size) ? props.size : 16;
-              const style = {
-                display: 'inline-block',
-                width: size + 'px',
-                height: size + 'px',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(148,163,184,0.4)', // slate-400/40
-                border: '1px solid rgba(148,163,184,0.6)', // slate-400/60
-                lineHeight: 0
-              };
-
-              // 允许 className 进来避免 React 报 unknown prop
-              const outerStyle = style;
-              return React.createElement('span', { style: outerStyle });
-            }
-
-            function createLucideProxy(real) {
-              // real 可能是 undefined，或者是 CDN 暴露的对象
-              const target = (real && typeof real === 'object') ? real : {};
-
-              return new Proxy(target, {
-                get(obj, prop) {
-                  if (prop === '__esModule') return true;
-                  if (prop === 'default') {
-                    // 保留 default，防止一些奇怪的 "import xyz from 'lucide-react'"
-                    return obj;
-                  }
-                  // 如果 CDN 真的有对应图标，直接返回
-                  if (prop in obj && obj[prop]) {
-                    return obj[prop];
-                  }
-                  // 否则返回占位图标，这样 React 不会炸
-                  return PlaceholderIcon;
+          // ---- react-dom/client ----
+          if (args.path === "react-dom/client") {
+            return {
+              loader: "js",
+              contents: `
+                const ReactDOM = window.ReactDOM;
+                if (!ReactDOM || !ReactDOM.createRoot) {
+                  throw new Error('ReactDOM.createRoot not found. Make sure ReactDOM 18+ is loaded in the iframe.');
                 }
-              });
-            }
+                export function createRoot(container) {
+                  return ReactDOM.createRoot(container);
+                }
+              `,
+            };
+          }
 
-            // 我们尝试从不同全局变量里取 lucide
-            // （不同版本的 UMD 可能暴露成 window.lucide 或 window.LucideReact）
-            const lucideGlobal = window.lucide || window.LucideReact || {};
+          // ---- react/jsx-runtime ----
+          if (args.path === "react/jsx-runtime") {
+            return {
+              loader: "js",
+              contents: `
+                const React = window.React;
+                export const Fragment = React.Fragment;
+                export function jsx(type, props, key) {
+                  return React.createElement(type, { ...props, key });
+                }
+                export function jsxs(type, props, key) {
+                  return React.createElement(type, { ...props, key });
+                }
+              `,
+            };
+          }
 
-            // 包一层 Proxy，缺啥补啥
-            const proxied = createLucideProxy(lucideGlobal);
+          // ---- react/jsx-dev-runtime ----
+          if (args.path === "react/jsx-dev-runtime") {
+            return {
+              loader: "js",
+              contents: `
+                const React = window.React;
+                export const Fragment = React.Fragment;
+                export function jsxDEV(type, props, key) {
+                  return React.createElement(type, { ...props, key });
+                }
+              `,
+            };
+          }
 
-            module.exports = proxied;
-            module.exports.default = proxied;
-          `;
-        }
+          // ---- lucide-react ----
+          if (args.path === "lucide-react") {
+            // 动态 ESM 模块源码，包含所有图标的命名导出
+            const lucideModuleSource = buildLucideModuleSource(lucideList);
+            return {
+              loader: "js",
+              contents: lucideModuleSource,
+            };
+          }
 
-        // 兜底：如果 somehow 有别的 external 模块（按理不会走到）
-        else {
+          // 理论上不会走到这里
           return {
             errors: [
               {
@@ -413,18 +440,13 @@ function createSecurityPlugin(resolveDir) {
             ],
           };
         }
-
-        return {
-          contents,
-          loader: "js",
-        };
-      });
+      );
     },
   };
 }
 
 /**
- * 把 esbuild 的报错整理成人类可读文本，回传给前端 overlay 显示
+ * esbuild 报错转成纯文本
  */
 function formatEsbuildError(error) {
   if (error && Array.isArray(error.errors) && error.errors.length > 0) {
@@ -442,14 +464,18 @@ function formatEsbuildError(error) {
 }
 
 /**
- * 把用户输入的 React 组件源码打包成一段浏览器可执行的 IIFE
- * - 我们构造了两个虚拟模块：
- *   1. "virtual-entry": 负责在 iframe 里 createRoot(...) 并渲染用户组件
- *   2. "user-code":     就是用户自己写的源码（export default ...）
+ * 把用户传来的源码打包成浏览器可执行 IIFE
+ * - virtual-entry 负责 createRoot() 渲染
+ * - user-code 就是用户写的那个组件（export default ...）
  */
 async function bundleSource(source) {
   const resolveDir = await ensureResolveDir();
-  const securityPlugin = createSecurityPlugin(resolveDir);
+
+  // 抓出用户 import 的所有 lucide-react 图标名
+  const lucideList = extractLucideImports(source);
+
+  // 带着这些图标名去构建安全插件
+  const securityPlugin = createSecurityPlugin(resolveDir, lucideList);
 
   const result = await build({
     write: false,
@@ -466,7 +492,7 @@ async function bundleSource(source) {
       {
         name: "preview-virtual-entry",
         setup(buildCtx) {
-          // 入口模块 (virtual-entry)
+          // virtual-entry：负责 mount
           buildCtx.onResolve(
             { filter: new RegExp(`^${VIRTUAL_ENTRY_PATH}$`) },
             () => ({
@@ -487,7 +513,7 @@ async function bundleSource(source) {
                 try {
                   const detail =
                     payload && (payload.stack || payload.message)
-                      ? payload.stack || payload.message
+                      ? (payload.stack || payload.message)
                       : String(payload);
                   if (window.parent && window.parent !== window) {
                     window.parent.postMessage(
@@ -541,7 +567,7 @@ async function bundleSource(source) {
             `,
           }));
 
-          // 用户源码模块 (user-code)
+          // user-code：用户粘贴的代码本体
           buildCtx.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({
@@ -558,7 +584,7 @@ async function bundleSource(source) {
         },
       },
 
-      // 我们的安全/映射插件
+      // 我们的安全/依赖注入插件
       securityPlugin,
     ],
     entryPoints: [VIRTUAL_ENTRY_PATH],
@@ -572,14 +598,12 @@ async function bundleSource(source) {
 }
 
 /**
- * 用 Tailwind 生成需要的 CSS：
- * - content: 我们把整段用户源码丢进去
- * - preflight 强制关掉，避免 iframe 全局 reset 掉原生元素
+ * 用 Tailwind 生成只包含本次源码需要的 class
+ * - 我们强制关闭 preflight，避免把 iframe 的输入框/按钮 reset 掉
  */
 async function generateTailwindCSS(source) {
   const loadedConfig = await loadTailwindConfigOrFallback();
 
-  // 关掉 preflight，避免把 iframe 的 <input> / <button> 样式全清空
   let mergedCorePlugins = { preflight: false };
   if (
     loadedConfig.corePlugins &&
@@ -607,16 +631,14 @@ async function generateTailwindCSS(source) {
 }
 
 /**
- * 解析请求体（兼容 req.body 是对象或字符串）
+ * 解析请求体
  */
 function parseRequestBody(req) {
-  if (!req.body) {
-    return {};
-  }
+  if (!req.body) return {};
   if (typeof req.body === "string") {
     try {
       return JSON.parse(req.body);
-    } catch (error) {
+    } catch (err) {
       throw new Error("请求体不是合法的 JSON");
     }
   }
@@ -624,9 +646,9 @@ function parseRequestBody(req) {
 }
 
 /**
- * 主入口：POST /api/compile-preview
- * 入参: { source: string }  (用户在左侧编辑器里写的整段 React 代码)
- * 返回: { js, css } 或 { error }
+ * 这是 /api/compile-preview 的 handler
+ * 入参: { source: string }
+ * 出参: { js, css } 或 { error }
  */
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -672,7 +694,7 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Vercel 配置：确保部署后还能拿到 tailwind 配置文件
+// 告诉 vercel 要把可能的 tailwind 配置文件也打包上
 module.exports.config = {
   includeFiles: TAILWIND_INCLUDE_FILES,
 };
