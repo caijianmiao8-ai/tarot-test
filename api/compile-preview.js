@@ -20,7 +20,7 @@ const TAILWIND_CONFIG_FILENAMES = [
 ];
 
 /**
- * 某些项目会把 tailwind.config.* 放在这些路径
+ * 有些项目把 tailwind.config.* 放到 styles/ 或 src/ 下面
  */
 const EXTRA_CONFIG_LOCATIONS = [
   "styles/tailwind.config.js",
@@ -39,37 +39,35 @@ const EXTRA_CONFIG_LOCATIONS = [
 
 /**
  * 我们需要告诉 Vercel：
- *   “请把这些额外文件也一起打包进这个 serverless 函数里运行”
+ *   “把这些额外文件也一起打包进 serverless 函数运行环境”
  *
  * 为什么？
- *  - 你的函数会在 Vercel 上被单独打成一个 /var/task 目录
- *  - Tailwind 在运行时会去读它自己的内部资源，比如它内置的 preflight.css
- *  - 默认情况下 Vercel 可能不会把 tailwindcss 包的这些额外静态资源文件带上
- *  - 于是运行时就会报 ENOENT 找不到 preflight.css
+ *  - Vercel 会把这个函数和依赖打成 /var/task
+ *  - Tailwind 在运行时会去读它自带的一些资源，比如 preflight.css
+ *  - 默认打包有时不会带上这些额外资源 -> ENOENT
  *
- * 我们强制 include：
- *  1. 项目根目录下的 tailwind.config.* 这些文件
- *  2. 如果函数跑在 /var/task/api 目录，还要能访问上一级目录里的 tailwind.config.*，所以也把 ../tailwind.config.* 带上
- *  3. 整个 node_modules/tailwindcss 目录（包含它的内部 css 资源），这样运行时不至于缺 preflight.css
+ * 我们强行 include：
+ *  1. 可能存在的 tailwind.config.*（当前目录 + 上级目录）
+ *  2. 整个 tailwindcss 包 (node_modules/tailwindcss/**)，这样它的内部 css 资源不会丢
  */
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
     // tailwind.config.* at cwd
     ...TAILWIND_CONFIG_FILENAMES.map((name) => name),
 
-    // tailwind.config.* at parent of cwd (for runtimes like /var/task/api)
+    // tailwind.config.* one level up (for runtimes like /var/task/api)
     ...TAILWIND_CONFIG_FILENAMES.map((name) =>
       path.posix.join("..", name)
     ),
 
-    // ship the entire tailwindcss package files, including its internal css assets
+    // include the whole tailwindcss package so preflight.css etc is available
     "node_modules/tailwindcss/**/*",
   ])
 );
 
 /**
  * 允许用户代码 import 的依赖白名单
- * 任何不在白名单里的模块会被拒绝，防止滥用
+ * 其他 import 会直接被拒绝
  */
 const ALLOWED_MODULES = new Set([
   "react",
@@ -81,7 +79,7 @@ const ALLOWED_MODULES = new Set([
 ]);
 
 /**
- * Node 内置模块（我们不允许在浏览器沙箱预览中使用这些）
+ * Node 内置模块（这些在浏览器预览环境里是禁止的）
  */
 const NODE_BUILTINS = new Set([
   ...builtinModules,
@@ -90,28 +88,29 @@ const NODE_BUILTINS = new Set([
 ]);
 
 /**
- * 我们使用虚拟模块名来挂载用户输入的 React 组件代码
- * 以及我们的入口文件
+ * 我们使用虚拟模块名来承载用户传进来的 React 组件
+ * 以及我们自动生成的入口
  */
 const USER_CODE_VIRTUAL_PATH = "user-code";
 const VIRTUAL_ENTRY_PATH = "virtual-entry";
 
 /**
- * 基础 Tailwind 指令
+ * Tailwind 的基础指令
+ * 我们会用 PostCSS+Tailwind 把它展开成最终 CSS
  */
 const BASE_CSS =
   "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
 
 /**
- * 一些缓存，避免每个请求都重复做昂贵的工作
+ * 缓存，避免每次都重新准备
  */
 let cachedTailwindConfig = null;
 let cachedTailwindConfigPath = null;
 let cachedResolveDirPromise = null;
 
 /**
- * esbuild 需要一个“安全的根目录”来解析相对 import
- * 我们用 tmp 目录，防止用户 import ../../../etc/passwd 之类的越狱
+ * esbuild 需要一个“安全根目录”用于解析相对 import
+ * 我们用 /tmp 下的临时目录，避免用户试图用相对路径逃逸到系统文件
  */
 async function ensureResolveDir() {
   if (!cachedResolveDirPromise) {
@@ -123,13 +122,12 @@ async function ensureResolveDir() {
 }
 
 /**
- * Vercel serverless 函数的真实运行目录不总是仓库根
- *   - 有时 cwd 是 /var/task
- *   - 有时 cwd 是 /var/task/api
- *   - __dirname 也可能是 /var/task/api
+ * Vercel 上这个函数的 cwd/__dirname 可能是:
+ *   /var/task
+ *   /var/task/api
+ * tailwind.config.js 通常在仓库根 (/var/task)
  *
- * 你的 tailwind.config.js 通常在仓库根（/var/task）
- * 我们就把这些可能的基准目录都试一遍
+ * 我们广撒网：cwd、cwd/..、__dirname、__dirname/.. 全试
  */
 function getAllCandidateConfigPaths() {
   const baseDirs = Array.from(
@@ -178,7 +176,7 @@ async function findTailwindConfig() {
       );
       return cachedTailwindConfigPath;
     } catch {
-      // ignore, keep trying
+      // not found, keep going
     }
   }
 
@@ -192,11 +190,13 @@ __dirname=${__dirname}`
 
 /**
  * 加载 tailwind 配置：
- *   - 如果我们能找到真实 tailwind.config.*，就用它
- *   - 如果找不到，就 fallback 一个内置配置（带 Inter/JetBrains Mono、圆角大玻璃卡片阴影等）
+ *  - 如果能找到真实 tailwind.config.*，我们用它
+ *  - 如果找不到，就 fallback 一个内置的配置
  *
- * 重点：我们不会再因为没找到 tailwind.config.js 就直接抛 500。
- * 这样右侧预览不会白屏报错，而是还能渲染出“高质感 UI”。
+ * fallback 的作用：
+ *  即使 tailwind.config.js 没被正确打包进 serverless 函数，
+ *  右侧 iframe 也不会白屏；它仍然会拿到一套“高质感”的默认主题
+ *  （Inter 字体、JetBrains Mono、圆角玻璃卡片阴影等）
  */
 async function loadTailwindConfigOrFallback() {
   if (cachedTailwindConfig) {
@@ -218,7 +218,7 @@ async function loadTailwindConfigOrFallback() {
           error?.stack || error
         }`
       );
-      // we'll fall back below
+      // fall through to fallback
     }
   }
 
@@ -226,7 +226,7 @@ async function loadTailwindConfigOrFallback() {
     "[compile-preview] Using internal fallback Tailwind config (preview will still render)"
   );
 
-  // fallback：保证 UI 依然有 Inter 字体、玻璃卡片、圆角、阴影等
+  // 兜底配置：别割裂你的视觉风格
   cachedTailwindConfig = {
     darkMode: "class",
     theme: {
@@ -237,11 +237,11 @@ async function loadTailwindConfigOrFallback() {
             "system-ui",
             "-apple-system",
             "BlinkMacSystemFont",
-            '"Segoe UI"',
+            "Segoe UI",
             "Roboto",
-            '"Helvetica Neue"',
+            "Helvetica Neue",
             "Arial",
-            '"Noto Sans'",
+            "Noto Sans",
             "sans-serif",
           ],
           mono: [
@@ -271,21 +271,21 @@ async function loadTailwindConfigOrFallback() {
 
 /**
  * esbuild 安全插件：
- *   - 禁止 Node 内置模块（fs/process等）
- *   - 禁止不在白名单里的外部依赖
- *   - 禁止用相对路径逃出我们允许的临时目录
+ *  - 禁 Node 内置模块
+ *  - 禁掉不在白名单的 npm 包
+ *  - 禁止相对路径逃出允许的 sandbox 目录
  */
 function createSecurityPlugin(resolveDir) {
   return {
     name: "preview-security",
     setup(build) {
       build.onResolve({ filter: /.*/ }, (args) => {
-        // 用户代码虚拟模块
+        // 我们虚拟注入的用户模块
         if (args.namespace === "user") {
           return { path: args.path, namespace: "user" };
         }
 
-        // 禁用 Node 内置模块
+        // 禁 Node 内置模块 (fs, process, path, etc.)
         if (NODE_BUILTINS.has(args.path)) {
           return {
             errors: [
@@ -296,12 +296,12 @@ function createSecurityPlugin(resolveDir) {
           };
         }
 
-        // 处理相对/绝对路径 import
+        // 处理相对或绝对路径的 import
         if (args.path.startsWith(".") || path.isAbsolute(args.path)) {
           const baseDir = args.resolveDir || resolveDir;
           const resolved = path.resolve(baseDir, args.path);
 
-          // 防止逃逸 tmp 根目录
+          // 防止逃离我们的 sandbox 根目录
           if (!resolved.startsWith(baseDir)) {
             return {
               errors: [
@@ -315,7 +315,7 @@ function createSecurityPlugin(resolveDir) {
           return { path: resolved };
         }
 
-        // 允许 import 白名单依赖
+        // 允许白名单依赖（react, react-dom, lucide-react 等）
         if (
           ALLOWED_MODULES.has(args.path) ||
           (args.importer && args.importer.includes("node_modules"))
@@ -323,7 +323,7 @@ function createSecurityPlugin(resolveDir) {
           return { path: args.path };
         }
 
-        // 否则拒绝
+        // 拒绝一切不在白名单中的依赖
         return {
           errors: [
             {
@@ -337,7 +337,7 @@ function createSecurityPlugin(resolveDir) {
 }
 
 /**
- * 把 esbuild 报错变成可读文本（让右上角 overlay 能显示友好信息）
+ * 把 esbuild 的报错转成可读文本，方便右上角 overlay 展示
  */
 function formatEsbuildError(error) {
   if (error && Array.isArray(error.errors) && error.errors.length > 0) {
@@ -355,12 +355,13 @@ function formatEsbuildError(error) {
 }
 
 /**
- * 把用户代码打包成可直接在 iframe 里执行的 IIFE：
- *   - 我们生成一个 virtual-entry，负责：
- *     - import 用户组件
- *     - createRoot(#root).render(<用户组件 />)
- *     - 捕捉运行时错误 / Promise 未处理拒绝，并 postMessage 给父窗口
- *   - esbuild 输出单文件 IIFE，浏览器直接拿这个脚本跑
+ * 用 esbuild 把用户的 React 代码打成一个 IIFE
+ * 1. 我们声明一个 virtual-entry 入口模块
+ * 2. 入口里：
+ *    - import 用户组件
+ *    - createRoot(#root).render(<UserComponent />)
+ *    - 捕捉运行时错误 / Promise 拒绝并用 postMessage 通知父窗口
+ * 3. esbuild 输出一个单文件的立即执行脚本，iframe 里直接跑
  */
 async function bundleSource(source) {
   const resolveDir = await ensureResolveDir();
@@ -381,7 +382,7 @@ async function bundleSource(source) {
       {
         name: "preview-virtual-entry",
         setup(build) {
-          // 入口 virtual-entry
+          // 我们的入口 virtual-entry
           build.onResolve(
             { filter: new RegExp(`^${VIRTUAL_ENTRY_PATH}$`) },
             () => ({
@@ -433,7 +434,7 @@ const mount = () => {
   }
 };
 
-// 捕捉运行时异常 & 未处理的 Promise 拒绝
+// 捕捉运行时错误和未处理的 Promise 拒绝
 window.addEventListener("error", (event) => {
   if (!event) return;
   if (event.error) {
@@ -457,7 +458,7 @@ if (document.readyState === "loading") {
 `,
           }));
 
-          // 用户输入代码模块 user-code
+          // 用户代码模块 user-code
           build.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({
@@ -486,10 +487,10 @@ if (document.readyState === "loading") {
 }
 
 /**
- * 调用 Tailwind (通过 PostCSS) 生成当前代码所需的 CSS：
- *   - content 指向用户当前写的 JSX 源码
- *   - Tailwind 只会产出用到的类
- *   - 结合 fallback 配置后，即使没找到真实 tailwind.config.js，也能生成带质感的 UI
+ * 用 Tailwind (通过 PostCSS) 生成当前用户代码所需的 CSS：
+ *   - content 指向用户传入的 JSX 源码
+ *   - Tailwind JIT 只吐出真正用到的类
+ *   - 我们用 loadTailwindConfigOrFallback()，即使没真实 config 也能渲染漂亮 UI
  */
 async function generateTailwindCSS(source) {
   const loadedConfig = await loadTailwindConfigOrFallback();
@@ -525,9 +526,9 @@ function parseRequestBody(req) {
 }
 
 /**
- * /api/compile-preview 的主入口
- * 成功时返回 { js, css }
- * 失败时返回 { error }
+ * /api/compile-preview 主入口
+ * - 成功时返回 { js, css }
+ * - 出错时返回 { error }
  */
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -577,11 +578,10 @@ module.exports = async function handler(req, res) {
 
 /**
  * Vercel 函数打包配置：
- * - 把 tailwind.config.* 带上（当前目录 & 上级目录）
- * - 把整个 node_modules/tailwindcss 目录带上（包含 preflight.css 等运行时依赖）
+ * - 把 tailwind.config.* 带进来（当前目录 & 上级目录）
+ * - 把整个 tailwindcss 包带进来（包含 preflight.css 等内部资源）
  *
- * 这一步就是为了解决：
- *   ENOENT: no such file or directory, open '.../tailwindcss/lib/css/preflight.css'
+ * 这就是修 ENOENT: preflight.css 的关键。
  */
 module.exports.config = {
   includeFiles: TAILWIND_INCLUDE_FILES,
