@@ -61,15 +61,18 @@ async function findTailwindConfig() {
 
   for (const relative of TAILWIND_CONFIG_CANDIDATES) {
     const fullPath = path.join(process.cwd(), relative);
+    console.info(`Checking for Tailwind config at: ${fullPath}`);
     try {
       await fs.access(fullPath);
       cachedTailwindConfigPath = fullPath;
+      console.info(`Tailwind config found at: ${fullPath}`);
       return cachedTailwindConfigPath;
     } catch (error) {
       continue; // try next candidate
     }
   }
 
+  console.warn("No Tailwind config found in any candidate location.");
   return null;
 }
 
@@ -84,10 +87,13 @@ async function loadTailwindConfig() {
   }
 
   try {
+    console.info(`Loading Tailwind config from: ${configPath}`);
     cachedTailwindConfig = loadConfig(configPath);
     return cachedTailwindConfig;
   } catch (error) {
-    console.error("Failed to load tailwind config", error);
+    console.error(
+      `Failed to load Tailwind config from ${configPath}: ${error?.stack || error}`
+    );
     const configError = new Error("无法加载 Tailwind 配置文件");
     configError.statusCode = 500;
     throw configError;
