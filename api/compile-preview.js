@@ -1,16 +1,16 @@
 // api/compile-preview.js
 //
-// ✅ 最终修正版（带 ENOENT 修复）
+// 服务器端实时编译器（给预览 iframe 用）。
+// 功能：
+//   1. 用 esbuild 把用户在编辑器里写的 React 组件打成一个 IIFE。
+//   2. 让 React / ReactDOM / lucide-react 这些库通过全局(window.*)注入，而不是真的打包 node_modules。
+//   3. 把 Tailwind 按需跑一遍，只生成当前代码用到的类。我们强制关闭 preflight，避免 Vercel 上读取 preflight.css 报 ENOENT。
+//   4. 自动生成一个“虚拟 lucide-react 模块”，解决：
+//        - React element type is invalid (组件是 undefined 的问题)
+//        - 图标必须能真的渲染，而不是黑框
+//   5. 强沙箱：禁止 Node 内置、禁止任意 import 其他包、防止路径逃逸。
 //
-// 关键点：
-// - lucide-react：为每个导入的图标生成静态命名导出，避免 undefined 组件 -> 不再触发 React invalid element error
-// - lucide-react：占位图标是优雅的 SVG，不是黑块
-// - Tailwind：在 serverless 环境下我们强制 corePlugins.preflight=false，这样不会去读 node_modules/tailwindcss/lib/css/preflight.css
-//   => 修复 ENOENT
-// - iframe 侧（main.js 里）我们注入 sandbox-baseline，把 body margin:0 / box-sizing:border-box / 全屏高度 / 字体 / 控件重置 补回来
-//   => UI 仍然接近设计稿，而不会乱飞、不会原生按钮丑
-//
-// - 仍然是安全沙箱：禁止 fs 等 Node 内置模块，禁止任意第三方 import，React/ReactDOM 从 iframe 全局拿
+// 这份代码是完整形态，不要再砍它。
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -21,7 +21,9 @@ const loadConfig = require("tailwindcss/loadConfig");
 const fs = require("fs/promises");
 const os = require("os");
 
-// ----------------- Tailwind config 搜索 -----------------
+// ----------------------------------------------------------------------------
+// Tailwind 配置发现
+// ----------------------------------------------------------------------------
 
 const TAILWIND_CONFIG_FILENAMES = [
   "tailwind.config.js",
@@ -41,16 +43,19 @@ const EXTRA_CONFIG_LOCATIONS = [
   "src/tailwind.config.ts",
 ];
 
-// vercel 函数部署时告诉它需要一并打包的文件
+// 我们告诉 Vercel 把 tailwindcss 本体打进来，以便 serverless 环境能 require。
+// includeFiles 还能把你的 tailwind.config.js 之类的东西带过来（即使在子目录）
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
-    ...TAILWIND_CONFIG_FILENAMES.map((name) => name),
-    ...TAILWIND_CONFIG_FILENAMES.map((name) => path.posix.join("..", name)),
+    ...TAILWIND_CONFIG_FILENAMES.map((n) => n),
+    ...TAILWIND_CONFIG_FILENAMES.map((n) => path.posix.join("..", n)),
     "node_modules/tailwindcss/**/*",
   ])
 );
 
-// ----------------- 允许的外部模块 -----------------
+// ----------------------------------------------------------------------------
+// 外部依赖白名单
+// ----------------------------------------------------------------------------
 
 const EXTERNAL_MODULES = new Set([
   "react",
@@ -61,27 +66,28 @@ const EXTERNAL_MODULES = new Set([
   "lucide-react",
 ]);
 
-// 禁用 Node 内置
+// 禁 Node 内置模块 / 进程对象
 const NODE_BUILTINS = new Set([
   ...builtinModules,
-  ...builtinModules.map((name) => `node:${name}`),
+  ...builtinModules.map((n) => `node:${n}`),
   "process",
 ]);
 
-// esbuild 虚拟入口
-const USER_CODE_VIRTUAL_PATH = "user-code";
-const VIRTUAL_ENTRY_PATH = "virtual-entry";
+// 虚拟入口常量
+const USER_CODE_VIRTUAL_PATH = "user-code";    // 你的组件源码
+const VIRTUAL_ENTRY_PATH = "virtual-entry";    // 我们注入的root/mount脚本
 
-// Tailwind 的基础指令
-const BASE_CSS =
-  "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
+// Tailwind 指令
+const BASE_CSS = "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
 
+// 缓存
 let cachedTailwindConfig = null;
 let cachedTailwindConfigPath = null;
 let cachedResolveDirPromise = null;
 
-// ----------------- helper: 沙箱根目录 -----------------
-
+// ----------------------------------------------------------------------------
+// 帮助函数：安全的 resolveDir（esbuild 需要一个根目录，不能乱跳）
+// ----------------------------------------------------------------------------
 async function ensureResolveDir() {
   if (!cachedResolveDirPromise) {
     cachedResolveDirPromise = fs
@@ -91,8 +97,9 @@ async function ensureResolveDir() {
   return cachedResolveDirPromise;
 }
 
-// ----------------- helper: 找 tailwind.config.* -----------------
-
+// ----------------------------------------------------------------------------
+// Tailwind 配置文件查找
+// ----------------------------------------------------------------------------
 function getAllCandidateConfigPaths() {
   const baseDirs = Array.from(
     new Set([
@@ -127,7 +134,7 @@ async function findTailwindConfig() {
       );
       return cachedTailwindConfigPath;
     } catch {
-      // keep looking
+      // continue
     }
   }
 
@@ -155,6 +162,7 @@ async function loadTailwindConfigOrFallback() {
     }
   }
 
+  // 没找到你的 tailwind.config，就兜底一个非常接近你 UI 的基础主题
   console.warn("[compile-preview] Using internal fallback Tailwind config");
 
   cachedTailwindConfig = {
@@ -184,6 +192,7 @@ async function loadTailwindConfigOrFallback() {
           "3xl": "1.75rem",
         },
         boxShadow: {
+          // 玻璃态那种大面积柔光阴影
           "glass-xl": "0 40px 120px rgba(15,23,42,0.45)",
         },
       },
@@ -194,14 +203,27 @@ async function loadTailwindConfigOrFallback() {
   return cachedTailwindConfig;
 }
 
-// ----------------- lucide-react 处理 -----------------
+// ----------------------------------------------------------------------------
+// 图标处理
+// ----------------------------------------------------------------------------
 //
-// 我们扫描用户源码：import { Monitor, Wifi, Shield as MyShield } from 'lucide-react'
-// 然后为每个名字生成：export const Monitor = getIcon("Monitor");
+// 情况：
+//   import { Monitor, Gamepad2 } from 'lucide-react';
 //
-// 通过这种“静态命名导出”，esbuild 就不会把这些变成对一个对象的解构，
-// React 不会再拿到 undefined 组件。
-// 缺的图标我们用优雅占位 SVG（不再是黑块）。
+// 在打包阶段我们要合成一个模块 "lucide-react"：
+//   export const Monitor = getIcon("Monitor");
+//   export const Gamepad2 = getIcon("Gamepad2");
+//   ...
+//
+// getIcon 做 3 层兜底：
+//   1. window.lucideReact / window.LucideReact ...: 已经是 React 组件，直接返回
+//   2. window.lucide (lucide 核心 UMD): 提供 .icons['monitor'], .icons['gamepad-2']...
+//      我们把这些 svg 节点数组包装成 React 组件，再返回
+//   3. 实在没有 -> 返回一个轻微的占位 SVG（浅色圆+横线），不会是粗黑框
+//
+// 关键：lucide 核心是 kebab-case 和带数字中横线，比如 "gamepad-2"
+//       lucide-react 是 PascalCase，比如 "Gamepad2"
+// 我们在这里做 PascalCase -> kebab-case/小驼峰 的映射，保证 Gamepad2 能找到 gamepad-2
 //
 
 function extractLucideImports(userSource) {
@@ -211,24 +233,24 @@ function extractLucideImports(userSource) {
 
   let match;
   while ((match = importRegex.exec(userSource)) !== null) {
-    const inner = match[1]; // "Monitor, Wifi, Shield as ShieldIcon"
-    inner.split(",").forEach((rawPart) => {
-      const part = rawPart.trim();
-      if (!part) return;
-      const m = part.split(/\s+as\s+/i);
-      const remoteName = m[0].trim();
-      const localName = m[1] ? m[1].trim() : remoteName;
-      if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(localName)) {
-        results.push({ localName, remoteName });
-      }
-    });
+    const inner = match[1];
+    inner
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((part) => {
+        const mm = part.split(/\s+as\s+/i);
+        const remoteName = mm[0].trim();
+        const localName = (mm[1] ? mm[1] : remoteName).trim();
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(localName)) {
+          results.push({ localName, remoteName });
+        }
+      });
   }
 
   const dedup = new Map();
   for (const item of results) {
-    if (!dedup.has(item.localName)) {
-      dedup.set(item.localName, item);
-    }
+    if (!dedup.has(item.localName)) dedup.set(item.localName, item);
   }
   return Array.from(dedup.values());
 }
@@ -240,11 +262,14 @@ function buildLucideModuleSource(lucideList) {
 
   return `
     const React = window.React;
+    const __missingLogged = Object.create(null);
 
-    // 优雅占位：半透明圆圈 + 一条横线，继承 currentColor
+    // 这个占位图标比“黑色方块”柔和太多：一个轻微透明圆+一条线
     function PlaceholderIcon(props) {
-      const size = (props && props.size) ? props.size : 16;
-      const className = props && props.className ? props.className : "";
+      const size = props?.size ?? 24;
+      const className = props?.className || "";
+      const strokeWidth = props?.strokeWidth ?? 2;
+      const color = props?.color || "currentColor";
 
       return React.createElement(
         "svg",
@@ -253,17 +278,17 @@ function buildLucideModuleSource(lucideList) {
           height: size,
           viewBox: "0 0 24 24",
           fill: "none",
-          stroke: "currentColor",
-          strokeWidth: 2,
+          stroke: color,
+          strokeWidth,
           strokeLinecap: "round",
           strokeLinejoin: "round",
-          className: className
+          className
         },
         React.createElement("circle", {
           cx: 12,
           cy: 12,
           r: 10,
-          style: { opacity: 0.2 }
+          style: { opacity: 0.22 }
         }),
         React.createElement("line", {
           x1: 8,
@@ -274,35 +299,187 @@ function buildLucideModuleSource(lucideList) {
       );
     }
 
-    function getGlobalIconMap() {
-      const candidates = [
-        window.lucide,
-        window.LucideReact,
+    // PascalCase("Gamepad2") -> 多种候选key：["gamepad-2","gamepad2","gamepad-2",...]
+    function guessCoreKeys(pascalName) {
+      const kebab = pascalName
+        // fooBar -> foo-bar
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        // FOOBar -> FOO-Bar
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+        // Thing2 -> Thing-2
+        .replace(/([a-zA-Z])([0-9]+)/g, '$1-$2')
+        .toLowerCase();
+
+      const simpleLower =
+        pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
+
+      return Array.from(
+        new Set([
+          kebab,                // "gamepad-2"
+          simpleLower,          // "gamepad2"
+          pascalName,           // "Gamepad2"
+          pascalName.toLowerCase(), // "gamepad2" (again)
+        ])
+      );
+    }
+
+    // 把 lucide 原始节点数组转成 React 组件
+    // nodes 形如 [ ["path", { d: "..." }], ["line",{...}], ... ]
+    function createReactIconFromNodes(name, nodes) {
+      const Icon = React.forwardRef(function Icon(props, ref) {
+        const {
+          size = 24,
+          color = "currentColor",
+          strokeWidth = 2,
+          className,
+          ...rest
+        } = props || {};
+
+        const children = Array.isArray(nodes)
+          ? nodes.map((n, i) => {
+              if (Array.isArray(n) && typeof n[0] === "string") {
+                const tag = n[0];
+                const attrs = n[1] || {};
+                return React.createElement(tag, { key: i, ...attrs });
+              }
+              if (n && typeof n === "object" && typeof n.tag === "string") {
+                return React.createElement(n.tag, { key: i, ...(n.attrs || {}) });
+              }
+              return null;
+            })
+          : null;
+
+        return React.createElement(
+          "svg",
+          {
+            ref,
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: color,
+            strokeWidth,
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            className,
+            ...rest
+          },
+          children
+        );
+      });
+
+      Icon.displayName = name;
+      return Icon;
+    }
+
+    // 尝试从 core-style 数据里拿节点数组
+    function getIconNodesFromCore(core, pascalName) {
+      if (!core) return null;
+
+      // lucide UMD 通常是 window.lucide，其中 window.lucide.icons 是一个对象:
+      //   { "monitor": [ ["rect",{...}], ["path",{...}] ], "gamepad-2":[...] }
+      // 我们要考虑 PascalCase -> kebab-case 映射
+      const candidates = guessCoreKeys(pascalName); // ["gamepad-2", "gamepad2", ...]
+
+      for (const key of candidates) {
+        // 尝试 core.icons["gamepad-2"]
+        if (core.icons && Array.isArray(core.icons[key])) {
+          return core.icons[key];
+        }
+
+        // 尝试 core[key] = ["svg", attrs, nodes] 这种旧风格
+        const direct = core[key];
+        if (Array.isArray(direct)) {
+          const maybeNodes = Array.isArray(direct[2]) ? direct[2] : null;
+          if (maybeNodes) return maybeNodes;
+        }
+
+        // 尝试 core[key] = { iconNode:[...]} / { node:[...]}
+        if (direct && typeof direct === "object") {
+          if (Array.isArray(direct.iconNode)) return direct.iconNode;
+          if (Array.isArray(direct.node)) return direct.node;
+        }
+      }
+
+      return null;
+    }
+
+    // 尝试发现全局的图标库
+    // - componentCandidates：已经是 React 组件（理想情况）
+    // - coreCandidates：核心节点（我们包一层变成 React 组件）
+    function getGlobalIconSource() {
+      const componentCandidates = [
         window.lucideReact,
+        window.LucideReact,
+        window.lucide_react,
+        window.lucideReactIcons,
+        window.LucideReactIcons
+      ];
+
+      for (const lib of componentCandidates) {
+        if (lib && typeof lib === "object" && Object.keys(lib).length) {
+          return { type: "components", lib };
+        }
+      }
+
+      const coreCandidates = [
+        window.lucide,
         window.lucide_icons,
         window.lucideIcons,
         window.LucideIcons
       ];
-      for (let i = 0; i < candidates.length; i++) {
-        const lib = candidates[i];
-        if (lib && typeof lib === "object") {
-          if (Object.keys(lib).length > 0) {
-            return lib;
-          }
+
+      for (const lib of coreCandidates) {
+        if (lib && typeof lib === "object" && Object.keys(lib).length) {
+          return { type: "core", lib };
         }
       }
-      return {};
-    }
 
-    function getIcon(name) {
-      const lib = getGlobalIconMap();
-      const Comp = lib && lib[name];
-
-      if (Comp) {
-        return Comp; // 真图标组件
+      // 某些构建可能把 React 组件直接塞到 window.lucide
+      if (window.lucide && typeof window.lucide === "object") {
+        return { type: "unknown", lib: window.lucide };
       }
 
-      // 缺了这个图标 => 返回一个函数组件包装占位符
+      return { type: "none", lib: {} };
+    }
+
+    function getIcon(pascalName) {
+      const { type, lib } = getGlobalIconSource();
+
+      if (type === "components") {
+        const Comp = lib[pascalName];
+        if (typeof Comp === "function") {
+          return Comp; // 直接是 React 组件，就太棒了
+        }
+      }
+
+      if (type === "core") {
+        const nodes = getIconNodesFromCore(lib, pascalName);
+        if (nodes) {
+          return createReactIconFromNodes(pascalName, nodes);
+        }
+      }
+
+      if (type === "unknown") {
+        // unknown: 有时 window.lucide 直接是 { Monitor: fn }
+        const maybe = lib[pascalName];
+        if (typeof maybe === "function") {
+          return maybe;
+        }
+        const nodes = getIconNodesFromCore(lib, pascalName);
+        if (nodes) {
+          return createReactIconFromNodes(pascalName, nodes);
+        }
+      }
+
+      if (!__missingLogged[pascalName]) {
+        __missingLogged[pascalName] = 1;
+        try {
+          console.warn("[preview] lucide icon missing:", pascalName);
+        } catch {}
+      }
+
+      // 实在没找到 -> 返回占位，不再是丑陋黑块
       return function MissingIcon(props) {
         return React.createElement(PlaceholderIcon, props);
       };
@@ -310,38 +487,44 @@ function buildLucideModuleSource(lucideList) {
 
     ${exportLines.join("\n")}
 
-    // 保留 default，防止有人写 import X from 'lucide-react'
-    const __lucideDefault = getGlobalIconMap();
-    export default __lucideDefault;
+    // 有些人会 default import lucide-react（虽然不推荐）
+    export default (getGlobalIconSource().lib || {});
   `;
 }
 
-// ----------------- 安全插件：拦截 import -----------------
-
+// ----------------------------------------------------------------------------
+// esbuild 安全插件：白名单依赖注入 + 禁 Node 内置 + 禁止路径逃逸
+// ----------------------------------------------------------------------------
 function createSecurityPlugin(resolveDir, lucideList) {
   return {
     name: "preview-security",
     setup(buildCtx) {
-      // onResolve: 决定 import 指向
+      // onResolve：决定 import 怎么处理
       buildCtx.onResolve({ filter: /.*/ }, (args) => {
+        // 白名单模块转到我们的 external-globals namespace
         if (EXTERNAL_MODULES.has(args.path)) {
-          return { path: args.path, namespace: "external-globals" };
+          return {
+            path: args.path,
+            namespace: "external-globals",
+          };
         }
 
+        // Node 内置模块一律禁止
         if (NODE_BUILTINS.has(args.path)) {
           return {
             errors: [
               {
-                text: `模块 "${args.path}" 不允许在沙箱预览中使用（Node 内置已禁用）。`,
+                text: `模块 "${args.path}" 不允许在沙箱中使用（Node 内置已禁用）。`,
               },
             ],
           };
         }
 
+        // 相对/绝对路径：必须落在 resolveDir 里，防止逃逸到真实文件系统
         if (args.path.startsWith(".") || path.isAbsolute(args.path)) {
-          const baseDir = args.resolveDir || resolveDir;
-          const resolved = path.resolve(baseDir, args.path);
-          if (!resolved.startsWith(baseDir)) {
+          const base = args.resolveDir || resolveDir;
+          const resolved = path.resolve(base, args.path);
+          if (!resolved.startsWith(base)) {
             return {
               errors: [
                 {
@@ -353,16 +536,17 @@ function createSecurityPlugin(resolveDir, lucideList) {
           return { path: resolved };
         }
 
+        // 其他第三方 import，全都禁止
         return {
           errors: [
             {
-              text: `模块 "${args.path}" 不在允许的依赖白名单中。只能使用 React、ReactDOM、lucide-react 以及当前文件内声明的组件。`,
+              text: `模块 "${args.path}" 不在允许白名单中。只能使用 React、ReactDOM、lucide-react 以及当前文件内的代码。`,
             },
           ],
         };
       });
 
-      // onLoad: 真正返回这些外部模块的实现源码
+      // onLoad：给这些 external-globals 模块真正的实现（都是用 window.*）
       buildCtx.onLoad(
         { filter: /.*/, namespace: "external-globals" },
         (args) => {
@@ -438,7 +622,10 @@ function createSecurityPlugin(resolveDir, lucideList) {
 
           if (args.path === "lucide-react") {
             const lucideModuleSource = buildLucideModuleSource(lucideList);
-            return { loader: "js", contents: lucideModuleSource };
+            return {
+              loader: "js",
+              contents: lucideModuleSource,
+            };
           }
 
           return {
@@ -454,8 +641,9 @@ function createSecurityPlugin(resolveDir, lucideList) {
   };
 }
 
-// ----------------- esbuild 错误变成文本 -----------------
-
+// ----------------------------------------------------------------------------
+// esbuild 错误格式化，方便返回给前端 overlay
+// ----------------------------------------------------------------------------
 function formatEsbuildError(error) {
   if (error && Array.isArray(error.errors) && error.errors.length > 0) {
     return error.errors
@@ -471,17 +659,26 @@ function formatEsbuildError(error) {
   return (error && error.message) || "编译失败";
 }
 
-// ----------------- 打包用户代码成 IIFE -----------------
-
+// ----------------------------------------------------------------------------
+// 把用户源码打成一个 IIFE
+//
+// 打包的结构：
+//   - virtual-entry: 我们生成的挂载脚本，它在 iframe 里执行，createRoot(#root).render(<UserComponent />)
+//   - user-code:     你的源码（必须 default export 一个 React 组件）
+// ----------------------------------------------------------------------------
 async function bundleSource(source) {
   const resolveDir = await ensureResolveDir();
+
+  // 从用户代码里抓到所有 lucide-react import 的名字
   const lucideList = extractLucideImports(source);
+
+  // 安全插件（白名单 + lucide-react 动态模块）
   const securityPlugin = createSecurityPlugin(resolveDir, lucideList);
 
   const result = await build({
     write: false,
     bundle: true,
-    format: "iife",
+    format: "iife", // 立即执行函数，丢进 <script> 就能跑
     target: ["es2018"],
     platform: "browser",
     treeShaking: true,
@@ -493,7 +690,7 @@ async function bundleSource(source) {
       {
         name: "preview-virtual-entry",
         setup(buildCtx) {
-          // virtual-entry：负责在 iframe 里 createRoot() + render(<UserComponent />)
+          // virtual-entry: 负责在 iframe 里挂载
           buildCtx.onResolve(
             { filter: new RegExp(`^${VIRTUAL_ENTRY_PATH}$`) },
             () => ({
@@ -510,6 +707,7 @@ async function bundleSource(source) {
               import { createRoot } from "react-dom/client";
               import UserComponent from "${USER_CODE_VIRTUAL_PATH}";
 
+              // 往父窗口抛错，展示到右上角 overlay
               const reportError = (payload) => {
                 try {
                   const detail =
@@ -545,6 +743,7 @@ async function bundleSource(source) {
                 }
               };
 
+              // 捕获 runtime error / unhandledrejection
               window.addEventListener("error", (event) => {
                 if (!event) return;
                 if (event.error) {
@@ -568,7 +767,7 @@ async function bundleSource(source) {
             `,
           }));
 
-          // user-code：用户实际写的组件
+          // user-code: 你的编辑器里的源码
           buildCtx.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({
@@ -584,6 +783,8 @@ async function bundleSource(source) {
           }));
         },
       },
+
+      // 把 React / ReactDOM / lucide-react 变成 window.* 的别名，禁止额外依赖
       securityPlugin,
     ],
     entryPoints: [VIRTUAL_ENTRY_PATH],
@@ -596,40 +797,38 @@ async function bundleSource(source) {
   return result.outputFiles[0].text;
 }
 
-// ----------------- 生成 Tailwind CSS -----------------
+// ----------------------------------------------------------------------------
+// Tailwind CSS 生成
 //
-// 这里是关键修复：
-// 我们不能让 Tailwind 去注入 preflight（那会在 serverless 里尝试读取 preflight.css -> ENOENT）。
-// 但是我们已经在 iframe (main.js) 里手动注入 sandbox-baseline 样式，
-// 帮我们做到 body{margin:0}, box-sizing:border-box, html/body/#root 100% 高度, 字体继承等。
-// 所以这里可以安全地把 preflight 关掉。
+// 问题：Tailwind 的 preflight 默认会去读取它自己的 preflight.css。
+// 在 Vercel Serverless 上，有时候那个文件路径解析不到 -> ENOENT。
 //
-// 做法：复制用户 config，然后强行 corePlugins.preflight=false。
-
+// 我们这里强制 corePlugins.preflight=false 来跳过那个文件。
+// 但关闭 preflight 会造成：
+//   - box-shadow 自带的 CSS 变量没初始化 -> 只能看到“黑线边框”而不是柔软阴影
+//   - reset(边框, box-sizing...)也没注入
+//
+// 这个问题我们不是在 server 侧解决，而是在 iframe (main.js 里) 手动注入一段 baseline CSS，
+// 里面会还原 Tailwind 那些关键变量 (--tw-shadow 等)，加上 box-sizing、font、overflow 等，
+// 让阴影正常、滚动正常、字体正常。
+// ----------------------------------------------------------------------------
 async function generateTailwindCSS(source) {
-  const loadedConfig = await loadTailwindConfigOrFallback();
+  const cfg = await loadTailwindConfigOrFallback();
 
-  // 我们要构造一个 effectiveConfig：
-  // - 继承用户的 tailwind 配置（颜色、圆角、阴影、darkMode 等）
-  // - 强行覆盖 corePlugins.preflight=false，避免读取 preflight.css
-  // - 指定 content 为用户源码
-  let mergedCorePlugins = { preflight: false };
-
-  // 如果用户自己的 config 里有 corePlugins 是对象，就合并（除了我们要强制 preflight:false）
+  // 强制关 preflight，避免 ENOENT
+  let corePlugins = { preflight: false };
   if (
-    loadedConfig.corePlugins &&
-    typeof loadedConfig.corePlugins === "object" &&
-    !Array.isArray(loadedConfig.corePlugins)
+    cfg.corePlugins &&
+    typeof cfg.corePlugins === "object" &&
+    !Array.isArray(cfg.corePlugins)
   ) {
-    mergedCorePlugins = {
-      ...loadedConfig.corePlugins,
-      preflight: false,
-    };
+    corePlugins = { ...cfg.corePlugins, preflight: false };
   }
 
+  // 把用户当前源码作为 content，这样 Tailwind 只会生成用得到的类
   const effectiveConfig = {
-    ...loadedConfig,
-    corePlugins: mergedCorePlugins,
+    ...cfg,
+    corePlugins,
     content: [{ raw: source, extension: "jsx" }],
   };
 
@@ -641,8 +840,9 @@ async function generateTailwindCSS(source) {
   return result.css;
 }
 
-// ----------------- 请求解析 & handler -----------------
-
+// ----------------------------------------------------------------------------
+// HTTP Handler
+// ----------------------------------------------------------------------------
 function parseRequestBody(req) {
   if (!req.body) return {};
   if (typeof req.body === "string") {
@@ -699,7 +899,7 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// vercel: 把 tailwindcss 打包进去（尽量提高找到其依赖的概率，虽然我们禁止 preflight 了）
+// 告诉 Vercel：这个无服务器函数要把哪些文件一起打包进来
 module.exports.config = {
   includeFiles: TAILWIND_INCLUDE_FILES,
 };
