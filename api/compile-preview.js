@@ -1,4 +1,4 @@
-// api/compile-preview.js (最终修复版)
+// api/compile-preview.js (完整修复版)
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -175,7 +175,7 @@ async function loadTailwindConfigOrFallback() {
 }
 
 /**
- * 🔥 修复版：正确处理 external 模块映射
+ * 🔥 完整修复版：正确处理所有 external 模块映射
  */
 function createSecurityPlugin(resolveDir) {
   return {
@@ -225,7 +225,7 @@ function createSecurityPlugin(resolveDir) {
           // React 主模块
           contents = `module.exports = window.React;`;
         } else if (args.path === "react-dom/client") {
-          // 🔥 修复：createRoot 在 ReactDOM 对象下
+          // ReactDOM client
           contents = `
             const ReactDOM = window.ReactDOM;
             if (!ReactDOM || !ReactDOM.createRoot) {
@@ -254,13 +254,18 @@ function createSecurityPlugin(resolveDir) {
             };
           `;
         } else if (args.path === "lucide-react") {
-          // 🔥 修复：lucide-react 的全局变量是 window.lucide (小写)
+          // ✅ 完整修复：正确处理 lucide-react 的命名导出
           contents = `
             const lucide = window.lucide || window.LucideReact;
             if (!lucide) {
               throw new Error('lucide-react not loaded. Make sure the CDN script is included.');
             }
-            module.exports = lucide;
+            // 导出所有图标组件作为命名导出
+            Object.keys(lucide).forEach(key => {
+              exports[key] = lucide[key];
+            });
+            // 同时保留默认导出
+            module.exports.default = lucide;
           `;
         } else {
           return {
