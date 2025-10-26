@@ -174,40 +174,65 @@ export default function RemoteDesktopDemo() {
   });
 
   function sanitizeScriptContent(js) {
-    return (js || "").replace(/<\/script>/gi, "<\\/script>");
+    return (js || "")
+      .replace(/<\/script>/gi, "<\\/script>")
+      .replace(/<script/gi, "<\\script>")
+      .replace(/<\/style>/gi, "<\\/style>");
   }
 
+  /**
+   * 🔥 关键修改：添加 CDN script 标签
+   */
   function buildPreviewHtml(js, css) {
     const script = sanitizeScriptContent(js);
     const styles = css || "";
+    
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style id="tailwind-bundle">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style id="tailwind-bundle">
 ${styles}
-</style>
-<style>
-  body { margin:0; background:#020617; color:#e2e8f0; font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; }
-</style>
+  </style>
+  <style>
+    body { 
+      margin:0; 
+      background:#020617; 
+      color:#e2e8f0; 
+      font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; 
+    }
+  </style>
 </head>
 <body style="margin:0;">
-<div id="root"></div>
-<script>
+  <div id="root"></div>
+  
+  <!-- 🔥 CDN 依赖加载 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+  
+  <!-- 用户编译后的代码 -->
+  <script>
 ${script}
-</script>
+  </script>
 </body>
 </html>`;
   }
 
   function applyPreview(js, css) {
     const html = buildPreviewHtml(js, css);
+    
+    // 清理旧的 Blob URL
     if (currentBlobUrl) {
-      URL.revokeObjectURL(currentBlobUrl);
+      try {
+        URL.revokeObjectURL(currentBlobUrl);
+      } catch (err) {
+        console.warn("Failed to revoke blob URL:", err);
+      }
       currentBlobUrl = null;
     }
 
@@ -218,12 +243,39 @@ ${script}
     frame.removeAttribute("srcdoc");
     frame.src = url;
 
-    frame.onload = () => {
+    // 清理超时
+    const cleanupTimeout = setTimeout(() => {
       if (currentBlobUrl === url) {
+        try {
+          URL.revokeObjectURL(url);
+          currentBlobUrl = null;
+        } catch (err) {
+          console.warn("Timeout cleanup failed:", err);
+        }
+      }
+    }, 10000);
+
+    frame.onload = () => {
+      clearTimeout(cleanupTimeout);
+      if (currentBlobUrl === url) {
+        try {
+          URL.revokeObjectURL(url);
+          currentBlobUrl = null;
+        } catch (err) {
+          console.warn("onload cleanup failed:", err);
+        }
+      }
+    };
+
+    frame.onerror = () => {
+      clearTimeout(cleanupTimeout);
+      try {
         URL.revokeObjectURL(url);
-        currentBlobUrl = null;
-      } else {
-        URL.revokeObjectURL(url);
+        if (currentBlobUrl === url) {
+          currentBlobUrl = null;
+        }
+      } catch (err) {
+        console.warn("onerror cleanup failed:", err);
       }
     };
   }
@@ -254,6 +306,14 @@ ${script}
     setStatus("编译中", "running");
     hideError();
 
+    // 添加超时保护
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      if (requestId === activeRequestId) {
+        handleCompileError("编译超时（30秒），请检查代码复杂度");
+      }
+    }, 30000);
+
     try {
       const response = await fetch(COMPILE_ENDPOINT, {
         method: "POST",
@@ -264,7 +324,9 @@ ${script}
         signal: controller.signal,
       });
 
-      if (requestId !== activeRequestId) {
+      clearTimeout(timeoutId);
+
+      if (requestId !== activeRequestId || currentController !== controller) {
         return;
       }
 
@@ -290,10 +352,12 @@ ${script}
 
       handleCompileSuccess(payload.js, typeof payload.css === "string" ? payload.css : "");
     } catch (error) {
+      clearTimeout(timeoutId);
+      
       if (error.name === "AbortError") {
         return;
       }
-      if (requestId !== activeRequestId) {
+      if (requestId !== activeRequestId || currentController !== controller) {
         return;
       }
       handleCompileError(error.message || "网络异常，请稍后重试");
@@ -328,6 +392,20 @@ ${script}
     debounceTimer = setTimeout(() => {
       trigger();
     }, REQUEST_DEBOUNCE);
+  }
+
+  function saveToLocalStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      console.error("LocalStorage save failed:", err);
+      if (err.name === "QuotaExceededError") {
+        setStatus("存储空间已满", "error");
+        setTimeout(() => setStatus("实时预览", "idle"), 3000);
+      }
+      return false;
+    }
   }
 
   function handleAction(event) {
@@ -376,7 +454,7 @@ ${script}
     editor.value = stored || DEFAULT_SOURCE;
 
     editor.addEventListener("input", () => {
-      localStorage.setItem(STORAGE_KEY, editor.value);
+      saveToLocalStorage(STORAGE_KEY, editor.value);
       scheduleUpdate();
     });
 
