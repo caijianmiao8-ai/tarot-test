@@ -11,6 +11,7 @@
   const COMPILE_ENDPOINT = "/api/compile-preview";
   const REQUEST_DEBOUNCE = 320;
 
+  // 只是默认示例，不影响你的自定义源码
   const DEFAULT_SOURCE = `import React, { useState } from 'react';
 import { Monitor, Smartphone, Settings, Sun, Moon, Wifi, Gamepad2 } from 'lucide-react';
 
@@ -176,61 +177,100 @@ export default function RemoteDesktopDemo() {
   function sanitizeScriptContent(js) {
     return (js || "")
       .replace(/<\/script>/gi, "<\\/script>")
-      .replace(/<script/gi, "<\\script>")
+      .replace(/<script/gi, "<\\\\script>")
       .replace(/<\/style>/gi, "<\\/style>");
   }
 
-  /**
-   * 🔥 完整修复版：使用开发版 React + 正确的 lucide CDN
-   */
+  // 生成 iframe 的完整 HTML
   function buildPreviewHtml(js, css) {
     const script = sanitizeScriptContent(js);
     const styles = css || "";
-    
+
     return `<!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style id="tailwind-bundle">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+
+    <!-- Inter 字体，和 Tailwind fallback 里保持一致 -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind 实际生成的 utility + preflight -->
+    <style id="tailwind-bundle">
 ${styles}
-  </style>
-  <style>
-    body { 
-      margin:0; 
-      background:#020617; 
-      color:#e2e8f0; 
-      font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; 
-    }
-  </style>
-</head>
-<body style="margin:0;">
-  <div id="root"></div>
-  
-  <!-- 🔥 CDN 依赖：使用开发版便于调试 -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
-  
-  <!-- 调试：检查全局变量 -->
-  <script>
-    console.log('[Preview] React loaded:', typeof window.React !== 'undefined');
-    console.log('[Preview] ReactDOM loaded:', typeof window.ReactDOM !== 'undefined');
-    console.log('[Preview] ReactDOM.createRoot:', typeof window.ReactDOM?.createRoot === 'function');
-    console.log('[Preview] Lucide loaded:', typeof window.lucide !== 'undefined');
-    if (window.lucide) {
-      console.log('[Preview] Lucide icons sample:', Object.keys(window.lucide).slice(0, 5));
-    }
-  </script>
-  
-  <!-- 用户编译后的代码 -->
-  <script>
+    </style>
+
+    <!-- 我们的基线样式：让 iframe 像一个完整的 Tailwind App 环境 -->
+    <style id="sandbox-baseline">
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      html, body, #root {
+        min-height: 100%;
+        height: auto;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background-color: transparent;
+      }
+      button, input, select, textarea {
+        font-family: inherit;
+        background-color: transparent;
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- React 运行时（全局挂 window.React / window.ReactDOM） -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- lucide-react UMD：会在 window.lucide / window.lucideReact / window.LucideReact 等全局挂图标 -->
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+
+    <!-- 可选的调试输出（不影响渲染，方便排查 icon 取不到的情况） -->
+    <script>
+      console.log('[Preview] React loaded:', typeof window.React !== 'undefined');
+      console.log('[Preview] ReactDOM loaded:', typeof window.ReactDOM !== 'undefined');
+      console.log('[Preview] ReactDOM.createRoot:', typeof window.ReactDOM?.createRoot === 'function');
+      const lucideCandidates = [
+        window.lucide,
+        window.LucideReact,
+        window.lucideReact,
+        window.lucide_icons,
+        window.lucideIcons,
+        window.LucideIcons
+      ];
+      let foundIcons = null;
+      for (const lib of lucideCandidates) {
+        if (lib && typeof lib === 'object' && Object.keys(lib).length > 0) {
+          foundIcons = Object.keys(lib).slice(0, 8);
+          break;
+        }
+      }
+      console.log('[Preview] Lucide candidates sample:', foundIcons);
+    </script>
+
+    <!-- 用户编译后的最终代码（IIFE） -->
+    <script>
 ${script}
-  </script>
-</body>
+    </script>
+  </body>
 </html>`;
   }
 
@@ -360,7 +400,7 @@ ${script}
       handleCompileSuccess(payload.js, typeof payload.css === "string" ? payload.css : "");
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error.name === "AbortError") {
         return;
       }
