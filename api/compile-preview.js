@@ -7,6 +7,18 @@ const loadConfig = require("tailwindcss/loadConfig");
 const fs = require("fs/promises");
 const os = require("os");
 
+const TAILWIND_CONFIG_CANDIDATES = [
+  "tailwind.config.js",
+  "tailwind.config.cjs",
+  "tailwind.config.mjs",
+  "tailwind.config.ts",
+  "styles/tailwind.config.js",
+  "styles/tailwind.config.cjs",
+  "styles/tailwind.config.mjs",
+  "src/tailwind.config.js",
+  "src/styles/tailwind.config.js",
+];
+
 const ALLOWED_MODULES = new Set([
   "react",
   "react-dom",
@@ -43,19 +55,7 @@ async function findTailwindConfig() {
     return cachedTailwindConfigPath;
   }
 
-  const candidates = [
-    "tailwind.config.js",
-    "tailwind.config.cjs",
-    "tailwind.config.mjs",
-    "tailwind.config.ts",
-    "styles/tailwind.config.js",
-    "styles/tailwind.config.cjs",
-    "styles/tailwind.config.mjs",
-    "src/tailwind.config.js",
-    "src/styles/tailwind.config.js",
-  ];
-
-  for (const relative of candidates) {
+  for (const relative of TAILWIND_CONFIG_CANDIDATES) {
     const fullPath = path.join(process.cwd(), relative);
     try {
       await fs.access(fullPath);
@@ -344,15 +344,7 @@ module.exports = async function handler(req, res) {
 };
 
 module.exports.config = {
-  includeFiles: [
-    "../tailwind.config.js",
-    "../tailwind.config.cjs",
-    "../tailwind.config.mjs",
-    "../tailwind.config.ts",
-    "../styles/tailwind.config.js",
-    "../styles/tailwind.config.cjs",
-    "../styles/tailwind.config.mjs",
-    "../src/tailwind.config.js",
-    "../src/styles/tailwind.config.js",
-  ],
+  includeFiles: TAILWIND_CONFIG_CANDIDATES.map((candidate) =>
+    path.posix.join("..", candidate)
+  ),
 };
