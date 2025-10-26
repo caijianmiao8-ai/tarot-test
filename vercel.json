@@ -1,15 +1,23 @@
 
 {
   "builds": [
-    { 
-      "src": "app.py", 
+    {
+      "src": "app.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/compile-preview.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
-    { 
-      "src": "/(.*)", 
-      "dest": "app.py" 
+    {
+      "src": "/api/compile-preview",
+      "dest": "api/compile-preview.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
     }
   ],
   "crons": [
