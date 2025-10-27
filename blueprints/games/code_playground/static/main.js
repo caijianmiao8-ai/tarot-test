@@ -556,6 +556,39 @@
   function handleAction(event) {
     const action = event.currentTarget.dataset.action;
 
+    // 分享演示：把当前代码发给后端，拿到可分享URL
+    if (action === "share") {
+      const source = editor.value;
+
+      fetch("/g/code_playground/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source }),
+      })
+        .then(r => r.json())
+        .then(j => {
+          if (!j.ok) throw new Error(j.error || "分享失败");
+          const link = j.url;
+
+      // 尝试自动复制
+          navigator.clipboard.writeText(link).catch(() => {});
+
+      // 最简单的 MVP 提示：alert + 状态条
+          alert("分享链接已生成：\n" + link + "\n（已尝试复制到剪贴板）");
+
+          setStatus("已生成分享链接", "success");
+          setTimeout(() => setStatus("实时预览", "idle"), 2000);
+        })
+        .catch(err => {
+          console.error(err);
+          setStatus("分享失败", "error");
+          setTimeout(() => setStatus("实时预览", "idle"), 2000);
+          alert("分享失败：" + (err.message || err));
+        });
+
+      return;
+    }
+
     // 重置到 DEFAULT_SOURCE
     if (action === "reset") {
       editor.value = DEFAULT_SOURCE;
