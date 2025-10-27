@@ -1,24 +1,24 @@
 // blueprints/games/code_playground/static/main.js
 //
-// 浏览器端的实时预览控制器：
-// - 读取编辑器代码
-// - 请求 /api/compile-preview 得到 {js, css}
-// - 动态生成 iframe HTML，里面挂 React / ReactDOM / lucide / Tailwind
-// - 把任何编译期/运行期错误显示在 overlay
-// - 本地存储上一次代码
+// 浏览器端控制器：
+// - 左侧编辑器监听输入，自动调 /api/compile-preview 拿 {js, css}，更新右侧 iframe
+// - 显示编译状态 / 运行期报错
+// - 保存当前代码到 localStorage
+// - 生成“分享演示”链接 (POST /g/code_playground/snapshot)
+// - 左右分栏支持拖拽 + 记忆宽度
 //
-// 这份是全量版本，包含状态提示、复制、格式化、重置、分享等逻辑。
+// 这一版整合了所有我们讨论过的修复点。
 
 (function () {
   // ---------------------------------------------------------------------------
   // DOM 引用
   // ---------------------------------------------------------------------------
-  const editor = document.getElementById("code-editor");        // <textarea>
-  const frame = document.getElementById("preview-frame");       // <iframe>
-  const overlay = document.getElementById("error-overlay");     // 错误浮层
-  const compileBadge = document.getElementById("compile-info"); // 编译状态徽标
-  const statusLabel = document.getElementById("status-label");  // 顶部状态条
-  const buttons = document.querySelectorAll("[data-action]");   // 各种操作按钮
+  const editor = document.getElementById("code-editor"); // <textarea>
+  const frame = document.getElementById("preview-frame"); // <iframe>
+  const overlay = document.getElementById("error-overlay"); // 错误浮层
+  const compileBadge = document.getElementById("compile-info"); // “编译成功/失败…”
+  const statusLabel = document.getElementById("status-label"); // 顶部状态条
+  const buttons = document.querySelectorAll("[data-action]"); // 各种操作按钮
   const compilerRetryButton = document.querySelector(
     '[data-action="reload-compiler"]'
   );
@@ -28,10 +28,10 @@
   // ---------------------------------------------------------------------------
   const STORAGE_KEY = "code-playground-source";
   const COMPILE_ENDPOINT = "/api/compile-preview";
-  const SNAPSHOT_ENDPOINT = "/g/code_playground/snapshot"; // <- 分享接口 (后端 plugin.py @bp.post("/snapshot"))
-  const REQUEST_DEBOUNCE = 320; // ms 防抖
+  const SNAPSHOT_ENDPOINT = "/g/code_playground/snapshot";
+  const REQUEST_DEBOUNCE = 320; // ms 防抖，避免每敲一个字就POST一次
 
-  // 默认示例代码（仅在本地没有存档时用）
+  // 默认示例（localStorage 没有时用）
   const DEFAULT_SOURCE = [
     "import React from 'react';",
     "export default function Demo(){",
@@ -48,7 +48,7 @@
   ].join("\n");
 
   // ---------------------------------------------------------------------------
-  // 运行时状态
+  // 运行状态
   // ---------------------------------------------------------------------------
   let debounceTimer = null;
   let lastSource = "";
@@ -60,7 +60,8 @@
   // UI 状态工具
   // ---------------------------------------------------------------------------
   function setStatus(message, state = "idle") {
-    // 假设结构: <div id="status-label"><span class="status-dot"></span><span>文本</span></div>
+    // 假设 status-label 内部结构:
+    // <div id="status-label"><span class="status-dot"></span><span>文本</span></div>
     const span = statusLabel
       ? statusLabel.querySelector("span:last-child")
       : null;
@@ -85,13 +86,17 @@
     }
   }
 
-  function showError(message, label = "编译失败") {
+  function showError(message, labelText = "编译失败") {
     if (overlay) {
       overlay.textContent = message;
       overlay.classList.add("visible");
     }
-    setCompileInfo(label, false);
+    setCompileInfo(labelText, false);
     setStatus("出现错误", "error");
+
+    if (compilerRetryButton) {
+      compilerRetryButton.classList.add("is-visible");
+    }
   }
 
   function hideError() {
@@ -101,7 +106,7 @@
     }
   }
 
-  // iframe 运行时错误上报（window.parent.postMessage(...)）
+  // iframe runtime 错误监听（iframe 里代码会用 postMessage 回报错）
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) return;
     if (event.data.type === "CODE_PLAYGROUND_ERROR") {
@@ -113,10 +118,10 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 构建 iframe HTML
+  // 构建 iframe HTML 片段
   // ---------------------------------------------------------------------------
   function sanitizeScriptContent(js) {
-    // 防止用户代码里出现 </script> 直接把 <script> 截断
+    // 防止 </script> 直接中断 <script> 标签
     return (js || "")
       .replace(/<\/script>/gi, "<\\/script>")
       .replace(/<script/gi, "<\\\\script>")
@@ -134,17 +139,14 @@
       '    <meta charset="utf-8" />',
       '    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />',
 
-      // 字体
       '    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
       '    <link rel="preconnect" href="https://fonts.googleapis.com" />',
       '    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />',
 
-      // Tailwind utilities（我们在 server 端关了 preflight）
       '    <style id="tailwind-bundle">',
       styles,
       "    </style>",
 
-      // baseline：手动补齐 preflight 的关键变量、阴影变量、滚动行为、字体等
       '    <style id="sandbox-baseline">',
       "      html, body {",
       "        margin: 0;",
@@ -169,15 +171,6 @@
       "        --tw-skew-y: 0;",
       "        --tw-scale-x: 1;",
       "        --tw-scale-y: 1;",
-      "        --tw-pan-x: ;",
-      "        --tw-pan-y: ;",
-      "        --tw-pinch-zoom: ;",
-      "        --tw-scroll-snap-strictness: proximity;",
-      "        --tw-ordinal: ;",
-      "        --tw-slashed-zero: ;",
-      "        --tw-numeric-figure: ;",
-      "        --tw-numeric-spacing: ;",
-      "        --tw-numeric-fraction: ;",
       "        --tw-ring-inset: ;",
       "        --tw-ring-offset-width: 0px;",
       "        --tw-ring-offset-color: #fff;",
@@ -211,7 +204,7 @@
       "        text-rendering: optimizeLegibility;",
       "        background: transparent;",
       "        color: inherit;",
-      "        overflow: hidden;", // body 本身不滚动, 由自定义容器滚动
+      "        overflow: hidden;", // body不滚动，内部自定义区域滚动
       "      }",
       "      button, input, select, textarea {",
       "        font: inherit;",
@@ -220,12 +213,7 @@
       "      }",
       "      .shadow-glass-xl {",
       "        --tw-shadow: 0 40px 120px rgba(15,23,42,0.45);",
-      "        box-shadow: var(--tw-ring-offset-shadow,0 0 #0000),",
-      "                    var(--tw-ring-shadow,0 0 #0000),",
-      "                    var(--tw-shadow);",
-      "      }",
-      "      .shadow-xl, .shadow-2xl, .shadow-glass-xl {",
-      "        /* 依赖上面的 --tw-shadow, 避免出现“黑线边框”式假阴影 */",
+      "        box-shadow: var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow);",
       "      }",
       "      .cupertino-scroll {",
       "        height: 100%;",
@@ -270,11 +258,11 @@
       "  <body>",
       '    <div id="root"></div>',
 
-      // React运行时 UMD，这会挂到 window.React / window.ReactDOM / window.ReactDOM.createRoot
+      // React runtime UMD，会注入 window.React / window.ReactDOM
       '    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>',
       '    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>',
 
-      // lucide 核心 UMD（提供 window.lucide.icons）
+      // lucide runtime UMD (window.lucide.icons)
       '    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>',
 
       "    <script>",
@@ -286,11 +274,11 @@
       "          var keys = Object.keys(window.lucide.icons);",
       "          sample = keys.slice(0, 12);",
       "        }",
-      "        console.log('[Preview Sandbox] React ok?', !!window.React, 'ReactDOM ok?', !!window.ReactDOM, 'Icon source:', iconSource, 'Sample icons:', sample);",
+      "        console.log('[Preview Sandbox] React ok?', !!window.React, 'ReactDOM ok?', !!window.ReactDOM, 'Icons?', iconSource, 'Sample icons:', sample);",
       "      })();",
       "    </script>",
 
-      // esbuild 产出的 IIFE（已经把你的组件 mount 到 #root）
+      // esbuild 产物 IIFE：会在 #root 里 mount 组件
       "    <script>",
       script,
       "    </script>",
@@ -301,10 +289,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 把编译结果塞进 iframe
+  // 把 iframe 内容更新为最新编译结果
   // ---------------------------------------------------------------------------
   function applyPreview(js, css) {
-    // 清理旧 blob URL
+    // 清理旧 blob
     if (currentBlobUrl) {
       try {
         URL.revokeObjectURL(currentBlobUrl);
@@ -320,7 +308,7 @@
     frame.removeAttribute("srcdoc");
     frame.src = url;
 
-    // 安全清理 blob URL
+    // 10秒兜底 revoke，或者 onload 后 revoke
     const cleanupTimeout = setTimeout(() => {
       if (currentBlobUrl === url) {
         try {
@@ -351,9 +339,6 @@
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // 成功/失败时 UI
-  // ---------------------------------------------------------------------------
   function handleCompileSuccess(js, css) {
     hideError();
     applyPreview(js, css);
@@ -362,21 +347,17 @@
   }
 
   function handleCompileError(message) {
-    showError(message || "编译失败");
-    if (compilerRetryButton) {
-      compilerRetryButton.classList.add("is-visible");
-    }
+    showError(message || "编译失败", "编译失败");
   }
 
   // ---------------------------------------------------------------------------
-  // 请求后端编译
+  // 调用后端 /api/compile-preview
   // ---------------------------------------------------------------------------
   async function requestPreview(source, requestId) {
-    // 如果上一次还在跑，就停掉
+    // 取消前一次未完成的编译请求
     if (currentController) {
       currentController.abort();
     }
-
     const controller = new AbortController();
     currentController = controller;
 
@@ -384,6 +365,7 @@
     setStatus("编译中", "running");
     hideError();
 
+    // 超时兜底
     const timeoutId = setTimeout(() => {
       controller.abort();
       if (requestId === activeRequestId) {
@@ -401,7 +383,7 @@
 
       clearTimeout(timeoutId);
 
-      // 如果这个请求已经不是“最新的那次”了，直接丢弃结果
+      // 如果这次请求已经不是最新的，就丢弃结果
       if (requestId !== activeRequestId || currentController !== controller) {
         return;
       }
@@ -433,11 +415,12 @@
     } catch (error) {
       clearTimeout(timeoutId);
 
+      // Abort 不算错误提醒
       if (error.name === "AbortError") {
-        return; // 我们自己手动取消的请求
+        return;
       }
       if (requestId !== activeRequestId || currentController !== controller) {
-        return; // 不是最新请求
+        return;
       }
 
       handleCompileError(error.message || "网络异常，请稍后重试");
@@ -449,12 +432,12 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 调度编译（防抖）
+  // 调度编译，带防抖
   // ---------------------------------------------------------------------------
   function scheduleUpdate(immediate = false) {
     const source = editor.value;
     if (!immediate && source === lastSource) {
-      // 没变化就不打扰编译器
+      // 内容没变就不触发
       return;
     }
 
@@ -496,7 +479,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 分享链接逻辑
+  // 分享链接逻辑：上传当前代码，后端返回只读预览的 URL
   // ---------------------------------------------------------------------------
   async function createShareLink() {
     const source = editor.value;
@@ -509,7 +492,6 @@
         body: JSON.stringify({ source }),
       });
 
-      // 如果后端没注册 /snapshot，很多框架会返回一段 HTML，这里会是 resp.ok=false 或解析失败
       if (!resp.ok) {
         let msg = "分享失败";
         try {
@@ -518,12 +500,11 @@
             msg = maybeData.error;
           }
         } catch (_) {
-          // resp 不是 JSON（可能是整段 HTML） -> 保持默认 msg
+          // resp 不是 JSON（可能是 HTML兜底页面） -> 保持默认 msg
         }
         throw new Error(msg);
       }
 
-      // 正常返回 {id, url}
       const data = await resp.json();
       const shareUrl = data && data.url ? data.url : null;
       if (!shareUrl) {
@@ -536,7 +517,11 @@
         alert("分享链接已生成并复制：\n" + shareUrl);
         setStatus("分享链接已复制", "success");
       } catch (copyErr) {
-        alert("分享链接已生成：\n" + shareUrl + "\n(复制失败请手动复制)");
+        alert(
+          "分享链接已生成：\n" +
+            shareUrl +
+            "\n(复制失败请手动复制)"
+        );
         setStatus("分享链接已生成", "success");
       }
 
@@ -550,18 +535,82 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 按钮点击分发
+  // 分隔条拖拽逻辑：左栏宽度可调并写入 localStorage
+  // ---------------------------------------------------------------------------
+  function setupResizableSplit() {
+    const leftPane = document.getElementById("pane-left");
+    const handle = document.getElementById("split-handle");
+
+    if (!leftPane || !handle) {
+      // 分享页等没有左栏时，直接跳过
+      return;
+    }
+
+    const SAVED_KEY = "code-playground-left-width";
+    const saved = localStorage.getItem(SAVED_KEY);
+    if (saved) {
+      const px = parseFloat(saved);
+      if (!Number.isNaN(px) && px > 0) {
+        leftPane.style.flexBasis = px + "px";
+      }
+    }
+
+    let dragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    function pointerDown(e) {
+      dragging = true;
+      startX = e.clientX;
+      startWidth = leftPane.getBoundingClientRect().width;
+
+      document.body.classList.add("resizing");
+      handle.classList.add("dragging");
+
+      window.addEventListener("pointermove", pointerMove);
+      window.addEventListener("pointerup", pointerUp);
+    }
+
+    function pointerMove(e) {
+      if (!dragging) return;
+
+      const dx = e.clientX - startX;
+      let newWidth = startWidth + dx;
+
+      const MIN = 260;
+      const MAX = window.innerWidth * 0.8;
+      if (newWidth < MIN) newWidth = MIN;
+      if (newWidth > MAX) newWidth = MAX;
+
+      leftPane.style.flexBasis = newWidth + "px";
+      localStorage.setItem(SAVED_KEY, String(newWidth));
+    }
+
+    function pointerUp() {
+      if (!dragging) return;
+      dragging = false;
+
+      document.body.classList.remove("resizing");
+      handle.classList.remove("dragging");
+
+      window.removeEventListener("pointermove", pointerMove);
+      window.removeEventListener("pointerup", pointerUp);
+    }
+
+    handle.addEventListener("pointerdown", pointerDown, { passive: true });
+  }
+
+  // ---------------------------------------------------------------------------
+  // action 按钮处理：reset / copy / format / share / reload-compiler
   // ---------------------------------------------------------------------------
   function handleAction(event) {
     const action = event.currentTarget.dataset.action;
 
-    // 分享演示：把当前代码POST到后端，拿回只读展示链接
     if (action === "share") {
       createShareLink();
       return;
     }
 
-    // 重置示例
     if (action === "reset") {
       editor.value = DEFAULT_SOURCE;
       localStorage.removeItem(STORAGE_KEY);
@@ -569,7 +618,6 @@
       return;
     }
 
-    // 复制代码
     if (action === "copy") {
       navigator.clipboard
         .writeText(editor.value)
@@ -583,7 +631,6 @@
       return;
     }
 
-    // 代码格式化
     if (action === "format") {
       if (window.js_beautify) {
         const formatted = window.js_beautify(editor.value, {
@@ -600,7 +647,6 @@
       return;
     }
 
-    // 手动强制重新编译
     if (action === "reload-compiler") {
       scheduleUpdate(true);
       return;
@@ -611,23 +657,27 @@
   // 初始化
   // ---------------------------------------------------------------------------
   function init() {
+    // 1. 启用分栏拖拽（如果当前页面有左右面板）
+    setupResizableSplit();
+
+    // 2. 还原上次编辑的代码
     const stored = localStorage.getItem(STORAGE_KEY);
     editor.value = stored || DEFAULT_SOURCE;
 
-    // 输入 -> 防抖编译 + 存本地
+    // 3. 输入监听：本地保存 + 防抖触发编译
     editor.addEventListener("input", () => {
       saveToLocalStorage(STORAGE_KEY, editor.value);
       scheduleUpdate();
     });
 
-    // 操作按钮
+    // 4. 操作按钮监听
     buttons.forEach((btn) => btn.addEventListener("click", handleAction));
 
-    // 初始状态
+    // 5. 初始 UI 状态
     setCompileInfo("等待编译…", true);
     setStatus("实时预览", "idle");
 
-    // 首次渲染一发
+    // 6. 一进来先编译一轮，右侧 iframe 立刻有内容
     scheduleUpdate(true);
   }
 
