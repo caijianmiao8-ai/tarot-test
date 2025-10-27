@@ -7,42 +7,49 @@
 // - 把任何编译期/运行期错误显示在 overlay
 // - 本地存储上一次代码
 //
-// 这份是全量版本，包含状态提示、复制、格式化、重置等逻辑。
-// 不要再砍。
+// 这份是全量版本，包含状态提示、复制、格式化、重置、分享等逻辑。
 
 (function () {
-  // 页面上已有的 DOM 元素
-  const editor = document.getElementById("code-editor"); // 文本编辑区 <textarea> 或 <code> 可编辑块
-  const frame = document.getElementById("preview-frame"); // <iframe> 用来承载实时预览
-  const overlay = document.getElementById("error-overlay"); // 错误浮层
-  const compileBadge = document.getElementById("compile-info"); // 顶部/角落 显示“编译成功/失败”
-  const statusLabel = document.getElementById("status-label"); // 状态文字，比如“实时预览 / 编译中...”
-  const buttons = document.querySelectorAll("[data-action]"); // 复制、格式化、重置、手动重试等按钮
-  const compilerRetryButton = document.querySelector('[data-action="reload-compiler"]');
+  // ---------------------------------------------------------------------------
+  // DOM 引用
+  // ---------------------------------------------------------------------------
+  const editor = document.getElementById("code-editor");        // <textarea>
+  const frame = document.getElementById("preview-frame");       // <iframe>
+  const overlay = document.getElementById("error-overlay");     // 错误浮层
+  const compileBadge = document.getElementById("compile-info"); // 编译状态徽标
+  const statusLabel = document.getElementById("status-label");  // 顶部状态条
+  const buttons = document.querySelectorAll("[data-action]");   // 各种操作按钮
+  const compilerRetryButton = document.querySelector(
+    '[data-action="reload-compiler"]'
+  );
 
+  // ---------------------------------------------------------------------------
   // 常量
+  // ---------------------------------------------------------------------------
   const STORAGE_KEY = "code-playground-source";
   const COMPILE_ENDPOINT = "/api/compile-preview";
-  const REQUEST_DEBOUNCE = 320; // ms 防抖，避免每敲一个字就 POST
+  const SNAPSHOT_ENDPOINT = "/g/code_playground/snapshot"; // <- 分享接口 (后端 plugin.py @bp.post("/snapshot"))
+  const REQUEST_DEBOUNCE = 320; // ms 防抖
 
-  // 当用户第一次进来时，如果 localStorage 没有内容，就用一个最小 demo
-  // 这个只是兜底，不会覆盖你粘贴的“RemoteDesktopUI”测试文件
+  // 默认示例代码（仅在本地没有存档时用）
   const DEFAULT_SOURCE = [
     "import React from 'react';",
     "export default function Demo(){",
     "  return (",
-    "    <div className=\"min-h-screen grid place-items-center text-slate-200 bg-gradient-to-br from-slate-900 via-slate-950 to-black font-sans\">",
-    "      <div className=\"text-center space-y-4\">",
-    "        <div className=\"text-2xl font-semibold\">准备就绪</div>",
-    "        <div className=\"text-slate-500 text-sm\">你可以在左侧编辑 React + Tailwind 代码</div>",
+    '    <div className="min-h-screen grid place-items-center text-slate-200 bg-gradient-to-br from-slate-900 via-slate-950 to-black font-sans">',
+    '      <div className="text-center space-y-4">',
+    '        <div className="text-2xl font-semibold">准备就绪</div>',
+    '        <div className="text-slate-500 text-sm">你可以在左侧编辑 React + Tailwind 代码</div>',
     "      </div>",
     "    </div>",
     "  );",
     "}",
-    ""
+    "",
   ].join("\n");
 
+  // ---------------------------------------------------------------------------
   // 运行时状态
+  // ---------------------------------------------------------------------------
   let debounceTimer = null;
   let lastSource = "";
   let currentBlobUrl = null;
@@ -50,11 +57,10 @@
   let currentController = null;
 
   // ---------------------------------------------------------------------------
-  // 小工具：UI 状态
+  // UI 状态工具
   // ---------------------------------------------------------------------------
-
   function setStatus(message, state = "idle") {
-    // 假设 statusLabel 结构是：<div id="status-label"><span>●</span><span>实时预览</span></div>
+    // 假设结构: <div id="status-label"><span class="status-dot"></span><span>文本</span></div>
     const span = statusLabel
       ? statusLabel.querySelector("span:last-child")
       : null;
@@ -70,8 +76,8 @@
     if (!compileBadge) return;
     compileBadge.textContent = message;
     compileBadge.style.background = good
-      ? "rgba(56,189,248,0.18)" // 青色半透明
-      : "rgba(248,113,113,0.12)"; // 红色半透明
+      ? "rgba(56,189,248,0.18)"
+      : "rgba(248,113,113,0.12)";
     compileBadge.style.color = good ? "#38bdf8" : "#f87171";
 
     if (compilerRetryButton && good) {
@@ -95,7 +101,7 @@
     }
   }
 
-  // 监听来自 iframe 内部的错误上报（runtime 期间 throw/unhandledrejection）
+  // iframe 运行时错误上报（window.parent.postMessage(...)）
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) return;
     if (event.data.type === "CODE_PLAYGROUND_ERROR") {
@@ -107,11 +113,10 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 工具：将编译后的 js/css 打包成 iframe 的完整 HTML 字符串
+  // 构建 iframe HTML
   // ---------------------------------------------------------------------------
-
   function sanitizeScriptContent(js) {
-    // 防止 </script> 提前截断
+    // 防止用户代码里出现 </script> 直接把 <script> 截断
     return (js || "")
       .replace(/<\/script>/gi, "<\\/script>")
       .replace(/<script/gi, "<\\\\script>")
@@ -122,19 +127,6 @@
     const script = sanitizeScriptContent(js);
     const styles = css || "";
 
-    // 重点：这里我们注入 baseline，这个 baseline 非常关键：
-    // 1. 模拟 Tailwind preflight 的关键变量（特别是阴影所需的 --tw-shadow 等）
-    // 2. 设定字体（Inter / JetBrains Mono）
-    // 3. 处理 box-sizing、边框默认值等
-    // 4. 锁住 body 的 overflow:hidden，配合组件内部 ScrollArea 的 overflow-y-auto -> 还原手机/桌面 App 布局
-    // 5. 给 .cupertino-scroll 提供惯性滚动、滚动条样式
-    //
-    // 这直接解决了：
-    // - “阴影看起来是一圈黑线”：因为没初始化 --tw-shadow 等变量，Tailwind 的 shadow-* 看起来像线
-    // - 字体很普通
-    // - 滚动区不滚
-    // - 黑边问题（阴影+边框没 reset 时，卡片像被黑色1px边勾勒，没有柔和发光）
-
     return [
       "<!DOCTYPE html>",
       '<html lang="zh-CN">',
@@ -142,19 +134,18 @@
       '    <meta charset="utf-8" />',
       '    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />',
 
-      // 引入字体堆栈，匹配我们 fallback Tailwind config
+      // 字体
       '    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
       '    <link rel="preconnect" href="https://fonts.googleapis.com" />',
       '    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />',
 
-      // Tailwind 生成的 utilities (注意：我们在服务端关闭了 preflight)
+      // Tailwind utilities（我们在 server 端关了 preflight）
       '    <style id="tailwind-bundle">',
       styles,
       "    </style>",
 
-      // baseline：手工注入等价于“最小 preflight + App layout + 滚动 + 阴影变量”
+      // baseline：手动补齐 preflight 的关键变量、阴影变量、滚动行为、字体等
       '    <style id="sandbox-baseline">',
-      "      /* ========== 布局基线 ========== */",
       "      html, body {",
       "        margin: 0;",
       "        padding: 0;",
@@ -164,16 +155,11 @@
       "        height: 100%;",
       "        min-height: 100%;",
       "      }",
-
-      "      /* Tailwind preflight 中非常关键的一部分：全局 box-sizing 和边框/阴影变量 */",
       "      *, ::before, ::after {",
       "        box-sizing: border-box;",
-      "        /* Tailwind 默认也会把边框设定为 solid + 0px，避免奇怪的默认边框样式 */",
       "        border-width: 0;",
       "        border-style: solid;",
       "        border-color: currentColor;",
-
-      "        /* ---- 以下是 Tailwind 用到的 CSS 变量初始化 ---- */",
       "        --tw-border-spacing-x: 0;",
       "        --tw-border-spacing-y: 0;",
       "        --tw-translate-x: 0;",
@@ -219,40 +205,28 @@
       "        --tw-backdrop-saturate: ;",
       "        --tw-backdrop-sepia: ;",
       "      }",
-
-      "      /* 字体、抗锯齿、默认背景/颜色基线 */",
       "      body {",
       "        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
       "        -webkit-font-smoothing: antialiased;",
       "        text-rendering: optimizeLegibility;",
       "        background: transparent;",
       "        color: inherit;",
-
-      // 注意：为的是模拟“App 全屏容器”布局。
-      // App 的真实滚动区域通常是中间 ScrollArea，而不是 <body>。
-      "        overflow: hidden;",
+      "        overflow: hidden;", // body 本身不滚动, 由自定义容器滚动
       "      }",
-
       "      button, input, select, textarea {",
       "        font: inherit;",
       "        color: inherit;",
       "        background: transparent;",
       "      }",
-
-      "      /* 玻璃态阴影：即使 tailwind.config 没被正确读取，也依旧给 shadow-glass-xl 提供漂亮投影 */",
       "      .shadow-glass-xl {",
       "        --tw-shadow: 0 40px 120px rgba(15,23,42,0.45);",
       "        box-shadow: var(--tw-ring-offset-shadow,0 0 #0000),",
       "                    var(--tw-ring-shadow,0 0 #0000),",
       "                    var(--tw-shadow);",
       "      }",
-
-      "      /* 就算使用 shadow-xl / shadow-2xl 等，也会有柔和的阴影，不只是1px黑边 */",
       "      .shadow-xl, .shadow-2xl, .shadow-glass-xl {",
-      "        /* 我们不额外用filter去加黑框，依赖上面的 --tw-shadow 扩散 */",
+      "        /* 依赖上面的 --tw-shadow, 避免出现“黑线边框”式假阴影 */",
       "      }",
-
-      "      /* cupertino-scroll 是你 ScrollArea 里的实际滚动容器：我们强制让它可滚，带惯性，且高度锁满 flex-1 区域 */",
       "      .cupertino-scroll {",
       "        height: 100%;",
       "        max-height: 100%;",
@@ -262,7 +236,6 @@
       "        scrollbar-width: thin;",
       "        scrollbar-color: rgba(60,60,67,0.36) transparent;",
       "      }",
-
       "      .cupertino-scroll::-webkit-scrollbar {",
       "        width: 10px;",
       "        height: 10px;",
@@ -297,16 +270,13 @@
       "  <body>",
       '    <div id="root"></div>',
 
-      // React 运行时 (UMD) -> window.React / window.ReactDOM / window.ReactDOM.createRoot
+      // React运行时 UMD，这会挂到 window.React / window.ReactDOM / window.ReactDOM.createRoot
       '    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>',
       '    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>',
 
-      // lucide 核心 UMD：
-      //   window.lucide.icons = { "monitor":[["rect", {...}], ...], "gamepad-2":[["path",{...}], ...], ... }
-      // compile-preview.js 里的 getIcon() 会用这些节点生成真正的 React 组件
+      // lucide 核心 UMD（提供 window.lucide.icons）
       '    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>',
 
-      // Debug 输出，方便确认我们拿到了哪些图标
       "    <script>",
       "      (function () {",
       "        var iconSource = null;",
@@ -320,7 +290,7 @@
       "      })();",
       "    </script>",
 
-      // 最终编译产物（IIFE）
+      // esbuild 产出的 IIFE（已经把你的组件 mount 到 #root）
       "    <script>",
       script,
       "    </script>",
@@ -331,17 +301,14 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 将预览 HTML 注入 iframe
+  // 把编译结果塞进 iframe
   // ---------------------------------------------------------------------------
-
   function applyPreview(js, css) {
-    // 老的 blobURL 需要清理，避免内存泄漏
+    // 清理旧 blob URL
     if (currentBlobUrl) {
       try {
         URL.revokeObjectURL(currentBlobUrl);
-      } catch (err) {
-        // ignore
-      }
+      } catch (err) {}
       currentBlobUrl = null;
     }
 
@@ -350,21 +317,16 @@
     const url = URL.createObjectURL(blob);
     currentBlobUrl = url;
 
-    // 使用 blob URL 而不是 srcdoc，因为大型代码+样式在某些沙箱策略下 srcdoc 可能被限制
     frame.removeAttribute("srcdoc");
     frame.src = url;
 
-    // 清理 blob URL 的两段式逻辑：
-    // 1. 如果 onload 正常执行，就 revoke
-    // 2. 否则 10 秒后兜底 revoke
+    // 安全清理 blob URL
     const cleanupTimeout = setTimeout(() => {
       if (currentBlobUrl === url) {
         try {
           URL.revokeObjectURL(url);
           currentBlobUrl = null;
-        } catch (err) {
-          // ignore
-        }
+        } catch (err) {}
       }
     }, 10000);
 
@@ -374,9 +336,7 @@
         try {
           URL.revokeObjectURL(url);
           currentBlobUrl = null;
-        } catch (err) {
-          // ignore
-        }
+        } catch (err) {}
       }
     };
 
@@ -387,16 +347,13 @@
         if (currentBlobUrl === url) {
           currentBlobUrl = null;
         }
-      } catch (err) {
-        // ignore
-      }
+      } catch (err) {}
     };
   }
 
   // ---------------------------------------------------------------------------
-  // 成功 / 失败 时更新 UI
+  // 成功/失败时 UI
   // ---------------------------------------------------------------------------
-
   function handleCompileSuccess(js, css) {
     hideError();
     applyPreview(js, css);
@@ -412,11 +369,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 发请求给 /api/compile-preview
+  // 请求后端编译
   // ---------------------------------------------------------------------------
-
   async function requestPreview(source, requestId) {
-    // 取消前一次尚未完成的请求
+    // 如果上一次还在跑，就停掉
     if (currentController) {
       currentController.abort();
     }
@@ -428,7 +384,6 @@
     setStatus("编译中", "running");
     hideError();
 
-    // 30s 超时兜底
     const timeoutId = setTimeout(() => {
       controller.abort();
       if (requestId === activeRequestId) {
@@ -439,21 +394,18 @@
     try {
       const response = await fetch(COMPILE_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source }),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      // 如果这次请求已经不是最新的请求了，结果直接丢弃
+      // 如果这个请求已经不是“最新的那次”了，直接丢弃结果
       if (requestId !== activeRequestId || currentController !== controller) {
         return;
       }
 
-      // 非 2xx
       if (!response.ok) {
         let errorMessage = "编译失败";
         try {
@@ -468,7 +420,6 @@
         return;
       }
 
-      // 正常返回 json
       const payload = await response.json();
       if (!payload || typeof payload.js !== "string") {
         handleCompileError("编译服务返回了无效的结果");
@@ -482,18 +433,15 @@
     } catch (error) {
       clearTimeout(timeoutId);
 
-      // 被我们主动 Abort 的，就别喊错
       if (error.name === "AbortError") {
-        return;
+        return; // 我们自己手动取消的请求
       }
-      // 已经不是最新的请求了，也别动 UI
       if (requestId !== activeRequestId || currentController !== controller) {
-        return;
+        return; // 不是最新请求
       }
 
       handleCompileError(error.message || "网络异常，请稍后重试");
     } finally {
-      // 释放 controller
       if (currentController === controller) {
         currentController = null;
       }
@@ -501,13 +449,12 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 调度编译（带防抖）
+  // 调度编译（防抖）
   // ---------------------------------------------------------------------------
-
   function scheduleUpdate(immediate = false) {
     const source = editor.value;
     if (!immediate && source === lastSource) {
-      // 没改就别编译
+      // 没变化就不打扰编译器
       return;
     }
 
@@ -534,7 +481,6 @@
   // ---------------------------------------------------------------------------
   // 本地存储
   // ---------------------------------------------------------------------------
-
   function saveToLocalStorage(key, value) {
     try {
       localStorage.setItem(key, value);
@@ -550,46 +496,72 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 工具按钮点击处理：reset / copy / format / reload-compiler
+  // 分享链接逻辑
   // ---------------------------------------------------------------------------
+  async function createShareLink() {
+    const source = editor.value;
+    setStatus("生成分享链接…", "running");
 
-  function handleAction(event) {
-    const action = event.currentTarget.dataset.action;
-
-    // 分享演示：把当前代码发给后端，拿到可分享URL
-    if (action === "share") {
-      const source = editor.value;
-
-      fetch("/g/code_playground/api/share", {
+    try {
+      const resp = await fetch(SNAPSHOT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source }),
-      })
-        .then(r => r.json())
-        .then(j => {
-          if (!j.ok) throw new Error(j.error || "分享失败");
-          const link = j.url;
+      });
 
-      // 尝试自动复制
-          navigator.clipboard.writeText(link).catch(() => {});
+      // 如果后端没注册 /snapshot，很多框架会返回一段 HTML，这里会是 resp.ok=false 或解析失败
+      if (!resp.ok) {
+        let msg = "分享失败";
+        try {
+          const maybeData = await resp.json();
+          if (maybeData && maybeData.error) {
+            msg = maybeData.error;
+          }
+        } catch (_) {
+          // resp 不是 JSON（可能是整段 HTML） -> 保持默认 msg
+        }
+        throw new Error(msg);
+      }
 
-      // 最简单的 MVP 提示：alert + 状态条
-          alert("分享链接已生成：\n" + link + "\n（已尝试复制到剪贴板）");
+      // 正常返回 {id, url}
+      const data = await resp.json();
+      const shareUrl = data && data.url ? data.url : null;
+      if (!shareUrl) {
+        throw new Error("后端未返回分享URL");
+      }
 
-          setStatus("已生成分享链接", "success");
-          setTimeout(() => setStatus("实时预览", "idle"), 2000);
-        })
-        .catch(err => {
-          console.error(err);
-          setStatus("分享失败", "error");
-          setTimeout(() => setStatus("实时预览", "idle"), 2000);
-          alert("分享失败：" + (err.message || err));
-        });
+      // 复制到剪贴板
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("分享链接已生成并复制：\n" + shareUrl);
+        setStatus("分享链接已复制", "success");
+      } catch (copyErr) {
+        alert("分享链接已生成：\n" + shareUrl + "\n(复制失败请手动复制)");
+        setStatus("分享链接已生成", "success");
+      }
 
+      setTimeout(() => setStatus("实时预览", "idle"), 2000);
+    } catch (err) {
+      console.error(err);
+      alert("分享失败：" + (err.message || err));
+      setStatus("分享失败", "error");
+      setTimeout(() => setStatus("实时预览", "idle"), 2000);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 按钮点击分发
+  // ---------------------------------------------------------------------------
+  function handleAction(event) {
+    const action = event.currentTarget.dataset.action;
+
+    // 分享演示：把当前代码POST到后端，拿回只读展示链接
+    if (action === "share") {
+      createShareLink();
       return;
     }
 
-    // 重置到 DEFAULT_SOURCE
+    // 重置示例
     if (action === "reset") {
       editor.value = DEFAULT_SOURCE;
       localStorage.removeItem(STORAGE_KEY);
@@ -597,7 +569,7 @@
       return;
     }
 
-    // 复制到剪贴板
+    // 复制代码
     if (action === "copy") {
       navigator.clipboard
         .writeText(editor.value)
@@ -622,7 +594,6 @@
         editor.value = formatted;
         scheduleUpdate(true);
       } else {
-        // 如果你的页面还没把 js_beautify 挂过来，可以在 UI 提示一下
         setStatus("格式化工具加载中", "running");
         setTimeout(() => setStatus("实时预览", "idle"), 1500);
       }
@@ -637,27 +608,26 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 初始化：加载本地存储的代码，绑定事件，触发首轮编译
+  // 初始化
   // ---------------------------------------------------------------------------
-
   function init() {
     const stored = localStorage.getItem(STORAGE_KEY);
     editor.value = stored || DEFAULT_SOURCE;
 
-    // 监听编辑器变化 -> 防抖编译 + 本地存储
+    // 输入 -> 防抖编译 + 存本地
     editor.addEventListener("input", () => {
       saveToLocalStorage(STORAGE_KEY, editor.value);
       scheduleUpdate();
     });
 
-    // 各种操作按钮
+    // 操作按钮
     buttons.forEach((btn) => btn.addEventListener("click", handleAction));
 
-    // 初始 UI 状态
+    // 初始状态
     setCompileInfo("等待编译…", true);
     setStatus("实时预览", "idle");
 
-    // 马上跑一轮编译，展示初始画面
+    // 首次渲染一发
     scheduleUpdate(true);
   }
 
