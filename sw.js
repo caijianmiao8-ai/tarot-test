@@ -21,6 +21,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+
 // 缓存优先（静态资源）；接口请求一律放行网络，不进入缓存
 self.addEventListener('fetch', (event) => {
   const { request } = event;
