@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>塔罗牌阵占卜</title>
+  <meta name="theme-color" content="#1a1625"/>
+
+  <!-- 本地资源与 index 保持一致 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =============== 暗色宇宙主题（与 index / stats 对齐） =============== */
+    :root{ --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
+      --bg1:#2d1b4e; --bg2:#1a1625; --panel:rgba(255,255,255,.06); --panel-2:rgba(255,255,255,.08);
+      --border:rgba(255,255,255,.12); --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
+      --success:#10b981; --warning:#f59e0b; }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100dvh;min-height:calc(var(--vh,1vh)*100)}
+    body{margin:0; color:var(--text); font-family:'Noto Serif SC',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
+        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
+        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+      overflow-x:hidden }
+
+    /* 背景星点 */
+    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.28;background-image:
+      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
+      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none}
+    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
+
+    /* 顶部用户栏（与 index 统一） */
+    .user-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(28,22,40,.6);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .user-bar-content{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+    .user-info{display:flex;align-items:center;gap:12px}
+    .user-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;border:1px solid var(--border)}
+    .user-name{color:var(--gold-light);font-weight:600;letter-spacing:.5px}
+    .user-actions{display:flex;gap:10px}
+    .user-actions a{color:var(--text-light);text-decoration:none;font-size:.95rem;padding:8px 14px;border-radius:18px;border:1px solid transparent;transition:.25s;background:var(--panel)}
+    .user-actions a:hover{color:#fff;border-color:var(--border);transform:translateY(-1px)}
+
+    /* 主容器 */
+    .main-container{max-width:1200px;margin:88px auto 120px;padding:20px}
+
+    /* 头部区块 */
+    .header-section{text-align:center;margin-bottom:22px}
+    .page-title{margin:0 0 10px;font-size:32px;font-weight:900;letter-spacing:-.3px;color:var(--gold-light)}
+    .page-subtitle{margin:0 0 12px;font-size:16px;color:var(--text-muted)}
+    .status-badge{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:8px 14px;color:var(--text-light);font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .remaining-count{color:var(--gold)}
+
+    /* 分类筛选 */
+    .category-container{margin:18px 0 22px;overflow-x:auto;scrollbar-width:none}
+    .category-container::-webkit-scrollbar{display:none}
+    .category-filters{display:flex;gap:10px;min-width:max-content}
+    .category-btn{flex-shrink:0;padding:10px 16px;border-radius:999px;font-weight:800;letter-spacing:.2px;color:var(--text-light);background:var(--panel);border:1px solid var(--border);transition:.2s}
+    .category-btn:hover{transform:translateY(-2px);background:var(--panel-2)}
+    .category-btn.active{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 10px 28px rgba(157,126,168,.25)}
+
+    /* 牌阵网格 */
+    .spreads-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+    .spread-card{position:relative;overflow:hidden;cursor:pointer;background:var(--panel-2);border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.22);transition:.24s}
+    .spread-card:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(0,0,0,.28)}
+    .spread-card.selected{box-shadow:0 0 0 4px rgba(157,126,168,.18),0 14px 32px rgba(0,0,0,.28);border-color:transparent}
+    .card-content{padding:18px}
+    .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+    .spread-name{margin:0;font-size:20px;font-weight:900;color:#fff;letter-spacing:-.2px}
+    .selected-check{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 6px 14px rgba(157,126,168,.25);opacity:0;transform:scale(0);transition:.2s}
+    .spread-card.selected .selected-check{opacity:1;transform:scale(1)}
+    .spread-meta{display:flex;gap:14px;color:var(--text-muted);font-size:13px;margin-bottom:8px}
+    .meta-item{display:flex;gap:6px;align-items:center}
+    .difficulty-badge{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-light)}
+    .difficulty-badge.简单{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.32);color:#a7f3d0}
+    .difficulty-badge.中等{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.32);color:#fde68a}
+    .difficulty-badge.复杂{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.32);color:#bfdbfe}
+    .spread-description{color:var(--text-light);font-size:14px;line-height:1.6;margin:8px 0 12px}
+    .positions-preview{display:flex;flex-wrap:wrap;gap:6px}
+    .position-tag{background:rgba(255,255,255,.06);border:1px solid var(--border);padding:4px 10px;border-radius:999px;font-size:12px;color:var(--text-light)}
+
+    /* 浮动操作面板 */
+    .floating-panel{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:calc(100% - 40px);max-width:820px;background:rgba(28,22,40,.78);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:0 20px 44px rgba(0,0,0,.4);opacity:0;visibility:hidden;transition:.28s;max-height:calc(100vh - 40px);overflow:auto}
+    .floating-panel.show{opacity:1;visibility:visible}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;padding:6px 6px 10px;border-bottom:1px solid var(--border);margin-bottom:12px}
+    .panel-title-wrap{display:flex;align-items:center;gap:12px}
+    .panel-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .panel-title{margin:0;font-size:18px;font-weight:900;color:#fff;letter-spacing:-.2px}
+    .panel-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .close-panel{width:30px;height:30px;border:none;border-radius:50%;background:var(--panel);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s;border:1px solid var(--border)}
+    .close-panel:hover{transform:rotate(6deg);background:var(--panel-2);color:#fff}
+    .panel-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+    .panel-col{display:flex;flex-direction:column;gap:10px}
+    .input-label{display:block;color:var(--text-muted);font-size:13px}
+    .text-input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;font-size:16px;transition:.2s}
+    .text-input::placeholder{color:rgba(255,255,255,.45)}
+    .text-input:focus{outline:none;background:rgba(255,255,255,.1);box-shadow:0 0 0 4px rgba(157,126,168,.18)}
+    .soft-hint{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-muted);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+    .soft-hint i{color:var(--gold);margin-top:2px}
+
+    .personality-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:stretch;justify-items:stretch}
+    .personality-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 10px;border:1px solid var(--border);border-radius:14px;background:var(--panel);box-shadow:0 6px 16px rgba(0,0,0,.25);transition:.2s;height:100%;color:var(--text-light)}
+    .personality-card:hover{transform:translateY(-2px)}
+    .personality-card.selected{border-color:transparent;background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));box-shadow:0 0 0 4px rgba(157,126,168,.18),0 6px 16px rgba(0,0,0,.25)}
+    .personality-emoji{font-size:24px;margin-bottom:6px}
+    .personality-name{font-size:15px;font-weight:900;color:#fff;margin-bottom:4px}
+    .personality-trait{font-size:12px;color:var(--text-muted)}
+
+    .panel-right{display:grid;grid-template-rows:auto 1fr auto;gap:10px}
+    .panel-right .action-button{width:100%;margin-top:4px}
+    .action-button{width:100%;padding:14px 28px;border:none;border-radius:14px;color:#fff;font-weight:900;letter-spacing:.3px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 16px 36px rgba(157,126,168,.35);transition:.24s}
+    .action-button:hover:not(:disabled){transform:translateY(-2px)}
+    .action-button:disabled{opacity:.55;cursor:not-allowed}
+
+    /* 空状态 */
+    .empty-state{text-align:center;padding:80px 20px}
+    .empty-icon{font-size:48px;color:var(--gold-light);opacity:.7;margin-bottom:14px}
+    .empty-title{font-size:22px;font-weight:900;color:#fff;margin-bottom:8px}
+    .empty-desc{font-size:16px;color:var(--text-muted);margin-bottom:18px}
+
+    /* 占卜准备遮罩 */
+    .reading-overlay{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(45,27,78,.85), rgba(26,22,37,.92));backdrop-filter:blur(10px)}
+    .reading-card{width:min(560px,92vw);border-radius:18px;background:rgba(28,22,40,.85);border:1px solid var(--border);box-shadow:0 24px 48px rgba(0,0,0,.45);padding:22px 18px 16px;text-align:center}
+    .reading-title{margin:0 0 6px;font-size:18px;font-weight:900;color:var(--gold-light)}
+    .reading-sub{margin:0 0 16px;font-size:13px;color:var(--text-muted)}
+    .shuffle{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0 14px;height:96px;flex-wrap:nowrap}
+    .tarot{width:64px;height:96px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:0 10px 24px rgba(157,126,168,.35);animation:floatY 1.8s ease-in-out infinite}
+    @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .reading-progress{height:10px;width:100%;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border);overflow:hidden}
+    .reading-bar{height:100%;width:0%;border-radius:999px;background:linear-gradient(135deg,var(--primary),var(--secondary));transition:width .4s ease}
+    .reading-hint{margin-top:10px;font-size:12px;color:var(--text-muted);min-height:18px}
+    .reading-cancel{margin-top:14px;background:transparent;border:1px solid var(--border);color:var(--text-light);border-radius:999px;padding:8px 14px;font-weight:800;cursor:pointer}
+    .reading-cancel:hover{background:rgba(255,255,255,.08)}
+
+    /* 响应式 */
+    @media (max-width:992px){ .spreads-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))} .panel-grid{grid-template-columns:1fr 1fr} }
+    @media (max-width:768px){ .page-title{font-size:28px} .main-container{margin-top:calc(70px + env(safe-area-inset-top,0px))} }
+    @media (max-width:640px){ .floating-panel{max-width:600px} .panel-grid{grid-template-columns:1fr} }
+
+    @media (prefers-reduced-motion:reduce){ .spread-card,.category-btn,.action-button,.personality-card,.floating-panel,.tarot{transition:none!important;animation:none!important} }
+  </style>
+</head>
+<body>
+  <div class="bg-stars" aria-hidden="true"></div>
+
+  <!-- 顶部用户栏（统一导航） -->
+  <div class="user-bar">
+    <div class="user-bar-content">
+      <div class="user-info">
+        <div class="user-icon">
+          {% if user and (not user.is_guest) and user.username %}
+            {{ user.username[0]|upper }}
+          {% else %}
+            <i class="fas fa-user"></i>
+          {% endif %}
+        </div>
+        <span class="user-name">{{ user.username if user and user.username else "神秘访客" }}</span>
+      </div>
+      <div class="user-actions">
+        <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 首页</a>
+        {% if user and (not user.is_guest) %}
+          <a href="{{ url_for('result') }}"><i class="fas fa-moon"></i> 今日运势</a>
+          <a href="{{ url_for('stats') }}"><i class="fas fa-chart-line"></i> 统计</a>
+          <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        {% else %}
+          <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
+          <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> 注册</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="main-container">
+    {% if can_divine %}
+      <div class="header-section">
+        <h1 class="page-title">塔罗牌阵占卜</h1>
+        <p class="page-subtitle">选择适合你的牌阵，深入探索问题的答案</p>
+        <div class="status-badge"><i class="fas fa-sparkles"></i> 今日剩余 <span class="remaining-count">{{ remaining_divinations }}</span> 次</div>
+      </div>
+
+      <!-- 分类筛选 -->
+      <div class="category-container">
+        <div class="category-filters">
+          <button class="category-btn active" onclick="filterCategory('all', event)">全部</button>
+          <button class="category-btn" onclick="filterCategory('通用', event)">通用占卜</button>
+          <button class="category-btn" onclick="filterCategory('爱情', event)">爱情关系</button>
+          <button class="category-btn" onclick="filterCategory('事业', event)">事业发展</button>
+          <button class="category-btn" onclick="filterCategory('决策', event)">决策指引</button>
+          <button class="category-btn" onclick="filterCategory('个人成长', event)">个人成长</button>
+          <button class="category-btn" onclick="filterCategory('财富', event)">财富金钱</button>
+        </div>
+      </div>
+
+      <!-- 牌阵网格 -->
+      <div class="spreads-grid" id="spreadsGrid">
+        {% for spread in spreads %}
+        <div class="spread-card" data-category="{{ spread.category }}" data-spread-id="{{ spread.id }}" data-spread-name="{{ spread.name }}" data-card-count="{{ spread.card_count }}" onclick="selectSpread('{{ spread.id }}','{{ spread.name }}', {{ spread.card_count }})">
+          <div class="card-content">
+            <div class="card-header">
+              <h3 class="spread-name">{{ spread.name }}</h3>
+              <div class="selected-check"><i class="fas fa-check" style="font-size:14px"></i></div>
+            </div>
+            <div class="spread-meta">
+              <div class="meta-item"><i class="fas fa-layer-group" style="font-size:12px"></i><span>{{ spread.card_count }}张牌</span></div>
+              <div class="meta-item"><span class="difficulty-badge {{ spread.difficulty }}">{{ spread.difficulty }}</span></div>
+            </div>
+            <p class="spread-description">{{ spread.description }}</p>
+            <div class="positions-preview">
+              {% for position in spread.positions[:4] %}
+                <span class="position-tag">{{ position.name }}</span>
+              {% endfor %}
+              {% if spread.positions|length > 4 %}
+                <span class="position-tag">+{{ spread.positions|length - 4 }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- 浮动面板 -->
+      <div class="floating-panel" id="floatingPanel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <div class="panel-icon"><i class="fas fa-layer-group"></i></div>
+            <div>
+              <h3 class="panel-title" id="selectedSpreadName">选择的牌阵</h3>
+              <div class="panel-subtitle">准备你的问题与解读风格</div>
+            </div>
+          </div>
+          <button class="close-panel" onclick="closePanel()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel-col panel-left">
+            <label class="input-label">你的问题（选填）</label>
+            <input type="text" class="text-input" id="questionInput" placeholder="描述你想探索的问题，例如：我如何改善当前关系？" maxlength="200">
+            <div class="soft-hint"><i class="fas fa-lightbulb"></i><div>小提示：问题越具体，指引越清晰；若一时无从下手，也可以先留空，从整体能量开始。</div></div>
+          </div>
+          <div class="panel-col panel-right">
+            <label class="input-label">选择解读风格</label>
+            <div class="personality-grid">
+              <div class="personality-card selected" data-personality="wisdom" onclick="selectPersonality('wisdom')">
+                <div class="personality-emoji">📚</div>
+                <div class="personality-name">智慧</div>
+                <div class="personality-trait">理性分析</div>
+              </div>
+              <div class="personality-card" data-personality="mystic" onclick="selectPersonality('mystic')">
+                <div class="personality-emoji">🔮</div>
+                <div class="personality-name">神秘</div>
+                <div class="personality-trait">深邃直觉</div>
+              </div>
+              <div class="personality-card" data-personality="warm" onclick="selectPersonality('warm')">
+                <div class="personality-emoji">💝</div>
+                <div class="personality-name">温暖</div>
+                <div class="personality-trait">贴心陪伴</div>
+              </div>
+            </div>
+            <button class="action-button" id="startButton" onclick="startDivination()"><i class="fas fa-sparkles"></i><span> 开始占卜</span></button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- 无权限 -->
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-moon"></i></div>
+        <h2 class="empty-title">今日占卜次数已用完</h2>
+        <p class="empty-desc">明天再来探索塔罗的奥秘吧</p>
+        <button class="action-button" onclick="window.location.href='{{ url_for('index') }}'">返回首页</button>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- 占卜准备中：加载遮罩（动态牌数） -->
+  <div class="reading-overlay" id="readingOverlay" aria-hidden="true">
+    <div class="reading-card" role="dialog" aria-live="polite" aria-label="正在准备占卜">
+      <h3 class="reading-title">正在为你连接塔罗能量</h3>
+      <div class="reading-sub">洗牌 · 切牌 · 对齐你的问题意图</div>
+      <div class="shuffle" id="shuffleContainer"></div>
+      <div class="reading-progress" aria-hidden="true"><div class="reading-bar" id="readingBar"></div></div>
+      <div class="reading-hint" id="readingHint">正在洗牌并链接你的问题…</div>
+      <button class="reading-cancel" id="readingCancel" type="button" onclick="cancelOverlay()">先等等，我想改个问题</button>
+    </div>
+  </div>
+
+  <script>
+    // 视口高度 --vh 适配（与 index 同步）
+    function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01 + 'px'); }
+    setVh(); window.addEventListener('resize', setVh);
+
+    let selectedSpread=null, selectedSpreadName='', selectedPersonality='wisdom';
+    let selectedCardCount=3; // 默认
+    let overlayTimer=null, overlayProgressTimer=null, overlayStartAt=0;
+
+    const HINT_INTERVAL_MS = 2200;
+    const PROGRESS_TICK_MS = 400;
+    const PROGRESS_MAX_BEFORE_REDIRECT = 96;
+    const TIMEOUT_SOFT_HINT_MS = 45000;
+    const REDIRECT_FILL_MS = 500;
+    const MIN_OVERLAY_SHOW_MS = 900;
+
+    const hintsBase = [
+      '正在洗牌并链接你的问题…','抽取你的专属牌面中…','同步月相与能量节律…','编织象征与直觉的线索…','整理启示词与行动建议…','聆听牌面的细语，等待它们开口…','为你对齐当下与未来的交汇点…','收集关键符号，拼合属于你的图景…','确认能量流向，安放最核心的主题…','温柔地为答案扫清阻塞与噪声…'
+    ];
+    const hintsByPersona = {
+      'wisdom':['提取关键信息，构建理性框架…','梳理因果与线索，寻找可行动的切口…','验证直觉与现实的可行性…','对齐短期与长期的平衡点…'],
+      'mystic':['让直觉在牌影间流动…','凝视象征，寻求更高的回应…','呼唤潜意识中的答案…','让灵感与共时性自然汇聚…'],
+      'warm':['为你整理最温柔的提醒…','替你安放那些不安与担心…','拥抱此刻，并给出可落地的关怀…','让答案以更柔和的方式靠近…']
+    };
+    function getHintsByPersonality(p){ return [...hintsBase, ...(hintsByPersona[p]||[])]; }
+
+    function selectSpread(spreadId, spreadName, cardCount){
+      document.querySelectorAll('.spread-card').forEach(c=>c.classList.remove('selected'));
+      const card=document.querySelector(`[data-spread-id="${spreadId}"]`);
+      if(card){
+        card.classList.add('selected');
+        selectedSpread=spreadId; selectedSpreadName=spreadName;
+        const n=parseInt(cardCount || card?.dataset?.cardCount || 3,10);
+        selectedCardCount=Math.min(Math.max(isNaN(n)?3:n,2),7);
+        showPanel();
+      }
+    }
+    function showPanel(){
+      const panel=document.getElementById('floatingPanel');
+      const nameEl=document.getElementById('selectedSpreadName');
+      nameEl.textContent=selectedSpreadName||'选择的牌阵';
+      panel.classList.add('show');
+      setTimeout(()=>document.getElementById('questionInput').focus(),220);
+    }
+    function closePanel(){
+      const panel=document.getElementById('floatingPanel');
+      panel.classList.remove('show');
+      document.querySelectorAll('.spread-card').forEach(c=>c.classList.remove('selected'));
+      selectedSpread=null; selectedSpreadName='';
+    }
+    function selectPersonality(p){
+      document.querySelectorAll('.personality-card').forEach(c=>c.classList.remove('selected'));
+      const card=document.querySelector(`[data-personality="${p}"]`);
+      if(card){ card.classList.add('selected'); selectedPersonality=p; }
+    }
+    function filterCategory(category, e){
+      document.querySelectorAll('.category-btn').forEach(btn=>btn.classList.remove('active'));
+      e.target.classList.add('active');
+      document.querySelectorAll('.spread-card').forEach(card=>{ card.style.display=(category==='all'||card.dataset.category===category)?'block':'none'; });
+      closePanel();
+    }
+
+    function renderShuffle(n){
+      const wrap=document.getElementById('shuffleContainer');
+      wrap.innerHTML='';
+      for(let i=0;i<n;i++){
+        const d=document.createElement('div'); d.className='tarot'; d.style.animationDelay=(i*0.15)+'s';
+        const rot=(i%2===0?1:-1)*(3+Math.random()*2); const ty=(i%3===0?-1:1)*(1+Math.random()*2);
+        d.style.transform=`translateY(${ty}px) rotate(${rot}deg)`; wrap.appendChild(d);
+      }
+    }
+
+    function showOverlay(){
+      renderShuffle(selectedCardCount);
+      const ov=document.getElementById('readingOverlay');
+      const bar=document.getElementById('readingBar');
+      const hint=document.getElementById('readingHint');
+      ov.style.display='flex'; ov.setAttribute('aria-hidden','false'); overlayStartAt=Date.now();
+      const hints=getHintsByPersonality(selectedPersonality); let i=0; hint.textContent=hints[i];
+      overlayTimer=setInterval(()=>{ i=(i+1)%hints.length; hint.textContent=hints[i]; }, HINT_INTERVAL_MS);
+      let p=0; overlayProgressTimer=setInterval(()=>{ const remain=PROGRESS_MAX_BEFORE_REDIRECT-p; const step=Math.max(1.2,Math.min(6.8,remain*0.12))+(Math.random()*1.4); p=Math.min(PROGRESS_MAX_BEFORE_REDIRECT,p+step); bar.style.width=p.toFixed(0)+'%'; }, PROGRESS_TICK_MS);
+      setTimeout(()=>{ if(ov.style.display==='flex'){ hint.textContent='服务器有点忙，再陪你等一下下…'; } }, TIMEOUT_SOFT_HINT_MS);
+    }
+    function hideOverlay(){ const ov=document.getElementById('readingOverlay'); const bar=document.getElementById('readingBar'); ov.style.display='none'; ov.setAttribute('aria-hidden','true'); clearInterval(overlayTimer); clearInterval(overlayProgressTimer); overlayTimer=null; overlayProgressTimer=null; bar.style.width='0%'; }
+    function finalizeOverlayThenRedirect(url){ const bar=document.getElementById('readingBar'); const hint=document.getElementById('readingHint'); const elapsed=Date.now()-overlayStartAt; const waitMore=Math.max(0, MIN_OVERLAY_SHOW_MS-elapsed); setTimeout(()=>{ bar.style.width='100%'; hint.textContent='启示已就绪，马上为你呈现…'; setTimeout(()=>{ window.location.href=url; }, REDIRECT_FILL_MS); }, waitMore); }
+    function cancelOverlay(){ hideOverlay(); const btn=document.getElementById('startButton'); btn.disabled=false; btn.innerHTML='<i class="fas fa-sparkles"></i><span> 开始占卜</span>'; }
+
+    async function startDivination(){
+      if(!selectedSpread) return;
+      const button=document.getElementById('startButton');
+      const question=document.getElementById('questionInput').value.trim();
+      showOverlay(); button.disabled=true; button.innerHTML='<i class="fas fa-spinner fa-spin"></i><span> 准备中...</span>';
+      try{
+        const res=await fetch('/api/spread/draw',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ spread_id:selectedSpread, question:question, ai_personality:selectedPersonality }) });
+        const data=await res.json();
+        if(data.success && data.redirect){ finalizeOverlayThenRedirect(data.redirect); }
+        else{ hideOverlay(); alert(data.error||'占卜失败，请稍后重试'); button.disabled=false; button.innerHTML='<i class="fas fa-sparkles"></i><span> 开始占卜</span>'; }
+      }catch(err){ console.error('Error:', err); hideOverlay(); alert('网络错误，请稍后重试'); button.disabled=false; button.innerHTML='<i class="fas fa-sparkles"></i><span> 开始占卜</span>'; }
+    }
+
+    // 点击外部关闭面板
+    document.addEventListener('click',function(e){ const panel=document.getElementById('floatingPanel'); const inside=panel.contains(e.target)||e.target.closest('.spread-card'); if(!inside && panel.classList.contains('show')) closePanel(); });
+    // 回车提交
+    document.getElementById('questionInput')?.addEventListener('keypress',function(e){ if(e.key==='Enter' && selectedSpread) startDivination(); });
+  </script>
+</body>
+</html>

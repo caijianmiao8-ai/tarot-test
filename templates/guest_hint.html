@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="guest-hint-page">
+    <h1>关于访客模式</h1>
+    
+    <div class="hint-section">
+        <h3>访客模式的特点</h3>
+        <ul>
+            <li>无需注册即可使用</li>
+            <li>数据仅在当前浏览会话保存</li>
+            <li>关闭浏览器后数据会清除</li>
+            <li>无法查看历史记录</li>
+        </ul>
+    </div>
+    
+    {% if is_incognito %}
+    <div class="incognito-notice">
+        <h3>⚠️ 无痕浏览模式提醒</h3>
+        <p>系统检测到您可能在使用无痕浏览模式。在此模式下：</p>
+        <ul>
+            <li>所有数据都是临时的</li>
+            <li>关闭标签页后无法恢复</li>
+            <li>建议您截图或导出重要内容</li>
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div class="benefits-section">
+        <h3>注册账号的好处</h3>
+        <div class="benefits-grid">
+            <div class="benefit-item">
+                <i class="icon-history"></i>
+                <h4>历史记录</h4>
+                <p>查看所有抽牌历史</p>
+            </div>
+            <div class="benefit-item">
+                <i class="icon-chart"></i>
+                <h4>统计分析</h4>
+                <p>了解您的塔罗趋势</p>
+            </div>
+            <div class="benefit-item">
+                <i class="icon-cloud"></i>
+                <h4>云端同步</h4>
+                <p>多设备访问记录</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">注册账号</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">继续访客模式</a>
+    </div>
+</div>
+{% endblock %}
