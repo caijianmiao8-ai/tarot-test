@@ -7,7 +7,7 @@
 //   3. Tailwind 按需生成，强制关闭 preflight，避免 Vercel 读取 preflight.css 报 ENOENT。
 //   4. 自动生成“虚拟 lucide-react 模块”以保证图标可用。
 //   5. 去除导入白名单：除 Node 内置高危模块外，任意 npm 包（如 framer-motion）通过 esm.sh CDN 拉取并打包。
-//   6. 强沙箱：禁 Node 内置、禁路径逃逸；修复 esm.sh 子依赖的“根相对路径”导入解析。
+//   6. 强沙箱：禁 Node 内置、禁路径逃逸；修复 esm.sh 子依赖的“根相对路径/裸导入”解析。
 // 兼容性：target 下调，避免移动端 Safari/Android WebView 语法错误。
 
 const { build } = require("esbuild");
@@ -441,7 +441,7 @@ function buildLucideModuleSource(lucideList) {
 // 裸模块名 -> esm.sh CDN URL
 // ----------------------------------------------------------------------------
 function resolveBareToCDN(spec) {
-  // 可固定常用包版本和构建参数，减少 302 跳转
+  // 固定常用包版本和构建参数，减少 302 跳转
   const pinned = {
     "framer-motion":
       "https://esm.sh/framer-motion@11.18.2?external=react,react-dom&target=es2017",
@@ -454,7 +454,7 @@ function resolveBareToCDN(spec) {
 
 // ----------------------------------------------------------------------------
 // http(s)/data: 导入插件：在打包阶段拉取 CDN 模块内容
-// 兼容 esm.sh 返回的相对/根相对导入（统一解析为绝对 URL）
+// 兼容 esm.sh 返回的相对/根相对/裸导入（统一解析为绝对 URL 或 external-globals）
 // ----------------------------------------------------------------------------
 function httpImportPlugin() {
   return {
@@ -468,23 +468,39 @@ function httpImportPlugin() {
         namespace: "http-url",
       }));
 
-      // 在 http-url 命名空间内，处理相对/根相对与 data: 导入
+      // 在 http-url 命名空间内，处理相对/根相对/裸导入 与 data:
       buildCtx.onResolve({ filter: /.*/, namespace: "http-url" }, (args) => {
         const spec = args.path;
 
-        // 已是 http(s) 或 data:，透传
+        // 1) 已是 http(s) 或 data:，透传
         if (/^https?:\/\//i.test(spec) || spec.startsWith("data:")) {
           return { path: spec, namespace: "http-url" };
         }
 
-        // 其它（包含 "/xxx"、"./xxx"、"../xxx"）基于 importer 解析为绝对 URL
-        try {
-          const base = new URL(args.importer);
-          const resolved = new URL(spec, base);
-          return { path: resolved.toString(), namespace: "http-url" };
-        } catch {
-          return { path: spec, namespace: "http-url" };
+        const isRelative = spec.startsWith("./") || spec.startsWith("../");
+        const isRootAbs = spec.startsWith("/");
+
+        // 2) 相对或根相对：基于 importer 解析为绝对 URL
+        if (isRelative || isRootAbs) {
+          try {
+            const base = new URL(args.importer);
+            const resolved = new URL(spec, base);
+            return { path: resolved.toString(), namespace: "http-url" };
+          } catch {
+            return { path: spec, namespace: "http-url" };
+          }
         }
+
+        // 3) 裸导入：要么走 external-globals，要么映射到 CDN
+        if (EXTERNAL_MODULES.has(spec)) {
+          // 交给 external-globals（使用 window.*）
+          return { path: spec, namespace: "external-globals" };
+        }
+
+        // 一些子模块形式如 'react/jsx-runtime' 也在 EXTERNAL_MODULES 里，已被上面捕获。
+        // 其它裸导入 → esm.sh
+        const cdn = resolveBareToCDN(spec);
+        return { path: cdn, namespace: "http-url" };
       });
 
       // 加载 http-url 命名空间的内容
@@ -808,7 +824,7 @@ async function bundleSource(source) {
         },
       },
 
-      // 让 esbuild 能拉取 CDN 的 http(s)/data: 模块，且能解析其相对/根相对子依赖
+      // 让 esbuild 能拉取 CDN 的 http(s)/data: 模块，且能解析其相对/根相对/裸导入子依赖
       httpImportPlugin(),
 
       // 去白名单 + 注入外部全局 + CDN 改写
