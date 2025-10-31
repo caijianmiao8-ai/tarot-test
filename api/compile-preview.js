@@ -53,7 +53,7 @@ const TAILWIND_INCLUDE_FILES = Array.from(
 );
 
 // ----------------------------------------------------------------------------
-// 外部依赖（通过 window.* 注入的“全局外部”）
+/** 外部依赖（通过 window.* 注入的“全局外部”） */
 // ----------------------------------------------------------------------------
 
 const EXTERNAL_MODULES = new Set([
@@ -612,27 +612,67 @@ function createSecurityPlugin(resolveDir, lucideList) {
       // 把外部注入模块映射到 window.*
       buildCtx.onLoad({ filter: /.*/, namespace: "external-globals" }, (args) => {
         if (args.path === "react") {
+          // ✅ 补全 framer-motion 所需的全部导出，并对部分新 API 做兜底
           return {
             loader: "js",
             contents: `
-              const React = window.React;
-              export default React;
-              export const useState = React.useState;
-              export const useEffect = React.useEffect;
-              export const useRef = React.useRef;
-              export const useMemo = React.useMemo;
-              export const useCallback = React.useCallback;
-              export const Fragment = React.Fragment;
+              const R = window.React;
+              if (!R) { throw new Error('window.React 未注入'); }
+              export default R;
+
+              // Elements & Context
+              export const createElement = R.createElement;
+              export const cloneElement = R.cloneElement;
+              export const isValidElement = R.isValidElement;
+              export const Fragment = R.Fragment;
+              export const createContext = R.createContext;
+              export const useContext = R.useContext;
+
+              // Component classes
+              export class Component extends R.Component {}
+              export class PureComponent extends R.PureComponent {}
+
+              // Hooks（含兜底）
+              export const useState = R.useState;
+              export const useReducer = R.useReducer;
+              export const useEffect = R.useEffect;
+              export const useLayoutEffect = R.useLayoutEffect;
+              export const useInsertionEffect = R.useInsertionEffect || R.useLayoutEffect;
+              export const useMemo = R.useMemo;
+              export const useCallback = R.useCallback;
+              export const useRef = R.useRef;
+              export const useImperativeHandle = R.useImperativeHandle;
+              export const useTransition = R.useTransition || (() => [false, (fn) => fn && fn()]);
+              export const useDeferredValue = R.useDeferredValue || ((v) => v);
+              export const startTransition = R.startTransition || ((fn) => fn && fn());
+              export const useId = R.useId || (() => Math.random().toString(36).slice(2));
+              export const useDebugValue = R.useDebugValue || (() => {});
+
+              // Others
+              export const forwardRef = R.forwardRef;
+              export const memo = R.memo;
+              export const StrictMode = R.StrictMode;
+              export const Suspense = R.Suspense;
+              export const Profiler = R.Profiler;
+              export const Children = R.Children;
+              export const version = R.version;
             `,
           };
         }
 
         if (args.path === "react-dom") {
+          // ✅ 补齐常见导出，兼容 React 18/17
           return {
             loader: "js",
             contents: `
-              const ReactDOM = window.ReactDOM;
-              export default ReactDOM;
+              const D = window.ReactDOM;
+              if (!D) { throw new Error('window.ReactDOM 未注入'); }
+              export default D;
+
+              export const createPortal = D.createPortal;
+              export const flushSync = D.flushSync || ((fn)=>fn && fn());
+              export const render = D.render;
+              export const hydrate = D.hydrate;
             `,
           };
         }
@@ -641,13 +681,17 @@ function createSecurityPlugin(resolveDir, lucideList) {
           return {
             loader: "js",
             contents: `
-              const ReactDOM = window.ReactDOM;
-              if (!ReactDOM || !ReactDOM.createRoot) {
-                throw new Error('ReactDOM.createRoot not found. Make sure ReactDOM 18+ is loaded in the iframe.');
-              }
+              const D = window.ReactDOM;
+              if (!D) { throw new Error('window.ReactDOM 未注入'); }
               export function createRoot(container) {
-                return ReactDOM.createRoot(container);
+                if (D.createRoot) return D.createRoot(container);
+                // React <18 fallback
+                return {
+                  render: (el) => D.render(el, container),
+                  unmount: () => D.unmountComponentAtNode && D.unmountComponentAtNode(container),
+                };
               }
+              export const hydrateRoot = D.hydrateRoot || null;
             `,
           };
         }
