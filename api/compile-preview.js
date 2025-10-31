@@ -3,14 +3,12 @@
 // 服务器端实时编译器（给预览 iframe 用）。
 // 功能：
 //   1. 用 esbuild 把用户在编辑器里写的 React 组件打成一个 IIFE。
-//   2. React / ReactDOM / lucide-react 这些库通过全局(window.*)注入，而不是真的打包 node_modules。
-//   3. 把 Tailwind 按需跑一遍，只生成当前代码用到的类。强制关闭 preflight，避免 Vercel 上读取 preflight.css 报 ENOENT。
-//   4. 自动生成一个“虚拟 lucide-react 模块”，解决图标渲染问题。
-//   5. **（本版）去除导入白名单**：除 Node 内置高危模块外，任意 npm 包（如 framer-motion）自动走 esm.sh CDN 拉取并打包。
-//   6. 强沙箱：禁止 Node 内置、禁止路径逃逸到宿主磁盘。
-//
-// 兼容性：下调 esbuild target 到一组老浏览器集合，避免手机端 SyntaxError（见 build 配置）。
-//
+//   2. React / ReactDOM / lucide-react 通过全局(window.*)注入（不打包 node_modules）。
+//   3. Tailwind 按需生成，强制关闭 preflight，避免 Vercel 读取 preflight.css 报 ENOENT。
+//   4. 自动生成“虚拟 lucide-react 模块”以保证图标可用。
+//   5. 去除导入白名单：除 Node 内置高危模块外，任意 npm 包（如 framer-motion）通过 esm.sh CDN 拉取并打包。
+//   6. 强沙箱：禁 Node 内置、禁路径逃逸；修复 esm.sh 子依赖的“根相对路径”导入解析。
+// 兼容性：target 下调，避免移动端 Safari/Android WebView 语法错误。
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -45,8 +43,7 @@ const EXTRA_CONFIG_LOCATIONS = [
   "src/tailwind.config.ts",
 ];
 
-// 告诉 Vercel 把 tailwindcss 本体打进来，以便 serverless 环境能 require。
-// includeFiles 还能把你的 tailwind.config.js 之类的东西带过来（即使在子目录）
+// 告诉 Vercel 打包 tailwindcss 本体与常见配置文件
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
     ...TAILWIND_CONFIG_FILENAMES.map((n) => n),
@@ -58,7 +55,7 @@ const TAILWIND_INCLUDE_FILES = Array.from(
 // ----------------------------------------------------------------------------
 // 外部依赖（通过 window.* 注入的“全局外部”）
 // ----------------------------------------------------------------------------
-// 这些不从 CDN 拉，仍然走 window.React / window.ReactDOM / window.lucideReact 注入。
+
 const EXTERNAL_MODULES = new Set([
   "react",
   "react-dom",
@@ -76,8 +73,8 @@ const NODE_BUILTINS = new Set([
 ]);
 
 // 虚拟入口常量
-const USER_CODE_VIRTUAL_PATH = "user-code"; // 你的组件源码
-const VIRTUAL_ENTRY_PATH = "virtual-entry"; // 我们注入的root/mount脚本
+const USER_CODE_VIRTUAL_PATH = "user-code";     // 你的组件源码
+const VIRTUAL_ENTRY_PATH   = "virtual-entry";   // 注入的 root/mount 脚本
 
 // Tailwind 指令
 const BASE_CSS = "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
@@ -158,7 +155,6 @@ async function loadTailwindConfigOrFallback() {
     }
   }
 
-  // 没找到你的 tailwind.config -> 提供兜底
   console.warn("[compile-preview] Using internal fallback Tailwind config");
 
   cachedTailwindConfig = {
@@ -445,10 +441,10 @@ function buildLucideModuleSource(lucideList) {
 // 裸模块名 -> esm.sh CDN URL
 // ----------------------------------------------------------------------------
 function resolveBareToCDN(spec) {
-  // 可在此处锁定常用库的版本与构建参数
+  // 可固定常用包版本和构建参数，减少 302 跳转
   const pinned = {
     "framer-motion":
-      "https://esm.sh/framer-motion@11?external=react,react-dom&target=es2017",
+      "https://esm.sh/framer-motion@11.18.2?external=react,react-dom&target=es2017",
   };
   if (pinned[spec]) return pinned[spec];
 
@@ -457,7 +453,8 @@ function resolveBareToCDN(spec) {
 }
 
 // ----------------------------------------------------------------------------
-// http(s) 导入插件：在打包阶段拉取 CDN 模块内容
+// http(s)/data: 导入插件：在打包阶段拉取 CDN 模块内容
+// 兼容 esm.sh 返回的相对/根相对导入（统一解析为绝对 URL）
 // ----------------------------------------------------------------------------
 function httpImportPlugin() {
   return {
@@ -465,12 +462,49 @@ function httpImportPlugin() {
     setup(buildCtx) {
       const urlFilter = /^https?:\/\//;
 
+      // 识别初次出现的 http(s) URL
       buildCtx.onResolve({ filter: urlFilter }, (args) => ({
         path: args.path,
         namespace: "http-url",
       }));
 
+      // 在 http-url 命名空间内，处理相对/根相对与 data: 导入
+      buildCtx.onResolve({ filter: /.*/, namespace: "http-url" }, (args) => {
+        const spec = args.path;
+
+        // 已是 http(s) 或 data:，透传
+        if (/^https?:\/\//i.test(spec) || spec.startsWith("data:")) {
+          return { path: spec, namespace: "http-url" };
+        }
+
+        // 其它（包含 "/xxx"、"./xxx"、"../xxx"）基于 importer 解析为绝对 URL
+        try {
+          const base = new URL(args.importer);
+          const resolved = new URL(spec, base);
+          return { path: resolved.toString(), namespace: "http-url" };
+        } catch {
+          return { path: spec, namespace: "http-url" };
+        }
+      });
+
+      // 加载 http-url 命名空间的内容
       buildCtx.onLoad({ filter: /.*/, namespace: "http-url" }, async (args) => {
+        // data:URL 支持
+        if (args.path.startsWith("data:")) {
+          const comma = args.path.indexOf(",");
+          const meta = args.path.slice(5, comma);
+          const data = args.path.slice(comma + 1);
+          const isBase64 = /;base64/i.test(meta);
+          const mime = meta.split(";")[0] || "";
+          const text = isBase64
+            ? Buffer.from(data, "base64").toString("utf8")
+            : decodeURIComponent(data);
+          return {
+            contents: text,
+            loader: mime.includes("css") ? "css" : "js",
+          };
+        }
+
         const code = await fetchUrl(args.path);
         return {
           contents: code,
@@ -488,15 +522,11 @@ function fetchUrl(url, maxRedirect = 5) {
     const client = url.startsWith("https:") ? https : http;
     const req = client.get(url, (res) => {
       const { statusCode, headers } = res;
-      if (
-        statusCode >= 300 &&
-        statusCode < 400 &&
-        headers.location
-      ) {
+      if (statusCode >= 300 && statusCode < 400 && headers.location) {
         const next = headers.location.startsWith("http")
           ? headers.location
           : new URL(headers.location, url).toString();
-        res.resume(); // 丢弃
+        res.resume(); // 丢弃当前响应体
         return fetchUrl(next, maxRedirect - 1).then(resolve, reject);
       }
 
@@ -524,6 +554,9 @@ function createSecurityPlugin(resolveDir, lucideList) {
     name: "preview-security",
     setup(buildCtx) {
       buildCtx.onResolve({ filter: /.*/ }, (args) => {
+        // 让 httpImportPlugin 处理 http-url 命名空间
+        if (args.namespace === "http-url") return;
+
         // 1) 通过 window.* 注入的外部模块（不走 CDN）
         if (EXTERNAL_MODULES.has(args.path)) {
           return {
@@ -549,9 +582,7 @@ function createSecurityPlugin(resolveDir, lucideList) {
           const resolved = path.resolve(base, args.path);
           if (!resolved.startsWith(base)) {
             return {
-              errors: [
-                { text: `不允许访问受限目录之外的文件: ${args.path}` },
-              ],
+              errors: [{ text: `不允许访问受限目录之外的文件: ${args.path}` }],
             };
           }
           return { path: resolved };
@@ -639,9 +670,7 @@ function createSecurityPlugin(resolveDir, lucideList) {
           return { loader: "js", contents: lucideModuleSource };
         }
 
-        return {
-          errors: [{ text: `未知的 external 模块: ${args.path}` }],
-        };
+        return { errors: [{ text: `未知的 external 模块: ${args.path}` }] };
       });
     },
   };
@@ -680,9 +709,9 @@ async function bundleSource(source) {
   const result = await build({
     write: false,
     bundle: true,
-    format: "iife", // IIFE 方便我们直接 <script> 执行
+    format: "iife", // 直接 <script> 执行
     platform: "browser",
-    // ⭐ 为移动端下调 target，避免 iOS/Android 直接 SyntaxError
+    // 为移动端下调 target，避免 iOS/Android 直接 SyntaxError
     target: ["es2017", "safari13", "ios13", "chrome58", "firefox60", "edge79"],
     treeShaking: true,
     logLevel: "silent",
@@ -765,7 +794,7 @@ async function bundleSource(source) {
             `,
           }));
 
-          // user-code: 用户写的组件本体（要求 default export 一个 React 组件）
+          // user-code: 用户写的组件（要求 default export 一个 React 组件）
           buildCtx.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({ path: USER_CODE_VIRTUAL_PATH, namespace: "user" })
@@ -779,7 +808,7 @@ async function bundleSource(source) {
         },
       },
 
-      // 让 esbuild 能拉取 CDN 的 http(s) 模块
+      // 让 esbuild 能拉取 CDN 的 http(s)/data: 模块，且能解析其相对/根相对子依赖
       httpImportPlugin(),
 
       // 去白名单 + 注入外部全局 + CDN 改写
@@ -827,7 +856,7 @@ async function generateTailwindCSS(source) {
 }
 
 // ----------------------------------------------------------------------------
-/** HTTP Handler */
+// HTTP Handler
 // ----------------------------------------------------------------------------
 function parseRequestBody(req) {
   if (!req.body) return {};
