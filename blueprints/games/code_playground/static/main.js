@@ -108,10 +108,7 @@
   window.addEventListener("message", (event) => {
     if (!event || !event.data || event.source !== frame.contentWindow) return;
     if (event.data.type === "CODE_PLAYGROUND_ERROR") {
-      showError(
-        event.data.message || "运行时出现错误",
-        "运行时错误"
-      );
+      showError(event.data.message || "运行时出现错误", "运行时错误");
     }
   });
 
@@ -134,8 +131,9 @@
       '<html lang="zh-CN">',
       "  <head>",
       '    <meta charset="utf-8" />',
-      '    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />',
 
+      // 字体（可保留）
       '    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
       '    <link rel="preconnect" href="https://fonts.googleapis.com" />',
       '    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />',
@@ -145,17 +143,16 @@
       styles,
       "    </style>",
 
-      // 极简 baseline（不制造任何可见风格；修正默认描边为透明，避免黑边）
+      // baseline：去掉黑边、允许滚动、提升触屏滚动体验
       '    <style id="sandbox-baseline">',
-      "      html, body { margin:0; padding:0; height:100%; }",
-      "      #root { height:100%; min-height:100%; }",
-      "      *, ::before, ::after {",
-      "        box-sizing:border-box; border-width:0; border-style:solid; border-color:transparent;",
-      "      }",
+      "      html, body, #root { height:100%; }",
+      "      html, body { margin:0; padding:0; }",
+      "      *, ::before, ::after { box-sizing:border-box; border-width:0; border-style:solid; border-color:transparent; }",
       "      body {",
       "        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
       "        -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;",
-      "        background: transparent; color: inherit; overflow: hidden;",
+      "        background: transparent; color: inherit;",
+      "        overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;",
       "      }",
       "      button, input, select, textarea { font: inherit; color: inherit; background: transparent; }",
       "    </style>",
@@ -517,12 +514,12 @@
       "      function scanAll(){ walk(document.body || document.documentElement); }",
       "      scanAll();",
       "",
-      "      // 观察后续变更",
+      "      // 观察后续变更 —— 修正：仅逐个 token 处理，避免整串 className 再处理一次",
       "      var mo = new MutationObserver(function(muts){",
       "        muts.forEach(function(m){",
       "          if(m.type==='attributes' && m.attributeName==='class'){",
-      "            processToken((m.target.getAttribute('class')||'').split(/\\s+/).filter(Boolean).join(' '));",
-      "            (m.target.getAttribute('class')||'').split(/\\s+/).forEach(processToken);",
+      "            var tokens = (m.target.getAttribute('class')||'').split(/\\s+/).filter(Boolean);",
+      "            tokens.forEach(processToken);",
       "          }",
       "          if(m.addedNodes && m.addedNodes.length){",
       "            for(var i=0;i<m.addedNodes.length;i++){",
@@ -542,28 +539,25 @@
       "  <body>",
       '    <div id="root"></div>',
       "",
-      // React runtime UMD
-      '    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>',
-      '    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>',
+      // React runtime UMD（建议 production；需要调试再用 development）
+      '    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>',
+      '    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>',
       "",
       // lucide runtime UMD (window.lucide.icons)
-      '    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>',
+      '    <script src="https://unpkg.com/lucide@latest"></script>',
       "",
       // 调试日志（可留可删）
       "    <script>",
       "      (function () {",
       "        var iconSource = null;",
-      "        var sample = null;",
       "        if (window.lucide && window.lucide.icons && typeof window.lucide.icons === 'object') {",
       "          iconSource = 'lucide.core';",
-      "          var keys = Object.keys(window.lucide.icons);",
-      "          sample = keys.slice(0, 12);",
       "        }",
-      "        console.log('[Preview Sandbox] React ok?', !!window.React, 'ReactDOM ok?', !!window.ReactDOM, 'Icons?', iconSource, 'Sample icons:', sample);",
+      "        console.log('[Preview Sandbox] React ok?', !!window.React, 'ReactDOM ok?', !!window.ReactDOM, 'Icons?', iconSource);",
       "      })();",
       "    </script>",
       "",
-      // esbuild 产物 IIFE：会在 #root 里 mount 组件
+      // esbuild 产物 IIFE：会在 #root 里 mount 组件，并将运行期错误 postMessage 回父页
       "    <script>",
       script,
       "    </script>",
@@ -693,7 +687,8 @@
     } catch (error) {
       clearTimeout(timeoutId);
       if (error.name === "AbortError") return;
-      if (requestId !== activeRequestId || currentController !== controller) return;
+      if (requestId !== activeRequestId || currentController !== controller)
+        return;
       handleCompileError(error.message || "网络异常，请稍后重试");
     } finally {
       if (currentController === controller) {
@@ -799,7 +794,7 @@
     if (!leftPane || !handle) return;
 
     const SAVED_KEY = "code-playground-left-width";
-       const saved = localStorage.getItem(SAVED_KEY);
+    const saved = localStorage.getItem(SAVED_KEY);
     if (saved) {
       const px = parseFloat(saved);
       if (!Number.isNaN(px) && px > 0) {
@@ -909,6 +904,15 @@
   // 初始化
   // ---------------------------------------------------------------------------
   function init() {
+    // NEW: 确保 iframe 有 sandbox（允许脚本 + 同源），并统一外观
+    if (frame && !frame.hasAttribute("sandbox")) {
+      frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
+    }
+    if (frame) {
+      frame.style.background = "transparent";
+      frame.style.border = "0";
+    }
+
     setupResizableSplit();
 
     const stored = localStorage.getItem(STORAGE_KEY);
