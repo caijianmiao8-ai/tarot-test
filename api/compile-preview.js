@@ -2,12 +2,12 @@
 //
 // 服务器端实时编译器（给预览 iframe 用）。
 // 功能：
-//   1. 用 esbuild 把用户在编辑器里写的 React 组件打成一个 IIFE。
-//   2. React / ReactDOM / lucide-react 通过全局(window.*)注入（不打包 node_modules）。
-//   3. Tailwind 按需生成，强制关闭 preflight，避免 Vercel 读取 preflight.css 报 ENOENT。
-//   4. 自动生成“虚拟 lucide-react 模块”以保证图标可用。
-//   5. 去除导入白名单：除 Node 内置高危模块外，任意 npm 包（如 framer-motion）通过 esm.sh CDN 拉取并打包。
-//   6. 强沙箱：禁 Node 内置、禁路径逃逸；修复 esm.sh 子依赖的“根相对路径/裸导入”解析。
+//   1) esbuild 把用户在编辑器里写的 React 组件打成 IIFE。
+//   2) React / ReactDOM / lucide-react 走 window.* 注入（不打包 node_modules）。
+//   3) Tailwind 按需生成，强制关闭 preflight，避免 Vercel 读取 preflight.css 报 ENOENT。
+//   4) 自动生成“虚拟 lucide-react 模块”，保证图标可用。
+//   5) 允许任意 npm 包（如 framer-motion）通过 esm.sh 拉取并打包；修复子依赖的根相对/裸导入。
+//   6) 强沙箱：禁 Node 内置、禁路径逃逸。
 // 兼容性：target 下调，避免移动端 Safari/Android WebView 语法错误。
 
 const { build } = require("esbuild");
@@ -97,8 +97,6 @@ async function ensureResolveDir() {
 }
 
 // ----------------------------------------------------------------------------
-// Tailwind 配置查找 + 加载
-// ----------------------------------------------------------------------------
 function getAllCandidateConfigPaths() {
   const baseDirs = Array.from(
     new Set([
@@ -129,9 +127,7 @@ async function findTailwindConfig() {
       cachedTailwindConfigPath = full;
       console.info(`[compile-preview] Tailwind config FOUND at: ${full}`);
       return cachedTailwindConfigPath;
-    } catch {
-      // continue
-    }
+    } catch {}
   }
 
   console.warn(
@@ -441,20 +437,17 @@ function buildLucideModuleSource(lucideList) {
 // 裸模块名 -> esm.sh CDN URL
 // ----------------------------------------------------------------------------
 function resolveBareToCDN(spec) {
-  // 固定常用包版本和构建参数，减少 302 跳转
   const pinned = {
     "framer-motion":
       "https://esm.sh/framer-motion@11.18.2?external=react,react-dom&target=es2017",
   };
   if (pinned[spec]) return pinned[spec];
 
-  // 其他包：latest + 外部化 react/react-dom，降级到 es2017
   return `https://esm.sh/${spec}@latest?external=react,react-dom&target=es2017`;
 }
 
 // ----------------------------------------------------------------------------
-// http(s)/data: 导入插件：在打包阶段拉取 CDN 模块内容
-// 兼容 esm.sh 返回的相对/根相对/裸导入（统一解析为绝对 URL 或 external-globals）
+// http(s)/data: 导入插件（解析相对/根相对/裸导入 -> 绝对 URL 或 external-globals）
 // ----------------------------------------------------------------------------
 function httpImportPlugin() {
   return {
@@ -462,13 +455,13 @@ function httpImportPlugin() {
     setup(buildCtx) {
       const urlFilter = /^https?:\/\//;
 
-      // 识别初次出现的 http(s) URL
+      // 初次出现 http(s) URL
       buildCtx.onResolve({ filter: urlFilter }, (args) => ({
         path: args.path,
         namespace: "http-url",
       }));
 
-      // 在 http-url 命名空间内，处理相对/根相对/裸导入 与 data:
+      // 在 http-url 内处理相对/根相对/裸导入/data:
       buildCtx.onResolve({ filter: /.*/, namespace: "http-url" }, (args) => {
         const spec = args.path;
 
@@ -491,21 +484,17 @@ function httpImportPlugin() {
           }
         }
 
-        // 3) 裸导入：要么走 external-globals，要么映射到 CDN
+        // 3) 裸导入：
         if (EXTERNAL_MODULES.has(spec)) {
-          // 交给 external-globals（使用 window.*）
           return { path: spec, namespace: "external-globals" };
         }
-
-        // 一些子模块形式如 'react/jsx-runtime' 也在 EXTERNAL_MODULES 里，已被上面捕获。
-        // 其它裸导入 → esm.sh
         const cdn = resolveBareToCDN(spec);
         return { path: cdn, namespace: "http-url" };
       });
 
-      // 加载 http-url 命名空间的内容
+      // 加载 http-url 内容
       buildCtx.onLoad({ filter: /.*/, namespace: "http-url" }, async (args) => {
-        // data:URL 支持
+        // data:URL
         if (args.path.startsWith("data:")) {
           const comma = args.path.indexOf(",");
           const meta = args.path.slice(5, comma);
@@ -542,7 +531,7 @@ function fetchUrl(url, maxRedirect = 5) {
         const next = headers.location.startsWith("http")
           ? headers.location
           : new URL(headers.location, url).toString();
-        res.resume(); // 丢弃当前响应体
+        res.resume();
         return fetchUrl(next, maxRedirect - 1).then(resolve, reject);
       }
 
@@ -573,12 +562,9 @@ function createSecurityPlugin(resolveDir, lucideList) {
         // 让 httpImportPlugin 处理 http-url 命名空间
         if (args.namespace === "http-url") return;
 
-        // 1) 通过 window.* 注入的外部模块（不走 CDN）
+        // 1) 通过 window.* 注入的外部模块
         if (EXTERNAL_MODULES.has(args.path)) {
-          return {
-            path: args.path,
-            namespace: "external-globals",
-          };
+          return { path: args.path, namespace: "external-globals" };
         }
 
         // 2) 禁 Node 内置模块
@@ -597,14 +583,12 @@ function createSecurityPlugin(resolveDir, lucideList) {
           const base = args.resolveDir || resolveDir;
           const resolved = path.resolve(base, args.path);
           if (!resolved.startsWith(base)) {
-            return {
-              errors: [{ text: `不允许访问受限目录之外的文件: ${args.path}` }],
-            };
+            return { errors: [{ text: `不允许访问受限目录之外的文件: ${args.path}` }] };
           }
           return { path: resolved };
         }
 
-        // 4) 其他（裸模块名） => 改写到 CDN
+        // 4) 其它裸模块名 → CDN
         const cdnUrl = resolveBareToCDN(args.path);
         return { path: cdnUrl, namespace: "http-url" };
       });
@@ -616,13 +600,47 @@ function createSecurityPlugin(resolveDir, lucideList) {
             loader: "js",
             contents: `
               const React = window.React;
+              if (!React) {
+                throw new Error('window.React 未注入。请确保 iframe 里先加载 React 18 UMD。');
+              }
+              // default
               export default React;
+              // 常用类/节点
+              export const Children = React.Children;
+              export const Component = React.Component;
+              export const PureComponent = React.PureComponent;
+              export const Fragment = React.Fragment;
+              export const Profiler = React.Profiler;
+              export const StrictMode = React.StrictMode;
+              export const Suspense = React.Suspense;
+              // API
+              export const createElement = React.createElement;
+              export const cloneElement = React.cloneElement;
+              export const createRef = React.createRef;
+              export const createContext = React.createContext;
+              export const forwardRef = React.forwardRef;
+              export const isValidElement = React.isValidElement;
+              export const lazy = React.lazy;
+              export const memo = React.memo;
+              export const startTransition = React.startTransition;
+              // Hooks
               export const useState = React.useState;
               export const useEffect = React.useEffect;
               export const useRef = React.useRef;
               export const useMemo = React.useMemo;
               export const useCallback = React.useCallback;
-              export const Fragment = React.Fragment;
+              export const useReducer = React.useReducer;
+              export const useContext = React.useContext;
+              export const useDebugValue = React.useDebugValue;
+              export const useImperativeHandle = React.useImperativeHandle;
+              export const useLayoutEffect = React.useLayoutEffect;
+              export const useInsertionEffect = React.useInsertionEffect;
+              export const useDeferredValue = React.useDeferredValue;
+              export const useTransition = React.useTransition;
+              export const useId = React.useId;
+              export const useSyncExternalStore = React.useSyncExternalStore;
+              // version
+              export const version = React.version;
             `,
           };
         }
@@ -632,7 +650,13 @@ function createSecurityPlugin(resolveDir, lucideList) {
             loader: "js",
             contents: `
               const ReactDOM = window.ReactDOM;
+              if (!ReactDOM) {
+                throw new Error('window.ReactDOM 未注入。请确保 iframe 里先加载 ReactDOM 18 UMD。');
+              }
               export default ReactDOM;
+              export const createPortal = ReactDOM.createPortal;
+              export const flushSync = ReactDOM.flushSync;
+              export const findDOMNode = ReactDOM.findDOMNode;
             `,
           };
         }
@@ -643,7 +667,7 @@ function createSecurityPlugin(resolveDir, lucideList) {
             contents: `
               const ReactDOM = window.ReactDOM;
               if (!ReactDOM || !ReactDOM.createRoot) {
-                throw new Error('ReactDOM.createRoot not found. Make sure ReactDOM 18+ is loaded in the iframe.');
+                throw new Error('ReactDOM.createRoot not found. 请确保 ReactDOM 18 UMD 已加载。');
               }
               export function createRoot(container) {
                 return ReactDOM.createRoot(container);
@@ -686,7 +710,7 @@ function createSecurityPlugin(resolveDir, lucideList) {
           return { loader: "js", contents: lucideModuleSource };
         }
 
-        return { errors: [{ text: `未知的 external 模块: ${args.path}` }] };
+        return { errors: [{ text: \`未知的 external 模块: \${args.path}\` }] };
       });
     },
   };
@@ -719,29 +743,24 @@ async function bundleSource(source) {
   // 找出 lucide-react import 的符号
   const lucideList = extractLucideImports(source);
 
-  // 插件组合：虚拟入口 + http 导入 + 安全/CDN 改写
   const securityPlugin = createSecurityPlugin(resolveDir, lucideList);
 
   const result = await build({
     write: false,
     bundle: true,
-    format: "iife", // 直接 <script> 执行
+    format: "iife",
     platform: "browser",
-    // 为移动端下调 target，避免 iOS/Android 直接 SyntaxError
     target: ["es2017", "safari13", "ios13", "chrome58", "firefox60", "edge79"],
     treeShaking: true,
     logLevel: "silent",
     charset: "utf8",
-
-    define: {
-      "process.env.NODE_ENV": '"production"',
-    },
+    define: { "process.env.NODE_ENV": '"production"' },
 
     plugins: [
       {
         name: "preview-virtual-entry",
         setup(buildCtx) {
-          // virtual-entry: 负责挂载到 #root，并把运行时错误上报给父窗口
+          // virtual-entry
           buildCtx.onResolve(
             { filter: new RegExp(`^${VIRTUAL_ENTRY_PATH}$`) },
             () => ({ path: VIRTUAL_ENTRY_PATH, namespace: "virtual" })
@@ -810,7 +829,7 @@ async function bundleSource(source) {
             `,
           }));
 
-          // user-code: 用户写的组件（要求 default export 一个 React 组件）
+          // user-code
           buildCtx.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
             () => ({ path: USER_CODE_VIRTUAL_PATH, namespace: "user" })
@@ -824,7 +843,7 @@ async function bundleSource(source) {
         },
       },
 
-      // 让 esbuild 能拉取 CDN 的 http(s)/data: 模块，且能解析其相对/根相对/裸导入子依赖
+      // 解析/加载 http(s)/data: 模块（含相对/根相对/裸导入）
       httpImportPlugin(),
 
       // 去白名单 + 注入外部全局 + CDN 改写
