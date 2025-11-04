@@ -1,18 +1,18 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/**/*.ts", "use": "@vercel/node" },
+    { "src": "api/**/*.[jt]s", "use": "@vercel/node" },
     { "src": "app.py", "use": "@vercel/python" }
   ],
   "routes": [
+    { "src": "^/api/compile-preview$", "dest": "/api/compile-preview.js" },
+
     { "src": "^/api/device/start$", "dest": "/api/remote?op=device-start" },
     { "src": "^/api/device/approve$", "dest": "/api/remote?op=device-approve" },
     { "src": "^/api/device/poll$", "dest": "/api/remote?op=device-poll" },
-
     { "src": "^/api/sessions/create$", "dest": "/api/remote?op=sessions-create" },
     { "src": "^/api/sessions/join$", "dest": "/api/remote?op=sessions-join" },
     { "src": "^/api/sessions/close$", "dest": "/api/remote?op=sessions-close" },
-
     { "src": "^/api/realtime/signed-topic$", "dest": "/api/remote?op=realtime-signed-topic" },
     { "src": "^/api/ice$", "dest": "/api/remote?op=ice" },
     { "src": "^/api/logs$", "dest": "/api/remote?op=logs" },
