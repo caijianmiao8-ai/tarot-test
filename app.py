@@ -2,6 +2,7 @@
 塔罗每日指引 - 主应用
 重构版本，支持 Vercel 部署和未来迁移
 """
+
 import os
 import json, requests
 import random
