@@ -1,4 +1,30 @@
+
 {
-  "builds": [{ "src": "app.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/(.*)", "dest": "app.py" }]
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/compile-preview.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/compile-preview",
+      "dest": "api/compile-preview.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/tasks/dispatch_daily_summaries",
+      "schedule": "45 16 * * *"  
+    },
+    { "path": "/tasks/dispatch_profile_builds",  "schedule": "0 18 * * *"  }
+  ]
 }

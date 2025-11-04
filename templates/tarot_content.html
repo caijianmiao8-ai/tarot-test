@@ -1,0 +1,455 @@
+<div class="header">
+    <h1>今日塔罗运势</h1>
+    <p>探索塔罗牌带给你的今日洞察与指引，感受内心的力量与宇宙的启示</p>
+</div>
+
+<!-- 塔罗牌显示 -->
+<div class="tarot-card">
+    {% if tarot_card %}
+        <img src="{{ url_for('static', filename='images/cards/' ~ tarot_card.image) }}"
+             alt="{{ tarot_card.name }}"
+             style="width:100%; height:100%; border-radius:15px; transform: {% if tarot_card.direction == '逆位' %}rotate(180deg){% endif %};">
+    {% else %}
+        <i class="fas fa-star"></i>
+    {% endif %}
+</div>
+
+<!-- 操作按钮或提示 -->
+<div class="action-section">
+    {% if has_drawn %}
+        <a href="{{ url_for('result') }}" class="already-drawn">
+            <i class="fas fa-check"></i> 已抽取今日塔罗
+        </a>
+    {% else %}
+        <form id="draw-form" method="POST" action="{{ url_for('draw_card') }}">
+            <button type="submit" id="draw-btn" class="btn-tarot">
+                <i class="fas fa-hand-paper"></i> 抽取今日塔罗
+            </button>
+        </form>
+    {% endif %}
+</div>
+
+<!-- 运势指数预览 - 新增部分 -->
+{% if has_drawn %}
+<div id="fortune-preview-section" class="fortune-preview-section" style="display: none;">
+    <div class="fortune-preview-header">
+        <h3><i class="fas fa-chart-line"></i> 今日运势指数</h3>
+    </div>
+    
+    <!-- 运势加载状态 -->
+    <div id="fortune-loading" class="fortune-loading-state">
+        <div class="mini-spinner"></div>
+        <p>正在解读您的运势能量场...</p>
+    </div>
+    
+    <!-- 运势内容 -->
+    <div id="fortune-preview-content" class="fortune-preview-content" style="display: none;">
+        <!-- 总体评分 -->
+        <div class="overall-preview">
+            <div class="score-circle">
+                <span id="preview-score">--</span>
+                <small>综合指数</small>
+            </div>
+            <div class="preview-summary" id="preview-summary-text">
+                运势解读中...
+            </div>
+        </div>
+        
+        <!-- 运势维度快览 -->
+        <div class="dimensions-preview" id="dimensions-preview">
+            <!-- 动态填充 -->
+        </div>
+        
+        <!-- 今日幸运 -->
+        <div class="lucky-preview">
+            <div class="lucky-item">
+                <i class="fas fa-palette"></i>
+                <span>幸运色：<strong id="lucky-color">--</strong></span>
+            </div>
+            <div class="lucky-item">
+                <i class="fas fa-hashtag"></i>
+                <span>幸运数字：<strong id="lucky-number">--</strong></span>
+            </div>
+        </div>
+        
+        <!-- 查看详情按钮 -->
+        <div class="preview-actions">
+            <a href="{{ url_for('result') }}" class="btn-detail">
+                <i class="fas fa-eye"></i> 查看完整解读
+            </a>
+        </div>
+    </div>
+    
+    <!-- 运势加载失败 -->
+    <div id="fortune-error" class="fortune-error" style="display: none;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>运势数据加载遇到问题</p>
+        <button onclick="retryLoadFortune()" class="btn-retry">重试</button>
+    </div>
+</div>
+{% endif %}
+
+<!-- 今日洞察 - 保持原有逻辑 -->
+{% if tarot_card and fortune %}
+    <div class="info-text" style="margin-top:20px; text-align:left;">
+        <h4>今日洞察：</h4>
+        <p>{{ fortune.summary if fortune.summary else "塔罗正在为你生成洞察..." }}</p>
+        {% if fortune.dimension_advice %}
+            <ul>
+                {% for key, val in fortune.dimension_advice.items() %}
+                    <li><strong>{{ key }}：</strong> {{ val }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+{% elif has_drawn %}
+    <div class="info-text" style="margin-top:20px;">
+        今日解读正在生成，请稍候刷新页面。
+    </div>
+{% else %}
+    <div class="guest-tip">
+        <i class="fas fa-info-circle"></i> 点击上方按钮抽取你的今日塔罗，获取专属洞察与指引。
+    </div>
+{% endif %}
+
+<style>
+/* 运势预览样式 */
+.fortune-preview-section {
+    background: rgba(255,255,255,0.9);
+    border: 2px solid rgba(142,108,136,0.2);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 25px 0;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fortune-preview-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.fortune-preview-header h3 {
+    color: var(--accent-color);
+    font-size: 1.4rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+/* 加载状态 */
+.fortune-loading-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--accent-color);
+}
+
+.mini-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(142,108,136,0.3);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+/* 总体评分显示 */
+.overall-preview {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(142,108,136,0.1);
+}
+
+.score-circle {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border: 4px solid var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(142,108,136,0.05);
+}
+
+.score-circle span {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.score-circle small {
+    font-size: 0.7rem;
+    color: var(--accent-color);
+    margin-top: 2px;
+}
+
+.preview-summary {
+    flex: 1;
+    font-size: 1rem;
+    color: var(--dark-color);
+    line-height: 1.5;
+}
+
+/* 维度快览 */
+.dimensions-preview {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.dimension-mini {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+    padding: 10px 5px;
+    background: rgba(142,108,136,0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(142,108,136,0.1);
+}
+
+.dimension-mini-name {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+    margin-bottom: 5px;
+}
+
+.dimension-mini-stars {
+    font-size: 0.9rem;
+    color: #ffd700;
+}
+
+/* 幸运元素预览 */
+.lucky-preview {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(142,108,136,0.05);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 15px;
+}
+
+.lucky-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--dark-color);
+}
+
+.lucky-item i {
+    color: var(--primary-color);
+    width: 16px;
+}
+
+/* 预览操作按钮 */
+.preview-actions {
+    text-align: center;
+}
+
+.btn-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(142,108,136,0.3);
+}
+
+.btn-detail:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(142,108,136,0.4);
+    color: white;
+}
+
+/* 错误状态 */
+.fortune-error {
+    text-align: center;
+    padding: 20px;
+    color: var(--accent-color);
+}
+
+.fortune-error i {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #ef4444;
+}
+
+.btn-retry {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    transition: background 0.3s ease;
+}
+
+.btn-retry:hover {
+    background: var(--accent-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .overall-preview {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .dimensions-preview {
+        justify-content: center;
+    }
+    
+    .dimension-mini {
+        min-width: 60px;
+    }
+    
+    .lucky-preview {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+}
+</style>
+
+<script>
+// 运势预览功能
+let fortunePreviewLoaded = false;
+
+// 显示运势预览
+function showFortunePreview() {
+    const section = document.getElementById('fortune-preview-section');
+    if (section) {
+        section.style.display = 'block';
+        loadFortunePreview();
+    }
+}
+
+// 加载运势预览数据
+async function loadFortunePreview() {
+    if (fortunePreviewLoaded) return;
+    
+    const loadingEl = document.getElementById('fortune-loading');
+    const contentEl = document.getElementById('fortune-preview-content');
+    const errorEl = document.getElementById('fortune-error');
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const response = await fetch(`/api/fortune/${today}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        displayFortunePreview(data);
+        fortunePreviewLoaded = true;
+        
+    } catch (error) {
+        console.error('运势预览加载失败:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+    }
+}
+
+// 显示运势预览数据
+function displayFortunePreview(data) {
+    const loadingEl = document.getElementById('fortune-loading');
+    const contentEl = document.getElementById('fortune-preview-content');
+    
+    // 隐藏加载状态，显示内容
+    loadingEl.style.display = 'none';
+    contentEl.style.display = 'block';
+    
+    // 更新总体评分
+    document.getElementById('preview-score').textContent = data.overall_score;
+    
+    // 更新运势总结
+    if (data.fortune_text && data.fortune_text.summary) {
+        document.getElementById('preview-summary-text').textContent = data.fortune_text.summary;
+    }
+    
+    // 渲染维度快览
+    renderDimensionsPreview(data.dimensions);
+    
+    // 更新幸运元素
+    document.getElementById('lucky-color').textContent = data.lucky_elements.color;
+    document.getElementById('lucky-number').textContent = data.lucky_elements.number;
+}
+
+// 渲染维度快览
+function renderDimensionsPreview(dimensions) {
+    const container = document.getElementById('dimensions-preview');
+    
+    // 只显示前3个维度，避免太拥挤
+    const topDimensions = dimensions.slice(0, 3);
+    
+    container.innerHTML = topDimensions.map(dim => `
+        <div class="dimension-mini">
+            <div class="dimension-mini-name">${dim.name}</div>
+            <div class="dimension-mini-stars">${generateMiniStars(dim.stars)}</div>
+        </div>
+    `).join('');
+}
+
+// 生成简化版星星显示
+function generateMiniStars(rating) {
+    const stars = Math.round(rating);
+    return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+}
+
+// 重试加载运势
+function retryLoadFortune() {
+    const loadingEl = document.getElementById('fortune-loading');
+    const errorEl = document.getElementById('fortune-error');
+    
+    errorEl.style.display = 'none';
+    loadingEl.style.display = 'block';
+    fortunePreviewLoaded = false;
+    loadFortunePreview();
+}
+
+// 页面加载完成后自动显示运势预览（如果已抽牌）
+document.addEventListener('DOMContentLoaded', function() {
+    {% if has_drawn %}
+        // 延迟1秒后显示运势，给用户一点缓冲时间
+        setTimeout(showFortunePreview, 1000);
+    {% endif %}
+});
+
+// 修改原有的抽牌逻辑，在成功后显示运势预览
+document.getElementById('draw-form')?.addEventListener('submit', function(e) {
+    // 保持原有逻辑
+    e.preventDefault();
+    const btn = document.getElementById('draw-btn');
+    btn.disabled = true;
+    document.getElementById('loading-overlay').style.display = 'flex';
+    
+    const delay = 1000 + Math.random() * 1000;
+    setTimeout(() => {
+        this.submit();
+        // 注意：这里是表单提交，页面会刷新
+        // 运势预览会在刷新后的页面中自动显示
+    }, delay);
+});
+</script>

@@ -1,0 +1,26 @@
+<!-- templates/games/guess_number/index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>猜数字 · Guess Number</title>
+  <!-- ★ 只加载自己的 CSS，不引入站点公共 CSS，完全隔离 -->
+  <link rel="stylesheet" href="{{ url_for('guess_number.static', filename='main.css') }}">
+</head>
+<body id="app-guess-number">
+  <div class="card">
+    <h1 class="title">猜数字（1~100）</h1>
+    <p class="sub">这个页面示范了“每个游戏自己的风格与脚本”。</p>
+
+    <div class="row">
+      <input id="num" type="number" min="1" max="100" placeholder="输入一个数字"/>
+      <button id="btn">猜！</button>
+    </div>
+    <div id="log" class="log"></div>
+  </div>
+
+  <!-- ★ 只加载自己的 JS；用 ES Module 或 IIFE，避免全局变量泄漏 -->
+  <script type="module" src="{{ url_for('guess_number.static', filename='main.js') }}"></script>
+</body>
+</html>

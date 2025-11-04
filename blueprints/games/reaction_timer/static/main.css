@@ -1,0 +1,83 @@
+/* blueprints/games/reaction_timer/static/main.css */
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+
+:root{
+  --bg:#0b0f1a;
+  --panel:#0f1726;
+  --line:#1e2a44;
+  --text:#e6eef8;
+  --muted:#97a5bf;
+  --accent:#00f5d4;     /* 薄荷霓虹 */
+  --accent-2:#7b2ff7;   /* 紫霓虹 */
+  --danger:#ff5c8a;
+}
+
+#app-reaction-timer{
+  min-height:100vh; color:var(--text); font-family: ui-sans-serif, system-ui, "PingFang SC", "Microsoft YaHei", Arial;
+  background:
+    radial-gradient(900px 700px at 15% 10%, rgba(123,47,247,.20), transparent 60%),
+    radial-gradient(900px 700px at 85% 90%, rgba(0,245,212,.18), transparent 60%),
+    linear-gradient(135deg, #081022, #0b0f1a);
+  display:grid; place-items:center; padding:24px;
+}
+
+.wrap{ width:min(960px, 94vw); display:grid; gap:14px }
+
+.hero{
+  background:linear-gradient( to right, rgba(123,47,247,.15), rgba(0,245,212,.10) );
+  border:1px solid var(--line); border-radius:16px; padding:16px 18px;
+}
+.hero h1{ margin:0; letter-spacing:.5px; font-weight:900 }
+.hero p{ margin:.4rem 0 0; color:var(--muted) }
+.hero .g{ color:var(--accent) }
+
+.arena{
+  position:relative; border-radius:18px; height:min(48vh, 420px);
+  display:grid; place-items:center; text-align:center;
+  border:1px dashed var(--line);
+  background:linear-gradient( to bottom right, rgba(255,255,255,.04), rgba(255,255,255,.02) );
+  outline:none;
+  transition: background .15s ease, border-color .15s ease;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* 状态色：idle 蓝、ready 紫、wait 红、go 绿 */
+.arena.state-idle{ border-color:#2b3e66 }
+.arena.state-ready{ border-color:var(--accent-2) }
+.arena.state-wait{ border-color:var(--danger); background:rgba(255,92,138,.06) }
+.arena.state-go{ border-color:var(--accent); background:rgba(0,245,212,.08) }
+
+.state-tip .big{ font-size:1.6rem; font-weight:900; letter-spacing:.4px }
+.state-tip .sub{ margin-top:.25rem; color:var(--muted) }
+.state-tip kbd{ background:#0e1a2e; border:1px solid var(--line); border-bottom-color:#24375c; padding:2px 6px; border-radius:6px }
+
+.time{
+  position:absolute; right:14px; bottom:12px;
+  font-variant-numeric:tabular-nums; font-weight:800; letter-spacing:.2px;
+  opacity:.7;
+}
+
+.false{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  color:var(--danger); font-weight:900; letter-spacing:.4px; display:none;
+  text-shadow:0 0 18px rgba(255,92,138,.35);
+}
+.arena.show-false .false{ display:block }
+
+.panel{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
+}
+.stats{ display:flex; gap:18px; flex-wrap:wrap }
+.label{ color:var(--muted); margin-right:4px }
+.actions{ display:flex; gap:10px; flex-wrap:wrap }
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 14px; border-radius:12px; cursor:pointer; text-decoration:none; color:var(--bg);
+  background:linear-gradient(135deg, var(--accent), #59ffd8); border:1px solid #35d8c2; font-weight:800;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover{ transform:translateY(-1px); box-shadow:0 10px 22px rgba(0,245,212,.25) }
+.btn.secondary{ background:linear-gradient(135deg, #aab7d4, #cdd9f0); border-color:#aab7d4; color:#111 }
+.btn.link{ background:transparent; color:var(--text); border:1px dashed var(--line) }
