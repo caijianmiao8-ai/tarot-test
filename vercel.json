@@ -1,30 +1,19 @@
-
 {
+  "version": 2,
   "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "api/compile-preview.js",
-      "use": "@vercel/node"
-    }
+    { "src": "api/**/*.ts", "use": "@vercel/node" },
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "app.py", "use": "@vercel/python" },
+    { "src": "requirements.txt", "use": "@vercel/python" },
+    { "src": "blueprints/**", "use": "@vercel/python" }
   ],
   "routes": [
-    {
-      "src": "/api/compile-preview",
-      "dest": "api/compile-preview.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "app.py"
-    }
+    { "src": "^/api/compile-preview$", "dest": "/api/compile-preview.js" },
+    { "src": "^/api/(.*)$", "dest": "/api/$1.ts" },
+    { "src": ".*", "dest": "/app.py" }
   ],
   "crons": [
-    {
-      "path": "/tasks/dispatch_daily_summaries",
-      "schedule": "45 16 * * *"  
-    },
-    { "path": "/tasks/dispatch_profile_builds",  "schedule": "0 18 * * *"  }
+    { "path": "/tasks/dispatch_daily_summaries", "schedule": "45 16 * * *" },
+    { "path": "/tasks/dispatch_profile_builds", "schedule": "0 18 * * *" }
   ]
 }
