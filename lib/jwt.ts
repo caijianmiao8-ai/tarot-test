@@ -1,20 +1,25 @@
-import jwt from 'jsonwebtoken';
-import { env } from './util';
+// lib/jwt.ts
+import jwt, { JwtPayload, SignOptions, Secret } from 'jsonwebtoken';
 
-const APP_JWT_SECRET = () => env('APP_JWT_SECRET');
+const APP_JWT_SECRET = (process.env.APP_JWT_SECRET ?? '') as string;
 
-type ExpiresIn = string | number;
-
-export interface AppTokenPayload {
-  sub: string;
-  exp?: number;
-  [key: string]: unknown;
+// 运行时兜底提示（编译不报错，运行时没有会返回 null）
+if (!APP_JWT_SECRET) {
+  console.warn('[jwt] APP_JWT_SECRET is not set. Set it in Vercel env.');
 }
 
-export function issueAppToken(userId: string, expiresIn: ExpiresIn = '1h', extraPayload: Record<string, unknown> = {}) {
-  return jwt.sign({ sub: userId, ...extraPayload }, APP_JWT_SECRET(), { expiresIn });
+const secret: Secret = APP_JWT_SECRET;
+
+export function issueAppToken(payload: object | string, ttlSeconds: number = 3600): string {
+  // 用字符串 '3600s' 避免某些版本的类型窄化问题
+  const options: SignOptions = { expiresIn: `${ttlSeconds}s`, algorithm: 'HS256' };
+  return jwt.sign(payload, secret, options);
 }
 
-export function verifyAppToken(token: string): AppTokenPayload {
-  return jwt.verify(token, APP_JWT_SECRET()) as AppTokenPayload;
+export function verifyAppToken<T extends JwtPayload = JwtPayload>(token: string): T | null {
+  try {
+    return jwt.verify(token, secret) as T;
+  } catch {
+    return null;
+  }
 }
