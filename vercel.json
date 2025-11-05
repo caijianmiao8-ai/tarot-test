@@ -19,6 +19,6 @@
     { "source": "/api/ice",                   "destination": "/api/remote?op=ice" },
     { "source": "/api/logs",                  "destination": "/api/remote?op=logs" },
 
-    { "source": "/((?!api).*)", "destination": "/app.py" }3
+    { "source": "/((?!api).*)", "destination": "/app.py" }
   ]
 }
