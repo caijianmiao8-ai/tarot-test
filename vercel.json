@@ -5,20 +5,20 @@
     { "src": "app.py", "use": "@vercel/python" }
   ],
   "rewrites": [
-    { "source": "/api/compile-preview",      "destination": "/api/compile-preview.js" },
+    { "source": "/api/compile-preview",       "destination": "/api/compile-preview.js" },
 
-    { "source": "/api/device/start",         "destination": "/api/remote?op=device-start" },
-    { "source": "/api/device/approve",       "destination": "/api/remote?op=device-approve" },
-    { "source": "/api/device/poll",          "destination": "/api/remote?op=device-poll" },
+    { "source": "/api/device/start",          "destination": "/api/remote?op=device-start" },
+    { "source": "/api/device/approve",        "destination": "/api/remote?op=device-approve" },
+    { "source": "/api/device/poll",           "destination": "/api/remote?op=device-poll" },
 
-    { "source": "/api/sessions/create",      "destination": "/api/remote?op=sessions-create" },
-    { "source": "/api/sessions/join",        "destination": "/api/remote?op=sessions-join" },
-    { "source": "/api/sessions/close",       "destination": "/api/remote?op=sessions-close" },
+    { "source": "/api/sessions/create",       "destination": "/api/remote?op=sessions-create" },
+    { "source": "/api/sessions/join",         "destination": "/api/remote?op=sessions-join" },
+    { "source": "/api/sessions/close",        "destination": "/api/remote?op=sessions-close" },
 
-    { "source": "/api/realtime/signed-topic","destination": "/api/remote?op=realtime-signed-topic" },
-    { "source": "/api/ice",                  "destination": "/api/remote?op=ice" },
-    { "source": "/api/logs",                 "destination": "/api/remote?op=logs" },
+    { "source": "/api/realtime/signed-topic", "destination": "/api/remote?op=realtime-signed-topic" },
+    { "source": "/api/ice",                   "destination": "/api/remote?op=ice" },
+    { "source": "/api/logs",                  "destination": "/api/remote?op=logs" },
 
-    { "source": "/(.*)", "destination": "/app.py" }
+    { "source": "/((?!api).*)", "destination": "/app.py" }  // 关键改动：保护 /api/*
   ]
 }
