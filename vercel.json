@@ -4,20 +4,21 @@
     { "src": "api/**/*.[jt]s", "use": "@vercel/node" },
     { "src": "app.py", "use": "@vercel/python" }
   ],
-  "routes": [
-    { "src": "^/api/compile-preview$", "dest": "/api/compile-preview.js" },
+  "rewrites": [
+    { "source": "/api/compile-preview",      "destination": "/api/compile-preview.js" },
 
-    { "src": "^/api/device/start$", "dest": "/api/remote?op=device-start" },
-    { "src": "^/api/device/approve$", "dest": "/api/remote?op=device-approve" },
-    { "src": "^/api/device/poll$", "dest": "/api/remote?op=device-poll" },
-    { "src": "^/api/sessions/create$", "dest": "/api/remote?op=sessions-create" },
-    { "src": "^/api/sessions/join$", "dest": "/api/remote?op=sessions-join" },
-    { "src": "^/api/sessions/close$", "dest": "/api/remote?op=sessions-close" },
-    { "src": "^/api/realtime/signed-topic$", "dest": "/api/remote?op=realtime-signed-topic" },
-    { "src": "^/api/ice$", "dest": "/api/remote?op=ice" },
-    { "src": "^/api/logs$", "dest": "/api/remote?op=logs" },
+    { "source": "/api/device/start",         "destination": "/api/remote?op=device-start" },
+    { "source": "/api/device/approve",       "destination": "/api/remote?op=device-approve" },
+    { "source": "/api/device/poll",          "destination": "/api/remote?op=device-poll" },
 
-    { "src": "^/api/(.*)$", "dest": "/api/remote?op=$1" },
-    { "src": ".*", "dest": "/app.py" }
+    { "source": "/api/sessions/create",      "destination": "/api/remote?op=sessions-create" },
+    { "source": "/api/sessions/join",        "destination": "/api/remote?op=sessions-join" },
+    { "source": "/api/sessions/close",       "destination": "/api/remote?op=sessions-close" },
+
+    { "source": "/api/realtime/signed-topic","destination": "/api/remote?op=realtime-signed-topic" },
+    { "source": "/api/ice",                  "destination": "/api/remote?op=ice" },
+    { "source": "/api/logs",                 "destination": "/api/remote?op=logs" },
+
+    { "source": "/(.*)", "destination": "/app.py" }
   ]
 }
