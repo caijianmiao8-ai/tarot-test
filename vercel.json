@@ -18,9 +18,5 @@
     { "src": "^/api/logs$",                  "dest": "/api/remote?op=logs" },
 
     { "src": "^/(.*)$", "dest": "/app.py" }
-  ],
-  "functions": {
-    "api/**/*.[jt]s": { "runtime": "nodejs20.x" }
-  }
-  
+  ]
 }
