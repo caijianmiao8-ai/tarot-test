@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日板报</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .content {
+            padding: 30px;
+            display: none;
+        }
+
+        .content.show {
+            display: block;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            font-size: 1.3em;
+        }
+
+        /* 日期时间样式 */
+        .datetime-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .datetime-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .datetime-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .datetime-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 位置样式 */
+        .location-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        /* 天气样式 */
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .weather-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .weather-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .weather-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .weather-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 新闻样式 */
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .news-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .news-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .news-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .news-title a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .news-title a:hover {
+            text-decoration: underline;
+        }
+
+        .news-meta {
+            font-size: 0.85em;
+            color: #888;
+            display: flex;
+            gap: 15px;
+        }
+
+        .news-description {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .datetime-info, .weather-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📰 每日板报</h1>
+            <p class="subtitle">位置 · 天气 · 新闻 · 一目了然</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>正在加载板报数据...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <strong>加载失败</strong><br>
+            <span id="error-message"></span>
+        </div>
+
+        <div id="content" class="content">
+            <!-- 日期时间 -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="section-icon">📅</span>
+                    <span>今日日期</span>
+                </div>
+                <div class="datetime-info">
+                    <div class="datetime-item">
+                        <div class="datetime-label">日期</div>
+                        <div class="datetime-value" id="date">-</div>
+                    </div>
+                    <div class="datetime-item">
+                        <div class="datetime-label">星期</div>
+                        <div class="datetime-value" id="weekday">-</div>
+                    </div>
+                    <div class="datetime-item">
+                        <div class="datetime-label">当前时间</div>
+                        <div class="datetime-value" id="time">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 位置信息 -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="section-icon">📍</span>
+                    <span>当前位置</span>
+                </div>
+                <div class="location-info">
+                    <span id="location">-</span>
+                </div>
+            </div>
+
+            <!-- 天气信息 -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="section-icon">🌤️</span>
+                    <span>天气信息</span>
+                </div>
+                <div class="weather-grid">
+                    <div class="weather-item">
+                        <div class="weather-icon" id="weather-icon">☁️</div>
+                        <div class="weather-label">天气</div>
+                        <div class="weather-value" id="weather-desc">-</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-label">温度</div>
+                        <div class="weather-value" id="weather-temp">-</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-label">湿度</div>
+                        <div class="weather-value" id="weather-humidity">-</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-label">风速</div>
+                        <div class="weather-value" id="weather-wind">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 新闻头条 -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="section-icon">📰</span>
+                    <span>今日要闻</span>
+                </div>
+                <div class="news-list" id="news-list">
+                    <!-- 新闻将通过 JS 动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 天气图标映射
+        const weatherIcons = {
+            '01d': '☀️', '01n': '🌙',
+            '02d': '⛅', '02n': '☁️',
+            '03d': '☁️', '03n': '☁️',
+            '04d': '☁️', '04n': '☁️',
+            '09d': '🌧️', '09n': '🌧️',
+            '10d': '🌦️', '10n': '🌧️',
+            '11d': '⛈️', '11n': '⛈️',
+            '13d': '❄️', '13n': '❄️',
+            '50d': '🌫️', '50n': '🌫️'
+        };
+
+        async function loadBulletinData() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || '加载失败');
+                }
+
+                // 渲染数据
+                renderData(data);
+
+                // 显示内容，隐藏加载动画
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').classList.add('show');
+
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
+            }
+        }
+
+        function renderData(data) {
+            // 日期时间
+            if (data.date) {
+                document.getElementById('date').textContent = data.date.date || '-';
+                document.getElementById('weekday').textContent = data.date.weekday || '-';
+                document.getElementById('time').textContent = data.date.time || '-';
+            }
+
+            // 位置
+            if (data.location) {
+                const loc = data.location;
+                document.getElementById('location').textContent =
+                    `${loc.city || ''}${loc.region ? ', ' + loc.region : ''}, ${loc.country || ''}`;
+            }
+
+            // 天气
+            if (data.weather) {
+                const weather = data.weather;
+                const iconCode = weather.icon || '01d';
+                document.getElementById('weather-icon').textContent = weatherIcons[iconCode] || '☁️';
+                document.getElementById('weather-desc').textContent = weather.description || '-';
+                document.getElementById('weather-temp').textContent = weather.temp || '-';
+                document.getElementById('weather-humidity').textContent = weather.humidity || '-';
+                document.getElementById('weather-wind').textContent = weather.wind_speed || '-';
+            }
+
+            // 新闻
+            if (data.news && data.news.articles) {
+                const newsList = document.getElementById('news-list');
+                newsList.innerHTML = '';
+
+                if (data.news.articles.length === 0) {
+                    newsList.innerHTML = '<p style="text-align: center; color: #888;">暂无新闻数据</p>';
+                } else {
+                    data.news.articles.forEach((article, index) => {
+                        const newsItem = document.createElement('div');
+                        newsItem.className = 'news-item';
+                        newsItem.innerHTML = `
+                            <div class="news-title">
+                                <a href="${article.url}" target="_blank" rel="noopener">
+                                    ${index + 1}. ${article.title}
+                                </a>
+                            </div>
+                            <div class="news-meta">
+                                <span>来源: ${article.source}</span>
+                                ${article.publishedAt ? `<span>${formatDate(article.publishedAt)}</span>` : ''}
+                            </div>
+                            ${article.description ? `<div class="news-description">${article.description}</div>` : ''}
+                        `;
+                        newsList.appendChild(newsItem);
+                    });
+                }
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+            if (diffHours < 1) {
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                return `${diffMins}分钟前`;
+            } else if (diffHours < 24) {
+                return `${diffHours}小时前`;
+            } else {
+                return date.toLocaleDateString('zh-CN');
+            }
+        }
+
+        // 页面加载时获取数据
+        window.addEventListener('DOMContentLoaded', loadBulletinData);
+
+        // 每分钟更新一次时间
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString('zh-CN');
+        }, 60000);
+    </script>
+</body>
+</html>

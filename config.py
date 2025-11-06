@@ -106,6 +106,18 @@ class Config:
     DIFY_CHAT_API_KEY = os.environ.get('DIFY_CHAT_API_KEY', DIFY_API_KEY)
     DIFY_CHAT_API_URL = os.environ.get('DIFY_CHAT_API_URL', "http://ai-bot-new.dalongyun.com/v1/chat-messages")
 
+    # ===== 每日板报 API 配置 =====
+    # OpenWeatherMap API (天气服务) - https://openweathermap.org/api
+    OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
+    OPENWEATHER_API_URL = os.environ.get('OPENWEATHER_API_URL', 'https://api.openweathermap.org/data/2.5/weather')
+
+    # NewsAPI (新闻服务) - https://newsapi.org/
+    NEWS_API_KEY = os.environ.get('NEWS_API_KEY', '')
+    NEWS_API_URL = os.environ.get('NEWS_API_URL', 'https://newsapi.org/v2/top-headlines')
+
+    # IP定位服务 (ipapi.co - 免费，无需API Key) - https://ipapi.co/
+    IPAPI_URL = os.environ.get('IPAPI_URL', 'https://ipapi.co')
+
     @classmethod
     def validate(cls):
         """验证必要配置"""
