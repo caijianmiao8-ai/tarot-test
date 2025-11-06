@@ -34,5 +34,14 @@
     "tags": ["React", "Playground"],
     "type": "link",
     "path": "/g/code_playground/"
+  },
+  {
+    "slug": "daily_bulletin",
+    "title": "每日板报",
+    "subtitle": "位置 · 天气 · 新闻",
+    "cover": "/static/images/covers/daily_bulletin.svg",
+    "tags": ["天气", "新闻", "定位"],
+    "type": "link",
+    "path": "/g/daily_bulletin/"
   }
 ]
