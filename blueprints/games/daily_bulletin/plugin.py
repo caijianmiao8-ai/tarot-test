@@ -50,30 +50,85 @@ def _ensure_sid(resp):
 def get_location_from_ip(ip_address=None):
     """
     通过 IP 获取地理位置信息
-    使用 ipapi.co 免费服务（无需 API Key）
+    优先使用 ipapi.co，失败时使用 ip-api.com 作为备份
     """
     try:
+        # 获取 IP 地址
         if not ip_address or ip_address == "127.0.0.1":
-            # 本地开发时使用公网 IP
-            ip_address = requests.get("https://api.ipify.org", timeout=5).text
+            print(f"[daily_bulletin] Local IP detected, fetching public IP...")
+            try:
+                ip_address = requests.get("https://api.ipify.org", timeout=5).text.strip()
+                print(f"[daily_bulletin] Public IP: {ip_address}")
+            except Exception as e:
+                print(f"[daily_bulletin] Failed to get public IP: {e}")
+                # 使用备用 IP 服务
+                ip_address = requests.get("https://api.ip.sb/ip", timeout=5).text.strip()
+                print(f"[daily_bulletin] Public IP (fallback): {ip_address}")
 
-        url = f"{Config.IPAPI_URL}/{ip_address}/json/"
-        response = requests.get(url, timeout=10)
+        # 方法1: 尝试 ipapi.co
+        try:
+            url = f"{Config.IPAPI_URL}/{ip_address}/json/"
+            print(f"[daily_bulletin] Requesting location from ipapi.co: {url}")
 
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                "city": data.get("city", "Unknown"),
-                "region": data.get("region", ""),
-                "country": data.get("country_name", ""),
-                "lat": data.get("latitude"),
-                "lon": data.get("longitude"),
-                "timezone": data.get("timezone", "UTC")
-            }
+            response = requests.get(url, timeout=10)
+            print(f"[daily_bulletin] ipapi.co response status: {response.status_code}")
+
+            if response.status_code == 200:
+                data = response.json()
+                print(f"[daily_bulletin] ipapi.co response: {data}")
+
+                # 检查是否有错误信息（ipapi.co 在达到限制时返回 error: true）
+                if not data.get("error"):
+                    location = {
+                        "city": data.get("city") or "Unknown",
+                        "region": data.get("region") or "",
+                        "country": data.get("country_name") or "World",
+                        "lat": data.get("latitude"),
+                        "lon": data.get("longitude"),
+                        "timezone": data.get("timezone") or "UTC"
+                    }
+                    print(f"[daily_bulletin] Location from ipapi.co: {location}")
+                    return location
+                else:
+                    print(f"[daily_bulletin] ipapi.co returned error: {data.get('reason')}")
+        except Exception as e:
+            print(f"[daily_bulletin] ipapi.co failed: {e}")
+
+        # 方法2: 备用 - 使用 ip-api.com（无需 API key，免费）
+        try:
+            url = f"http://ip-api.com/json/{ip_address}?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone"
+            print(f"[daily_bulletin] Trying fallback: ip-api.com")
+
+            response = requests.get(url, timeout=10)
+            print(f"[daily_bulletin] ip-api.com response status: {response.status_code}")
+
+            if response.status_code == 200:
+                data = response.json()
+                print(f"[daily_bulletin] ip-api.com response: {data}")
+
+                if data.get("status") == "success":
+                    location = {
+                        "city": data.get("city") or "Unknown",
+                        "region": data.get("regionName") or "",
+                        "country": data.get("country") or "World",
+                        "lat": data.get("lat"),
+                        "lon": data.get("lon"),
+                        "timezone": data.get("timezone") or "UTC"
+                    }
+                    print(f"[daily_bulletin] Location from ip-api.com: {location}")
+                    return location
+                else:
+                    print(f"[daily_bulletin] ip-api.com error: {data.get('message')}")
+        except Exception as e:
+            print(f"[daily_bulletin] ip-api.com failed: {e}")
+
     except Exception as e:
         print(f"[daily_bulletin] Location error: {e}")
+        import traceback
+        traceback.print_exc()
 
-    # 默认返回（如果 API 失败）
+    # 默认返回（所有方法都失败时）
+    print("[daily_bulletin] All location APIs failed, using fallback")
     return {
         "city": "Unknown",
         "region": "",
@@ -88,19 +143,23 @@ def get_weather(lat, lon):
     获取天气信息
     使用 OpenWeatherMap API
     """
+    print(f"[daily_bulletin] Getting weather for lat={lat}, lon={lon}")
+
     if not Config.OPENWEATHER_API_KEY:
+        print("[daily_bulletin] Weather API Key not configured")
         return {
             "temp": "N/A",
-            "description": "API Key 未配置",
+            "description": "天气 API Key 未配置",
             "humidity": "N/A",
             "wind_speed": "N/A",
             "icon": "01d"
         }
 
     if not lat or not lon:
+        print(f"[daily_bulletin] Invalid coordinates: lat={lat}, lon={lon}")
         return {
             "temp": "N/A",
-            "description": "位置信息不可用",
+            "description": "位置信息不可用（无法获取天气）",
             "humidity": "N/A",
             "wind_speed": "N/A",
             "icon": "01d"
@@ -116,23 +175,35 @@ def get_weather(lat, lon):
             "lang": "zh_cn"  # 中文描述
         }
 
+        print(f"[daily_bulletin] Requesting weather from: {url}")
         response = requests.get(url, params=params, timeout=10)
+        print(f"[daily_bulletin] Weather API response status: {response.status_code}")
 
         if response.status_code == 200:
             data = response.json()
+            print(f"[daily_bulletin] Weather data: {data}")
+
             main = data.get("main", {})
             weather = data.get("weather", [{}])[0]
             wind = data.get("wind", {})
 
-            return {
+            weather_info = {
                 "temp": f"{main.get('temp', 'N/A')}°C",
                 "description": weather.get("description", "未知"),
                 "humidity": f"{main.get('humidity', 'N/A')}%",
-                "wind_speed": f"{wind.get('speed', 'N/A')} km/h",
+                "wind_speed": f"{wind.get('speed', 'N/A')} m/s",
                 "icon": weather.get("icon", "01d")
             }
+            print(f"[daily_bulletin] Parsed weather: {weather_info}")
+            return weather_info
+        else:
+            print(f"[daily_bulletin] Weather API error: {response.status_code}")
+            print(f"[daily_bulletin] Response: {response.text}")
+
     except Exception as e:
-        print(f"[daily_bulletin] Weather error: {e}")
+        print(f"[daily_bulletin] Weather exception: {e}")
+        import traceback
+        traceback.print_exc()
 
     return {
         "temp": "N/A",
