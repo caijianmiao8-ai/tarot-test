@@ -155,17 +155,43 @@ def get_news(country_code="us", language="zh"):
 
     try:
         url = Config.NEWS_API_URL
-        params = {
-            "apiKey": Config.NEWS_API_KEY,
-            "country": country_code.lower() if len(country_code) == 2 else "us",
-            "pageSize": 10,  # 获取10条新闻
-        }
+
+        # NewsAPI 免费版不支持中国 (cn)，改用全球热门新闻
+        if country_code.lower() == "cn":
+            # 使用 everything 端点获取中文新闻
+            url = Config.NEWS_API_URL.replace('top-headlines', 'everything')
+            params = {
+                "apiKey": Config.NEWS_API_KEY,
+                "q": "中国 OR 科技 OR 财经",  # 搜索关键词
+                "language": "zh",
+                "sortBy": "publishedAt",
+                "pageSize": 10,
+            }
+        else:
+            params = {
+                "apiKey": Config.NEWS_API_KEY,
+                "country": country_code.lower() if len(country_code) == 2 else "us",
+                "pageSize": 10,
+            }
 
         response = requests.get(url, params=params, timeout=10)
 
+        print(f"[daily_bulletin] News API response status: {response.status_code}")
+
         if response.status_code == 200:
             data = response.json()
+
+            # 检查 API 返回状态
+            if data.get("status") != "ok":
+                error_msg = data.get("message", "API 返回错误")
+                print(f"[daily_bulletin] News API error: {error_msg}")
+                return {
+                    "articles": [],
+                    "error": f"新闻服务错误: {error_msg}"
+                }
+
             articles = data.get("articles", [])
+            print(f"[daily_bulletin] Got {len(articles)} articles")
 
             # 格式化新闻
             formatted_articles = []
@@ -182,11 +208,20 @@ def get_news(country_code="us", language="zh"):
                 "articles": formatted_articles,
                 "error": None
             }
+        else:
+            error_msg = f"HTTP {response.status_code}"
+            print(f"[daily_bulletin] News API HTTP error: {error_msg}")
+            return {
+                "articles": [],
+                "error": f"新闻服务暂不可用: {error_msg}"
+            }
     except Exception as e:
-        print(f"[daily_bulletin] News error: {e}")
+        print(f"[daily_bulletin] News exception: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "articles": [],
-            "error": f"新闻服务暂不可用: {str(e)}"
+            "error": f"新闻服务异常: {str(e)}"
         }
 
 # ============ 路由 ============
@@ -227,12 +262,14 @@ def fetch_bulletin_data():
         country_code = country_map.get(location.get("country"), "us")
         news = get_news(country_code)
 
-        # 4. 当前日期时间
-        now = datetime.now()
+        # 4. 当前日期时间（使用 UTC，前端会转换为用户本地时间）
+        now = datetime.utcnow()
         date_info = {
             "date": now.strftime("%Y年%m月%d日"),
             "weekday": ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][now.weekday()],
-            "time": now.strftime("%H:%M:%S")
+            "time": now.strftime("%H:%M:%S"),
+            "timestamp": int(now.timestamp() * 1000) if hasattr(now, 'timestamp') else None,  # 毫秒时间戳
+            "timezone": location.get("timezone", "UTC")  # 返回用户时区
         }
 
         return jsonify({

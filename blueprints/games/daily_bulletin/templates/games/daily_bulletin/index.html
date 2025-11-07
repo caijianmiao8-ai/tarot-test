@@ -377,12 +377,20 @@
         }
 
         function renderData(data) {
-            // 日期时间
-            if (data.date) {
-                document.getElementById('date').textContent = data.date.date || '-';
-                document.getElementById('weekday').textContent = data.date.weekday || '-';
-                document.getElementById('time').textContent = data.date.time || '-';
-            }
+            // 日期时间 - 使用用户本地时间
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[now.getDay()];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('date').textContent = `${year}年${month}月${day}日`;
+            document.getElementById('weekday').textContent = weekday;
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
 
             // 位置
             if (data.location) {
@@ -403,13 +411,16 @@
             }
 
             // 新闻
-            if (data.news && data.news.articles) {
+            if (data.news) {
                 const newsList = document.getElementById('news-list');
                 newsList.innerHTML = '';
 
-                if (data.news.articles.length === 0) {
+                // 如果有错误信息
+                if (data.news.error) {
+                    newsList.innerHTML = `<p style="text-align: center; color: #e74c3c; background: rgba(231,76,60,0.1); padding: 15px; border-radius: 10px;">${data.news.error}</p>`;
+                } else if (data.news.articles && data.news.articles.length === 0) {
                     newsList.innerHTML = '<p style="text-align: center; color: #888;">暂无新闻数据</p>';
-                } else {
+                } else if (data.news.articles) {
                     data.news.articles.forEach((article, index) => {
                         const newsItem = document.createElement('div');
                         newsItem.className = 'news-item';
@@ -450,11 +461,14 @@
         // 页面加载时获取数据
         window.addEventListener('DOMContentLoaded', loadBulletinData);
 
-        // 每分钟更新一次时间
+        // 每秒更新一次时间，保持格式一致
         setInterval(() => {
             const now = new Date();
-            document.getElementById('time').textContent = now.toLocaleTimeString('zh-CN');
-        }, 60000);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+        }, 1000);
     </script>
 </body>
 </html>
