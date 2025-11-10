@@ -5,6 +5,8 @@
     { "src": "app.py", "use": "@vercel/python" }
   ],
   "routes": [
+    { "src": "/api/compile-preview", "dest": "/api/compile-preview.js" },
+
     { "src": "^/api/device/start$",          "dest": "/api/remote?op=device-start" },
     { "src": "^/api/device/approve$",        "dest": "/api/remote?op=device-approve" },
     { "src": "^/api/device/poll$",           "dest": "/api/remote?op=device-poll" },
@@ -17,6 +19,6 @@
     { "src": "^/api/ice$",                   "dest": "/api/remote?op=ice" },
     { "src": "^/api/logs$",                  "dest": "/api/remote?op=logs" },
 
-    { "src": "^/(?!api/)(.*)$", "dest": "/app.py" }
+    { "src": "/(.*)", "dest": "/app.py" }
   ]
 }
