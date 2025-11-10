@@ -17,6 +17,6 @@
     { "src": "^/api/ice$",                   "dest": "/api/remote?op=ice" },
     { "src": "^/api/logs$",                  "dest": "/api/remote?op=logs" },
 
-    { "src": "^/(.*)$", "dest": "/app.py" }
+    { "src": "^/(?!api/)(.*)$", "dest": "/app.py" }
   ]
 }
