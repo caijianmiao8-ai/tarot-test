@@ -431,38 +431,52 @@
             }
         }
 
-        /* 快速添加样式 */
+        /* 快速添加样式 - 精致设计 */
         .quick-add {
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
         }
 
         .quick-add textarea,
         .quick-add input[type="text"] {
             width: 100%;
-            padding: 10px 12px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 0.88em;
+            padding: 12px 14px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+            color: #f1f5f9;
+            font-size: 0.9em;
             font-family: inherit;
             resize: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-add textarea::placeholder,
+        .quick-add input[type="text"]::placeholder {
+            color: #64748b;
         }
 
         .quick-add textarea:focus,
         .quick-add input[type="text"]:focus {
             outline: none;
             border-color: #38bdf8;
-            background: rgba(15, 23, 42, 0.8);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.8) 0%,
+                rgba(51, 65, 85, 0.7) 100%);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15),
+                        0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
         }
 
         .quick-add-todo {
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            align-items: center;
         }
 
         .quick-add-todo input {
@@ -470,20 +484,30 @@
         }
 
         .quick-add-todo select {
-            padding: 10px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 8px;
+            padding: 12px 10px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
             color: #e2e8f0;
-            font-size: 1.2em;
+            font-size: 1.3em;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .quick-add-todo select:focus {
             outline: none;
             border-color: #38bdf8;
-            background: rgba(15, 23, 42, 0.8);
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.8) 0%,
+                rgba(51, 65, 85, 0.7) 100%);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .quick-add-todo select:hover {
+            transform: scale(1.05);
         }
 
         /* 笔记样式 */
@@ -510,211 +534,334 @@
             border-radius: 3px;
         }
 
+        /* 笔记和待办卡片 - 高级设计 */
         .note-item, .todo-item {
-            background: rgba(15, 23, 42, 0.4);
-            border-left: 3px solid rgba(148, 163, 184, 0.2);
-            padding: 12px 14px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            transition: all 0.2s ease;
+            position: relative;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        /* 左侧装饰条 */
+        .note-item::before, .todo-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg,
+                rgba(56, 189, 248, 0.3) 0%,
+                rgba(14, 165, 233, 0.6) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .note-item:hover, .todo-item:hover {
-            background: rgba(56, 189, 248, 0.08);
-            border-left-color: #38bdf8;
-            transform: translateX(2px);
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.75) 0%,
+                rgba(51, 65, 85, 0.65) 100%);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15),
+                        0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
+        .note-item:hover::before, .todo-item:hover::before {
+            opacity: 1;
+        }
+
+        /* 乐观更新状态 */
+        .note-item.optimistic, .todo-item.optimistic {
+            opacity: 0.7;
+            animation: pulseGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+            50% {
+                box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25),
+                            0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        /* 内容区域 */
         .note-content, .todo-content {
-            color: #e2e8f0;
-            line-height: 1.5;
+            color: #f1f5f9;
+            line-height: 1.65;
             white-space: pre-wrap;
             word-wrap: break-word;
-            font-size: 0.88em;
+            font-size: 0.92em;
             cursor: text;
+            margin-bottom: 12px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
         }
 
-        .note-content:hover, .todo-content:hover {
-            background: rgba(56, 189, 248, 0.05);
-            border-radius: 4px;
-            padding: 2px 4px;
-            margin: -2px -4px;
+        .note-content {
+            position: relative;
+            padding: 2px 0;
+        }
+
+        .todo-text {
+            flex: 1;
+        }
+
+        .note-content:hover {
+            color: #fff;
         }
 
         /* 内联编辑样式 */
         .note-item.editing, .todo-item.editing {
-            background: rgba(56, 189, 248, 0.12);
-            border-left-color: #38bdf8;
+            background: linear-gradient(135deg,
+                rgba(56, 189, 248, 0.15) 0%,
+                rgba(14, 165, 233, 0.12) 100%);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 8px 32px rgba(56, 189, 248, 0.2);
+        }
+
+        .note-item.editing::before,
+        .todo-item.editing::before {
+            opacity: 1;
         }
 
         .note-item textarea.inline-edit,
         .todo-item input.inline-edit {
             width: 100%;
-            padding: 6px 8px;
-            background: rgba(15, 23, 42, 0.8);
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.9);
             border: 2px solid #38bdf8;
-            border-radius: 6px;
-            color: #e2e8f0;
-            font-size: 0.88em;
+            border-radius: 8px;
+            color: #f1f5f9;
+            font-size: 0.92em;
             font-family: inherit;
-            line-height: 1.5;
+            line-height: 1.65;
             resize: vertical;
-            min-height: 60px;
+            min-height: 80px;
+            transition: all 0.2s ease;
         }
 
         .note-item textarea.inline-edit:focus,
         .todo-item input.inline-edit:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+            background: rgba(15, 23, 42, 1);
         }
 
         .todo-item input.inline-edit {
             min-height: auto;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .priority-select {
             width: 100%;
-            padding: 8px;
-            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.9);
             border: 2px solid rgba(148, 163, 184, 0.3);
-            border-radius: 6px;
+            border-radius: 8px;
             color: #e2e8f0;
             font-size: 0.9em;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
         }
 
         .priority-select:focus {
             outline: none;
             border-color: #38bdf8;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
         }
 
         .edit-actions {
             display: flex;
-            gap: 6px;
-            margin-top: 8px;
+            gap: 8px;
+            margin-top: 12px;
         }
 
         .edit-actions button {
-            padding: 4px 14px;
-            font-size: 0.8em;
+            padding: 8px 20px;
+            font-size: 0.82em;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-save {
             background: linear-gradient(135deg, #38bdf8, #0ea5e9);
             color: white;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
         }
 
         .btn-save:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
         }
 
         .btn-cancel {
-            background: rgba(148, 163, 184, 0.2);
-            color: #94a3b8;
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.2);
         }
 
         .btn-cancel:hover {
-            background: rgba(148, 163, 184, 0.3);
+            background: rgba(148, 163, 184, 0.25);
+            border-color: rgba(148, 163, 184, 0.3);
         }
 
+        /* Meta信息区域 */
         .note-meta, .todo-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.75em;
-            color: #64748b;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(148, 163, 184, 0.08);
+            font-size: 0.78em;
+            color: #94a3b8;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .note-time, .todo-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+
+        .note-time::before {
+            content: '🕒';
+            font-size: 0.9em;
+            opacity: 0.6;
+        }
+
+        .todo-time::before {
+            content: '📅';
+            font-size: 0.9em;
+            opacity: 0.6;
         }
 
         .note-actions, .todo-actions {
             display: flex;
             gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .note-item:hover .note-actions,
+        .todo-item:hover .todo-actions {
+            opacity: 1;
         }
 
         .btn-sm {
-            padding: 3px 10px;
-            font-size: 0.8em;
+            padding: 4px 12px;
+            font-size: 0.75em;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-weight: 500;
-        }
-
-        .btn-edit {
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-        }
-
-        .btn-edit:hover {
-            background: rgba(56, 189, 248, 0.25);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-delete {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
         }
 
-        .btn-delete:hover {
+        .btn-delete:hover:not(:disabled) {
             background: rgba(239, 68, 68, 0.25);
+            color: #ff6b6b;
+            transform: scale(1.05);
+        }
+
+        .btn-delete:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         /* 待办事项特殊样式 */
         .todo-item.completed {
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
-        .todo-item.completed .todo-content {
+        .todo-item.completed .todo-text {
             text-decoration: line-through;
-            color: #94a3b8;
+            color: #64748b;
         }
 
         .todo-checkbox {
             display: flex;
-            align-items: start;
+            align-items: flex-start;
             gap: 12px;
         }
 
         .todo-checkbox input[type="checkbox"] {
-            margin-top: 4px;
+            margin-top: 2px;
             width: 20px;
             height: 20px;
             cursor: pointer;
             accent-color: #38bdf8;
+            border-radius: 4px;
+            flex-shrink: 0;
         }
 
-        .priority-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.75em;
-            font-weight: 600;
-            margin-left: 8px;
+        .todo-checkbox input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
-        .priority-high {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+        .todo-main {
+            flex: 1;
+            min-width: 0;
         }
 
-        .priority-medium {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
+        .todo-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .priority-low {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+        /* 优先级指示器 - 圆点设计 */
+        .priority-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .priority-indicator.priority-high {
+            background: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        }
+
+        .priority-indicator.priority-medium {
+            background: #fbbf24;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        }
+
+        .priority-indicator.priority-low {
+            background: #22c55e;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
         }
 
 
@@ -1046,13 +1193,34 @@
             });
         }
 
-        // 快速添加笔记
+        // 快速添加笔记 - 乐观更新
         async function quickAddNote() {
             const input = document.getElementById('quick-note-input');
             const content = input.value.trim();
 
             if (!content) return;
 
+            // 立即清空输入框并创建临时ID
+            input.value = '';
+            input.style.height = 'auto';
+            const tempId = 'temp_' + Date.now();
+
+            // 乐观更新：立即显示在UI中
+            const tempNote = {
+                id: tempId,
+                content: content,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                _isOptimistic: true
+            };
+
+            // 获取当前笔记列表
+            const notesList = document.getElementById('notes-list');
+            const currentNotes = window.cachedNotes || [];
+            window.cachedNotes = [tempNote, ...currentNotes];
+            renderNotes(window.cachedNotes);
+
+            // 后台保存
             try {
                 const response = await fetch('/g/daily_bulletin/api/notes', {
                     method: 'POST',
@@ -1062,19 +1230,25 @@
 
                 const data = await response.json();
                 if (data.ok) {
-                    input.value = '';
-                    input.style.height = 'auto';
+                    // 成功：刷新以获取真实ID
                     await loadNotes();
                 } else {
+                    // 失败：移除乐观添加的项并提示
+                    window.cachedNotes = currentNotes;
+                    renderNotes(window.cachedNotes);
+                    input.value = content; // 恢复内容
                     alert('保存失败: ' + (data.error || '未知错误'));
                 }
             } catch (error) {
                 console.error('Quick add note error:', error);
-                alert('保存失败');
+                window.cachedNotes = currentNotes;
+                renderNotes(window.cachedNotes);
+                input.value = content;
+                alert('网络错误，保存失败');
             }
         }
 
-        // 快速添加待办
+        // 快速添加待办 - 乐观更新
         async function quickAddTodo() {
             const input = document.getElementById('quick-todo-input');
             const priority = parseInt(document.getElementById('quick-todo-priority').value);
@@ -1082,6 +1256,26 @@
 
             if (!content) return;
 
+            // 立即清空输入框并创建临时ID
+            input.value = '';
+            const tempId = 'temp_' + Date.now();
+
+            // 乐观更新：立即显示在UI中
+            const tempTodo = {
+                id: tempId,
+                content: content,
+                priority: priority,
+                completed: false,
+                created_at: new Date().toISOString(),
+                _isOptimistic: true
+            };
+
+            // 获取当前待办列表
+            const currentTodos = window.cachedTodos || [];
+            window.cachedTodos = [tempTodo, ...currentTodos];
+            renderTodos(window.cachedTodos);
+
+            // 后台保存
             try {
                 const response = await fetch('/g/daily_bulletin/api/todos', {
                     method: 'POST',
@@ -1091,14 +1285,21 @@
 
                 const data = await response.json();
                 if (data.ok) {
-                    input.value = '';
+                    // 成功：刷新以获取真实ID
                     await loadTodos();
                 } else {
+                    // 失败：移除乐观添加的项并提示
+                    window.cachedTodos = currentTodos;
+                    renderTodos(window.cachedTodos);
+                    input.value = content; // 恢复内容
                     alert('保存失败: ' + (data.error || '未知错误'));
                 }
             } catch (error) {
                 console.error('Quick add todo error:', error);
-                alert('保存失败');
+                window.cachedTodos = currentTodos;
+                renderTodos(window.cachedTodos);
+                input.value = content;
+                alert('网络错误，保存失败');
             }
         }
 
@@ -1109,6 +1310,7 @@
                 const data = await response.json();
 
                 if (data.ok) {
+                    window.cachedNotes = data.notes;
                     renderNotes(data.notes);
                 }
             } catch (error) {
@@ -1129,17 +1331,19 @@
                 return;
             }
 
-            notesList.innerHTML = notes.map(note => `
-                <div class="note-item" data-id="${note.id}" data-content="${escapeHtml(note.content).replace(/"/g, '&quot;')}">
-                    <div class="note-content" ondblclick="startEditNote(${note.id})">${escapeHtml(note.content)}</div>
+            notesList.innerHTML = notes.map(note => {
+                const isOptimistic = note._isOptimistic;
+                return `
+                <div class="note-item ${isOptimistic ? 'optimistic' : ''}" data-id="${note.id}" data-content="${escapeHtml(note.content).replace(/"/g, '&quot;')}">
+                    <div class="note-content" ondblclick="startEditNote('${note.id}')">${escapeHtml(note.content)}</div>
                     <div class="note-meta">
-                        <span>${formatDateTime(note.updated_at || note.created_at)}</span>
+                        <span class="note-time">${formatDateTime(note.updated_at || note.created_at)}</span>
                         <div class="note-actions">
-                            <button class="btn-sm btn-delete" onclick="deleteNote(${note.id})">删除</button>
+                            <button class="btn-sm btn-delete" onclick="deleteNote('${note.id}')" ${isOptimistic ? 'disabled' : ''}>删除</button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // 开始编辑笔记（内联）
@@ -1238,6 +1442,7 @@
                 const data = await response.json();
 
                 if (data.ok) {
+                    window.cachedTodos = data.todos;
                     renderTodos(data.todos);
                 }
             } catch (error) {
@@ -1258,29 +1463,30 @@
                 return;
             }
 
-            todosList.innerHTML = todos.map(todo => `
-                <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-content="${escapeHtml(todo.content).replace(/"/g, '&quot;')}" data-priority="${todo.priority}">
+            todosList.innerHTML = todos.map(todo => {
+                const isOptimistic = todo._isOptimistic;
+                return `
+                <div class="todo-item ${todo.completed ? 'completed' : ''} ${isOptimistic ? 'optimistic' : ''}" data-id="${todo.id}" data-content="${escapeHtml(todo.content).replace(/"/g, '&quot;')}" data-priority="${todo.priority}">
                     <div class="todo-checkbox">
                         <input type="checkbox"
                                ${todo.completed ? 'checked' : ''}
-                               onchange="toggleTodo(${todo.id}, this.checked)">
-                        <div style="flex: 1;">
-                            <div class="todo-content" ondblclick="startEditTodo(${todo.id})">
-                                ${escapeHtml(todo.content)}
-                                <span class="priority-badge priority-${getPriorityClass(todo.priority)}">
-                                    ${getPriorityText(todo.priority)}
-                                </span>
+                               ${isOptimistic ? 'disabled' : ''}
+                               onchange="toggleTodo('${todo.id}', this.checked)">
+                        <div class="todo-main">
+                            <div class="todo-content" ondblclick="startEditTodo('${todo.id}')">
+                                <span class="priority-indicator priority-${getPriorityClass(todo.priority)}"></span>
+                                <span class="todo-text">${escapeHtml(todo.content)}</span>
                             </div>
                             <div class="todo-meta">
-                                <span>${formatDateTime(todo.created_at)}</span>
+                                <span class="todo-time">${formatDateTime(todo.created_at)}</span>
                                 <div class="todo-actions">
-                                    <button class="btn-sm btn-delete" onclick="deleteTodo(${todo.id})">删除</button>
+                                    <button class="btn-sm btn-delete" onclick="deleteTodo('${todo.id}')" ${isOptimistic ? 'disabled' : ''}>删除</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // 开始编辑待办（内联）
