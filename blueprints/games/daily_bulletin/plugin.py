@@ -363,6 +363,23 @@ def fetch_bulletin_data():
 
 # ============ 个性化功能 API ============
 
+def _safe_get(row, key, index):
+    """
+    安全地从 RealDictRow 或 tuple 中获取值
+    先尝试字典方式，失败则使用索引
+    """
+    if row is None:
+        return None
+    try:
+        # 尝试字典访问
+        return row[key]
+    except (KeyError, TypeError):
+        try:
+            # 尝试索引访问
+            return row[index] if len(row) > index else None
+        except (IndexError, TypeError):
+            return None
+
 def _get_user_ref():
     """
     获取用户标识（复用主应用的用户系统）
@@ -419,11 +436,13 @@ def get_notes():
         # 转换为 JSON 友好格式
         notes_list = []
         for note in notes:
+            created_at = _safe_get(note, "created_at", 3)
+            updated_at = _safe_get(note, "updated_at", 4)
             notes_list.append({
-                "id": note.get("id") or note[0],
-                "content": note.get("content") or note[2],
-                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
-                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+                "id": _safe_get(note, "id", 0),
+                "content": _safe_get(note, "content", 2),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None
             })
 
         return jsonify({
@@ -456,13 +475,16 @@ def create_note():
         user_ref = _get_user_ref()
         note = DailyBulletinNoteDAO.create_note(user_ref, content)
 
+        created_at = _safe_get(note, "created_at", 3)
+        updated_at = _safe_get(note, "updated_at", 4)
+
         return jsonify({
             "ok": True,
             "note": {
-                "id": note.get("id") or note[0],
-                "content": note.get("content") or note[2],
-                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
-                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+                "id": _safe_get(note, "id", 0),
+                "content": _safe_get(note, "content", 2),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None
             }
         })
     except Exception as e:
@@ -497,13 +519,16 @@ def update_note(note_id):
                 "error": "笔记不存在或无权限"
             }), 404
 
+        created_at = _safe_get(note, "created_at", 3)
+        updated_at = _safe_get(note, "updated_at", 4)
+
         return jsonify({
             "ok": True,
             "note": {
-                "id": note.get("id") or note[0],
-                "content": note.get("content") or note[2],
-                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
-                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+                "id": _safe_get(note, "id", 0),
+                "content": _safe_get(note, "content", 2),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None
             }
         })
     except Exception as e:
@@ -555,14 +580,18 @@ def get_todos():
         # 转换为 JSON 友好格式
         todos_list = []
         for todo in todos:
+            created_at = _safe_get(todo, "created_at", 5)
+            updated_at = _safe_get(todo, "updated_at", 6)
+            completed_at = _safe_get(todo, "completed_at", 7)
+
             todos_list.append({
-                "id": todo.get("id") or todo[0],
-                "content": todo.get("content") or todo[2],
-                "completed": todo.get("completed") or todo[3],
-                "priority": todo.get("priority") or todo[4],
-                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
-                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None,
-                "completed_at": (todo.get("completed_at") or todo[7]).isoformat() if (todo.get("completed_at") or (len(todo) > 7 and todo[7])) else None
+                "id": _safe_get(todo, "id", 0),
+                "content": _safe_get(todo, "content", 2),
+                "completed": _safe_get(todo, "completed", 3),
+                "priority": _safe_get(todo, "priority", 4),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None,
+                "completed_at": completed_at.isoformat() if completed_at else None
             })
 
         return jsonify({
@@ -600,15 +629,18 @@ def create_todo():
         user_ref = _get_user_ref()
         todo = DailyBulletinTodoDAO.create_todo(user_ref, content, priority)
 
+        created_at = _safe_get(todo, "created_at", 5)
+        updated_at = _safe_get(todo, "updated_at", 6)
+
         return jsonify({
             "ok": True,
             "todo": {
-                "id": todo.get("id") or todo[0],
-                "content": todo.get("content") or todo[2],
-                "completed": todo.get("completed") or todo[3],
-                "priority": todo.get("priority") or todo[4],
-                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
-                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None
+                "id": _safe_get(todo, "id", 0),
+                "content": _safe_get(todo, "content", 2),
+                "completed": _safe_get(todo, "completed", 3),
+                "priority": _safe_get(todo, "priority", 4),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None
             }
         })
     except Exception as e:
@@ -659,16 +691,20 @@ def update_todo(todo_id):
                 "error": "待办事项不存在或无权限"
             }), 404
 
+        created_at = _safe_get(todo, "created_at", 5)
+        updated_at = _safe_get(todo, "updated_at", 6)
+        completed_at = _safe_get(todo, "completed_at", 7)
+
         return jsonify({
             "ok": True,
             "todo": {
-                "id": todo.get("id") or todo[0],
-                "content": todo.get("content") or todo[2],
-                "completed": todo.get("completed") or todo[3],
-                "priority": todo.get("priority") or todo[4],
-                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
-                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None,
-                "completed_at": (todo.get("completed_at") or todo[7]).isoformat() if (todo.get("completed_at") or (len(todo) > 7 and todo[7])) else None
+                "id": _safe_get(todo, "id", 0),
+                "content": _safe_get(todo, "content", 2),
+                "completed": _safe_get(todo, "completed", 3),
+                "priority": _safe_get(todo, "priority", 4),
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None,
+                "completed_at": completed_at.isoformat() if completed_at else None
             }
         })
     except Exception as e:
