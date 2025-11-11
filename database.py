@@ -861,7 +861,209 @@ class CardDAO:
                            energy_career, energy_wealth, energy_love,
                            energy_health, energy_social, element,
                            special_effect
-                    FROM tarot_cards 
+                    FROM tarot_cards
                     WHERE id = %s
                 """, (card_id,))
                 return cursor.fetchone()
+
+
+# =========================
+#  Daily Bulletin DAO
+# =========================
+class DailyBulletinNoteDAO:
+    """今日板报-记事本数据访问对象"""
+
+    @staticmethod
+    def _ensure_table():
+        """确保表存在"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS daily_bulletin_notes (
+                        id SERIAL PRIMARY KEY,
+                        user_id VARCHAR(50) NOT NULL,
+                        content TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_notes_user_id ON daily_bulletin_notes(user_id);
+                """)
+                conn.commit()
+
+    @staticmethod
+    def get_user_notes(user_id, limit=10):
+        """获取用户的记事本列表"""
+        DailyBulletinNoteDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, user_id, content, created_at, updated_at
+                    FROM daily_bulletin_notes
+                    WHERE user_id = %s
+                    ORDER BY updated_at DESC
+                    LIMIT %s
+                """, (user_id, limit))
+                return cur.fetchall()
+
+    @staticmethod
+    def create_note(user_id, content):
+        """创建新笔记"""
+        DailyBulletinNoteDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO daily_bulletin_notes (user_id, content)
+                    VALUES (%s, %s)
+                    RETURNING id, user_id, content, created_at, updated_at
+                """, (user_id, content))
+                result = cur.fetchone()
+                conn.commit()
+                return result
+
+    @staticmethod
+    def update_note(note_id, user_id, content):
+        """更新笔记内容"""
+        DailyBulletinNoteDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE daily_bulletin_notes
+                    SET content = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s AND user_id = %s
+                    RETURNING id, user_id, content, created_at, updated_at
+                """, (content, note_id, user_id))
+                result = cur.fetchone()
+                conn.commit()
+                return result
+
+    @staticmethod
+    def delete_note(note_id, user_id):
+        """删除笔记"""
+        DailyBulletinNoteDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM daily_bulletin_notes
+                    WHERE id = %s AND user_id = %s
+                """, (note_id, user_id))
+                deleted = cur.rowcount > 0
+                conn.commit()
+                return deleted
+
+
+class DailyBulletinTodoDAO:
+    """今日板报-待办事项数据访问对象"""
+
+    @staticmethod
+    def _ensure_table():
+        """确保表存在"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS daily_bulletin_todos (
+                        id SERIAL PRIMARY KEY,
+                        user_id VARCHAR(50) NOT NULL,
+                        content TEXT NOT NULL,
+                        completed BOOLEAN DEFAULT FALSE,
+                        priority INTEGER DEFAULT 2,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_todos_user_id ON daily_bulletin_todos(user_id);
+                    CREATE INDEX IF NOT EXISTS idx_todos_completed ON daily_bulletin_todos(completed);
+                """)
+                conn.commit()
+
+    @staticmethod
+    def get_user_todos(user_id, include_completed=False):
+        """获取用户的待办事项列表"""
+        DailyBulletinTodoDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                if include_completed:
+                    cur.execute("""
+                        SELECT id, user_id, content, completed, priority,
+                               created_at, updated_at, completed_at
+                        FROM daily_bulletin_todos
+                        WHERE user_id = %s
+                        ORDER BY completed ASC, priority ASC, created_at DESC
+                    """, (user_id,))
+                else:
+                    cur.execute("""
+                        SELECT id, user_id, content, completed, priority,
+                               created_at, updated_at, completed_at
+                        FROM daily_bulletin_todos
+                        WHERE user_id = %s AND completed = FALSE
+                        ORDER BY priority ASC, created_at DESC
+                    """, (user_id,))
+                return cur.fetchall()
+
+    @staticmethod
+    def create_todo(user_id, content, priority=2):
+        """创建新待办事项"""
+        DailyBulletinTodoDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO daily_bulletin_todos (user_id, content, priority)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, user_id, content, completed, priority,
+                              created_at, updated_at, completed_at
+                """, (user_id, content, priority))
+                result = cur.fetchone()
+                conn.commit()
+                return result
+
+    @staticmethod
+    def update_todo(todo_id, user_id, content=None, completed=None, priority=None):
+        """更新待办事项"""
+        DailyBulletinTodoDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                # 动态构建更新语句
+                updates = ["updated_at = CURRENT_TIMESTAMP"]
+                params = []
+
+                if content is not None:
+                    updates.append("content = %s")
+                    params.append(content)
+
+                if completed is not None:
+                    updates.append("completed = %s")
+                    params.append(completed)
+                    if completed:
+                        updates.append("completed_at = CURRENT_TIMESTAMP")
+                    else:
+                        updates.append("completed_at = NULL")
+
+                if priority is not None:
+                    updates.append("priority = %s")
+                    params.append(priority)
+
+                params.extend([todo_id, user_id])
+
+                cur.execute(f"""
+                    UPDATE daily_bulletin_todos
+                    SET {', '.join(updates)}
+                    WHERE id = %s AND user_id = %s
+                    RETURNING id, user_id, content, completed, priority,
+                              created_at, updated_at, completed_at
+                """, params)
+                result = cur.fetchone()
+                conn.commit()
+                return result
+
+    @staticmethod
+    def delete_todo(todo_id, user_id):
+        """删除待办事项"""
+        DailyBulletinTodoDAO._ensure_table()
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM daily_bulletin_todos
+                    WHERE id = %s AND user_id = %s
+                """, (todo_id, user_id))
+                deleted = cur.rowcount > 0
+                conn.commit()
+                return deleted

@@ -2,14 +2,16 @@
 """
 每日板报 Blueprint
 基于用户位置显示：日期、天气、全球新闻
+新增个性化功能：记事本、待办事项
 """
-from flask import Blueprint, render_template, request, jsonify, make_response
+from flask import Blueprint, render_template, request, jsonify, make_response, session, g
 import os
 import json
 import secrets
 import requests
 from datetime import datetime
 from config import Config
+from database import DailyBulletinNoteDAO, DailyBulletinTodoDAO
 
 SLUG = "daily_bulletin"
 
@@ -357,6 +359,352 @@ def fetch_bulletin_data():
             "ok": False,
             "error": str(e)
         }), 500
+
+
+# ============ 个性化功能 API ============
+
+def _get_user_ref():
+    """
+    获取用户标识（复用主应用的用户系统）
+    - 已登录用户返回 user_id
+    - 访客返回基于 session_id 的 UUID
+    """
+    user = g.get("user", None)
+
+    if user and not user.get("is_guest", True):
+        # 已登录用户
+        return str(user["id"])
+
+    # 访客 - 生成稳定的 UUID
+    if "session_id" not in session:
+        import uuid
+        session["session_id"] = uuid.uuid4().hex[:8]
+
+    # 使用 session_id 生成合法 UUID
+    import uuid
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, session['session_id']))
+
+
+@bp.get("/api/user/status")
+def get_user_status():
+    """获取用户状态（是否登录）"""
+    try:
+        user = g.get("user", None)
+        is_logged_in = user and not user.get("is_guest", True)
+
+        return jsonify({
+            "ok": True,
+            "logged_in": is_logged_in,
+            "username": user.get("username") if is_logged_in else None,
+            "user_id": user.get("id") if is_logged_in else None
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Get user status error: {e}")
+        return jsonify({
+            "ok": False,
+            "logged_in": False,
+            "error": str(e)
+        }), 500
+
+
+# ============ Notes API ============
+
+@bp.get("/api/notes")
+def get_notes():
+    """获取用户的记事本列表"""
+    try:
+        user_ref = _get_user_ref()
+        notes = DailyBulletinNoteDAO.get_user_notes(user_ref, limit=20)
+
+        # 转换为 JSON 友好格式
+        notes_list = []
+        for note in notes:
+            notes_list.append({
+                "id": note.get("id") or note[0],
+                "content": note.get("content") or note[2],
+                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
+                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+            })
+
+        return jsonify({
+            "ok": True,
+            "notes": notes_list
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Get notes error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.post("/api/notes")
+def create_note():
+    """创建新笔记"""
+    try:
+        data = request.get_json() or {}
+        content = data.get("content", "").strip()
+
+        if not content:
+            return jsonify({
+                "ok": False,
+                "error": "笔记内容不能为空"
+            }), 400
+
+        user_ref = _get_user_ref()
+        note = DailyBulletinNoteDAO.create_note(user_ref, content)
+
+        return jsonify({
+            "ok": True,
+            "note": {
+                "id": note.get("id") or note[0],
+                "content": note.get("content") or note[2],
+                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
+                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+            }
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Create note error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.put("/api/notes/<int:note_id>")
+def update_note(note_id):
+    """更新笔记"""
+    try:
+        data = request.get_json() or {}
+        content = data.get("content", "").strip()
+
+        if not content:
+            return jsonify({
+                "ok": False,
+                "error": "笔记内容不能为空"
+            }), 400
+
+        user_ref = _get_user_ref()
+        note = DailyBulletinNoteDAO.update_note(note_id, user_ref, content)
+
+        if not note:
+            return jsonify({
+                "ok": False,
+                "error": "笔记不存在或无权限"
+            }), 404
+
+        return jsonify({
+            "ok": True,
+            "note": {
+                "id": note.get("id") or note[0],
+                "content": note.get("content") or note[2],
+                "created_at": (note.get("created_at") or note[3]).isoformat() if note.get("created_at") or note[3] else None,
+                "updated_at": (note.get("updated_at") or note[4]).isoformat() if note.get("updated_at") or note[4] else None
+            }
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Update note error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.delete("/api/notes/<int:note_id>")
+def delete_note(note_id):
+    """删除笔记"""
+    try:
+        user_ref = _get_user_ref()
+        success = DailyBulletinNoteDAO.delete_note(note_id, user_ref)
+
+        if not success:
+            return jsonify({
+                "ok": False,
+                "error": "笔记不存在或无权限"
+            }), 404
+
+        return jsonify({
+            "ok": True,
+            "message": "笔记已删除"
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Delete note error: {e}")
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+# ============ Todos API ============
+
+@bp.get("/api/todos")
+def get_todos():
+    """获取用户的待办事项列表"""
+    try:
+        user_ref = _get_user_ref()
+        include_completed = request.args.get("include_completed", "false").lower() == "true"
+
+        todos = DailyBulletinTodoDAO.get_user_todos(user_ref, include_completed)
+
+        # 转换为 JSON 友好格式
+        todos_list = []
+        for todo in todos:
+            todos_list.append({
+                "id": todo.get("id") or todo[0],
+                "content": todo.get("content") or todo[2],
+                "completed": todo.get("completed") or todo[3],
+                "priority": todo.get("priority") or todo[4],
+                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
+                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None,
+                "completed_at": (todo.get("completed_at") or todo[7]).isoformat() if (todo.get("completed_at") or (len(todo) > 7 and todo[7])) else None
+            })
+
+        return jsonify({
+            "ok": True,
+            "todos": todos_list
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Get todos error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.post("/api/todos")
+def create_todo():
+    """创建新待办事项"""
+    try:
+        data = request.get_json() or {}
+        content = data.get("content", "").strip()
+        priority = data.get("priority", 2)  # 默认中优先级
+
+        if not content:
+            return jsonify({
+                "ok": False,
+                "error": "待办内容不能为空"
+            }), 400
+
+        # 验证优先级
+        if priority not in [1, 2, 3]:
+            priority = 2
+
+        user_ref = _get_user_ref()
+        todo = DailyBulletinTodoDAO.create_todo(user_ref, content, priority)
+
+        return jsonify({
+            "ok": True,
+            "todo": {
+                "id": todo.get("id") or todo[0],
+                "content": todo.get("content") or todo[2],
+                "completed": todo.get("completed") or todo[3],
+                "priority": todo.get("priority") or todo[4],
+                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
+                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None
+            }
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Create todo error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.put("/api/todos/<int:todo_id>")
+def update_todo(todo_id):
+    """更新待办事项"""
+    try:
+        data = request.get_json() or {}
+        content = data.get("content")
+        completed = data.get("completed")
+        priority = data.get("priority")
+
+        # 至少需要更新一个字段
+        if content is None and completed is None and priority is None:
+            return jsonify({
+                "ok": False,
+                "error": "没有要更新的字段"
+            }), 400
+
+        # 验证优先级
+        if priority is not None and priority not in [1, 2, 3]:
+            return jsonify({
+                "ok": False,
+                "error": "优先级必须是 1（高）、2（中）或 3（低）"
+            }), 400
+
+        user_ref = _get_user_ref()
+        todo = DailyBulletinTodoDAO.update_todo(
+            todo_id,
+            user_ref,
+            content=content.strip() if content else None,
+            completed=completed,
+            priority=priority
+        )
+
+        if not todo:
+            return jsonify({
+                "ok": False,
+                "error": "待办事项不存在或无权限"
+            }), 404
+
+        return jsonify({
+            "ok": True,
+            "todo": {
+                "id": todo.get("id") or todo[0],
+                "content": todo.get("content") or todo[2],
+                "completed": todo.get("completed") or todo[3],
+                "priority": todo.get("priority") or todo[4],
+                "created_at": (todo.get("created_at") or todo[5]).isoformat() if todo.get("created_at") or todo[5] else None,
+                "updated_at": (todo.get("updated_at") or todo[6]).isoformat() if todo.get("updated_at") or todo[6] else None,
+                "completed_at": (todo.get("completed_at") or todo[7]).isoformat() if (todo.get("completed_at") or (len(todo) > 7 and todo[7])) else None
+            }
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Update todo error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
+
+@bp.delete("/api/todos/<int:todo_id>")
+def delete_todo(todo_id):
+    """删除待办事项"""
+    try:
+        user_ref = _get_user_ref()
+        success = DailyBulletinTodoDAO.delete_todo(todo_id, user_ref)
+
+        if not success:
+            return jsonify({
+                "ok": False,
+                "error": "待办事项不存在或无权限"
+            }), 404
+
+        return jsonify({
+            "ok": True,
+            "message": "待办事项已删除"
+        })
+    except Exception as e:
+        print(f"[daily_bulletin] Delete todo error: {e}")
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
+
 
 def get_blueprint():
     return bp

@@ -491,6 +491,343 @@
                 font-size: 3em;
             }
         }
+
+        /* 个性化功能样式 */
+        .personal-features {
+            margin-top: 30px;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: auto;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 笔记样式 */
+        .notes-list, .todos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .note-item, .todo-item {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            padding: 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .note-item:hover, .todo-item:hover {
+            background: rgba(56, 189, 248, 0.08);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateX(4px);
+        }
+
+        .note-content, .todo-content {
+            color: #e2e8f0;
+            line-height: 1.6;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .note-meta, .todo-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+            color: #94a3b8;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .note-actions, .todo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.85em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-edit {
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+        }
+
+        .btn-edit:hover {
+            background: rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        /* 待办事项特殊样式 */
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+
+        .todo-item.completed .todo-content {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .todo-checkbox {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .todo-checkbox input[type="checkbox"] {
+            margin-top: 4px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #38bdf8;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .priority-medium {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .priority-low {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        /* 登录提示样式 */
+        .login-hint-content {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .login-hint-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .login-hint-content h3 {
+            color: #e2e8f0;
+            font-size: 1.5em;
+            margin-bottom: 12px;
+        }
+
+        .login-hint-content p {
+            color: #94a3b8;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .hint-note {
+            font-size: 0.9em;
+            color: #64748b;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            margin: 10% auto;
+            padding: 30px;
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #e2e8f0;
+            font-size: 1.3em;
+        }
+
+        .close-btn {
+            color: #94a3b8;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #e2e8f0;
+        }
+
+        .modal-body {
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group textarea,
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group textarea:focus,
+        .form-group input[type="text"]:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(148, 163, 184, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -593,6 +930,44 @@
                 </div>
                 <div class="news-list" id="news-list">
                     <!-- 新闻将通过 JS 动态加载 -->
+                </div>
+            </div>
+
+            <!-- 个性化功能区域 -->
+            <div id="personal-section" class="personal-features" style="display: none;">
+                <!-- 记事本 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="section-icon">📝</span>
+                        <span>我的笔记</span>
+                        <button class="add-btn" onclick="showAddNoteDialog()">+ 新建</button>
+                    </div>
+                    <div id="notes-list" class="notes-list">
+                        <!-- 笔记将动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 待办事项 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="section-icon">✅</span>
+                        <span>我的待办</span>
+                        <button class="add-btn" onclick="showAddTodoDialog()">+ 新建</button>
+                    </div>
+                    <div id="todos-list" class="todos-list">
+                        <!-- 待办事项将动态加载 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 登录提示（未登录时显示） -->
+            <div id="login-hint" class="section" style="display: none;">
+                <div class="login-hint-content">
+                    <div class="login-hint-icon">🔐</div>
+                    <h3>个性化功能</h3>
+                    <p>登录后即可使用记事本和待办事项功能</p>
+                    <p class="hint-note">访客用户的数据会保存在当前浏览器中</p>
+                    <button class="login-btn" onclick="window.location.href='/login'">前往登录</button>
                 </div>
             </div>
         </div>
@@ -729,7 +1104,10 @@
         }
 
         // 页面加载时获取数据
-        window.addEventListener('DOMContentLoaded', loadBulletinData);
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBulletinData();
+            loadPersonalFeatures();
+        });
 
         // 每秒更新一次时间，保持格式一致
         setInterval(() => {
@@ -739,6 +1117,394 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
         }, 1000);
+
+        // ============ 个性化功能JavaScript ============
+        let currentEditingNote = null;
+        let currentEditingTodo = null;
+
+        // 加载个性化功能
+        async function loadPersonalFeatures() {
+            try {
+                // 检查用户登录状态（这里简化处理，总是显示个性化功能）
+                // 在实际应用中，你可以调用 /g/daily_bulletin/api/user/status 检查
+                document.getElementById('personal-section').style.display = 'block';
+
+                // 加载笔记和待办事项
+                await Promise.all([loadNotes(), loadTodos()]);
+            } catch (error) {
+                console.error('Load personal features error:', error);
+            }
+        }
+
+        // ====== Notes Functions ======
+        async function loadNotes() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/notes');
+                const data = await response.json();
+
+                if (data.ok) {
+                    renderNotes(data.notes);
+                }
+            } catch (error) {
+                console.error('Load notes error:', error);
+            }
+        }
+
+        function renderNotes(notes) {
+            const notesList = document.getElementById('notes-list');
+
+            if (!notes || notes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>还没有笔记，点击"+ 新建"创建第一条笔记</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notesList.innerHTML = notes.map(note => `
+                <div class="note-item" data-id="${note.id}">
+                    <div class="note-content">${escapeHtml(note.content)}</div>
+                    <div class="note-meta">
+                        <span>${formatDateTime(note.updated_at || note.created_at)}</span>
+                        <div class="note-actions">
+                            <button class="btn-sm btn-edit" onclick="editNote(${note.id}, \`${escapeHtml(note.content).replace(/`/g, '\\`')}\`)">编辑</button>
+                            <button class="btn-sm btn-delete" onclick="deleteNote(${note.id})">删除</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddNoteDialog() {
+            currentEditingNote = null;
+            document.getElementById('noteModalTitle').textContent = '新建笔记';
+            document.getElementById('noteContent').value = '';
+            document.getElementById('noteModal').style.display = 'block';
+        }
+
+        function editNote(id, content) {
+            currentEditingNote = id;
+            document.getElementById('noteModalTitle').textContent = '编辑笔记';
+            document.getElementById('noteContent').value = unescapeHtml(content);
+            document.getElementById('noteModal').style.display = 'block';
+        }
+
+        async function saveNote() {
+            const content = document.getElementById('noteContent').value.trim();
+            if (!content) {
+                alert('笔记内容不能为空');
+                return;
+            }
+
+            try {
+                let response;
+                if (currentEditingNote) {
+                    // 更新
+                    response = await fetch(`/g/daily_bulletin/api/notes/${currentEditingNote}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content })
+                    });
+                } else {
+                    // 新建
+                    response = await fetch('/g/daily_bulletin/api/notes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content })
+                    });
+                }
+
+                const data = await response.json();
+                if (data.ok) {
+                    closeNoteModal();
+                    await loadNotes();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Save note error:', error);
+                alert('保存失败');
+            }
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('确定要删除这条笔记吗？')) return;
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/notes/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    await loadNotes();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Delete note error:', error);
+                alert('删除失败');
+            }
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').style.display = 'none';
+            currentEditingNote = null;
+        }
+
+        // ====== Todos Functions ======
+        async function loadTodos() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/todos?include_completed=false');
+                const data = await response.json();
+
+                if (data.ok) {
+                    renderTodos(data.todos);
+                }
+            } catch (error) {
+                console.error('Load todos error:', error);
+            }
+        }
+
+        function renderTodos(todos) {
+            const todosList = document.getElementById('todos-list');
+
+            if (!todos || todos.length === 0) {
+                todosList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>还没有待办事项，点击"+ 新建"创建第一个任务</p>
+                    </div>
+                `;
+                return;
+            }
+
+            todosList.innerHTML = todos.map(todo => `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+                    <div class="todo-checkbox">
+                        <input type="checkbox"
+                               ${todo.completed ? 'checked' : ''}
+                               onchange="toggleTodo(${todo.id}, this.checked)">
+                        <div style="flex: 1;">
+                            <div class="todo-content">
+                                ${escapeHtml(todo.content)}
+                                <span class="priority-badge priority-${getPriorityClass(todo.priority)}">
+                                    ${getPriorityText(todo.priority)}
+                                </span>
+                            </div>
+                            <div class="todo-meta">
+                                <span>${formatDateTime(todo.created_at)}</span>
+                                <div class="todo-actions">
+                                    <button class="btn-sm btn-edit" onclick="editTodo(${todo.id}, \`${escapeHtml(todo.content).replace(/`/g, '\\`')}\`, ${todo.priority})">编辑</button>
+                                    <button class="btn-sm btn-delete" onclick="deleteTodo(${todo.id})">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddTodoDialog() {
+            currentEditingTodo = null;
+            document.getElementById('todoModalTitle').textContent = '新建待办';
+            document.getElementById('todoContent').value = '';
+            document.getElementById('todoPriority').value = '2';
+            document.getElementById('todoModal').style.display = 'block';
+        }
+
+        function editTodo(id, content, priority) {
+            currentEditingTodo = id;
+            document.getElementById('todoModalTitle').textContent = '编辑待办';
+            document.getElementById('todoContent').value = unescapeHtml(content);
+            document.getElementById('todoPriority').value = priority;
+            document.getElementById('todoModal').style.display = 'block';
+        }
+
+        async function saveTodo() {
+            const content = document.getElementById('todoContent').value.trim();
+            const priority = parseInt(document.getElementById('todoPriority').value);
+
+            if (!content) {
+                alert('待办内容不能为空');
+                return;
+            }
+
+            try {
+                let response;
+                if (currentEditingTodo) {
+                    // 更新
+                    response = await fetch(`/g/daily_bulletin/api/todos/${currentEditingTodo}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content, priority })
+                    });
+                } else {
+                    // 新建
+                    response = await fetch('/g/daily_bulletin/api/todos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content, priority })
+                    });
+                }
+
+                const data = await response.json();
+                if (data.ok) {
+                    closeTodoModal();
+                    await loadTodos();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Save todo error:', error);
+                alert('保存失败');
+            }
+        }
+
+        async function toggleTodo(id, completed) {
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    await loadTodos();
+                } else {
+                    alert('更新失败');
+                }
+            } catch (error) {
+                console.error('Toggle todo error:', error);
+                alert('更新失败');
+            }
+        }
+
+        async function deleteTodo(id) {
+            if (!confirm('确定要删除这个待办事项吗？')) return;
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    await loadTodos();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Delete todo error:', error);
+                alert('删除失败');
+            }
+        }
+
+        function closeTodoModal() {
+            document.getElementById('todoModal').style.display = 'none';
+            currentEditingTodo = null;
+        }
+
+        // ====== Helper Functions ======
+        function getPriorityClass(priority) {
+            const map = { 1: 'high', 2: 'medium', 3: 'low' };
+            return map[priority] || 'medium';
+        }
+
+        function getPriorityText(priority) {
+            const map = { 1: '高', 2: '中', 3: '低' };
+            return map[priority] || '中';
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function unescapeHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const noteModal = document.getElementById('noteModal');
+            const todoModal = document.getElementById('todoModal');
+            if (event.target == noteModal) {
+                closeNoteModal();
+            } else if (event.target == todoModal) {
+                closeTodoModal();
+            }
+        }
     </script>
+
+    <!-- 笔记模态框 -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="noteModalTitle">新建笔记</h3>
+                <span class="close-btn" onclick="closeNoteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>笔记内容</label>
+                    <textarea id="noteContent" placeholder="输入笔记内容..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeNoteModal()">取消</button>
+                <button class="btn-primary" onclick="saveNote()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 待办模态框 -->
+    <div id="todoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="todoModalTitle">新建待办</h3>
+                <span class="close-btn" onclick="closeTodoModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>待办内容</label>
+                    <textarea id="todoContent" placeholder="输入待办事项..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>优先级</label>
+                    <select id="todoPriority">
+                        <option value="1">高</option>
+                        <option value="2" selected>中</option>
+                        <option value="3">低</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeTodoModal()">取消</button>
+                <button class="btn-primary" onclick="saveTodo()">保存</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
