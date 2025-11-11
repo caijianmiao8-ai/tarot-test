@@ -883,8 +883,8 @@ class DailyBulletinNoteDAO:
                         id SERIAL PRIMARY KEY,
                         user_id VARCHAR(50) NOT NULL,
                         content TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                     );
                     CREATE INDEX IF NOT EXISTS idx_notes_user_id ON daily_bulletin_notes(user_id);
                 """)
@@ -966,9 +966,9 @@ class DailyBulletinTodoDAO:
                         content TEXT NOT NULL,
                         completed BOOLEAN DEFAULT FALSE,
                         priority INTEGER DEFAULT 2,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        completed_at TIMESTAMP NULL
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP WITH TIME ZONE NULL
                     );
                     CREATE INDEX IF NOT EXISTS idx_todos_user_id ON daily_bulletin_todos(user_id);
                     CREATE INDEX IF NOT EXISTS idx_todos_completed ON daily_bulletin_todos(completed);

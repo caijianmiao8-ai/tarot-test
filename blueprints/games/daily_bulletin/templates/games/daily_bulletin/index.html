@@ -431,14 +431,66 @@
             }
         }
 
+        /* 快速添加样式 */
+        .quick-add {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        .quick-add textarea,
+        .quick-add input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.88em;
+            font-family: inherit;
+            resize: none;
+            transition: all 0.2s ease;
+        }
+
+        .quick-add textarea:focus,
+        .quick-add input[type="text"]:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        .quick-add-todo {
+            display: flex;
+            gap: 8px;
+        }
+
+        .quick-add-todo input {
+            flex: 1;
+        }
+
+        .quick-add-todo select {
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-add-todo select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
         /* 笔记样式 */
         .notes-list, .todos-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 6px;
         }
 
         .notes-list::-webkit-scrollbar,
@@ -479,6 +531,98 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             font-size: 0.88em;
+            cursor: text;
+        }
+
+        .note-content:hover, .todo-content:hover {
+            background: rgba(56, 189, 248, 0.05);
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: -2px -4px;
+        }
+
+        /* 内联编辑样式 */
+        .note-item.editing, .todo-item.editing {
+            background: rgba(56, 189, 248, 0.12);
+            border-left-color: #38bdf8;
+        }
+
+        .note-item textarea.inline-edit,
+        .todo-item input.inline-edit {
+            width: 100%;
+            padding: 6px 8px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid #38bdf8;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 0.88em;
+            font-family: inherit;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .note-item textarea.inline-edit:focus,
+        .todo-item input.inline-edit:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .todo-item input.inline-edit {
+            min-height: auto;
+            margin-bottom: 8px;
+        }
+
+        .priority-select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .priority-select:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .edit-actions button {
+            padding: 4px 14px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+        }
+
+        .btn-cancel {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(148, 163, 184, 0.3);
         }
 
         .note-meta, .todo-meta {
@@ -573,177 +717,6 @@
             color: #22c55e;
         }
 
-        /* 登录提示样式 */
-        .login-hint-content {
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .login-hint-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-        }
-
-        .login-hint-content h3 {
-            color: #e2e8f0;
-            font-size: 1.5em;
-            margin-bottom: 12px;
-        }
-
-        .login-hint-content p {
-            color: #94a3b8;
-            margin-bottom: 8px;
-            line-height: 1.6;
-        }
-
-        .hint-note {
-            font-size: 0.9em;
-            color: #64748b;
-        }
-
-        .login-btn {
-            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-            color: white;
-            border: none;
-            padding: 12px 32px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
-        }
-
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            margin: 10% auto;
-            padding: 30px;
-            border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            position: relative;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h3 {
-            color: #e2e8f0;
-            font-size: 1.3em;
-        }
-
-        .close-btn {
-            color: #94a3b8;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .close-btn:hover {
-            color: #e2e8f0;
-        }
-
-        .modal-body {
-            margin: 20px 0;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-group textarea,
-        .form-group input[type="text"],
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 10px;
-            color: #e2e8f0;
-            font-size: 1em;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-group textarea:focus,
-        .form-group input[type="text"]:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #38bdf8;
-            background: rgba(15, 23, 42, 0.8);
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-            color: white;
-            padding: 10px 24px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
-        }
-
-        .btn-secondary {
-            background: rgba(148, 163, 184, 0.2);
-            color: #94a3b8;
-            padding: 10px 24px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(148, 163, 184, 0.3);
-        }
 
         .empty-state {
             text-align: center;
@@ -835,10 +808,15 @@
                     <div class="column-header">
                         <span class="column-icon">📝</span>
                         <span class="column-title">笔记</span>
-                        <button class="icon-btn" onclick="showAddNoteDialog()" title="新建笔记">+</button>
                     </div>
-                    <div class="column-content" id="notes-list">
-                        <!-- 笔记将动态加载 -->
+                    <div class="column-content">
+                        <!-- 快速添加 -->
+                        <div class="quick-add">
+                            <textarea id="quick-note-input" placeholder="输入笔记内容按 Enter 保存..." rows="2"></textarea>
+                        </div>
+                        <div id="notes-list">
+                            <!-- 笔记将动态加载 -->
+                        </div>
                     </div>
                 </div>
 
@@ -847,10 +825,22 @@
                     <div class="column-header">
                         <span class="column-icon">✅</span>
                         <span class="column-title">待办</span>
-                        <button class="icon-btn" onclick="showAddTodoDialog()" title="新建待办">+</button>
                     </div>
-                    <div class="column-content" id="todos-list">
-                        <!-- 待办事项将动态加载 -->
+                    <div class="column-content">
+                        <!-- 快速添加 -->
+                        <div class="quick-add">
+                            <div class="quick-add-todo">
+                                <input type="text" id="quick-todo-input" placeholder="输入待办事项按 Enter 保存...">
+                                <select id="quick-todo-priority">
+                                    <option value="1">🔴</option>
+                                    <option value="2" selected>🟡</option>
+                                    <option value="3">🟢</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="todos-list">
+                            <!-- 待办事项将动态加载 -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1026,8 +1016,89 @@
 
                 // 加载笔记和待办事项
                 await Promise.all([loadNotes(), loadTodos()]);
+
+                // 设置快速添加事件监听器
+                setupQuickAdd();
             } catch (error) {
                 console.error('Load personal features error:', error);
+            }
+        }
+
+        // 设置快速添加功能
+        function setupQuickAdd() {
+            const noteInput = document.getElementById('quick-note-input');
+            const todoInput = document.getElementById('quick-todo-input');
+
+            // 笔记快速添加 - Ctrl/Cmd+Enter 保存
+            noteInput.addEventListener('keydown', async (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    await quickAddNote();
+                }
+            });
+
+            // 待办快速添加 - Enter 保存
+            todoInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    await quickAddTodo();
+                }
+            });
+        }
+
+        // 快速添加笔记
+        async function quickAddNote() {
+            const input = document.getElementById('quick-note-input');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                const response = await fetch('/g/daily_bulletin/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    input.value = '';
+                    input.style.height = 'auto';
+                    await loadNotes();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Quick add note error:', error);
+                alert('保存失败');
+            }
+        }
+
+        // 快速添加待办
+        async function quickAddTodo() {
+            const input = document.getElementById('quick-todo-input');
+            const priority = parseInt(document.getElementById('quick-todo-priority').value);
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                const response = await fetch('/g/daily_bulletin/api/todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, priority })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    input.value = '';
+                    await loadTodos();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Quick add todo error:', error);
+                alert('保存失败');
             }
         }
 
@@ -1052,19 +1123,18 @@
                 notesList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📝</div>
-                        <p>还没有笔记，点击"+ 新建"创建第一条笔记</p>
+                        <p>还没有笔记，在上方输入框输入内容<br>按 Ctrl+Enter 快速保存</p>
                     </div>
                 `;
                 return;
             }
 
             notesList.innerHTML = notes.map(note => `
-                <div class="note-item" data-id="${note.id}">
-                    <div class="note-content">${escapeHtml(note.content)}</div>
+                <div class="note-item" data-id="${note.id}" data-content="${escapeHtml(note.content).replace(/"/g, '&quot;')}">
+                    <div class="note-content" ondblclick="startEditNote(${note.id})">${escapeHtml(note.content)}</div>
                     <div class="note-meta">
                         <span>${formatDateTime(note.updated_at || note.created_at)}</span>
                         <div class="note-actions">
-                            <button class="btn-sm btn-edit" onclick="editNote(${note.id}, \`${escapeHtml(note.content).replace(/`/g, '\\`')}\`)">编辑</button>
                             <button class="btn-sm btn-delete" onclick="deleteNote(${note.id})">删除</button>
                         </div>
                     </div>
@@ -1072,48 +1142,59 @@
             `).join('');
         }
 
-        function showAddNoteDialog() {
-            currentEditingNote = null;
-            document.getElementById('noteModalTitle').textContent = '新建笔记';
-            document.getElementById('noteContent').value = '';
-            document.getElementById('noteModal').style.display = 'block';
+        // 开始编辑笔记（内联）
+        function startEditNote(id) {
+            const item = document.querySelector(`.note-item[data-id="${id}"]`);
+            if (!item || item.classList.contains('editing')) return;
+
+            const content = item.dataset.content;
+            const contentDiv = item.querySelector('.note-content');
+
+            item.classList.add('editing');
+            contentDiv.innerHTML = `
+                <textarea class="inline-edit">${unescapeHtml(content)}</textarea>
+                <div class="edit-actions">
+                    <button class="btn-save" onclick="saveInlineNote(${id})">保存</button>
+                    <button class="btn-cancel" onclick="cancelEditNote(${id})">取消</button>
+                </div>
+            `;
+
+            const textarea = contentDiv.querySelector('textarea');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+            // Enter保存 (Ctrl+Enter), Esc取消
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInlineNote(id);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEditNote(id);
+                }
+            });
         }
 
-        function editNote(id, content) {
-            currentEditingNote = id;
-            document.getElementById('noteModalTitle').textContent = '编辑笔记';
-            document.getElementById('noteContent').value = unescapeHtml(content);
-            document.getElementById('noteModal').style.display = 'block';
-        }
+        // 保存内联编辑的笔记
+        async function saveInlineNote(id) {
+            const item = document.querySelector(`.note-item[data-id="${id}"]`);
+            const textarea = item.querySelector('textarea.inline-edit');
+            const content = textarea.value.trim();
 
-        async function saveNote() {
-            const content = document.getElementById('noteContent').value.trim();
             if (!content) {
                 alert('笔记内容不能为空');
                 return;
             }
 
             try {
-                let response;
-                if (currentEditingNote) {
-                    // 更新
-                    response = await fetch(`/g/daily_bulletin/api/notes/${currentEditingNote}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content })
-                    });
-                } else {
-                    // 新建
-                    response = await fetch('/g/daily_bulletin/api/notes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content })
-                    });
-                }
+                const response = await fetch(`/g/daily_bulletin/api/notes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
 
                 const data = await response.json();
                 if (data.ok) {
-                    closeNoteModal();
                     await loadNotes();
                 } else {
                     alert('保存失败: ' + (data.error || '未知错误'));
@@ -1123,6 +1204,12 @@
                 alert('保存失败');
             }
         }
+
+        // 取消编辑笔记
+        function cancelEditNote(id) {
+            loadNotes();
+        }
+
 
         async function deleteNote(id) {
             if (!confirm('确定要删除这条笔记吗？')) return;
@@ -1142,11 +1229,6 @@
                 console.error('Delete note error:', error);
                 alert('删除失败');
             }
-        }
-
-        function closeNoteModal() {
-            document.getElementById('noteModal').style.display = 'none';
-            currentEditingNote = null;
         }
 
         // ====== Todos Functions ======
@@ -1170,20 +1252,20 @@
                 todosList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">✅</div>
-                        <p>还没有待办事项，点击"+ 新建"创建第一个任务</p>
+                        <p>还没有待办事项，在上方输入框输入内容<br>按 Enter 快速保存</p>
                     </div>
                 `;
                 return;
             }
 
             todosList.innerHTML = todos.map(todo => `
-                <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+                <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-content="${escapeHtml(todo.content).replace(/"/g, '&quot;')}" data-priority="${todo.priority}">
                     <div class="todo-checkbox">
                         <input type="checkbox"
                                ${todo.completed ? 'checked' : ''}
                                onchange="toggleTodo(${todo.id}, this.checked)">
                         <div style="flex: 1;">
-                            <div class="todo-content">
+                            <div class="todo-content" ondblclick="startEditTodo(${todo.id})">
                                 ${escapeHtml(todo.content)}
                                 <span class="priority-badge priority-${getPriorityClass(todo.priority)}">
                                     ${getPriorityText(todo.priority)}
@@ -1192,7 +1274,6 @@
                             <div class="todo-meta">
                                 <span>${formatDateTime(todo.created_at)}</span>
                                 <div class="todo-actions">
-                                    <button class="btn-sm btn-edit" onclick="editTodo(${todo.id}, \`${escapeHtml(todo.content).replace(/`/g, '\\`')}\`, ${todo.priority})">编辑</button>
                                     <button class="btn-sm btn-delete" onclick="deleteTodo(${todo.id})">删除</button>
                                 </div>
                             </div>
@@ -1202,25 +1283,52 @@
             `).join('');
         }
 
-        function showAddTodoDialog() {
-            currentEditingTodo = null;
-            document.getElementById('todoModalTitle').textContent = '新建待办';
-            document.getElementById('todoContent').value = '';
-            document.getElementById('todoPriority').value = '2';
-            document.getElementById('todoModal').style.display = 'block';
+        // 开始编辑待办（内联）
+        function startEditTodo(id) {
+            const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+            if (!item || item.classList.contains('editing')) return;
+
+            const content = item.dataset.content;
+            const priority = item.dataset.priority;
+            const contentDiv = item.querySelector('.todo-content');
+
+            item.classList.add('editing');
+            contentDiv.innerHTML = `
+                <input type="text" class="inline-edit" value="${unescapeHtml(content)}">
+                <select class="priority-select">
+                    <option value="1" ${priority == 1 ? 'selected' : ''}>🔴 高</option>
+                    <option value="2" ${priority == 2 ? 'selected' : ''}>🟡 中</option>
+                    <option value="3" ${priority == 3 ? 'selected' : ''}>🟢 低</option>
+                </select>
+                <div class="edit-actions">
+                    <button class="btn-save" onclick="saveInlineTodo(${id})">保存</button>
+                    <button class="btn-cancel" onclick="cancelEditTodo(${id})">取消</button>
+                </div>
+            `;
+
+            const input = contentDiv.querySelector('input');
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+
+            // Enter保存, Esc取消
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInlineTodo(id);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEditTodo(id);
+                }
+            });
         }
 
-        function editTodo(id, content, priority) {
-            currentEditingTodo = id;
-            document.getElementById('todoModalTitle').textContent = '编辑待办';
-            document.getElementById('todoContent').value = unescapeHtml(content);
-            document.getElementById('todoPriority').value = priority;
-            document.getElementById('todoModal').style.display = 'block';
-        }
-
-        async function saveTodo() {
-            const content = document.getElementById('todoContent').value.trim();
-            const priority = parseInt(document.getElementById('todoPriority').value);
+        // 保存内联编辑的待办
+        async function saveInlineTodo(id) {
+            const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+            const input = item.querySelector('input.inline-edit');
+            const select = item.querySelector('.priority-select');
+            const content = input.value.trim();
+            const priority = parseInt(select.value);
 
             if (!content) {
                 alert('待办内容不能为空');
@@ -1228,26 +1336,14 @@
             }
 
             try {
-                let response;
-                if (currentEditingTodo) {
-                    // 更新
-                    response = await fetch(`/g/daily_bulletin/api/todos/${currentEditingTodo}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content, priority })
-                    });
-                } else {
-                    // 新建
-                    response = await fetch('/g/daily_bulletin/api/todos', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content, priority })
-                    });
-                }
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, priority })
+                });
 
                 const data = await response.json();
                 if (data.ok) {
-                    closeTodoModal();
                     await loadTodos();
                 } else {
                     alert('保存失败: ' + (data.error || '未知错误'));
@@ -1257,6 +1353,12 @@
                 alert('保存失败');
             }
         }
+
+        // 取消编辑待办
+        function cancelEditTodo(id) {
+            loadTodos();
+        }
+
 
         async function toggleTodo(id, completed) {
             try {
@@ -1298,11 +1400,6 @@
             }
         }
 
-        function closeTodoModal() {
-            document.getElementById('todoModal').style.display = 'none';
-            currentEditingTodo = null;
-        }
-
         // ====== Helper Functions ======
         function getPriorityClass(priority) {
             const map = { 1: 'high', 2: 'medium', 3: 'low' };
@@ -1342,64 +1439,6 @@
             return div.textContent;
         }
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const noteModal = document.getElementById('noteModal');
-            const todoModal = document.getElementById('todoModal');
-            if (event.target == noteModal) {
-                closeNoteModal();
-            } else if (event.target == todoModal) {
-                closeTodoModal();
-            }
-        }
     </script>
-
-    <!-- 笔记模态框 -->
-    <div id="noteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="noteModalTitle">新建笔记</h3>
-                <span class="close-btn" onclick="closeNoteModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>笔记内容</label>
-                    <textarea id="noteContent" placeholder="输入笔记内容..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeNoteModal()">取消</button>
-                <button class="btn-primary" onclick="saveNote()">保存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 待办模态框 -->
-    <div id="todoModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="todoModalTitle">新建待办</h3>
-                <span class="close-btn" onclick="closeTodoModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>待办内容</label>
-                    <textarea id="todoContent" placeholder="输入待办事项..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>优先级</label>
-                    <select id="todoPriority">
-                        <option value="1">高</option>
-                        <option value="2" selected>中</option>
-                        <option value="3">低</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeTodoModal()">取消</button>
-                <button class="btn-primary" onclick="saveTodo()">保存</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
