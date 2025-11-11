@@ -174,37 +174,135 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 顶部信息栏 - 横向布局 */
-        .top-info-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 12px;
+        /* 顶部状态栏 - 一行式信息展示 */
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 24px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.8) 0%,
+                rgba(30, 41, 59, 0.7) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
             margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
         }
 
-        /* 主内容区域 - 两列布局 */
-        .main-grid {
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92em;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+
+        .status-icon {
+            font-size: 1.2em;
+        }
+
+        .status-highlight {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        /* 三列内容网格 */
+        .content-grid {
             display: grid;
-            grid-template-columns: 1.4fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
             gap: 16px;
             align-items: start;
         }
 
-        /* 右侧栏 */
-        .sidebar {
+        /* 列容器 */
+        .column {
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.75) 0%,
+                rgba(30, 41, 59, 0.65) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(148, 163, 184, 0.15);
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            height: calc(100vh - 240px);
+            min-height: 500px;
+            max-height: 750px;
         }
 
-        /* 响应式 */
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            .sidebar {
-                max-height: none;
-            }
+        .column:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            flex-shrink: 0;
+        }
+
+        .column-icon {
+            font-size: 1.3em;
+        }
+
+        .column-title {
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #f0f9ff;
+            flex: 1;
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.5);
+        }
+
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .column-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .column-content::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        .column-content::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 3px;
+        }
+
+        .column-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
         }
 
         .error {
@@ -219,262 +317,35 @@
             box-shadow: 0 4px 24px rgba(239, 68, 68, 0.2);
         }
 
-        .section {
-            padding: 18px 20px;
-            background: linear-gradient(135deg,
-                rgba(15, 23, 42, 0.75) 0%,
-                rgba(30, 41, 59, 0.65) 100%);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(148, 163, 184, 0.15);
-            border-radius: 14px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg,
-                transparent,
-                rgba(56, 189, 248, 0.4),
-                transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .section:hover::before {
-            opacity: 1;
-        }
-
-        .section:hover {
-            border-color: rgba(56, 189, 248, 0.3);
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        /* 紧凑型卡片 */
-        .section-compact {
-            padding: 14px 16px;
-        }
-
-        .section-title {
-            font-size: 1.6em;
-            margin-bottom: 20px;
-            color: #f0f9ff;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 600;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .section-icon {
-            font-size: 1.4em;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-        }
-
-        /* 日期时间样式 */
-        .datetime-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 18px;
-        }
-
-        .datetime-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 16px;
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-        }
-
-        .datetime-item:hover {
-            background: rgba(56, 189, 248, 0.1);
-            border-color: rgba(56, 189, 248, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .datetime-label {
-            font-size: 0.95em;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .datetime-value {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #f0f9ff;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        /* 位置样式 */
-        .location-info {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            font-size: 1.4em;
-            color: #f0f9ff;
-            padding: 16px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 2px solid rgba(239, 68, 68, 0.3);
-            border-radius: 16px;
-            font-weight: 600;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .location-info::before {
-            content: '📍';
-            font-size: 1.2em;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-
-        /* 天气样式 */
-        .weather-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 18px;
-        }
-
-        .weather-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 16px;
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .weather-item:hover {
-            background: rgba(251, 191, 36, 0.1);
-            border-color: rgba(251, 191, 36, 0.4);
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
-        }
-
-        .weather-item:first-child {
-            grid-column: 1 / -1;
-            padding: 32px;
-        }
-
-        .weather-icon {
-            font-size: 4em;
-            margin-bottom: 12px;
-            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
-            animation: weatherFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes weatherFloat {
-            0%, 100% { transform: translateY(0px) rotate(-5deg); }
-            50% { transform: translateY(-10px) rotate(5deg); }
-        }
-
-        .weather-label {
-            font-size: 0.9em;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .weather-value {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: #fbbf24;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
 
         /* 新闻样式 */
-        .news-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 600px;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-
-        .news-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .news-list::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 3px;
-        }
-
-        .news-list::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.3);
-            border-radius: 3px;
-        }
-
-        .news-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(56, 189, 248, 0.5);
-        }
-
         .news-item {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            padding: 14px 16px;
-            border-radius: 10px;
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .news-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, #38bdf8, #0ea5e9);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            background: rgba(15, 23, 42, 0.4);
+            border-left: 3px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 14px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .news-item:hover {
-            transform: translateX(4px);
             background: rgba(56, 189, 248, 0.08);
-            border-color: rgba(56, 189, 248, 0.3);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        .news-item:hover::before {
-            opacity: 1;
+            border-left-color: #38bdf8;
+            transform: translateX(2px);
         }
 
         .news-title {
-            font-size: 1.15em;
-            font-weight: 600;
-            margin-bottom: 12px;
-            line-height: 1.5;
+            margin-bottom: 8px;
         }
 
         .news-title a {
             color: #f0f9ff;
             text-decoration: none;
             transition: color 0.2s ease;
-            font-size: 0.96em;
-            line-height: 1.4;
+            font-size: 0.92em;
+            line-height: 1.5;
+            font-weight: 500;
         }
 
         .news-title a:hover {
@@ -482,12 +353,11 @@
         }
 
         .news-meta {
-            font-size: 0.78em;
-            color: #94a3b8;
+            font-size: 0.75em;
+            color: #64748b;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             margin-top: 6px;
-            margin-bottom: 8px;
         }
 
         .news-meta span {
@@ -498,10 +368,9 @@
 
         .news-description {
             margin-top: 8px;
-            color: #cbd5e1;
-            font-size: 0.85em;
+            color: #94a3b8;
+            font-size: 0.82em;
             line-height: 1.5;
-            opacity: 0.8;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
@@ -510,88 +379,56 @@
         }
 
         /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
             }
 
             .header h1 {
-                font-size: 2em;
+                font-size: 1.5em;
                 flex-direction: column;
-                gap: 8px;
+                gap: 6px;
             }
 
             .header {
-                padding: 24px 16px;
+                padding: 16px;
             }
 
-            .section {
-                padding: 20px;
+            .status-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
             }
 
-            .section-title {
-                font-size: 1.3em;
-            }
-
-            .datetime-info, .weather-grid {
+            .content-grid {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
 
-            .weather-item:first-child {
-                grid-column: 1;
-            }
-
-            .location-info {
-                font-size: 1.2em;
-            }
-
-            .news-item {
-                padding: 18px;
+            .column {
+                height: 400px;
+                max-height: 500px;
             }
         }
 
         @media (max-width: 480px) {
             .header h1 {
-                font-size: 1.6em;
+                font-size: 1.3em;
             }
 
-            .datetime-value {
-                font-size: 1.2em;
+            .status-item {
+                font-size: 0.85em;
             }
 
-            .weather-icon {
-                font-size: 3em;
+            .column-content {
+                padding: 10px;
             }
-        }
-
-        /* 个性化功能样式 */
-        .personal-features {
-            margin-top: 30px;
-        }
-
-        .add-btn {
-            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-left: auto;
-            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
-        }
-
-        .add-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.5);
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
         /* 笔记样式 */
@@ -622,71 +459,70 @@
         }
 
         .note-item, .todo-item {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            padding: 10px 12px;
-            border-radius: 8px;
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-            position: relative;
+            background: rgba(15, 23, 42, 0.4);
+            border-left: 3px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 14px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
         }
 
         .note-item:hover, .todo-item:hover {
             background: rgba(56, 189, 248, 0.08);
-            border-color: rgba(56, 189, 248, 0.3);
+            border-left-color: #38bdf8;
+            transform: translateX(2px);
         }
 
         .note-content, .todo-content {
             color: #e2e8f0;
             line-height: 1.5;
-            margin-bottom: 6px;
             white-space: pre-wrap;
             word-wrap: break-word;
-            font-size: 0.9em;
+            font-size: 0.88em;
         }
 
         .note-meta, .todo-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85em;
-            color: #94a3b8;
+            font-size: 0.75em;
+            color: #64748b;
             margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            padding-top: 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.08);
         }
 
         .note-actions, .todo-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn-sm {
-            padding: 4px 12px;
-            font-size: 0.85em;
+            padding: 3px 10px;
+            font-size: 0.8em;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
             font-weight: 500;
         }
 
         .btn-edit {
-            background: rgba(56, 189, 248, 0.2);
+            background: rgba(56, 189, 248, 0.15);
             color: #38bdf8;
         }
 
         .btn-edit:hover {
-            background: rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.25);
         }
 
         .btn-delete {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
         }
 
         .btn-delete:hover {
-            background: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.25);
         }
 
         /* 待办事项特殊样式 */
@@ -911,19 +747,19 @@
 
         .empty-state {
             text-align: center;
-            padding: 24px 16px;
+            padding: 40px 20px;
             color: #64748b;
         }
 
         .empty-state-icon {
-            font-size: 2.2em;
-            margin-bottom: 10px;
-            opacity: 0.4;
+            font-size: 3em;
+            margin-bottom: 12px;
+            opacity: 0.3;
         }
 
         .empty-state p {
-            font-size: 0.88em;
-            line-height: 1.5;
+            font-size: 0.85em;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -959,102 +795,62 @@
         </div>
 
         <div id="content" class="content">
-            <!-- 顶部信息栏 -->
-            <div class="top-info-bar">
-                <!-- 日期时间 -->
-                <div class="section section-compact">
-                    <div class="section-title">
-                        <span class="section-icon">📅</span>
-                        <span>今日</span>
-                    </div>
-                    <div class="datetime-info" style="gap: 8px;">
-                        <div class="datetime-item">
-                            <div class="datetime-label">日期</div>
-                            <div class="datetime-value" id="date">-</div>
-                        </div>
-                        <div class="datetime-item">
-                            <div class="datetime-label">星期</div>
-                            <div class="datetime-value" id="weekday">-</div>
-                        </div>
-                        <div class="datetime-item">
-                            <div class="datetime-label">时间</div>
-                            <div class="datetime-value" id="time">-</div>
-                        </div>
-                    </div>
+            <!-- 顶部状态栏 - 一行式信息展示 -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-icon">📅</span>
+                    <span id="date">-</span>
+                    <span id="weekday">-</span>
+                    <span id="time" class="status-highlight">-</span>
                 </div>
-
-                <!-- 位置信息 -->
-                <div class="section section-compact">
-                    <div class="section-title">
-                        <span class="section-icon">📍</span>
-                        <span>位置</span>
-                    </div>
-                    <div class="location-info">
-                        <span id="location" style="font-size: 1.1em; color: #fbbf24;">-</span>
-                    </div>
+                <div class="status-item">
+                    <span class="status-icon">📍</span>
+                    <span id="location" class="status-highlight">-</span>
                 </div>
-
-                <!-- 天气信息 -->
-                <div class="section section-compact">
-                    <div class="section-title">
-                        <span class="section-icon">🌤️</span>
-                        <span>天气</span>
-                    </div>
-                    <div class="weather-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                        <div class="weather-item">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div class="weather-icon" id="weather-icon" style="font-size: 1.8em;">☁️</div>
-                                <div>
-                                    <div class="weather-value" id="weather-temp" style="font-size: 1.3em;">-</div>
-                                    <div class="weather-label" id="weather-desc" style="font-size: 0.85em;">-</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="weather-item">
-                            <div class="weather-label">湿度 <span id="weather-humidity">-</span></div>
-                            <div class="weather-label">风速 <span id="weather-wind">-</span></div>
-                        </div>
-                    </div>
+                <div class="status-item">
+                    <span class="status-icon" id="weather-icon">🌤️</span>
+                    <span id="weather-temp" class="status-highlight">-</span>
+                    <span id="weather-desc">-</span>
+                    <span style="opacity: 0.6;">|</span>
+                    <span>💧<span id="weather-humidity">-</span></span>
+                    <span>💨<span id="weather-wind">-</span></span>
                 </div>
             </div>
 
-            <!-- 主内容区域 -->
-            <div class="main-grid">
-                <!-- 左侧：新闻 -->
-                <div class="section">
-                    <div class="section-title">
-                        <span class="section-icon">📰</span>
-                        <span>今日要闻</span>
+            <!-- 三列流式布局 -->
+            <div class="content-grid">
+                <!-- 新闻栏 -->
+                <div class="column">
+                    <div class="column-header">
+                        <span class="column-icon">📰</span>
+                        <span class="column-title">今日要闻</span>
                     </div>
-                    <div class="news-list" id="news-list">
+                    <div class="column-content" id="news-list">
                         <!-- 新闻将通过 JS 动态加载 -->
                     </div>
                 </div>
 
-                <!-- 右侧：笔记+待办 -->
-                <div class="sidebar" id="personal-section" style="display: none;">
-                    <!-- 记事本 -->
-                    <div class="section">
-                        <div class="section-title">
-                            <span class="section-icon">📝</span>
-                            <span>笔记</span>
-                            <button class="add-btn" onclick="showAddNoteDialog()">+</button>
-                        </div>
-                        <div id="notes-list" class="notes-list">
-                            <!-- 笔记将动态加载 -->
-                        </div>
+                <!-- 笔记栏 -->
+                <div class="column" id="notes-column" style="display: none;">
+                    <div class="column-header">
+                        <span class="column-icon">📝</span>
+                        <span class="column-title">笔记</span>
+                        <button class="icon-btn" onclick="showAddNoteDialog()" title="新建笔记">+</button>
                     </div>
+                    <div class="column-content" id="notes-list">
+                        <!-- 笔记将动态加载 -->
+                    </div>
+                </div>
 
-                    <!-- 待办事项 -->
-                    <div class="section">
-                        <div class="section-title">
-                            <span class="section-icon">✅</span>
-                            <span>待办</span>
-                            <button class="add-btn" onclick="showAddTodoDialog()">+</button>
-                        </div>
-                        <div id="todos-list" class="todos-list">
-                            <!-- 待办事项将动态加载 -->
-                        </div>
+                <!-- 待办栏 -->
+                <div class="column" id="todos-column" style="display: none;">
+                    <div class="column-header">
+                        <span class="column-icon">✅</span>
+                        <span class="column-title">待办</span>
+                        <button class="icon-btn" onclick="showAddTodoDialog()" title="新建待办">+</button>
+                    </div>
+                    <div class="column-content" id="todos-list">
+                        <!-- 待办事项将动态加载 -->
                     </div>
                 </div>
             </div>
@@ -1224,9 +1020,9 @@
         // 加载个性化功能
         async function loadPersonalFeatures() {
             try {
-                // 检查用户登录状态（这里简化处理，总是显示个性化功能）
-                // 在实际应用中，你可以调用 /g/daily_bulletin/api/user/status 检查
-                document.getElementById('personal-section').style.display = 'block';
+                // 显示笔记和待办栏
+                document.getElementById('notes-column').style.display = 'flex';
+                document.getElementById('todos-column').style.display = 'flex';
 
                 // 加载笔记和待办事项
                 await Promise.all([loadNotes(), loadTodos()]);
