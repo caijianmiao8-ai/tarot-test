@@ -67,10 +67,11 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1600px;
             width: 100%;
             position: relative;
             z-index: 1;
+            padding: 0 20px;
         }
 
         .header {
@@ -80,11 +81,11 @@
                 rgba(245, 158, 11, 0.12) 100%);
             backdrop-filter: blur(10px);
             border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 24px;
-            padding: 32px;
+            border-radius: 16px;
+            padding: 20px 24px;
             text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             position: relative;
             overflow: hidden;
         }
@@ -106,14 +107,14 @@
         }
 
         .header h1 {
-            font-size: 2.8em;
-            margin-bottom: 12px;
+            font-size: 1.8em;
+            margin-bottom: 8px;
             color: #f0f9ff;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             position: relative;
             display: inline-flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
 
         .header h1::before {
@@ -122,9 +123,9 @@
         }
 
         .header .subtitle {
-            font-size: 1.15em;
+            font-size: 0.95em;
             color: #cbd5e1;
-            opacity: 0.95;
+            opacity: 0.9;
             position: relative;
         }
 
@@ -165,12 +166,45 @@
         }
 
         .content.show {
-            display: block;
+            display: grid;
         }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 顶部信息栏 - 横向布局 */
+        .top-info-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        /* 主内容区域 - 两列布局 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        /* 右侧栏 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                max-height: none;
+            }
         }
 
         .error {
@@ -186,15 +220,14 @@
         }
 
         .section {
-            margin-bottom: 24px;
-            padding: 28px;
+            padding: 18px 20px;
             background: linear-gradient(135deg,
-                rgba(15, 23, 42, 0.7) 0%,
-                rgba(30, 41, 59, 0.6) 100%);
+                rgba(15, 23, 42, 0.75) 0%,
+                rgba(30, 41, 59, 0.65) 100%);
             backdrop-filter: blur(10px);
             border: 2px solid rgba(148, 163, 184, 0.15);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
@@ -206,17 +239,27 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: linear-gradient(90deg,
                 transparent,
-                rgba(56, 189, 248, 0.5),
+                rgba(56, 189, 248, 0.4),
                 transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .section:hover::before {
+            opacity: 1;
         }
 
         .section:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
             border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 紧凑型卡片 */
+        .section-compact {
+            padding: 14px 16px;
         }
 
         .section-title {
@@ -361,14 +404,35 @@
         .news-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .news-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .news-list::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 3px;
+        }
+
+        .news-list::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
+        }
+
+        .news-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.5);
         }
 
         .news-item {
             background: rgba(15, 23, 42, 0.5);
             border: 1px solid rgba(148, 163, 184, 0.15);
-            padding: 24px;
-            border-radius: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
             backdrop-filter: blur(8px);
             transition: all 0.3s ease;
             position: relative;
@@ -409,6 +473,8 @@
             color: #f0f9ff;
             text-decoration: none;
             transition: color 0.2s ease;
+            font-size: 0.96em;
+            line-height: 1.4;
         }
 
         .news-title a:hover {
@@ -416,25 +482,31 @@
         }
 
         .news-meta {
-            font-size: 0.85em;
+            font-size: 0.78em;
             color: #94a3b8;
             display: flex;
-            gap: 16px;
-            margin-bottom: 10px;
+            gap: 12px;
+            margin-top: 6px;
+            margin-bottom: 8px;
         }
 
         .news-meta span {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .news-description {
-            margin-top: 12px;
+            margin-top: 8px;
             color: #cbd5e1;
-            font-size: 0.95em;
-            line-height: 1.6;
-            opacity: 0.9;
+            font-size: 0.85em;
+            line-height: 1.5;
+            opacity: 0.8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
 
         /* 响应式设计 */
@@ -501,19 +573,19 @@
             background: linear-gradient(135deg, #38bdf8, #0ea5e9);
             color: white;
             border: none;
-            padding: 8px 18px;
-            border-radius: 12px;
+            padding: 6px 14px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-weight: 600;
             transition: all 0.3s ease;
             margin-left: auto;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
         }
 
         .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.5);
         }
 
         .section-title {
@@ -526,14 +598,34 @@
         .notes-list, .todos-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .notes-list::-webkit-scrollbar,
+        .todos-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .notes-list::-webkit-scrollbar-track,
+        .todos-list::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 3px;
+        }
+
+        .notes-list::-webkit-scrollbar-thumb,
+        .todos-list::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
         }
 
         .note-item, .todo-item {
             background: rgba(15, 23, 42, 0.5);
             border: 1px solid rgba(148, 163, 184, 0.15);
-            padding: 16px;
-            border-radius: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
             backdrop-filter: blur(8px);
             transition: all 0.3s ease;
             position: relative;
@@ -542,15 +634,15 @@
         .note-item:hover, .todo-item:hover {
             background: rgba(56, 189, 248, 0.08);
             border-color: rgba(56, 189, 248, 0.3);
-            transform: translateX(4px);
         }
 
         .note-content, .todo-content {
             color: #e2e8f0;
-            line-height: 1.6;
-            margin-bottom: 8px;
+            line-height: 1.5;
+            margin-bottom: 6px;
             white-space: pre-wrap;
             word-wrap: break-word;
+            font-size: 0.9em;
         }
 
         .note-meta, .todo-meta {
@@ -819,14 +911,19 @@
 
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
+            padding: 24px 16px;
             color: #64748b;
         }
 
         .empty-state-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-            opacity: 0.5;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 0.88em;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -862,100 +959,102 @@
         </div>
 
         <div id="content" class="content">
-            <!-- 日期时间 -->
-            <div class="section">
-                <div class="section-title">
-                    <span class="section-icon">📅</span>
-                    <span>今日日期</span>
+            <!-- 顶部信息栏 -->
+            <div class="top-info-bar">
+                <!-- 日期时间 -->
+                <div class="section section-compact">
+                    <div class="section-title">
+                        <span class="section-icon">📅</span>
+                        <span>今日</span>
+                    </div>
+                    <div class="datetime-info" style="gap: 8px;">
+                        <div class="datetime-item">
+                            <div class="datetime-label">日期</div>
+                            <div class="datetime-value" id="date">-</div>
+                        </div>
+                        <div class="datetime-item">
+                            <div class="datetime-label">星期</div>
+                            <div class="datetime-value" id="weekday">-</div>
+                        </div>
+                        <div class="datetime-item">
+                            <div class="datetime-label">时间</div>
+                            <div class="datetime-value" id="time">-</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="datetime-info">
-                    <div class="datetime-item">
-                        <div class="datetime-label">日期</div>
-                        <div class="datetime-value" id="date">-</div>
+
+                <!-- 位置信息 -->
+                <div class="section section-compact">
+                    <div class="section-title">
+                        <span class="section-icon">📍</span>
+                        <span>位置</span>
                     </div>
-                    <div class="datetime-item">
-                        <div class="datetime-label">星期</div>
-                        <div class="datetime-value" id="weekday">-</div>
+                    <div class="location-info">
+                        <span id="location" style="font-size: 1.1em; color: #fbbf24;">-</span>
                     </div>
-                    <div class="datetime-item">
-                        <div class="datetime-label">当前时间</div>
-                        <div class="datetime-value" id="time">-</div>
+                </div>
+
+                <!-- 天气信息 -->
+                <div class="section section-compact">
+                    <div class="section-title">
+                        <span class="section-icon">🌤️</span>
+                        <span>天气</span>
+                    </div>
+                    <div class="weather-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <div class="weather-item">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="weather-icon" id="weather-icon" style="font-size: 1.8em;">☁️</div>
+                                <div>
+                                    <div class="weather-value" id="weather-temp" style="font-size: 1.3em;">-</div>
+                                    <div class="weather-label" id="weather-desc" style="font-size: 0.85em;">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-label">湿度 <span id="weather-humidity">-</span></div>
+                            <div class="weather-label">风速 <span id="weather-wind">-</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 位置信息 -->
-            <div class="section">
-                <div class="section-title">
-                    <span class="section-icon">📍</span>
-                    <span>当前位置</span>
-                </div>
-                <div class="location-info">
-                    <span id="location">-</span>
-                </div>
-            </div>
-
-            <!-- 天气信息 -->
-            <div class="section">
-                <div class="section-title">
-                    <span class="section-icon">🌤️</span>
-                    <span>天气信息</span>
-                </div>
-                <div class="weather-grid">
-                    <div class="weather-item">
-                        <div class="weather-icon" id="weather-icon">☁️</div>
-                        <div class="weather-label">天气</div>
-                        <div class="weather-value" id="weather-desc">-</div>
-                    </div>
-                    <div class="weather-item">
-                        <div class="weather-label">温度</div>
-                        <div class="weather-value" id="weather-temp">-</div>
-                    </div>
-                    <div class="weather-item">
-                        <div class="weather-label">湿度</div>
-                        <div class="weather-value" id="weather-humidity">-</div>
-                    </div>
-                    <div class="weather-item">
-                        <div class="weather-label">风速</div>
-                        <div class="weather-value" id="weather-wind">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 新闻头条 -->
-            <div class="section">
-                <div class="section-title">
-                    <span class="section-icon">📰</span>
-                    <span>今日要闻</span>
-                </div>
-                <div class="news-list" id="news-list">
-                    <!-- 新闻将通过 JS 动态加载 -->
-                </div>
-            </div>
-
-            <!-- 个性化功能区域 -->
-            <div id="personal-section" class="personal-features" style="display: none;">
-                <!-- 记事本 -->
+            <!-- 主内容区域 -->
+            <div class="main-grid">
+                <!-- 左侧：新闻 -->
                 <div class="section">
                     <div class="section-title">
-                        <span class="section-icon">📝</span>
-                        <span>我的笔记</span>
-                        <button class="add-btn" onclick="showAddNoteDialog()">+ 新建</button>
+                        <span class="section-icon">📰</span>
+                        <span>今日要闻</span>
                     </div>
-                    <div id="notes-list" class="notes-list">
-                        <!-- 笔记将动态加载 -->
+                    <div class="news-list" id="news-list">
+                        <!-- 新闻将通过 JS 动态加载 -->
                     </div>
                 </div>
 
-                <!-- 待办事项 -->
-                <div class="section">
-                    <div class="section-title">
-                        <span class="section-icon">✅</span>
-                        <span>我的待办</span>
-                        <button class="add-btn" onclick="showAddTodoDialog()">+ 新建</button>
+                <!-- 右侧：笔记+待办 -->
+                <div class="sidebar" id="personal-section" style="display: none;">
+                    <!-- 记事本 -->
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📝</span>
+                            <span>笔记</span>
+                            <button class="add-btn" onclick="showAddNoteDialog()">+</button>
+                        </div>
+                        <div id="notes-list" class="notes-list">
+                            <!-- 笔记将动态加载 -->
+                        </div>
                     </div>
-                    <div id="todos-list" class="todos-list">
-                        <!-- 待办事项将动态加载 -->
+
+                    <!-- 待办事项 -->
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">✅</span>
+                            <span>待办</span>
+                            <button class="add-btn" onclick="showAddTodoDialog()">+</button>
+                        </div>
+                        <div id="todos-list" class="todos-list">
+                            <!-- 待办事项将动态加载 -->
+                        </div>
                     </div>
                 </div>
             </div>
