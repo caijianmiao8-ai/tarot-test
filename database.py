@@ -887,6 +887,34 @@ class DailyBulletinNoteDAO:
                         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                     );
                     CREATE INDEX IF NOT EXISTS idx_notes_user_id ON daily_bulletin_notes(user_id);
+
+                    -- 迁移：修改现有表的时间列类型
+                    DO $$
+                    BEGIN
+                        -- 修改 created_at 列
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'daily_bulletin_notes'
+                            AND column_name = 'created_at'
+                            AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE daily_bulletin_notes
+                            ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE
+                            USING created_at AT TIME ZONE 'UTC';
+                        END IF;
+
+                        -- 修改 updated_at 列
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'daily_bulletin_notes'
+                            AND column_name = 'updated_at'
+                            AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE daily_bulletin_notes
+                            ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE
+                            USING updated_at AT TIME ZONE 'UTC';
+                        END IF;
+                    END $$;
                 """)
                 conn.commit()
 
@@ -972,6 +1000,46 @@ class DailyBulletinTodoDAO:
                     );
                     CREATE INDEX IF NOT EXISTS idx_todos_user_id ON daily_bulletin_todos(user_id);
                     CREATE INDEX IF NOT EXISTS idx_todos_completed ON daily_bulletin_todos(completed);
+
+                    -- 迁移：修改现有表的时间列类型
+                    DO $$
+                    BEGIN
+                        -- 修改 created_at 列
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'daily_bulletin_todos'
+                            AND column_name = 'created_at'
+                            AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE daily_bulletin_todos
+                            ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE
+                            USING created_at AT TIME ZONE 'UTC';
+                        END IF;
+
+                        -- 修改 updated_at 列
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'daily_bulletin_todos'
+                            AND column_name = 'updated_at'
+                            AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE daily_bulletin_todos
+                            ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE
+                            USING updated_at AT TIME ZONE 'UTC';
+                        END IF;
+
+                        -- 修改 completed_at 列
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'daily_bulletin_todos'
+                            AND column_name = 'completed_at'
+                            AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE daily_bulletin_todos
+                            ALTER COLUMN completed_at TYPE TIMESTAMP WITH TIME ZONE
+                            USING completed_at AT TIME ZONE 'UTC';
+                        END IF;
+                    END $$;
                 """)
                 conn.commit()
 
