@@ -52,17 +52,17 @@
       position: absolute;
       border-radius: 50%;
       filter: blur(100px);
-      opacity: 0.25;
-      will-change: transform;
-      transition: transform 0.3s ease-out;
+      opacity: 0.2;
     }
 
+    /* Independent floating animations for each orb */
     .bg-orb-1 {
       width: 600px;
       height: 600px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       top: -200px;
       right: -100px;
+      animation: float-1 25s ease-in-out infinite;
     }
 
     .bg-orb-2 {
@@ -71,6 +71,8 @@
       background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       bottom: -200px;
       left: -100px;
+      animation: float-2 30s ease-in-out infinite;
+      animation-delay: -5s;
     }
 
     .bg-orb-3 {
@@ -80,6 +82,54 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      animation: float-3 20s ease-in-out infinite;
+      animation-delay: -10s;
+    }
+
+    /* Keyframes for gentle floating motions */
+    @keyframes float-1 {
+      0%, 100% {
+        transform: translate(0, 0);
+        opacity: 0.2;
+      }
+      25% {
+        transform: translate(-80px, 50px);
+        opacity: 0.25;
+      }
+      50% {
+        transform: translate(-40px, 100px);
+        opacity: 0.15;
+      }
+      75% {
+        transform: translate(40px, 50px);
+        opacity: 0.25;
+      }
+    }
+
+    @keyframes float-2 {
+      0%, 100% {
+        transform: translate(0, 0);
+        opacity: 0.2;
+      }
+      33% {
+        transform: translate(60px, -70px);
+        opacity: 0.25;
+      }
+      66% {
+        transform: translate(-30px, -40px);
+        opacity: 0.15;
+      }
+    }
+
+    @keyframes float-3 {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.2;
+      }
+      50% {
+        transform: translate(-50%, -50%) translate(30px, 40px) scale(1.15);
+        opacity: 0.28;
+      }
     }
 
     /* Navigation - Enhanced Glass */
@@ -883,45 +933,9 @@
       });
     });
 
-    // ============= Dynamic Parallax Background Orbs =============
-    const orb1 = document.querySelector('.bg-orb-1');
-    const orb2 = document.querySelector('.bg-orb-2');
-    const orb3 = document.querySelector('.bg-orb-3');
-
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const scrolled = window.pageYOffset;
-          const windowHeight = window.innerHeight;
-          const docHeight = document.documentElement.scrollHeight;
-          const scrollPercent = scrolled / (docHeight - windowHeight);
-
-          // Parallax movement - each orb moves at different speeds
-          if (orb1) {
-            const translateY1 = scrolled * 0.3;
-            const translateX1 = Math.sin(scrollPercent * Math.PI) * 100;
-            orb1.style.transform = `translate(${translateX1}px, ${translateY1}px)`;
-          }
-
-          if (orb2) {
-            const translateY2 = scrolled * -0.2;
-            const translateX2 = Math.cos(scrollPercent * Math.PI) * -80;
-            orb2.style.transform = `translate(${translateX2}px, ${translateY2}px)`;
-          }
-
-          if (orb3) {
-            const translateY3 = scrolled * 0.15;
-            const scale3 = 1 + (scrollPercent * 0.3);
-            orb3.style.transform = `translate(-50%, -50%) translateY(${translateY3}px) scale(${scale3})`;
-            orb3.style.opacity = 0.15 + (scrollPercent * 0.15);
-          }
-
-          ticking = false;
-        });
-        ticking = true;
-      }
-    });
+    // ============= Background Orbs (Now CSS-animated, independent of scroll) =============
+    // Background orbs use pure CSS animations for smooth, continuous floating
+    // No scroll binding - keeps background layer separate from UI interactions
 
     // ============= Scroll Progress Indicator =============
     const progressBar = document.createElement('div');
@@ -945,63 +959,102 @@
       progressBar.style.width = `${Math.min(progress, 100)}%`;
     });
 
-    // ============= Intersection Observer with Reversible Animation =============
+    // ============= Intersection Observer for UI Element Animations =============
+    // Separate observer for use-cases and features for better control
     const observerOptions = {
-      threshold: 0.15,
-      rootMargin: '0px 0px -100px 0px'
+      threshold: 0.2,
+      rootMargin: '0px 0px -80px 0px'
     };
 
-    // Store element indices for stagger timing
-    const elementIndices = new Map();
-    document.querySelectorAll('.use-case, .feature').forEach((el, idx) => {
-      elementIndices.set(el, idx);
-    });
-
-    const fadeInObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const element = entry.target;
-        const index = elementIndices.get(element) || 0;
-
+    // Use-case cards animation (larger, more prominent)
+    const useCaseObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, idx) => {
         if (entry.isIntersecting) {
-          // Element is entering viewport - fade in with stagger
+          // Stagger animation for cards in the same section
           setTimeout(() => {
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0) scale(1)';
-          }, index * 80); // 80ms stagger
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, idx * 120); // Slight stagger for use-cases
         } else {
-          // Element is leaving viewport - fade out (reverse)
-          element.style.opacity = '0';
-          element.style.transform = 'translateY(20px) scale(0.95)';
+          entry.target.style.opacity = '0';
+          entry.target.style.transform = 'translateY(30px)';
         }
       });
     }, observerOptions);
 
-    // Observe elements with initial state
-    document.querySelectorAll('.use-case, .feature').forEach((el, idx) => {
+    // Feature cards animation (smaller, tighter grouping)
+    const featureObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        } else {
+          entry.target.style.opacity = '0';
+          entry.target.style.transform = 'translateY(20px)';
+        }
+      });
+    }, observerOptions);
+
+    // Apply to use-cases
+    document.querySelectorAll('.use-case').forEach((el) => {
       el.style.opacity = '0';
-      el.style.transform = 'translateY(20px) scale(0.95)';
-      el.style.transition = 'opacity 0.6s cubic-bezier(0.28, 0.11, 0.32, 1), transform 0.6s cubic-bezier(0.28, 0.11, 0.32, 1)';
-      fadeInObserver.observe(el);
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+      useCaseObserver.observe(el);
     });
 
-    // ============= Card Hover Tilt Effect (3D) - Subtle =============
+    // Apply to features (as a group, no individual stagger)
+    document.querySelectorAll('.feature').forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      featureObserver.observe(el);
+    });
+
+    // ============= Card Hover Tilt Effect (3D) - Optimized =============
     document.querySelectorAll('.use-case, .feature').forEach(card => {
+      // Only apply tilt when card is fully visible (not during scroll animation)
+      let isVisible = false;
+
+      // Track visibility state
+      const visibilityObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isVisible = entry.isIntersecting;
+          if (!isVisible) {
+            // Reset transform when leaving viewport
+            card.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+          }
+        });
+      }, { threshold: 0.5 });
+
+      visibilityObserver.observe(card);
+
+      card.addEventListener('mouseenter', () => {
+        if (isVisible) {
+          // Switch to faster transition for hover effects
+          card.style.transition = 'transform 0.15s ease-out';
+        }
+      });
+
       card.addEventListener('mousemove', (e) => {
+        if (!isVisible) return;
+
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
 
-        const rotateX = (y - centerY) / 30; // More subtle tilt (was 20)
-        const rotateY = (centerX - x) / 30;
+        // Gentle tilt effect
+        const rotateX = (y - centerY) / 40;
+        const rotateY = (centerX - x) / 40;
 
-        card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px) scale(1.02)`;
+        card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
       });
 
       card.addEventListener('mouseleave', () => {
-        card.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) translateY(0) scale(1)';
+        card.style.transition = 'transform 0.3s cubic-bezier(0.28, 0.11, 0.32, 1)';
+        card.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) scale(1)';
       });
     });
 
@@ -1069,21 +1122,16 @@
         }
       }
 
-      /* Smooth transitions for all interactive elements */
+      /* Smooth transitions for interactive elements */
       .btn {
         transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-      }
-
-      .use-case, .feature {
-        transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
-        will-change: transform, opacity;
       }
 
       .navbar {
         transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
       }
 
-      /* Add subtle perspective to cards */
+      /* 3D perspective for cards - transitions controlled by JS */
       .use-case, .feature {
         transform-style: preserve-3d;
         backface-visibility: hidden;
@@ -1093,16 +1141,20 @@
       #progressBar {
         will-change: width;
       }
+
+      /* Disable animations on reduced motion preference */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     `;
     document.head.appendChild(style);
 
-    // ============= Reduce Motion for Accessibility =============
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.querySelectorAll('*').forEach(el => {
-        el.style.animation = 'none !important';
-        el.style.transition = 'none !important';
-      });
-    }
+    // ============= Accessibility handled via CSS media query =============
+    // See @media (prefers-reduced-motion: reduce) in styles above
   </script>
 </body>
 </html>
