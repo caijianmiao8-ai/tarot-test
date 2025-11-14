@@ -51,18 +51,18 @@
     .bg-orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.2;
+      filter: blur(80px);
+      opacity: 0.25;
     }
 
-    /* Independent floating animations for each orb */
+    /* Independent floating animations for each orb - more visible motion */
     .bg-orb-1 {
       width: 600px;
       height: 600px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       top: -200px;
       right: -100px;
-      animation: float-1 25s ease-in-out infinite;
+      animation: float-1 15s ease-in-out infinite;
     }
 
     .bg-orb-2 {
@@ -71,8 +71,8 @@
       background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       bottom: -200px;
       left: -100px;
-      animation: float-2 30s ease-in-out infinite;
-      animation-delay: -5s;
+      animation: float-2 18s ease-in-out infinite;
+      animation-delay: -6s;
     }
 
     .bg-orb-3 {
@@ -82,53 +82,57 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      animation: float-3 20s ease-in-out infinite;
-      animation-delay: -10s;
+      animation: float-3 12s ease-in-out infinite;
+      animation-delay: -4s;
     }
 
-    /* Keyframes for gentle floating motions */
+    /* Keyframes with larger, more visible movements */
     @keyframes float-1 {
       0%, 100% {
         transform: translate(0, 0);
-        opacity: 0.2;
+        opacity: 0.25;
       }
       25% {
-        transform: translate(-80px, 50px);
-        opacity: 0.25;
+        transform: translate(-150px, 80px);
+        opacity: 0.35;
       }
       50% {
-        transform: translate(-40px, 100px);
-        opacity: 0.15;
+        transform: translate(-80px, 180px);
+        opacity: 0.2;
       }
       75% {
-        transform: translate(40px, 50px);
-        opacity: 0.25;
+        transform: translate(100px, 100px);
+        opacity: 0.3;
       }
     }
 
     @keyframes float-2 {
       0%, 100% {
         transform: translate(0, 0);
-        opacity: 0.2;
-      }
-      33% {
-        transform: translate(60px, -70px);
         opacity: 0.25;
       }
+      33% {
+        transform: translate(120px, -120px);
+        opacity: 0.35;
+      }
       66% {
-        transform: translate(-30px, -40px);
-        opacity: 0.15;
+        transform: translate(-80px, -80px);
+        opacity: 0.2;
       }
     }
 
     @keyframes float-3 {
       0%, 100% {
         transform: translate(-50%, -50%) scale(1);
-        opacity: 0.2;
+        opacity: 0.25;
       }
-      50% {
-        transform: translate(-50%, -50%) translate(30px, 40px) scale(1.15);
-        opacity: 0.28;
+      33% {
+        transform: translate(-50%, -50%) translate(100px, -80px) scale(1.2);
+        opacity: 0.35;
+      }
+      66% {
+        transform: translate(-50%, -50%) translate(-100px, 80px) scale(0.9);
+        opacity: 0.2;
       }
     }
 
