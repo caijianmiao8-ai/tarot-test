@@ -459,83 +459,6 @@
       transform: translateY(-1px) scale(0.98);
     }
 
-    .free-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: white;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-      animation: badge-pulse 3s ease-in-out infinite;
-    }
-
-    @keyframes badge-pulse {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-      }
-      50% {
-        transform: scale(1.05);
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
-      }
-    }
-
-    /* Stats Section */
-    .stats-section {
-      padding: 60px 22px;
-      max-width: 980px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-    }
-
-    .stat-item {
-      text-align: center;
-      padding: 30px 20px;
-      background: rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(20px) saturate(140%);
-      -webkit-backdrop-filter: blur(20px) saturate(140%);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
-    }
-
-    .stat-item:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      background: rgba(255, 255, 255, 0.65);
-    }
-
-    .stat-number {
-      font-size: 48px;
-      font-weight: 600;
-      line-height: 1;
-      color: var(--blue);
-      margin-bottom: 8px;
-      letter-spacing: -0.02em;
-    }
-
-    .stat-label {
-      font-size: 14px;
-      color: var(--gray);
-      font-weight: 400;
-      letter-spacing: -0.01em;
-    }
-
     /* Features Section */
     .section {
       padding: 100px 22px;
@@ -945,11 +868,6 @@
         font-size: 17px;
       }
 
-      .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
       .use-cases {
         grid-template-columns: 1fr;
         gap: 20px;
@@ -1045,28 +963,10 @@
   <section class="hero">
     <div class="hero-eyebrow fade-in">Coming Soon - Phase 1</div>
     <h1 class="hero-title fade-in delay-1">Control your PC<br/>from your phone.</h1>
-    <p class="hero-subtitle fade-in delay-2">Work from anywhere. Game on the go. Access your desktop with just a tap.<br/><span class="free-badge">100% Free Forever</span></p>
+    <p class="hero-subtitle fade-in delay-2">Work from anywhere. Game on the go. Access your desktop with just a tap.</p>
     <div class="cta-buttons fade-in delay-3">
       <a href="#download" class="btn btn-primary">Download Beta</a>
       <a href="#features" class="btn btn-secondary">Learn More</a>
-    </div>
-  </section>
-
-  <!-- Stats Section -->
-  <section class="stats-section">
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-number" data-target="10000">0</div>
-        <div class="stat-label">Beta Users</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" data-target="99"><span>99</span>.<span>9</span>%</div>
-        <div class="stat-label">Uptime</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" data-target="15"><span>&lt;</span>15<span>ms</span></div>
-        <div class="stat-label">Latency</div>
-      </div>
     </div>
   </section>
 
@@ -1255,56 +1155,6 @@
       const scrolled = window.pageYOffset;
       const progress = (scrolled / scrollable) * 100;
       progressBar.style.width = `${Math.min(progress, 100)}%`;
-    });
-
-    // ============= Counter Animation for Stats =============
-    const animateCounter = (element, target, duration = 2000) => {
-      let start = 0;
-      const increment = target / (duration / 16);
-      const timer = setInterval(() => {
-        start += increment;
-        if (start >= target) {
-          element.textContent = target.toLocaleString();
-          clearInterval(timer);
-        } else {
-          element.textContent = Math.floor(start).toLocaleString();
-        }
-      }, 16);
-    };
-
-    const statsObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const numberEl = entry.target.querySelector('.stat-number');
-          const target = parseInt(numberEl.dataset.target);
-          if (target && !isNaN(target)) {
-            animateCounter(numberEl, target, 2000);
-          }
-          statsObserver.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.5 });
-
-    document.querySelectorAll('.stat-item').forEach(item => {
-      item.style.opacity = '0';
-      item.style.transform = 'translateY(20px)';
-      item.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-
-      statsObserver.observe(item);
-
-      // Also fade in the stat item
-      const fadeObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            setTimeout(() => {
-              entry.target.style.opacity = '1';
-              entry.target.style.transform = 'translateY(0)';
-            }, Array.from(document.querySelectorAll('.stat-item')).indexOf(entry.target) * 150);
-          }
-        });
-      }, { threshold: 0.3 });
-
-      fadeObserver.observe(item);
     });
 
     // ============= Intersection Observer for UI Element Animations =============
