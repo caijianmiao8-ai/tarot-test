@@ -755,7 +755,8 @@
 
     /* ========= Product Screenshots Section ========= */
     .screenshots-section {
-      background: linear-gradient(to bottom, var(--light-gray), var(--white));
+      background: transparent;
+      position: relative;
     }
 
     .screenshots-container {
@@ -774,17 +775,22 @@
       gap: 24px;
     }
 
-    /* Phone Frame */
+    /* Phone Frame - Glass effect */
     .phone-frame {
       position: relative;
       width: 280px;
       height: 580px;
-      background: linear-gradient(145deg, #2d2d2f, #1a1a1c);
+      background: linear-gradient(145deg, rgba(45, 45, 47, 0.5), rgba(26, 26, 28, 0.6));
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
       border-radius: 42px;
       padding: 12px;
       box-shadow:
-        0 60px 120px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        0 40px 100px rgba(0, 0, 0, 0.12),
+        0 20px 60px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 2px 4px rgba(255, 255, 255, 0.05) inset;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .phone-notch {
@@ -794,7 +800,7 @@
       transform: translateX(-50%);
       width: 140px;
       height: 28px;
-      background: #000;
+      background: rgba(0, 0, 0, 0.95);
       border-radius: 0 0 18px 18px;
       z-index: 10;
     }
@@ -802,23 +808,28 @@
     .phone-screen {
       width: 100%;
       height: 100%;
-      background: var(--light-gray);
+      background: linear-gradient(to bottom, rgba(245, 245, 247, 0.95), rgba(245, 245, 247, 0.98));
+      backdrop-filter: blur(20px);
       border-radius: 32px;
       overflow: hidden;
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
     }
 
-    /* Desktop Frame */
+    /* Desktop Frame - Lighter, more transparent */
     .desktop-frame {
       position: relative;
       width: 100%;
       max-width: 600px;
-      background: linear-gradient(145deg, #e8e8ea, #d1d1d6);
-      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(232, 232, 234, 0.3), rgba(209, 209, 214, 0.4));
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border-radius: 16px;
       padding: 8px 8px 32px;
       box-shadow:
-        0 60px 120px rgba(0, 0, 0, 0.2),
-        0 0 0 1px rgba(0, 0, 0, 0.08);
+        0 40px 100px rgba(0, 0, 0, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .window-controls {
@@ -840,8 +851,9 @@
     .desktop-screen {
       width: 100%;
       height: 380px;
-      background: var(--light-gray);
-      border-radius: 6px;
+      background: linear-gradient(to bottom, rgba(245, 245, 247, 0.95), rgba(245, 245, 247, 0.98));
+      backdrop-filter: blur(20px);
+      border-radius: 8px;
       overflow: hidden;
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
     }
@@ -1096,7 +1108,8 @@
 
     /* ========= How it Works Section ========= */
     .how-it-works-section {
-      background: var(--white);
+      background: transparent;
+      position: relative;
     }
 
     .steps-container {
@@ -1113,20 +1126,28 @@
       flex: 1;
       min-width: 220px;
       max-width: 300px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(30px);
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 28px;
       padding: clamp(32px, 4vw, 40px);
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.04);
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.03),
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset;
       transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
       position: relative;
     }
 
     .step-card:hover {
       transform: translateY(-8px);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.08);
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.06),
+        0 20px 60px rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+      background: rgba(255, 255, 255, 0.6);
     }
 
     .step-number {
@@ -1135,7 +1156,7 @@
       right: 16px;
       width: 32px;
       height: 32px;
-      background: rgba(10, 132, 255, 0.1);
+      background: rgba(10, 132, 255, 0.08);
       color: #0A84FF;
       border-radius: 50%;
       display: flex;
@@ -1143,6 +1164,8 @@
       justify-content: center;
       font-size: 14px;
       font-weight: 600;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(10, 132, 255, 0.15);
     }
 
     .step-icon {
@@ -1169,7 +1192,7 @@
 
     .step-arrow {
       font-size: 32px;
-      color: rgba(10, 132, 255, 0.3);
+      color: rgba(10, 132, 255, 0.25);
       font-weight: 300;
       flex-shrink: 0;
     }
@@ -1181,9 +1204,14 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: clamp(40px, 6vh, 60px);
-      background: rgba(10, 132, 255, 0.03);
-      border-radius: 24px;
-      border: 1px solid rgba(10, 132, 255, 0.08);
+      background: rgba(10, 132, 255, 0.02);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border-radius: 28px;
+      border: 1px solid rgba(10, 132, 255, 0.1);
+      box-shadow:
+        0 20px 60px rgba(10, 132, 255, 0.03),
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
     }
 
     .spec-item {
@@ -1210,7 +1238,8 @@
 
     /* ========= FAQ Section ========= */
     .faq-section {
-      background: var(--light-gray);
+      background: transparent;
+      position: relative;
     }
 
     .faq-container {
@@ -1220,17 +1249,25 @@
     }
 
     .faq-item {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(30px);
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 24px;
       margin-bottom: 16px;
       overflow: hidden;
       transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
     }
 
     .faq-item:hover {
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.04),
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset;
     }
 
     .faq-question {
@@ -1319,19 +1356,26 @@
       align-items: center;
       gap: 12px;
       padding: 12px 24px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
       color: var(--white);
       text-decoration: none;
       transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     }
 
     .store-badge:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
       transform: translateY(-2px);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
     }
 
     .store-icon {
@@ -1361,21 +1405,28 @@
       align-items: center;
       gap: 12px;
       padding: 14px 20px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
       color: var(--white);
       text-decoration: none;
       transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
       flex: 1;
       min-width: 160px;
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     }
 
     .download-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
       transform: translateY(-2px);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
     }
 
     .download-icon {
@@ -1416,27 +1467,33 @@
       max-width: 600px;
       margin: 0 auto;
       padding: 16px 24px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      color: rgba(255, 255, 255, 0.85);
       font-size: 14px;
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     }
 
     .beta-icon {
       flex-shrink: 0;
-      opacity: 0.7;
+      opacity: 0.8;
     }
 
     /* Footer - Refined */
     .footer {
-      background: rgba(248, 248, 250, 0.7);
-      backdrop-filter: blur(30px) saturate(140%);
-      -webkit-backdrop-filter: blur(30px) saturate(140%);
+      background: rgba(248, 248, 250, 0.4);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
       padding: clamp(60px, 8vh, 80px) 20px clamp(32px, 5vh, 40px);
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
       position: relative;
       z-index: 1;
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.02);
     }
 
     .footer-brand-section {
@@ -1473,20 +1530,26 @@
     .social-link {
       display: flex;
       align-items: center;
-      justify-center;
+      justify-content: center;
       width: 40px;
       height: 40px;
-      background: rgba(0, 0, 0, 0.04);
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
       color: var(--gray);
       text-decoration: none;
       transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     }
 
     .social-link:hover {
-      background: rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.6);
+      border-color: rgba(0, 0, 0, 0.08);
       color: var(--near-black);
       transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
     }
 
     .social-link svg {
