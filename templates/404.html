@@ -1,0 +1,62 @@
+<!-- templates/404.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面未找到 - 塔罗每日指引</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f4e9 0%, #e8e0d1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .error-code {
+            font-size: 6rem;
+            color: #8e6c88;
+            margin: 0;
+            font-weight: bold;
+        }
+        .error-message {
+            font-size: 1.5rem;
+            color: #6d4c67;
+            margin: 20px 0;
+        }
+        .error-description {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .back-home {
+            display: inline-block;
+            background: linear-gradient(135deg, #8e6c88, #6d4c67);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: transform 0.3s;
+        }
+        .back-home:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1 class="error-code">404</h1>
+        <h2 class="error-message">页面未找到</h2>
+        <p class="error-description">您要寻找的页面似乎消失在了星空中...</p>
+        <a href="/" class="back-home">返回首页</a>
+    </div>
+</body>
+</html>

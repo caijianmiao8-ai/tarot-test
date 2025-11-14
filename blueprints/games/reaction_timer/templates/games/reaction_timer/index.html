@@ -1,0 +1,41 @@
+<!-- blueprints/games/reaction_timer/templates/games/reaction_timer/index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>反应速度测试 · Reaction Timer</title>
+  <link rel="stylesheet" href="{{ url_for('reaction_timer.static', filename='main.css') }}">
+</head>
+<body id="app-reaction-timer">
+  <main class="wrap">
+    <header class="hero">
+      <h1>反应速度测试</h1>
+      <p>当屏幕变<span class="g">绿色</span>时立刻点击（或按空格）。</p>
+    </header>
+
+    <section id="arena" class="arena state-idle" tabindex="0" aria-label="reaction-arena">
+      <div class="state-tip">
+        <div class="big">准备开始</div>
+        <div class="sub">点击这里或按 <kbd>空格</kbd> 开始</div>
+      </div>
+      <div class="time" id="time">0 ms</div>
+      <div class="false" id="false">过早点击！重新来</div>
+    </section>
+
+    <section class="panel">
+      <div class="stats">
+        <div><span class="label">本轮：</span><span id="last">—</span></div>
+        <div><span class="label">最佳：</span><span id="best">—</span></div>
+        <div><span class="label">最近5次平均：</span><span id="avg">—</span></div>
+      </div>
+      <div class="actions">
+        <button id="btnReset" class="btn secondary" type="button">重置统计</button>
+        <a href="/hub" class="btn link">返回 /hub</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="{{ url_for('reaction_timer.static', filename='main.js') }}"></script>
+</body>
+</html>
