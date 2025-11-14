@@ -30,8 +30,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      background-attachment: fixed;
+      background: #fafbfc;
       color: var(--near-black);
       line-height: 1.47059;
       font-weight: 400;
@@ -40,39 +39,47 @@
       overflow-x: hidden;
     }
 
-    /* Animated background gradient orbs */
-    body::before,
-    body::after {
-      content: '';
+    /* Dynamic background layers with parallax */
+    .bg-layer {
       position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.3;
+      inset: 0;
       pointer-events: none;
       z-index: 0;
+      overflow: hidden;
     }
 
-    body::before {
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.25;
+      will-change: transform;
+      transition: transform 0.3s ease-out;
+    }
+
+    .bg-orb-1 {
       width: 600px;
       height: 600px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      top: -300px;
-      right: -200px;
-      animation: float 20s ease-in-out infinite;
+      top: -200px;
+      right: -100px;
     }
 
-    body::after {
+    .bg-orb-2 {
       width: 500px;
       height: 500px;
       background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      bottom: -250px;
-      left: -150px;
-      animation: float 15s ease-in-out infinite reverse;
+      bottom: -200px;
+      left: -100px;
     }
 
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(50px, 50px) scale(1.1); }
+    .bg-orb-3 {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     /* Navigation - Enhanced Glass */
@@ -288,7 +295,7 @@
       margin: 0 auto;
     }
 
-    /* Use Cases - Glass Morphism */
+    /* Use Cases - Glass Morphism with Variations */
     .use-cases {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -303,11 +310,20 @@
       border-radius: 28px;
       padding: 60px 40px;
       text-align: center;
-      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
       border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
       position: relative;
       overflow: hidden;
+    }
+
+    /* Alternate styling for visual variety */
+    .use-case:nth-child(1) {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+    }
+
+    .use-case:nth-child(2) {
+      background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.05));
     }
 
     .use-case::before {
@@ -320,9 +336,25 @@
       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
     }
 
+    .use-case::after {
+      content: '';
+      position: absolute;
+      bottom: -50%;
+      right: -50%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      transition: all 0.6s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .use-case:hover::after {
+      bottom: -30%;
+      right: -30%;
+    }
+
     .use-case:hover {
       transform: translateY(-12px);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
       background: rgba(255, 255, 255, 0.5);
       border-color: rgba(255, 255, 255, 0.8);
     }
@@ -350,7 +382,7 @@
       color: var(--gray);
     }
 
-    /* Features Grid - Glass Cards */
+    /* Features Grid - Glass Cards with Variety */
     .features-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -366,14 +398,42 @@
       padding: 40px 30px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Alternating accent colors for visual interest */
+    .feature:nth-child(1) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(102, 126, 234, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
+    .feature:nth-child(2) .feature-icon { background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(245, 87, 108, 0.1)); border-color: rgba(240, 147, 251, 0.3); }
+    .feature:nth-child(3) .feature-icon { background: linear-gradient(135deg, rgba(79, 172, 254, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(79, 172, 254, 0.3); }
+    .feature:nth-child(4) .feature-icon { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); border-color: rgba(102, 126, 234, 0.3); }
+    .feature:nth-child(5) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
+    .feature:nth-child(6) .feature-icon { background: linear-gradient(135deg, rgba(245, 87, 108, 0.15), rgba(240, 147, 251, 0.1)); border-color: rgba(245, 87, 108, 0.3); }
+
+    .feature::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .feature:hover::before {
+      opacity: 1;
     }
 
     .feature:hover {
-      transform: translateY(-8px);
+      transform: translateY(-10px) scale(1.02);
       background: rgba(255, 255, 255, 0.4);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
     }
 
     .feature-icon {
@@ -384,10 +444,14 @@
       align-items: center;
       justify-content: center;
       font-size: 28px;
-      background: rgba(0, 113, 227, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 14px;
-      border: 1px solid rgba(0, 113, 227, 0.2);
+      border: 1px solid;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .feature:hover .feature-icon {
+      transform: scale(1.1) rotate(5deg);
     }
 
     .feature-title {
@@ -637,6 +701,13 @@
   </style>
 </head>
 <body>
+  <!-- Dynamic Background Layer -->
+  <div class="bg-layer">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+  </div>
+
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-container">
@@ -812,17 +883,40 @@
       });
     });
 
-    // ============= Parallax Background Orbs =============
+    // ============= Dynamic Parallax Background Orbs =============
+    const orb1 = document.querySelector('.bg-orb-1');
+    const orb2 = document.querySelector('.bg-orb-2');
+    const orb3 = document.querySelector('.bg-orb-3');
+
     let ticking = false;
     window.addEventListener('scroll', () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const scrolled = window.pageYOffset;
-          const orb1 = document.querySelector('body::before');
-          const orb2 = document.querySelector('body::after');
+          const windowHeight = window.innerHeight;
+          const docHeight = document.documentElement.scrollHeight;
+          const scrollPercent = scrolled / (docHeight - windowHeight);
 
-          // Subtle parallax - move background orbs slower than scroll
-          document.body.style.setProperty('--scroll-y', `${scrolled * 0.3}px`);
+          // Parallax movement - each orb moves at different speeds
+          if (orb1) {
+            const translateY1 = scrolled * 0.3;
+            const translateX1 = Math.sin(scrollPercent * Math.PI) * 100;
+            orb1.style.transform = `translate(${translateX1}px, ${translateY1}px)`;
+          }
+
+          if (orb2) {
+            const translateY2 = scrolled * -0.2;
+            const translateX2 = Math.cos(scrollPercent * Math.PI) * -80;
+            orb2.style.transform = `translate(${translateX2}px, ${translateY2}px)`;
+          }
+
+          if (orb3) {
+            const translateY3 = scrolled * 0.15;
+            const scale3 = 1 + (scrollPercent * 0.3);
+            orb3.style.transform = `translate(-50%, -50%) translateY(${translateY3}px) scale(${scale3})`;
+            orb3.style.opacity = 0.15 + (scrollPercent * 0.15);
+          }
+
           ticking = false;
         });
         ticking = true;
