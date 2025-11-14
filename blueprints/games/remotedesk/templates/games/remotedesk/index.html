@@ -773,6 +773,32 @@
       flex-direction: column;
       align-items: center;
       gap: 24px;
+      opacity: 0;
+      transform: translateX(0);
+      transition: none;
+    }
+
+    /* Animation states */
+    .device-preview.mobile-preview {
+      transform: translateX(-100px);
+    }
+
+    .device-preview.desktop-preview {
+      transform: translateX(100px);
+    }
+
+    .device-preview.animate-in {
+      animation: slideInDevice 1s cubic-bezier(0.28, 0.11, 0.32, 1) forwards;
+    }
+
+    @keyframes slideInDevice {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     /* Phone Frame - Glass effect */
@@ -2461,6 +2487,28 @@
       el.style.transform = 'translateY(20px)';
       el.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       featureObserver.observe(el);
+    });
+
+    // ============= Device Preview Slide-in Animation =============
+    const devicePreviewObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Add a slight delay to stagger mobile and desktop animations
+          const delay = entry.target.classList.contains('mobile-preview') ? 0 : 200;
+          setTimeout(() => {
+            entry.target.classList.add('animate-in');
+          }, delay);
+          devicePreviewObserver.unobserve(entry.target); // Only animate once
+        }
+      });
+    }, {
+      threshold: 0.2,
+      rootMargin: '0px 0px -80px 0px'
+    });
+
+    // Apply to device previews
+    document.querySelectorAll('.device-preview').forEach((el) => {
+      devicePreviewObserver.observe(el);
     });
 
     // ============= Card Hover Tilt Effect (3D) - Optimized =============
