@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>RemoteDesk - 高效远程桌面协作解决方案</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>RemoteDesk - Control Your PC from Mobile. Free Forever.</title>
+  <meta name="description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
   <style>
     * {
       margin: 0;
@@ -13,176 +13,485 @@
     }
 
     :root {
-      --primary: #4f46e5;
-      --primary-dark: #4338ca;
-      --primary-light: #6366f1;
-      --secondary: #06b6d4;
-      --text-dark: #1f2937;
-      --text-light: #6b7280;
-      --bg-light: #f9fafb;
-      --bg-white: #ffffff;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+      --black: #000000;
+      --near-black: #1d1d1f;
+      --gray: #86868b;
+      --light-gray: #f5f5f7;
+      --white: #ffffff;
+      --blue: #0071e3;
+      --blue-hover: #0077ed;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      color: var(--text-dark);
-      line-height: 1.6;
-      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: var(--white);
+      color: var(--near-black);
+      line-height: 1.47059;
+      font-weight: 400;
+      letter-spacing: -0.022em;
     }
 
-    /* 导航栏 */
+    /* Navigation */
     .navbar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 1rem 0;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      height: 48px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       z-index: 1000;
-      transition: all 0.3s ease;
-    }
-
-    .navbar.scrolled {
-      padding: 0.75rem 0;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
     }
 
     .nav-container {
-      max-width: 1200px;
+      max-width: 980px;
       margin: 0 auto;
-      padding: 0 2rem;
+      padding: 0 22px;
+      height: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
     .logo {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--primary);
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--near-black);
       text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .logo i {
-      font-size: 1.75rem;
+      letter-spacing: -0.01em;
     }
 
     .nav-links {
       display: flex;
-      gap: 2rem;
+      gap: 32px;
       list-style: none;
+      align-items: center;
     }
 
     .nav-links a {
-      color: var(--text-dark);
+      color: var(--near-black);
       text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
+      font-size: 12px;
+      opacity: 0.8;
+      transition: opacity 0.3s;
     }
 
     .nav-links a:hover {
-      color: var(--primary);
+      opacity: 1;
     }
 
-    .nav-cta {
+    /* Hero Section */
+    .hero {
+      margin-top: 48px;
+      padding: 120px 22px 100px;
+      text-align: center;
+      background: var(--white);
+    }
+
+    .hero-eyebrow {
+      font-size: 17px;
+      line-height: 1.23536;
+      font-weight: 600;
+      letter-spacing: -0.022em;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+
+    .hero-title {
+      font-size: 80px;
+      line-height: 1.05;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--near-black);
+      margin: 0 auto 20px;
+      max-width: 980px;
+    }
+
+    .hero-subtitle {
+      font-size: 28px;
+      line-height: 1.14286;
+      font-weight: 400;
+      letter-spacing: 0.007em;
+      color: var(--gray);
+      margin: 0 auto 40px;
+      max-width: 700px;
+    }
+
+    .cta-buttons {
       display: flex;
-      gap: 1rem;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
     }
 
     .btn {
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.3s;
-      border: none;
-      cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: center;
+      padding: 12px 22px;
+      font-size: 17px;
+      line-height: 1.17648;
+      font-weight: 400;
+      letter-spacing: -0.022em;
+      border-radius: 980px;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      border: none;
+      cursor: pointer;
+      min-width: 120px;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: white;
-      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+      background: var(--blue);
+      color: var(--white);
     }
 
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+      background: var(--blue-hover);
+      transform: scale(1.02);
     }
 
     .btn-secondary {
       background: transparent;
-      color: var(--primary);
-      border: 2px solid var(--primary);
+      color: var(--blue);
+      border: 1px solid var(--blue);
     }
 
     .btn-secondary:hover {
-      background: var(--primary);
-      color: white;
+      background: var(--blue);
+      color: var(--white);
     }
 
-    /* Hero 区域 */
-    .hero {
-      margin-top: 80px;
-      padding: 6rem 2rem;
+    .free-badge {
+      display: inline-block;
+      padding: 6px 12px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-      opacity: 0.3;
-    }
-
-    .hero-content {
-      max-width: 800px;
+    /* Features Section */
+    .section {
+      padding: 100px 22px;
+      max-width: 980px;
       margin: 0 auto;
-      position: relative;
-      z-index: 1;
     }
 
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      margin-bottom: 1.5rem;
-      line-height: 1.2;
-      animation: fadeInUp 0.8s ease;
+    .section-header {
+      text-align: center;
+      margin-bottom: 80px;
     }
 
-    .hero p {
-      font-size: 1.25rem;
-      margin-bottom: 2rem;
-      opacity: 0.95;
-      animation: fadeInUp 0.8s ease 0.2s backwards;
+    .section-title {
+      font-size: 56px;
+      line-height: 1.07143;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--near-black);
+      margin-bottom: 16px;
     }
 
-    .hero-buttons {
+    .section-subtitle {
+      font-size: 21px;
+      line-height: 1.381;
+      font-weight: 400;
+      letter-spacing: 0.011em;
+      color: var(--gray);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Use Cases */
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      margin-bottom: 100px;
+    }
+
+    .use-case {
+      background: var(--light-gray);
+      border-radius: 18px;
+      padding: 60px 40px;
+      text-align: center;
+      transition: transform 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .use-case:hover {
+      transform: translateY(-8px);
+    }
+
+    .use-case-icon {
+      font-size: 72px;
+      margin-bottom: 24px;
+      filter: grayscale(0.2);
+    }
+
+    .use-case-title {
+      font-size: 32px;
+      line-height: 1.125;
+      font-weight: 600;
+      letter-spacing: -0.003em;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .use-case-description {
+      font-size: 17px;
+      line-height: 1.47059;
+      font-weight: 400;
+      letter-spacing: -0.022em;
+      color: var(--gray);
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-top: 60px;
+    }
+
+    .feature {
+      text-align: center;
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
       display: flex;
-      gap: 1rem;
+      align-items: center;
       justify-content: center;
-      flex-wrap: wrap;
-      animation: fadeInUp 0.8s ease 0.4s backwards;
+      font-size: 28px;
+      color: var(--blue);
     }
 
+    .feature-title {
+      font-size: 21px;
+      line-height: 1.19048;
+      font-weight: 600;
+      letter-spacing: 0.011em;
+      color: var(--near-black);
+      margin-bottom: 8px;
+    }
+
+    .feature-description {
+      font-size: 17px;
+      line-height: 1.47059;
+      font-weight: 400;
+      letter-spacing: -0.022em;
+      color: var(--gray);
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--light-gray);
+      margin: 100px auto;
+      max-width: 980px;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: 100px 22px;
+      text-align: center;
+      background: var(--near-black);
+      color: var(--white);
+    }
+
+    .cta-section .section-title {
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+
+    .cta-section .section-subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 40px;
+    }
+
+    .cta-section .btn-primary {
+      background: var(--white);
+      color: var(--near-black);
+    }
+
+    .cta-section .btn-primary:hover {
+      background: var(--light-gray);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--light-gray);
+      padding: 60px 22px 30px;
+    }
+
+    .footer-content {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-section h3 {
+      font-size: 12px;
+      line-height: 1.33337;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--near-black);
+      margin-bottom: 16px;
+    }
+
+    .footer-section ul {
+      list-style: none;
+    }
+
+    .footer-section li {
+      margin-bottom: 8px;
+    }
+
+    .footer-section a {
+      font-size: 12px;
+      line-height: 1.33337;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--gray);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .footer-section a:hover {
+      color: var(--near-black);
+    }
+
+    .footer-bottom {
+      max-width: 980px;
+      margin: 0 auto;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-legal {
+      font-size: 12px;
+      line-height: 1.33337;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--gray);
+    }
+
+    .footer-legal a {
+      color: var(--gray);
+      text-decoration: none;
+      margin: 0 8px;
+    }
+
+    .footer-legal a:hover {
+      text-decoration: underline;
+    }
+
+    .back-link {
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1068px) {
+      .hero-title {
+        font-size: 64px;
+      }
+
+      .hero-subtitle {
+        font-size: 24px;
+      }
+
+      .section-title {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 734px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 80px 22px 60px;
+      }
+
+      .hero-title {
+        font-size: 40px;
+      }
+
+      .hero-subtitle {
+        font-size: 19px;
+      }
+
+      .section {
+        padding: 60px 22px;
+      }
+
+      .section-header {
+        margin-bottom: 50px;
+      }
+
+      .section-title {
+        font-size: 32px;
+      }
+
+      .section-subtitle {
+        font-size: 17px;
+      }
+
+      .use-cases {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .use-case {
+        padding: 40px 30px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* Animations */
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -194,480 +503,198 @@
       }
     }
 
-    /* 功能特性 */
-    .features {
-      padding: 6rem 2rem;
-      background: var(--bg-light);
+    .fade-in {
+      animation: fadeInUp 0.8s ease-out;
     }
 
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: var(--text-dark);
-    }
-
-    .section-subtitle {
-      text-align: center;
-      font-size: 1.125rem;
-      color: var(--text-light);
-      margin-bottom: 4rem;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .features-grid {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-    }
-
-    .feature-card {
-      background: white;
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      transition: all 0.3s;
-      border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .feature-card:hover {
-      transform: translateY(-8px);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .feature-icon {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1.5rem;
-      color: white;
-      font-size: 1.75rem;
-    }
-
-    .feature-card h3 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-      color: var(--text-dark);
-    }
-
-    .feature-card p {
-      color: var(--text-light);
-      line-height: 1.8;
-    }
-
-    /* 产品展示 */
-    .showcase {
-      padding: 6rem 2rem;
-      background: white;
-    }
-
-    .showcase-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      align-items: center;
-    }
-
-    .showcase-image {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      padding: 2rem;
-      box-shadow: var(--shadow-lg);
-      aspect-ratio: 16/10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 3rem;
-    }
-
-    .showcase-text h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--text-dark);
-    }
-
-    .showcase-text p {
-      color: var(--text-light);
-      font-size: 1.125rem;
-      margin-bottom: 1rem;
-      line-height: 1.8;
-    }
-
-    .showcase-features {
-      margin-top: 2rem;
-    }
-
-    .showcase-feature {
-      display: flex;
-      align-items: start;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .showcase-feature i {
-      color: var(--primary);
-      font-size: 1.25rem;
-      margin-top: 0.25rem;
-    }
-
-    /* CTA 区域 */
-    .cta {
-      padding: 6rem 2rem;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-      text-align: center;
-    }
-
-    .cta h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .cta p {
-      font-size: 1.25rem;
-      margin-bottom: 2rem;
-      opacity: 0.95;
-    }
-
-    /* 底部 */
-    .footer {
-      background: var(--text-dark);
-      color: white;
-      padding: 3rem 2rem 1.5rem;
-    }
-
-    .footer-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 3rem;
-      margin-bottom: 2rem;
-    }
-
-    .footer-section h3 {
-      margin-bottom: 1rem;
-      font-size: 1.25rem;
-    }
-
-    .footer-section ul {
-      list-style: none;
-    }
-
-    .footer-section ul li {
-      margin-bottom: 0.5rem;
-    }
-
-    .footer-section a {
-      color: rgba(255, 255, 255, 0.7);
-      text-decoration: none;
-      transition: color 0.3s;
-    }
-
-    .footer-section a:hover {
-      color: white;
-    }
-
-    .footer-bottom {
-      max-width: 1200px;
-      margin: 2rem auto 0;
-      padding-top: 2rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
-      color: rgba(255, 255, 255, 0.6);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .back-home {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: rgba(255, 255, 255, 0.7);
-      text-decoration: none;
-      transition: color 0.3s;
-    }
-
-    .back-home:hover {
-      color: white;
-    }
-
-    /* 响应式设计 */
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-      }
-
-      .hero h1 {
-        font-size: 2rem;
-      }
-
-      .hero p {
-        font-size: 1rem;
-      }
-
-      .section-title {
-        font-size: 2rem;
-      }
-
-      .showcase-content {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-bottom {
-        flex-direction: column;
-        text-align: center;
-      }
-    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
   </style>
 </head>
 <body>
-  <!-- 导航栏 -->
-  <nav class="navbar" id="navbar">
+  <!-- Navigation -->
+  <nav class="navbar">
     <div class="nav-container">
-      <a href="#" class="logo">
-        <i class="fas fa-desktop"></i>
-        <span>RemoteDesk</span>
-      </a>
+      <a href="#" class="logo">RemoteDesk</a>
       <ul class="nav-links">
-        <li><a href="#features">功能特性</a></li>
-        <li><a href="#showcase">产品展示</a></li>
-        <li><a href="#pricing">定价</a></li>
-        <li><a href="#contact">联系我们</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#download">Download</a></li>
+        <li><a href="#support">Support</a></li>
+        <li><a href="{{ url_for('index') }}">Back to Lab</a></li>
       </ul>
-      <div class="nav-cta">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">
-          <i class="fas fa-home"></i>
-          返回主页
-        </a>
-      </div>
     </div>
   </nav>
 
-  <!-- Hero 区域 -->
+  <!-- Hero Section -->
   <section class="hero">
-    <div class="hero-content">
-      <h1>高效远程桌面协作</h1>
-      <p>RemoteDesk 让您随时随地访问工作桌面，实现无缝协作。安全、快速、可靠的远程桌面解决方案。</p>
-      <div class="hero-buttons">
-        <a href="#" class="btn btn-primary">
-          <i class="fas fa-download"></i>
-          免费下载
-        </a>
-        <a href="#features" class="btn btn-secondary">
-          <i class="fas fa-play-circle"></i>
-          了解更多
-        </a>
+    <div class="hero-eyebrow fade-in">Coming Soon - Phase 1</div>
+    <h1 class="hero-title fade-in delay-1">Control your PC<br/>from your phone.</h1>
+    <p class="hero-subtitle fade-in delay-2">Work from anywhere. Game on the go. Access your desktop with just a tap.<br/><span class="free-badge">100% Free Forever</span></p>
+    <div class="cta-buttons fade-in delay-3">
+      <a href="#download" class="btn btn-primary">Download Beta</a>
+      <a href="#features" class="btn btn-secondary">Learn More</a>
+    </div>
+  </section>
+
+  <!-- Use Cases Section -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <h2 class="section-title">Built for work.<br/>Perfect for gaming.</h2>
+      <p class="section-subtitle">Whether you're accessing files from home or playing PC games on your phone, RemoteDesk delivers seamless performance.</p>
+    </div>
+
+    <div class="use-cases">
+      <div class="use-case">
+        <div class="use-case-icon">💼</div>
+        <h3 class="use-case-title">For Work</h3>
+        <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
+      </div>
+
+      <div class="use-case">
+        <div class="use-case-icon">🎮</div>
+        <h3 class="use-case-title">For Gaming</h3>
+        <p class="use-case-description">Stream your favorite PC games to your phone. Low latency, high performance, wherever you are.</p>
       </div>
     </div>
   </section>
 
-  <!-- 功能特性 -->
-  <section class="features" id="features">
-    <h2 class="section-title">强大功能特性</h2>
-    <p class="section-subtitle">为现代远程工作设计的全方位解决方案</p>
+  <!-- Features Grid -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Simple. Secure. Free.</h2>
+    </div>
+
     <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <h3>极速连接</h3>
-        <p>采用先进的编码技术，实现毫秒级延迟，带来流畅的远程桌面体验。即使在低带宽环境下也能保持高清画质。</p>
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <h3 class="feature-title">Mobile First</h3>
+        <p class="feature-description">Designed for iOS and Android. Control your PC with intuitive touch gestures.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-shield-alt"></i>
-        </div>
-        <h3>企业级安全</h3>
-        <p>端到端加密保护您的数据安全，支持多因素认证。符合 SOC 2 和 GDPR 标准，让您的远程连接无后顾之忧。</p>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Ultra Low Latency</h3>
+        <p class="feature-description">Advanced streaming technology ensures responsive, real-time control.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-users"></i>
-        </div>
-        <h3>多人协作</h3>
-        <p>支持多人同时访问同一桌面，实时协作编辑。内置音视频通话和聊天功能，团队沟通更高效。</p>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">End-to-End Encrypted</h3>
+        <p class="feature-description">Bank-level security protects your connection and data at all times.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-mobile-alt"></i>
-        </div>
-        <h3>跨平台支持</h3>
-        <p>支持 Windows、macOS、Linux、iOS 和 Android 平台。一个账号，在任何设备上都能访问您的工作环境。</p>
+      <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3 class="feature-title">Anywhere Access</h3>
+        <p class="feature-description">Connect from anywhere in the world. No VPN required.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-file-alt"></i>
-        </div>
-        <h3>文件传输</h3>
-        <p>拖拽即可在本地和远程桌面之间传输文件，支持断点续传。大文件传输也能保持稳定高速。</p>
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">One-Tap Setup</h3>
+        <p class="feature-description">No complex configuration. Just install and connect.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-chart-line"></i>
-        </div>
-        <h3>性能监控</h3>
-        <p>实时监控连接质量和资源使用情况。智能优化网络传输，自动适应不同网络环境。</p>
+      <div class="feature">
+        <div class="feature-icon">💰</div>
+        <h3 class="feature-title">Always Free</h3>
+        <p class="feature-description">No subscriptions. No hidden fees. Free forever.</p>
       </div>
     </div>
   </section>
 
-  <!-- 产品展示 -->
-  <section class="showcase" id="showcase">
-    <div class="showcase-content">
-      <div class="showcase-image">
-        <i class="fas fa-desktop"></i>
-      </div>
-      <div class="showcase-text">
-        <h2>为远程工作而生</h2>
-        <p>RemoteDesk 不仅仅是远程桌面工具，更是您的移动办公室。无论您身在何处，都能像在办公室一样高效工作。</p>
-        <div class="showcase-features">
-          <div class="showcase-feature">
-            <i class="fas fa-check-circle"></i>
-            <div>
-              <strong>一键连接</strong> - 简单直观的界面，无需复杂配置
-            </div>
-          </div>
-          <div class="showcase-feature">
-            <i class="fas fa-check-circle"></i>
-            <div>
-              <strong>自动重连</strong> - 网络中断自动恢复，不丢失工作进度
-            </div>
-          </div>
-          <div class="showcase-feature">
-            <i class="fas fa-check-circle"></i>
-            <div>
-              <strong>会话录制</strong> - 记录远程会话，便于回顾和审计
-            </div>
-          </div>
-          <div class="showcase-feature">
-            <i class="fas fa-check-circle"></i>
-            <div>
-              <strong>多显示器支持</strong> - 完美支持多屏幕工作环境
-            </div>
-          </div>
-        </div>
-      </div>
+  <div class="divider"></div>
+
+  <!-- CTA Section -->
+  <section class="cta-section" id="download">
+    <h2 class="section-title">Ready to get started?</h2>
+    <p class="section-subtitle">Join the beta and be among the first to experience<br/>mobile-to-PC remote control done right.</p>
+    <div class="cta-buttons">
+      <a href="#" class="btn btn-primary">Download for iOS</a>
+      <a href="#" class="btn btn-primary">Download for Android</a>
     </div>
   </section>
 
-  <!-- CTA 区域 -->
-  <section class="cta" id="pricing">
-    <h2>立即开始使用 RemoteDesk</h2>
-    <p>免费试用 14 天，无需信用卡</p>
-    <div class="hero-buttons">
-      <a href="#" class="btn btn-primary" style="background: white; color: var(--primary);">
-        <i class="fas fa-rocket"></i>
-        开始免费试用
-      </a>
-      <a href="#contact" class="btn btn-secondary" style="border-color: white; color: white;">
-        <i class="fas fa-envelope"></i>
-        联系销售
-      </a>
-    </div>
-  </section>
-
-  <!-- 底部 -->
-  <footer class="footer" id="contact">
+  <!-- Footer -->
+  <footer class="footer" id="support">
     <div class="footer-content">
       <div class="footer-section">
-        <h3>产品</h3>
+        <h3>Product</h3>
         <ul>
-          <li><a href="#">功能特性</a></li>
-          <li><a href="#">定价方案</a></li>
-          <li><a href="#">企业版</a></li>
-          <li><a href="#">下载中心</a></li>
+          <li><a href="#">Features</a></li>
+          <li><a href="#">Download</a></li>
+          <li><a href="#">System Requirements</a></li>
+          <li><a href="#">Roadmap</a></li>
         </ul>
       </div>
+
       <div class="footer-section">
-        <h3>支持</h3>
+        <h3>Support</h3>
         <ul>
-          <li><a href="#">帮助文档</a></li>
-          <li><a href="#">API 文档</a></li>
-          <li><a href="#">社区论坛</a></li>
-          <li><a href="#">联系支持</a></li>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Community Forum</a></li>
+          <li><a href="#">Contact Us</a></li>
         </ul>
       </div>
+
       <div class="footer-section">
-        <h3>公司</h3>
+        <h3>Company</h3>
         <ul>
-          <li><a href="#">关于我们</a></li>
-          <li><a href="#">博客</a></li>
-          <li><a href="#">招聘</a></li>
-          <li><a href="#">新闻中心</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press Kit</a></li>
         </ul>
       </div>
+
       <div class="footer-section">
-        <h3>法律</h3>
+        <h3>Legal</h3>
         <ul>
-          <li><a href="#">隐私政策</a></li>
-          <li><a href="#">服务条款</a></li>
-          <li><a href="#">Cookie 政策</a></li>
-          <li><a href="#">安全说明</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+          <li><a href="#">Data Protection</a></li>
         </ul>
       </div>
     </div>
+
     <div class="footer-bottom">
-      <p>&copy; 2024 RemoteDesk. All rights reserved. | 展示页面 by Ruoshui Lab</p>
-      <a href="{{ url_for('index') }}" class="back-home">
-        <i class="fas fa-arrow-left"></i>
-        返回实验室主页
-      </a>
+      <div class="footer-legal">
+        &copy; 2024 RemoteDesk. All rights reserved.
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookies</a>
+      </div>
+      <a href="{{ url_for('index') }}" class="back-link">← Back to Ruoshui Lab</a>
     </div>
   </footer>
 
   <script>
-    // 导航栏滚动效果
-    window.addEventListener('scroll', function() {
-      const navbar = document.getElementById('navbar');
-      if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
-      } else {
-        navbar.classList.remove('scrolled');
-      }
-    });
-
-    // 平滑滚动
+    // Smooth scroll behavior
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+          const offset = 48; // navbar height
+          const targetPosition = target.offsetTop - offset;
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
           });
         }
       });
     });
 
-    // 卡片动画
+    // Intersection Observer for animations
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -100px 0px'
     };
 
-    const observer = new IntersectionObserver(function(entries) {
+    const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.style.opacity = '1';
@@ -676,11 +703,12 @@
       });
     }, observerOptions);
 
-    document.querySelectorAll('.feature-card').forEach(card => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(30px)';
-      card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(card);
+    // Observe elements
+    document.querySelectorAll('.use-case, .feature').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      observer.observe(el);
     });
   </script>
 </body>
