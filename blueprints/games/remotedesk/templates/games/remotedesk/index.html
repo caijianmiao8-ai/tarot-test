@@ -506,6 +506,35 @@
       margin: 0 auto;
     }
 
+    /* Alternative Section Titles - Breaking the Pattern */
+    .how-it-works-title {
+      font-size: clamp(28px, 4.5vw, 48px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--near-black);
+      margin-bottom: clamp(48px, 7vh, 80px);
+      text-align: left;
+      max-width: 800px;
+    }
+
+    .faq-title {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--near-black);
+      margin-bottom: clamp(40px, 6vh, 64px);
+      text-align: left;
+    }
+
+    .cta-title {
+      font-size: clamp(36px, 5.5vw, 56px);
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: var(--white);
+      margin-bottom: clamp(32px, 5vh, 56px);
+      text-align: center;
+    }
+
     /* Use Cases - Redesigned with Better Spacing */
     .use-cases {
       display: grid;
@@ -520,7 +549,7 @@
       -webkit-backdrop-filter: blur(30px) saturate(150%);
       border-radius: 24px;
       padding: clamp(48px, 6vw, 72px) clamp(32px, 5vw, 56px);
-      text-align: center;
+      text-align: left;
       transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
       border: 1px solid rgba(255, 255, 255, 0.85);
       box-shadow:
@@ -529,6 +558,9 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.95);
       position: relative;
       overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      gap: clamp(24px, 3vw, 40px);
     }
 
     /* Subtle gradient overlays */
@@ -577,22 +609,29 @@
     }
 
     .use-case-icon {
-      font-size: clamp(56px, 8vw, 80px);
-      margin-bottom: clamp(20px, 3vh, 32px);
+      font-size: clamp(48px, 7vw, 72px);
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
-      display: inline-block;
+      flex-shrink: 0;
       transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
     }
 
     .use-case:hover .use-case-icon {
-      transform: translateY(-8px) scale(1.08);
+      transform: scale(1.1);
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.12));
-      animation: icon-bounce 0.6s ease-in-out;
     }
 
-    @keyframes icon-bounce {
-      0%, 100% { transform: translateY(-8px) scale(1.08); }
-      50% { transform: translateY(-12px) scale(1.12); }
+    .use-case-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .use-case-big-title {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--near-black);
+      margin: 0 0 clamp(16px, 2vw, 24px) 0;
     }
 
     .use-case-title {
@@ -1767,6 +1806,17 @@
 
       .use-case {
         padding: 40px 30px;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .use-case-big-title {
+        font-size: 32px;
+      }
+
+      .how-it-works-title,
+      .faq-title {
+        text-align: center;
       }
 
       .features-grid {
@@ -1864,12 +1914,6 @@
 
   <!-- Product Screenshots Section -->
   <section class="section screenshots-section">
-    <div class="section-header">
-      <div class="hero-eyebrow">See it in action</div>
-      <h2 class="section-title">Beautiful on every device.</h2>
-      <p class="section-subtitle">Native apps designed with Apple's precision.<br/>Premium experience from mobile to desktop.</p>
-    </div>
-
     <div class="screenshots-container">
       <!-- Mobile Preview -->
       <div class="device-preview mobile-preview">
@@ -1972,33 +2016,28 @@
   </section>
 
   <!-- Use Cases Section -->
-  <section class="section" id="features">
-    <div class="section-header">
-      <h2 class="section-title">Built for work.<br/>Perfect for gaming.</h2>
-      <p class="section-subtitle">Whether you're accessing files from home or playing PC games on your phone, RemoteDesk delivers seamless performance.</p>
-    </div>
-
+  <section class="section use-cases-section" id="features">
     <div class="use-cases">
       <div class="use-case">
         <div class="use-case-icon">💼</div>
-        <h3 class="use-case-title">For Work</h3>
-        <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
+        <div class="use-case-content">
+          <h2 class="use-case-big-title">Built for work.</h2>
+          <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
+        </div>
       </div>
 
       <div class="use-case">
         <div class="use-case-icon">🎮</div>
-        <h3 class="use-case-title">For Gaming</h3>
-        <p class="use-case-description">Stream your favorite PC games to your phone. Low latency, high performance, wherever you are.</p>
+        <div class="use-case-content">
+          <h2 class="use-case-big-title">Perfect for gaming.</h2>
+          <p class="use-case-description">Stream PC games to your phone. Ultra-low latency. High performance. Wherever you are.</p>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Features Grid -->
-  <section class="section">
-    <div class="section-header">
-      <h2 class="section-title">Simple. Secure. Free.</h2>
-    </div>
-
+  <section class="section features-section">
     <div class="features-grid">
       <div class="feature">
         <div class="feature-icon">📱</div>
@@ -2040,11 +2079,7 @@
 
   <!-- How it Works Section -->
   <section class="section how-it-works-section">
-    <div class="section-header">
-      <div class="hero-eyebrow">Three simple steps</div>
-      <h2 class="section-title">Get started in minutes.</h2>
-      <p class="section-subtitle">No complex setup. No technical knowledge required.<br/>Just download, pair, and control.</p>
-    </div>
+    <h2 class="how-it-works-title">Three steps. No complexity.</h2>
 
     <div class="steps-container">
       <div class="step-card">
@@ -2099,10 +2134,7 @@
 
   <!-- FAQ Section -->
   <section class="section faq-section">
-    <div class="section-header">
-      <h2 class="section-title">Frequently Asked Questions</h2>
-      <p class="section-subtitle">Everything you need to know about RemoteDesk.</p>
-    </div>
+    <h2 class="faq-title">Questions?</h2>
 
     <div class="faq-container">
       <details class="faq-item">
@@ -2209,8 +2241,7 @@
 
   <!-- CTA Section -->
   <section class="cta-section" id="download">
-    <h2 class="section-title">Ready to get started?</h2>
-    <p class="section-subtitle">Join the beta and be among the first to experience<br/>mobile-to-PC remote control done right.</p>
+    <h2 class="cta-title">Download Beta</h2>
 
     <div class="download-grid">
       <!-- Mobile Apps -->
