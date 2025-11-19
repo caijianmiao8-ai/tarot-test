@@ -9,14 +9,33 @@ import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from authlib.integrations.flask_client import OAuth
 
 # ---------------- 环境变量 ----------------
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
 WORKFLOW_ID = os.environ.get("WORKFLOW_ID")
 DATABASE_URL = os.environ.get("DATABASE_URL")  # Vercel/Supabase 设置
 
+# Google OAuth 配置
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+# 自动检测服务器 URL，支持本地和 Vercel 部署
+SERVER_URL = os.environ.get("SERVER_URL", "http://localhost:5000")
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
+
+# 初始化 OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
 
 # ---------------- 数据库连接 ----------------
 def get_db():
@@ -301,3 +320,163 @@ def generate_device_fingerprint(request):
     ua = request.headers.get('User-Agent', '')
     lang = request.headers.get('Accept-Language', '')
     return hashlib.md5(f"{ua}_{lang}".encode()).hexdigest()
+
+# ---------------- Google OAuth 路由 ----------------
+@app.route("/auth/google")
+def google_login():
+    """重定向到 Google 登录"""
+    # 动态生成回调 URL
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route("/auth/google/callback")
+def google_callback():
+    """处理 Google OAuth 回调"""
+    try:
+        # 获取访问令牌
+        token = google.authorize_access_token()
+        # 获取用户信息
+        user_info = token.get('userinfo')
+
+        if not user_info:
+            return render_template("error.html", error="无法获取 Google 用户信息")
+
+        google_id = user_info.get('sub')
+        email = user_info.get('email')
+        name = user_info.get('name')
+        picture = user_info.get('picture')
+
+        if not google_id or not email:
+            return render_template("error.html", error="Google 账户信息不完整")
+
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                # 检查是否已存在 Google OAuth 用户
+                cursor.execute(
+                    "SELECT * FROM users WHERE oauth_provider = 'google' AND oauth_id = %s",
+                    (google_id,)
+                )
+                user = cursor.fetchone()
+
+                if user:
+                    # 已存在，直接登录
+                    session['user_id'] = user['id']
+                    cursor.execute(
+                        "UPDATE users SET last_visit = CURRENT_TIMESTAMP, visit_count = visit_count + 1 WHERE id = %s",
+                        (user['id'],)
+                    )
+                    conn.commit()
+                    return redirect(url_for('index'))
+
+                # 检查邮箱是否已被其他账号使用
+                cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+                existing_user = cursor.fetchone()
+
+                if existing_user:
+                    # 邮箱已存在，让用户选择是否关联
+                    session['pending_oauth'] = {
+                        'provider': 'google',
+                        'oauth_id': google_id,
+                        'email': email,
+                        'name': name,
+                        'picture': picture,
+                        'existing_user_id': existing_user['id']
+                    }
+                    return redirect(url_for('link_account'))
+
+                # 创建新用户
+                user_id = str(uuid.uuid4())
+                device_id = generate_device_fingerprint(request)
+                cursor.execute("""
+                    INSERT INTO users (id, username, email, oauth_provider, oauth_id,
+                                       avatar_url, device_id, first_visit, last_visit,
+                                       visit_count, is_guest)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, FALSE)
+                """, (user_id, name, email, 'google', google_id, picture, device_id))
+                conn.commit()
+
+                session['user_id'] = user_id
+                return redirect(url_for('index'))
+
+        finally:
+            conn.close()
+
+    except Exception as e:
+        print(f"Google OAuth 错误: {e}")
+        return render_template("error.html", error=f"Google 登录失败: {str(e)}")
+
+@app.route("/auth/link-account", methods=["GET", "POST"])
+def link_account():
+    """账号关联页面"""
+    pending_oauth = session.get('pending_oauth')
+    if not pending_oauth:
+        return redirect(url_for('login'))
+
+    if request.method == "POST":
+        action = request.form.get('action')
+
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                if action == "link":
+                    # 关联到现有账号
+                    cursor.execute("""
+                        UPDATE users
+                        SET oauth_provider = %s,
+                            oauth_id = %s,
+                            email = %s,
+                            avatar_url = %s
+                        WHERE id = %s
+                    """, (
+                        pending_oauth['provider'],
+                        pending_oauth['oauth_id'],
+                        pending_oauth['email'],
+                        pending_oauth.get('picture'),
+                        pending_oauth['existing_user_id']
+                    ))
+                    conn.commit()
+
+                    session['user_id'] = pending_oauth['existing_user_id']
+                    session.pop('pending_oauth', None)
+
+                    cursor.execute(
+                        "UPDATE users SET last_visit = CURRENT_TIMESTAMP, visit_count = visit_count + 1 WHERE id = %s",
+                        (pending_oauth['existing_user_id'],)
+                    )
+                    conn.commit()
+
+                    return redirect(url_for('index'))
+
+                elif action == "create_new":
+                    # 创建新账号
+                    user_id = str(uuid.uuid4())
+                    device_id = generate_device_fingerprint(request)
+
+                    # 为避免邮箱冲突，在新账号的邮箱后添加标识
+                    new_email = f"{pending_oauth['oauth_id']}@google-oauth.local"
+
+                    cursor.execute("""
+                        INSERT INTO users (id, username, email, oauth_provider, oauth_id,
+                                           avatar_url, device_id, first_visit, last_visit,
+                                           visit_count, is_guest)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, FALSE)
+                    """, (
+                        user_id,
+                        pending_oauth['name'],
+                        new_email,
+                        pending_oauth['provider'],
+                        pending_oauth['oauth_id'],
+                        pending_oauth.get('picture'),
+                        device_id
+                    ))
+                    conn.commit()
+
+                    session['user_id'] = user_id
+                    session.pop('pending_oauth', None)
+                    return redirect(url_for('index'))
+
+        finally:
+            conn.close()
+
+    return render_template("link_account.html", oauth_data=pending_oauth)
