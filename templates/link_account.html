@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>账号关联 - Ruoshui Lab</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --ink-black:#1a1a1a; --paper-white:#fdfcf8; --sketch-gray:#4a4a4a; --pencil-light:#888;
+      --highlight:#ffeb3b; --google-blue:#4285F4;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;min-height:100dvh}
+    body{
+      margin:0; font-family:'Kalam','Noto Sans SC',cursive;
+      background:var(--paper-white); color:var(--ink-black);
+      display:flex; align-items:center; justify-content:center; padding:40px 16px;
+      position:relative; overflow-x:hidden;
+    }
+    body::before{
+      content:''; position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:0;
+      background-image:
+        repeating-linear-gradient(0deg,transparent,transparent 28px,#e5e5e5 28px,#e5e5e5 29px),
+        repeating-linear-gradient(90deg,transparent,transparent 1px,rgba(0,0,0,.03) 1px,rgba(0,0,0,.03) 2px);
+    }
+    .doodles{position:fixed; inset:0; pointer-events:none; opacity:.1; z-index:0}
+    .doodle{position:absolute; font-size:20px; transform:rotate(var(--rot)); filter:blur(.5px)}
+
+    .brand-top{
+      position:fixed; top:0; left:0; right:0; z-index:2;
+      background:rgba(253,252,248,.9);
+      border-bottom:2px dashed rgba(0,0,0,.12);
+      box-shadow:0 6px 12px rgba(0,0,0,.06);
+    }
+    .brand-inner{
+      max-width:960px; margin:0 auto; padding:10px 14px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .brand-name{
+      font-weight:700; letter-spacing:.4px; transform:rotate(-1deg); display:inline-block; position:relative;
+    }
+    .brand-name::after{
+      content:''; position:absolute; left:-6px; right:-6px; bottom:-4px; height:12px;
+      background:var(--highlight); opacity:.35; transform:skewX(-15deg);
+    }
+    .brand-actions a{
+      display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink-black);
+      padding:7px 12px; border:2px solid var(--ink-black); border-radius:6px 20px 6px 20px; font-weight:700;
+      box-shadow:3px 3px 0 rgba(0,0,0,.15); transition:.2s;
+    }
+    .brand-actions a:hover{ transform:translateY(-2px) rotate(-1deg) }
+
+    .link-wrap{ width:100%; max-width:600px; margin-top:72px; position:relative; z-index:1; }
+    .link-card{
+      background:#fff; padding:28px 24px;
+      border:2px solid var(--ink-black);
+      border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+      box-shadow:6px 6px 0 rgba(0,0,0,.12);
+    }
+    .title{
+      text-align:center; margin:2px 0 14px; font-weight:700; font-size:1.8rem; position:relative; display:inline-block; left:50%; transform:translateX(-50%) rotate(-0.5deg);
+    }
+    .title::after{
+      content:''; position:absolute; left:-10px; right:-10px; bottom:-6px; height:14px;
+      background:var(--highlight); opacity:.4; transform:skewX(-15deg);
+    }
+    .subtitle{ text-align:center; color:var(--sketch-gray); margin-top:6px; margin-bottom:24px; line-height:1.5; }
+
+    .oauth-info-box{
+      background:#f8f8f8; border:2px solid var(--ink-black);
+      border-radius:12px 6px 12px 6px; padding:18px; margin-bottom:24px;
+      box-shadow:3px 3px 0 rgba(0,0,0,.08);
+    }
+    .oauth-label{
+      display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:700; color:var(--google-blue);
+    }
+    .user-profile{
+      display:flex; align-items:center; gap:14px;
+      padding:14px; background:#fff; border:2px solid var(--ink-black);
+      border-radius:8px; box-shadow:2px 2px 0 rgba(0,0,0,.08);
+    }
+    .user-avatar{
+      width:48px; height:48px; border-radius:50%; border:2px solid var(--ink-black);
+      object-fit:cover;
+    }
+    .user-details{ flex:1 }
+    .user-name{ font-weight:700; font-size:1.1rem; }
+    .user-email{ font-size:.9rem; color:var(--sketch-gray); margin-top:2px; }
+
+    .info-notice{
+      background:rgba(66,133,244,.08); border:2px solid rgba(66,133,244,.3);
+      border-radius:12px 6px 12px 6px; padding:16px; margin-bottom:24px;
+      box-shadow:3px 3px 0 rgba(66,133,244,.12);
+    }
+    .info-title{
+      font-weight:700; color:var(--google-blue); margin-bottom:10px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .info-text{
+      margin:8px 0 8px 24px; font-size:.95rem; color:var(--sketch-gray); line-height:1.5;
+    }
+
+    .action-buttons{ display:flex; flex-direction:column; gap:14px; }
+    .btn-sketch{
+      width:100%; display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:14px 20px; color:var(--ink-black);
+      border:2.5px solid var(--ink-black); border-radius:6px 20px 6px 20px; font-weight:700; font-size:17px;
+      transition:.25s; text-decoration:none; box-shadow:4px 4px 0 rgba(0,0,0,.15);
+      cursor:pointer; background:#fff;
+    }
+    .btn-sketch:hover{ transform:translateY(-2px) rotate(-1deg) }
+    .btn-primary{ background:linear-gradient(135deg,#ffeb3b,#fdd835); color:var(--ink-black) }
+    .btn-secondary{ background:transparent; border-color:var(--google-blue); color:var(--google-blue) }
+
+    @media (max-width:560px){
+      .link-card{ padding:24px 18px }
+    }
+  </style>
+</head>
+<body>
+  <div class="doodles" id="doodles"></div>
+
+  <div class="brand-top">
+    <div class="brand-inner">
+      <div class="brand-name">Sketch Lab · 若水的小小工坊</div>
+      <div class="brand-actions">
+        <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 返回首页</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="link-wrap">
+    <div class="link-card">
+      <h1 class="title"><i class="fas fa-link"></i> 账号关联</h1>
+      <p class="subtitle">检测到您的邮箱已经注册过账号，请选择如何处理</p>
+
+      {% if oauth_data %}
+      <div class="oauth-info-box">
+        <div class="oauth-label">
+          <i class="fab fa-google"></i> Google 账号信息
+        </div>
+        <div class="user-profile">
+          {% if oauth_data.picture %}
+          <img src="{{ oauth_data.picture }}" alt="头像" class="user-avatar">
+          {% else %}
+          <div class="user-avatar" style="background:var(--google-blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem">
+            {{ oauth_data.name[0] if oauth_data.name else 'G' }}
+          </div>
+          {% endif %}
+          <div class="user-details">
+            <div class="user-name">{{ oauth_data.name }}</div>
+            <div class="user-email">{{ oauth_data.email }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-notice">
+        <div class="info-title">
+          <i class="fas fa-info-circle"></i> 请选择操作
+        </div>
+        <div class="info-text">
+          <strong>关联到现有账号：</strong> 将 Google 账号与当前邮箱的账号绑定，以后可以使用 Google 快速登录
+        </div>
+        <div class="info-text">
+          <strong>创建新账号：</strong> 创建一个独立的新账号，不影响原有账号
+        </div>
+      </div>
+
+      <form method="POST">
+        <div class="action-buttons">
+          <button type="submit" name="action" value="link" class="btn-sketch btn-primary">
+            <i class="fas fa-link"></i>
+            关联到现有账号
+          </button>
+
+          <button type="submit" name="action" value="create_new" class="btn-sketch btn-secondary">
+            <i class="fas fa-user-plus"></i>
+            创建新的独立账号
+          </button>
+        </div>
+      </form>
+      {% endif %}
+
+      <div style="margin-top:20px; text-align:center;">
+        <a href="{{ url_for('login') }}" style="color:var(--primary-color); text-decoration:none; font-size:.95rem;">
+          <i class="fas fa-arrow-left"></i> 返回登录
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 背景涂鸦
+    (function(){
+      const c=document.getElementById('doodles');
+      const chars=['○','△','□','◇','☆','♡','↗','↘','~','×','+','∞'];
+      for(let i=0;i<26;i++){
+        const d=document.createElement('div');
+        d.className='doodle';
+        d.textContent=chars[Math.floor(Math.random()*chars.length)];
+        d.style.left=Math.random()*100+'%';
+        d.style.top=Math.random()*100+'%';
+        d.style.setProperty('--rot', Math.random()*360+'deg');
+        c.appendChild(d);
+      }
+    })();
+  </script>
+</body>
+</html>
