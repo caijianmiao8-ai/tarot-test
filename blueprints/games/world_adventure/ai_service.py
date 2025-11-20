@@ -109,26 +109,52 @@ class AdventureAIService:
 【附近的人物】
 {chr(10).join(npc_list)}"""
 
-        # 当前任务信息
+        # 当前任务信息（强化版）
         quest_info = ""
+        next_checkpoint = None
+        checkpoint_requirement = ""
         current_quest = world_context.get('current_quest')
-        quest_progress = world_context.get('quest_progress')
-        if current_quest and quest_progress:
+        quest_progress = world_context.get('quest_progress', {})
+
+        if current_quest:
             checkpoints = current_quest.get('checkpoints', [])
-            current_checkpoint_id = quest_progress.get('current_checkpoint', 0)
-            next_checkpoint = None
+            completed = quest_progress.get('checkpoints_completed', []) if quest_progress else []
+
+            # 找到下一个未完成的检查点
             for cp in checkpoints:
-                if cp['id'] not in quest_progress.get('checkpoints_completed', []):
+                if cp.get('id') not in completed:
                     next_checkpoint = cp
                     break
 
             if next_checkpoint:
+                # 构建检查点要求说明
+                checkpoint_location = next_checkpoint.get('location', '')
+                checkpoint_npc = next_checkpoint.get('npc', '')
+                checkpoint_action = next_checkpoint.get('action', '')
+
+                requirement_parts = []
+                if checkpoint_location:
+                    requirement_parts.append(f"前往{checkpoint_location}")
+                if checkpoint_npc:
+                    requirement_parts.append(f"与{checkpoint_npc}对话")
+                if checkpoint_action:
+                    requirement_parts.append(checkpoint_action)
+
+                checkpoint_requirement = " → ".join(requirement_parts) if requirement_parts else next_checkpoint['description']
+
                 quest_info = f"""
-【当前任务】
-任务：{current_quest['quest_name']}
-目标：{current_quest['description']}
-当前步骤：{next_checkpoint['description']}
-进度：{len(quest_progress.get('checkpoints_completed', []))}/{len(checkpoints)}"""
+【🎯 当前任务 - 必须严格遵循】
+任务名称：{current_quest['quest_name']}
+任务描述：{current_quest.get('description', '')}
+✅ 已完成：{len(completed)}/{len(checkpoints)} 个检查点
+🔴 当前目标：{next_checkpoint['description']}
+📍 完成条件：{checkpoint_requirement}
+进度：{'▓' * len(completed)}{'░' * (len(checkpoints) - len(completed))}"""
+            else:
+                quest_info = f"""
+【🎯 当前任务】
+任务名称：{current_quest['quest_name']}
+状态：✅ 所有检查点已完成！准备结束任务。"""
 
         # 角色信息
         character_info = f"""
@@ -154,6 +180,47 @@ class AdventureAIService:
 【已探索】
 {', '.join(loc_names)}"""
 
+        # 构建严格的 DM 指令
+        dm_instruction = ""
+        if next_checkpoint:
+            dm_instruction = f"""
+**🎯 DM 核心职责：严格引导玩家完成当前检查点**
+
+【当前检查点目标】
+{next_checkpoint['description']}
+完成条件：{checkpoint_requirement}
+
+**你必须做到：**
+1. **检查玩家行动是否符合检查点要求**：
+   - 如果玩家的行动{checkpoint_requirement}，那么检查点完成，给予明确反馈："✅ 你完成了：{next_checkpoint['description']}"
+   - 如果玩家偏离目标，温和提醒："（当前目标是{next_checkpoint['description']}，你或许应该...）"
+
+2. **引导而非强迫**：
+   - 描述当前行动的结果
+   - 然后自然地暗示检查点方向，例如：
+     * 如果需要与NPC对话："你注意到{checkpoint_npc}正在XXX，看起来有话要说"
+     * 如果需要前往地点："远处的{checkpoint_location}似乎是答案所在"
+     * 如果需要特定行动："现在正是{checkpoint_action}的好时机"
+
+3. **给出的行动选择必须包含检查点方向**：
+   - 选项A：直接推进检查点的行动
+   - 选项B：间接有助于检查点的行动
+   - 选项C：探索/互动，但不偏离太远
+
+**严禁**：
+- ❌ 给出与检查点完全无关的选择
+- ❌ 让玩家越走越远
+- ❌ 引入新的剧情线干扰主线
+"""
+        else:
+            dm_instruction = """
+**作为经验丰富的 DM，请回应玩家的行动：**
+
+1. **描述结果**：根据判定结果或行动性质描述发生了什么
+2. **提供选择**：给出2-3个有趣的探索方向
+3. **保持沉浸感**：使用生动描述让世界鲜活
+"""
+
         prompt = f"""{world_info}{location_info}{npcs_info}{quest_info}{character_info}{dice_info}{explored_info}
 
 【最近对话】
@@ -164,22 +231,13 @@ class AdventureAIService:
 
 ---
 
-**作为经验丰富的 DM，请回应玩家的行动：**
+{dm_instruction}
 
-1. **描述结果**：根据判定结果（如果有）或行动性质，描述发生了什么
-2. **推进剧情**：{
-   '引导玩家向任务目标前进' if current_quest
-   else '提供探索线索或遇到有趣的情况'
-}
-3. **提供选择**：给出2-3个接下来可能的行动方向
-4. **保持沉浸感**：使用生动的描述，让玩家感受到世界的真实感
-
-**重要**：
-- 如果玩家在完成任务步骤，明确说明"你完成了XXX"
-- 如果遇到NPC，让NPC说话互动
-- 如果到达新地点，详细描述周围环境
-- 回复长度：150-250字
+**回复格式要求**：
+- 长度：150-250字
 - 直接给出DM叙述，不要元信息
+- 使用生动的场景描写
+- 如果NPC说话，用引号："..."
 
 DM回应："""
 

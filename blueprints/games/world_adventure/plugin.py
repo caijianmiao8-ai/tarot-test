@@ -586,6 +586,54 @@ def api_run_action(run_id):
             run_data
         )
 
+        # 【V2 新增】智能行为分析
+        from .game_engine import ActionAnalyzer, CheckpointDetector
+
+        analysis = ActionAnalyzer.analyze_action(
+            action_text,
+            world_context,
+            run_data
+        )
+
+        # 【V2 新增】自动更新世界状态（NPC关系、地点探索）
+        state_updates = ActionAnalyzer.auto_update_world_state(
+            analysis,
+            action_result,
+            user_id,
+            run_data['world_id'],
+            run_id
+        )
+
+        # 【V2 新增】检查点完成检测
+        checkpoint_completed = False
+        checkpoint_message = ""
+        current_quest = world_context.get('current_quest')
+        quest_progress = world_context.get('quest_progress', {})
+
+        if current_quest:
+            checkpoints = current_quest.get('checkpoints', [])
+            completed_ids = quest_progress.get('checkpoints_completed', []) if quest_progress else []
+
+            # 找到当前检查点
+            for cp in checkpoints:
+                if cp.get('id') not in completed_ids:
+                    # 检测是否完成
+                    detection = CheckpointDetector.check_checkpoint_completion(
+                        cp, analysis, action_result, world_context, user_id, run_data['world_id']
+                    )
+
+                    if detection['completed']:
+                        # 更新任务进度
+                        engine.quest.update_quest_progress(
+                            user_id,
+                            run_data['world_id'],
+                            current_quest['id'],
+                            cp['id']
+                        )
+                        checkpoint_completed = True
+                        checkpoint_message = f"\n\n✅ **任务进度更新**：{detection['reason']}"
+                    break
+
         # 使用 V2 AI 服务生成 DM 响应
         dm_response = AdventureAIService.generate_dm_response_v2(
             world_context=world_context,
@@ -594,6 +642,10 @@ def api_run_action(run_id):
             conversation_history=conversation_history,
             action_result=action_result
         )
+
+        # 如果检查点完成，在DM响应后添加系统消息
+        if checkpoint_completed and checkpoint_message:
+            dm_response = (dm_response or "") + checkpoint_message
 
         # 如果 AI 返回 None，使用默认响应
         if dm_response is None:

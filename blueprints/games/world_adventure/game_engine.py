@@ -488,3 +488,178 @@ class GameEngine:
         }
 
         return context
+
+
+class ActionAnalyzer:
+    """智能行为分析器 - 识别玩家行动类型并触发世界状态更新"""
+
+    @staticmethod
+    def analyze_action(action_text, world_context, character):
+        """
+        分析玩家行动，识别类型和目标
+
+        返回: {
+            'action_type': 'dialogue'/'explore'/'combat'/'investigate'/'other',
+            'targets': ['npc_name'/  'location_name'/...],
+            'keywords': [...]
+        }
+        """
+        action_lower = action_text.lower()
+        analysis = {
+            'action_type': 'other',
+            'targets': [],
+            'keywords': []
+        }
+
+        # 对话关键词
+        dialogue_keywords = ['询问', '交谈', '对话', '说话', '问', '告诉', '和', '与', '向', '说', '聊']
+        # 探索关键词
+        explore_keywords = ['前往', '走向', '去', '进入', '到达', '移动', '探索', '寻找']
+        # 调查关键词
+        investigate_keywords = ['调查', '搜索', '检查', '观察', '查看', '寻找', '搜寻']
+        # 战斗关键词
+        combat_keywords = ['攻击', '战斗', '打', '杀', '砍', '射', '刺']
+
+        # 识别行动类型
+        if any(kw in action_lower for kw in dialogue_keywords):
+            analysis['action_type'] = 'dialogue'
+        elif any(kw in action_lower for kw in explore_keywords):
+            analysis['action_type'] = 'explore'
+        elif any(kw in action_lower for kw in combat_keywords):
+            analysis['action_type'] = 'combat'
+        elif any(kw in action_lower for kw in investigate_keywords):
+            analysis['action_type'] = 'investigate'
+
+        # 识别目标NPC
+        nearby_npcs = world_context.get('nearby_npcs', [])
+        for npc in nearby_npcs:
+            npc_name = npc.get('npc_name', '')
+            if npc_name in action_text:
+                analysis['targets'].append({
+                    'type': 'npc',
+                    'id': npc.get('id'),
+                    'name': npc_name
+                })
+
+        # 识别目标地点（从世界中的所有地点）
+        # 这里简化处理，实际应该从数据库查询
+        current_location = world_context.get('current_location')
+        if current_location:
+            location_name = current_location.get('location_name', '')
+            # 如果行动提到当前地点，标记为探索当前位置
+            if location_name in action_text:
+                analysis['targets'].append({
+                    'type': 'location',
+                    'id': current_location.get('id'),
+                    'name': location_name
+                })
+
+        return analysis
+
+    @staticmethod
+    def auto_update_world_state(analysis, action_result, user_id, world_id, run_id):
+        """
+        根据行为分析自动更新世界状态
+        """
+        updates = []
+
+        # 如果是对话行动且成功，更新NPC关系
+        if analysis['action_type'] == 'dialogue':
+            for target in analysis['targets']:
+                if target['type'] == 'npc':
+                    # 根据成功等级决定关系变化
+                    quality = 'positive' if action_result.get('success') else 'neutral'
+                    WorldStateTracker.record_npc_interaction(
+                        user_id, world_id, target['id'], quality
+                    )
+                    updates.append(f"与{target['name']}的关系发生变化")
+
+        # 如果是探索行动，可能发现新地点（这里简化，实际需要更复杂的逻辑）
+        if analysis['action_type'] == 'explore':
+            for target in analysis['targets']:
+                if target['type'] == 'location':
+                    WorldStateTracker.update_current_location(
+                        user_id, world_id, target['id']
+                    )
+                    updates.append(f"探索了{target['name']}")
+
+        return updates
+
+
+class CheckpointDetector:
+    """检查点完成检测器 - 自动识别玩家是否完成任务检查点"""
+
+    @staticmethod
+    def check_checkpoint_completion(checkpoint, analysis, action_result, world_context, user_id, world_id):
+        """
+        检测检查点是否完成
+
+        checkpoint: 检查点数据
+        analysis: 行为分析结果
+        action_result: 行动结果（骰子等）
+        world_context: 世界上下文
+
+        返回: {
+            'completed': True/False,
+            'reason': '完成原因说明'
+        }
+        """
+        result = {
+            'completed': False,
+            'reason': ''
+        }
+
+        # 检查点要求
+        required_location = checkpoint.get('location', '')
+        required_npc = checkpoint.get('npc', '')
+        required_action = checkpoint.get('action', '')
+
+        checks = []
+
+        # 检查地点要求
+        if required_location:
+            current_loc = world_context.get('current_location', {})
+            current_loc_name = current_loc.get('location_name', '')
+            if required_location in current_loc_name or current_loc_name in required_location:
+                checks.append(('location', True))
+            else:
+                checks.append(('location', False))
+                result['reason'] = f"需要在{required_location}，当前在{current_loc_name}"
+
+        # 检查NPC要求
+        if required_npc:
+            npc_matched = False
+            for target in analysis.get('targets', []):
+                if target['type'] == 'npc' and required_npc in target['name']:
+                    npc_matched = True
+                    break
+            checks.append(('npc', npc_matched))
+            if not npc_matched:
+                result['reason'] = f"需要与{required_npc}互动"
+
+        # 检查行动类型要求
+        if required_action:
+            action_type = analysis.get('action_type', '')
+            # 简化匹配逻辑
+            action_matched = False
+            if '对话' in required_action and action_type == 'dialogue':
+                action_matched = True
+            elif '探索' in required_action or '前往' in required_action and action_type == 'explore':
+                action_matched = True
+            elif '调查' in required_action and action_type == 'investigate':
+                action_matched = True
+
+            checks.append(('action', action_matched))
+            if not action_matched:
+                result['reason'] = f"需要{required_action}"
+
+        # 所有检查都通过才算完成
+        if checks and all(check[1] for check in checks):
+            # 额外检查：行动需要成功（至少部分成功）
+            if action_result.get('success', True):  # 没有判定默认成功
+                result['completed'] = True
+                result['reason'] = f"完成了检查点：{checkpoint.get('description')}"
+            else:
+                result['reason'] = "行动失败，检查点未完成"
+
+        return result
