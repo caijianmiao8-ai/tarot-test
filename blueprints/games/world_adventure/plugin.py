@@ -713,15 +713,27 @@ def api_run_action(run_id):
         checkpoint_completed = False
         checkpoint_message = ""
         current_quest = world_context.get('current_quest')
-        quest_progress = world_context.get('quest_progress', {})
+        quest_progress = world_context.get('quest_progress') or {}  # 确保不是 None
 
         if current_quest:
             checkpoints = current_quest.get('checkpoints', [])
-            completed_ids = quest_progress.get('checkpoints_completed', []) if quest_progress else []
+            completed_ids = quest_progress.get('checkpoints_completed', [])
 
-            # 找到当前检查点
+            # 调试日志
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[任务检测] 任务ID: {current_quest.get('id')}")
+            logger.info(f"[任务检测] 检查点总数: {len(checkpoints)}")
+            logger.info(f"[任务检测] 已完成ID列表: {completed_ids} (类型: {[type(x).__name__ for x in completed_ids]})")
+
+            # 找到当前检查点（第一个未完成的）
             for cp in checkpoints:
-                if cp.get('id') not in completed_ids:
+                cp_id = cp.get('id')
+                is_completed = cp_id in completed_ids
+                logger.info(f"[任务检测] 检查点 {cp_id} (类型: {type(cp_id).__name__}): {'已完成 ✅' if is_completed else '未完成 ⭕'}")
+
+                if not is_completed:
+                    logger.info(f"[任务检测] 开始检测检查点 {cp_id}: {cp.get('description')}")
                     # 检测是否完成
                     detection = CheckpointDetector.check_checkpoint_completion(
                         cp, analysis, action_result, world_context, user_id, run_data['world_id']
