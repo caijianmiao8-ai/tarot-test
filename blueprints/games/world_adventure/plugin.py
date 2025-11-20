@@ -826,7 +826,7 @@ def api_run_action(run_id):
         updated_grid = world_context.get('current_grid')
         updated_npcs = world_context.get('nearby_npcs', [])
         updated_quest = world_context.get('current_quest')
-        updated_quest_progress = world_context.get('quest_progress', {})
+        updated_quest_progress = world_context.get('quest_progress') or {}  # 确保不是 None
 
         # 构建简化的NPC数据（用于前端显示）
         npcs_for_frontend = []
