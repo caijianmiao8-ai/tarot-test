@@ -68,8 +68,137 @@ class AdventureAIService:
             }
 
     @staticmethod
+    def generate_dm_response_v2(world_context, character, player_action, conversation_history=None,
+                                 action_result=None):
+        """
+        生成 DM 响应 (v2 - 使用完整世界上下文)
+
+        world_context: 包含当前位置、NPC、任务等完整信息
+        action_result: 骰子判定结果（如果有）
+        """
+        # 构建历史对话
+        history_text = ""
+        if conversation_history:
+            history_text = "\n".join([
+                f"{'DM' if msg['role'] == 'dm' else '玩家'}: {msg['content']}"
+                for msg in conversation_history[-15:]  # 增加到15条
+            ])
+
+        # 构建世界信息
+        world_info = f"""【世界背景】
+世界名称：{world_context['world_name']}
+世界传说：{world_context['world_lore'][:300]}"""
+
+        # 当前位置信息
+        location_info = ""
+        current_loc = world_context.get('current_location')
+        if current_loc:
+            location_info = f"""
+【当前位置】
+地点：{current_loc['location_name']}
+描述：{current_loc['description']}
+危险等级：{current_loc.get('danger_level', 'unknown')}/10"""
+
+        # 附近NPC信息
+        npcs_info = ""
+        nearby_npcs = world_context.get('nearby_npcs', [])
+        if nearby_npcs:
+            npc_list = [f"- {npc['npc_name']} ({npc['role']}): {npc.get('personality', '')}"
+                       for npc in nearby_npcs[:3]]
+            npcs_info = f"""
+【附近的人物】
+{chr(10).join(npc_list)}"""
+
+        # 当前任务信息
+        quest_info = ""
+        current_quest = world_context.get('current_quest')
+        quest_progress = world_context.get('quest_progress')
+        if current_quest and quest_progress:
+            checkpoints = current_quest.get('checkpoints', [])
+            current_checkpoint_id = quest_progress.get('current_checkpoint', 0)
+            next_checkpoint = None
+            for cp in checkpoints:
+                if cp['id'] not in quest_progress.get('checkpoints_completed', []):
+                    next_checkpoint = cp
+                    break
+
+            if next_checkpoint:
+                quest_info = f"""
+【当前任务】
+任务：{current_quest['quest_name']}
+目标：{current_quest['description']}
+当前步骤：{next_checkpoint['description']}
+进度：{len(quest_progress.get('checkpoints_completed', []))}/{len(checkpoints)}"""
+
+        # 角色信息
+        character_info = f"""
+【角色】
+名字：{character.get('char_name')}
+职业：{character.get('char_class')}
+能力：⚔️战斗{character.get('ability_combat')}/10 | 💬社交{character.get('ability_social')}/10 | 🥷潜行{character.get('ability_stealth')}/10 | 📚知识{character.get('ability_knowledge')}/10 | 🏕️生存{character.get('ability_survival')}/10"""
+
+        # 骰子判定结果
+        dice_info = ""
+        if action_result and action_result.get('requires_check'):
+            dice_result = action_result.get('dice_result', {})
+            dice_info = f"""
+【判定结果】
+{action_result.get('narrative', '')}"""
+
+        # 已探索的地点
+        explored_info = ""
+        discovered = world_context.get('discovered_locations', [])
+        if discovered:
+            loc_names = [loc['location_name'] for loc in discovered[:5]]
+            explored_info = f"""
+【已探索】
+{', '.join(loc_names)}"""
+
+        prompt = f"""{world_info}{location_info}{npcs_info}{quest_info}{character_info}{dice_info}{explored_info}
+
+【最近对话】
+{history_text if history_text else '(冒险刚刚开始)'}
+
+【玩家行动】
+{player_action}
+
+---
+
+**作为经验丰富的 DM，请回应玩家的行动：**
+
+1. **描述结果**：根据判定结果（如果有）或行动性质，描述发生了什么
+2. **推进剧情**：{
+   '引导玩家向任务目标前进' if current_quest
+   else '提供探索线索或遇到有趣的情况'
+}
+3. **提供选择**：给出2-3个接下来可能的行动方向
+4. **保持沉浸感**：使用生动的描述，让玩家感受到世界的真实感
+
+**重要**：
+- 如果玩家在完成任务步骤，明确说明"你完成了XXX"
+- 如果遇到NPC，让NPC说话互动
+- 如果到达新地点，详细描述周围环境
+- 回复长度：150-250字
+- 直接给出DM叙述，不要元信息
+
+DM回应："""
+
+        provider = AdventureAIService.get_provider()
+
+        if provider == "openrouter":
+            return AdventureAIService._call_openrouter_chat(prompt)
+        elif provider == "openai":
+            return AdventureAIService._call_openai_chat(prompt)
+        elif provider == "claude":
+            return AdventureAIService._call_claude(prompt)
+        elif provider == "dify":
+            return AdventureAIService._call_dify(prompt)
+        else:
+            return f"(你执行了行动: {player_action[:50]}...)，周围的环境发生了一些变化..."
+
+    @staticmethod
     def generate_dm_response(run, character, world, player_action, conversation_history=None):
-        """生成 DM 响应"""
+        """生成 DM 响应 (v1 - 保持向后兼容)"""
         history_text = ""
         if conversation_history:
             history_text = "\n".join([
