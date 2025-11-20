@@ -460,6 +460,9 @@ def api_run_start():
         # 初始化游戏引擎
         engine = GameEngine()
 
+        # 【修复】先在连接外获取或创建玩家进度，避免嵌套连接
+        progress = engine.state.get_or_create_player_progress(user_id, world_id)
+
         # 验证世界和角色存在
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
@@ -473,11 +476,10 @@ def api_run_start():
                 if not character:
                     return jsonify({"ok": False, "error": "角色不存在"}), 400
 
-                # 获取或创建玩家进度
-                progress = engine.state.get_or_create_player_progress(user_id, world_id)
-
                 # 获取初始位置（已发现的地点，或世界起始地点）
                 start_location_id = None
+                need_update_location = False
+
                 if progress.get('current_location_id'):
                     start_location_id = progress['current_location_id']
                 else:
@@ -491,8 +493,7 @@ def api_run_start():
                     start_loc = cur.fetchone()
                     if start_loc:
                         start_location_id = start_loc['id']
-                        # 设置为当前位置
-                        engine.state.update_current_location(user_id, world_id, start_location_id)
+                        need_update_location = True
 
                 # 获取或分配主线任务
                 current_quest_id = None
@@ -505,6 +506,10 @@ def api_run_start():
                 quest = cur.fetchone()
                 if quest:
                     current_quest_id = quest['id']
+
+        # 【修复】在连接外更新位置，避免嵌套连接
+        if need_update_location and start_location_id:
+            engine.state.update_current_location(user_id, world_id, start_location_id)
 
         # 创建Run
         run_title = f"{character['char_name']}在{world['world_name']}的冒险"
