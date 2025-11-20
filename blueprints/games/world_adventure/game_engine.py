@@ -204,8 +204,8 @@ class WorldStateTracker:
                     UPDATE player_world_progress
                     SET discovered_locations =
                         CASE
-                            WHEN discovered_locations::jsonb ? %s THEN discovered_locations
-                            ELSE (discovered_locations::jsonb || %s::jsonb)::text
+                            WHEN discovered_locations ? %s THEN discovered_locations
+                            ELSE discovered_locations || %s::jsonb
                         END
                     WHERE user_id = %s AND world_id = %s
                 """, (location_id, json.dumps([location_id]), user_id, world_id))
@@ -231,8 +231,8 @@ class WorldStateTracker:
                     UPDATE player_world_progress
                     SET visited_npcs =
                         CASE
-                            WHEN visited_npcs::jsonb ? %s THEN visited_npcs
-                            ELSE (visited_npcs::jsonb || %s::jsonb)::text
+                            WHEN visited_npcs ? %s THEN visited_npcs
+                            ELSE visited_npcs || %s::jsonb
                         END
                     WHERE user_id = %s AND world_id = %s
                 """, (npc_id, json.dumps([npc_id]), user_id, world_id))
