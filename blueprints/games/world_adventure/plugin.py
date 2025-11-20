@@ -190,7 +190,7 @@ def character_create_page():
 
 @bp.get("/runs/<run_id>/play")
 def run_play_page(run_id):
-    """Run 游玩页面"""
+    """Run 游玩页面 (V2 - 包含任务/地点/NPC 数据)"""
     user_id = _get_user_id()
 
     # 获取 Run 详细信息
@@ -210,8 +210,46 @@ def run_play_page(run_id):
             """, (run_id,))
             run = cur.fetchone()
 
-    if not run:
-        return "Run 不存在", 404
+            if not run:
+                return "Run 不存在", 404
+
+            # V2: 获取当前任务信息
+            current_quest = None
+            quest_progress = None
+            if run.get('current_quest_id'):
+                cur.execute("""
+                    SELECT * FROM world_quests WHERE id = %s
+                """, (run['current_quest_id'],))
+                current_quest = cur.fetchone()
+
+                # 获取玩家任务进度
+                if current_quest:
+                    cur.execute("""
+                        SELECT quest_progress FROM player_world_progress
+                        WHERE user_id = %s AND world_id = %s
+                    """, (run['user_id'], run['world_id']))
+                    progress_row = cur.fetchone()
+                    if progress_row and progress_row['quest_progress']:
+                        quest_progress = progress_row['quest_progress'].get(str(run['current_quest_id']), {})
+
+            # V2: 获取当前地点信息
+            current_location = None
+            if run.get('current_location_id'):
+                cur.execute("""
+                    SELECT * FROM world_locations WHERE id = %s
+                """, (run['current_location_id'],))
+                current_location = cur.fetchone()
+
+            # V2: 获取附近的 NPC
+            nearby_npcs = []
+            if run.get('current_location_id'):
+                cur.execute("""
+                    SELECT * FROM world_npcs
+                    WHERE world_id = %s AND current_location_id = %s
+                    ORDER BY interaction_count DESC
+                    LIMIT 5
+                """, (run['world_id'], run['current_location_id']))
+                nearby_npcs = cur.fetchall()
 
     # 权限检查(简化版)
     if user_id and run.get('user_id') != user_id:
@@ -219,7 +257,11 @@ def run_play_page(run_id):
 
     return render_template(
         f"games/{SLUG}/run_play.html",
-        run=run
+        run=run,
+        current_quest=current_quest,
+        quest_progress=quest_progress,
+        current_location=current_location,
+        nearby_npcs=nearby_npcs
     )
 
 

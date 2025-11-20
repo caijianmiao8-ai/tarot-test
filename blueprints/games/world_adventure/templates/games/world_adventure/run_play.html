@@ -272,6 +272,101 @@
                 transform: scale(1);
             }
         }
+        .dice-roll {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(243, 156, 18, 0.2);
+            border: 2px solid #f39c12;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: bold;
+        }
+        .dice-roll.critical {
+            border-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .dice-roll.success {
+            border-color: #3498db;
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+        .dice-roll.partial {
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+        .dice-roll.failure {
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+        .dice-icon {
+            font-size: 1.5em;
+            animation: rollDice 0.5s ease;
+        }
+        @keyframes rollDice {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+        .quest-progress {
+            margin-top: 10px;
+        }
+        .checkpoint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 0.9em;
+        }
+        .checkpoint-icon {
+            font-size: 1.1em;
+        }
+        .checkpoint.completed {
+            color: #2ecc71;
+        }
+        .checkpoint.pending {
+            color: #888;
+        }
+        .npc-list {
+            margin-top: 10px;
+        }
+        .npc-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(26, 77, 122, 0.3);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .npc-mood {
+            font-size: 1.2em;
+        }
+        .location-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .location-badge.safe {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .location-badge.medium {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+        .location-badge.dangerous {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
         .actions-bar {
             display: flex;
             gap: 10px;
@@ -338,16 +433,72 @@
     <div class="main-container">
         <!-- 侧边栏 -->
         <div class="sidebar">
-            <h3>📋 任务信息</h3>
+            <!-- 当前地点 (V2) -->
+            {% if current_location %}
+            <h3>📍 当前位置</h3>
             <div class="info-item">
-                <div class="info-label">任务类型</div>
-                <div class="info-value">{{ run.run_type or '探索' }}</div>
+                <div class="info-value" style="font-size: 1.1em; margin-bottom: 8px;">
+                    {{ current_location.location_name }}
+                </div>
+                <div class="info-label" style="line-height: 1.5;">
+                    {{ current_location.description[:100] }}{% if current_location.description and current_location.description|length > 100 %}...{% endif %}
+                </div>
+                {% if current_location.danger_level %}
+                <span class="location-badge {{ 'safe' if current_location.danger_level <= 3 else ('medium' if current_location.danger_level <= 7 else 'dangerous') }}">
+                    {% if current_location.danger_level <= 3 %}
+                    ✅ 安全区域
+                    {% elif current_location.danger_level <= 7 %}
+                    ⚠️ 中等危险
+                    {% else %}
+                    ☠️ 高度危险
+                    {% endif %}
+                </span>
+                {% endif %}
             </div>
-            <div class="info-item">
-                <div class="info-label">任务目标</div>
-                <div class="info-value">{{ run.mission_objective or '未知' }}</div>
-            </div>
+            {% endif %}
 
+            <!-- 附近的 NPC (V2) -->
+            {% if nearby_npcs %}
+            <h3 style="margin-top: 30px;">👥 附近的人物</h3>
+            <div class="npc-list">
+                {% for npc in nearby_npcs %}
+                <div class="npc-item">
+                    <span class="npc-mood">{{ npc.mood_icon or '😐' }}</span>
+                    <div>
+                        <div style="font-weight: 500;">{{ npc.npc_name }}</div>
+                        <div style="font-size: 0.85em; color: #888;">{{ npc.role }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- 当前任务 (V2) -->
+            <h3 style="margin-top: 30px;">📜 当前任务</h3>
+            {% if current_quest %}
+            <div class="info-item">
+                <div class="info-value" style="margin-bottom: 8px;">{{ current_quest.quest_name }}</div>
+                <div class="info-label" style="margin-bottom: 10px;">
+                    {{ current_quest.description[:80] }}{% if current_quest.description and current_quest.description|length > 80 %}...{% endif %}
+                </div>
+                {% if current_quest.checkpoints %}
+                <div class="quest-progress">
+                    {% for checkpoint in current_quest.checkpoints %}
+                    <div class="checkpoint {{ 'completed' if quest_progress and quest_progress.get(checkpoint.id) else 'pending' }}">
+                        <span class="checkpoint-icon">{{ '✅' if quest_progress and quest_progress.get(checkpoint.id) else '⭕' }}</span>
+                        <span>{{ checkpoint.description }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="info-item">
+                <div class="info-label">自由探索中</div>
+            </div>
+            {% endif %}
+
+            <!-- 角色能力 -->
             <h3 style="margin-top: 30px;">👤 角色能力</h3>
             <div class="abilities">
                 <div class="ability-bar">
@@ -430,8 +581,8 @@
             }
         }
 
-        // 添加消息到界面
-        function addMessage(role, content, animate = true) {
+        // 添加消息到界面 (V2 - 支持骰子结果)
+        function addMessage(role, content, animate = true, diceResult = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
             if (!animate) messageDiv.style.animation = 'none';
@@ -439,10 +590,39 @@
             const avatar = role === 'dm' ? '🎭' : '👤';
             const roleName = role === 'dm' ? 'AI DM' : '你';
 
+            let diceHtml = '';
+            if (diceResult) {
+                const level = diceResult.level || 'partial';
+                const abilityIcons = {
+                    'combat': '⚔️',
+                    'social': '💬',
+                    'stealth': '🥷',
+                    'knowledge': '📚',
+                    'survival': '🏕️'
+                };
+                const abilityIcon = abilityIcons[diceResult.ability] || '🎲';
+
+                const levelText = {
+                    'critical': '💎 大成功',
+                    'success': '✅ 成功',
+                    'partial': '⚠️ 部分成功',
+                    'failure': '❌ 失败'
+                };
+
+                diceHtml = `
+                    <div class="dice-roll ${level}">
+                        <span class="dice-icon">🎲</span>
+                        <span>${abilityIcon} ${diceResult.roll} + ${diceResult.modifier} = ${diceResult.total}</span>
+                        <span style="margin-left: 8px; font-weight: bold;">${levelText[level] || level}</span>
+                    </div>
+                `;
+            }
+
             messageDiv.innerHTML = `
                 <div class="message-avatar">${avatar}</div>
                 <div>
                     <div class="message-role">${roleName}</div>
+                    ${diceHtml}
                     <div class="message-content">${escapeHtml(content)}</div>
                 </div>
             `;
@@ -510,8 +690,8 @@
                 hideTypingIndicator();
 
                 if (result.ok) {
-                    // 显示 DM 响应
-                    addMessage('dm', result.dm_response);
+                    // V2: 显示 DM 响应（带骰子结果）
+                    addMessage('dm', result.dm_response, true, result.dice_result);
 
                     // 检查是否结束
                     if (result.run_ended) {
@@ -520,6 +700,8 @@
                                 window.location.reload();
                             }
                         }, 2000);
+                    } else {
+                        // 如果有任务完成，可以在这里显示提示（未来扩展）
                     }
                 } else {
                     alert(result.error || '发送失败，请重试');
