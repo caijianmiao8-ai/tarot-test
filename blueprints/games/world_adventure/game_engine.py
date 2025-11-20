@@ -175,12 +175,12 @@ class WorldStateTracker:
                     cur.execute("""
                         INSERT INTO player_world_progress
                         (id, user_id, world_id, discovered_locations, visited_npcs,
-                         active_quests, completed_quests, npc_relationships, faction_reputation)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         active_quests, completed_quests, quest_progress, npc_relationships, faction_reputation)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING *
                     """, (
                         progress_id, user_id, world_id,
-                        '[]', '[]', '[]', '[]', '{}', '{}'
+                        '[]', '[]', '[]', '[]', '{}', '{}', '{}'
                     ))
                     progress = cur.fetchone()
                     conn.commit()

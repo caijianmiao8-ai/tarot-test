@@ -173,8 +173,9 @@ CREATE TABLE IF NOT EXISTS player_world_progress (
     visited_npcs JSONB DEFAULT '[]', -- 遇到的NPC ID列表
 
     -- 任务进度
-    active_quests JSONB DEFAULT '[]', -- 进行中的任务
-    completed_quests JSONB DEFAULT '[]', -- 已完成的任务
+    active_quests JSONB DEFAULT '[]', -- 进行中的任务ID列表
+    completed_quests JSONB DEFAULT '[]', -- 已完成的任务ID列表
+    quest_progress JSONB DEFAULT '{}', -- 任务检查点进度 {quest_id: {checkpoints_completed: [1,2], current_checkpoint: 2}}
 
     -- 关系网络
     npc_relationships JSONB DEFAULT '{}', -- {npc_id: {reputation: 50, interactions: 5}}
