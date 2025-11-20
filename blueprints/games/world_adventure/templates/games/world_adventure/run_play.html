@@ -762,6 +762,11 @@
                         updateSidebar(result.current_grid, result.nearby_npcs);
                     }
 
+                    // 动态更新任务进度（如果有任务数据）
+                    if (result.current_quest) {
+                        updateQuestProgress(result.current_quest);
+                    }
+
                     // 检查是否结束
                     if (result.run_ended) {
                         setTimeout(() => {
@@ -930,6 +935,30 @@
                     </div>
                 `).join('');
             }
+        }
+
+        function updateQuestProgress(quest) {
+            if (!quest) return;
+
+            // 查找任务进度区域
+            const questSection = document.querySelector('.sidebar h3:last-of-type');
+            if (!questSection || !questSection.textContent.includes('📜')) return;
+
+            // 查找任务进度列表
+            const questProgress = questSection.nextElementSibling;
+            if (!questProgress || !questProgress.classList.contains('quest-progress')) return;
+
+            // 重新渲染检查点列表
+            const completedIds = quest.completed_checkpoint_ids || [];
+            questProgress.innerHTML = quest.checkpoints.map(checkpoint => {
+                const isCompleted = completedIds.includes(checkpoint.id);
+                return `
+                    <div class="checkpoint ${isCompleted ? 'completed' : 'pending'}">
+                        <span class="checkpoint-icon">${isCompleted ? '✅' : '⭕'}</span>
+                        <span>${checkpoint.description}</span>
+                    </div>
+                `;
+            }).join('');
         }
 
         // 初始化能力值显示

@@ -825,6 +825,8 @@ def api_run_action(run_id):
         # Phase 1: 获取更新后的网格和NPC信息（用于前端动态更新）
         updated_grid = world_context.get('current_grid')
         updated_npcs = world_context.get('nearby_npcs', [])
+        updated_quest = world_context.get('current_quest')
+        updated_quest_progress = world_context.get('quest_progress', {})
 
         # 构建简化的NPC数据（用于前端显示）
         npcs_for_frontend = []
@@ -837,6 +839,17 @@ def api_run_action(run_id):
                     'position': npc.get('position', ''),
                     'mood': npc.get('mood', '')
                 })
+
+        # 构建任务进度数据（用于前端显示）
+        quest_for_frontend = None
+        if updated_quest:
+            quest_for_frontend = {
+                'id': updated_quest.get('id'),
+                'quest_name': updated_quest.get('quest_name'),
+                'description': updated_quest.get('description'),
+                'checkpoints': updated_quest.get('checkpoints', []),
+                'completed_checkpoint_ids': updated_quest_progress.get('checkpoints_completed', [])
+            }
 
         return jsonify({
             "ok": True,
@@ -856,7 +869,9 @@ def api_run_action(run_id):
                 'connected_grids': updated_grid.get('connected_grids', []),
                 'interactive_objects': updated_grid.get('interactive_objects', [])
             } if updated_grid else None,
-            "nearby_npcs": npcs_for_frontend
+            "nearby_npcs": npcs_for_frontend,
+            "current_quest": quest_for_frontend,
+            "checkpoint_completed": checkpoint_completed
         })
 
     except Exception as e:
