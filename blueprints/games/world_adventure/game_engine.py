@@ -95,6 +95,9 @@ class QuestSystem:
     @staticmethod
     def update_quest_progress(user_id, world_id, quest_id, checkpoint_id):
         """更新任务进度"""
+        import logging
+        logger = logging.getLogger(__name__)
+
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
                 # 获取当前进度
@@ -104,10 +107,16 @@ class QuestSystem:
                 """, (user_id, world_id))
                 result = cur.fetchone()
 
+                logger.info(f"[任务进度保存] user_id={user_id}, world_id={world_id}")
+                logger.info(f"[任务进度保存] quest_id={quest_id} (类型: {type(quest_id).__name__})")
+                logger.info(f"[任务进度保存] checkpoint_id={checkpoint_id} (类型: {type(checkpoint_id).__name__})")
+
                 if result:
                     quest_progress = result.get('quest_progress', {})
+                    logger.info(f"[任务进度保存] 现有进度: {quest_progress}")
                 else:
                     quest_progress = {}
+                    logger.info(f"[任务进度保存] 没有现有进度，创建新的")
 
                 # 更新检查点
                 if quest_id not in quest_progress:
@@ -115,10 +124,14 @@ class QuestSystem:
                         'checkpoints_completed': [],
                         'current_checkpoint': 0
                     }
+                    logger.info(f"[任务进度保存] 创建新的任务进度条目: {quest_id}")
 
                 if checkpoint_id not in quest_progress[quest_id]['checkpoints_completed']:
                     quest_progress[quest_id]['checkpoints_completed'].append(checkpoint_id)
                     quest_progress[quest_id]['current_checkpoint'] = checkpoint_id
+                    logger.info(f"[任务进度保存] 添加检查点 {checkpoint_id} 到已完成列表")
+
+                logger.info(f"[任务进度保存] 更新后的进度: {quest_progress}")
 
                 # 保存到数据库
                 cur.execute("""
@@ -127,6 +140,8 @@ class QuestSystem:
                     WHERE user_id = %s AND world_id = %s
                 """, (json.dumps(quest_progress), user_id, world_id))
                 conn.commit()
+
+                logger.info(f"[任务进度保存] ✅ 已提交到数据库")
 
                 return quest_progress[quest_id]
 
@@ -827,11 +842,30 @@ class GameEngine:
                         WHERE user_id = %s AND world_id = %s
                     """, (progress.get('user_id'), world_id))
                     result = cur.fetchone()
+
+                    # 调试日志
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"[任务进度加载] user_id={progress.get('user_id')}, world_id={world_id}")
+                    logger.info(f"[任务进度加载] current_quest_id={run.get('current_quest_id')} (类型: {type(run.get('current_quest_id')).__name__})")
+
                     if result and result.get('quest_progress'):
-                        quest_progress = result['quest_progress'].get(str(run['current_quest_id']), {
+                        raw_progress = result['quest_progress']
+                        logger.info(f"[任务进度加载] 数据库中的 quest_progress keys: {list(raw_progress.keys())}")
+                        logger.info(f"[任务进度加载] 完整数据: {raw_progress}")
+
+                        quest_id_str = str(run['current_quest_id'])
+                        quest_progress = raw_progress.get(quest_id_str, {
                             'checkpoints_completed': [],
                             'current_checkpoint': 0
                         })
+                        logger.info(f"[任务进度加载] 查找 key='{quest_id_str}' 的结果: {quest_progress}")
+                    else:
+                        logger.info(f"[任务进度加载] 数据库中没有找到 quest_progress 或 result 为空")
+                        quest_progress = {
+                            'checkpoints_completed': [],
+                            'current_checkpoint': 0
+                        }
 
         context = {
             'world_name': world.get('world_name'),
