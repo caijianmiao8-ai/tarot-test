@@ -269,15 +269,15 @@ class WorldStateTracker:
                         UPDATE player_world_progress
                         SET npc_relationships =
                             jsonb_set(
-                                COALESCE(npc_relationships::jsonb, '{}'::jsonb),
+                                COALESCE(npc_relationships, '{}'::jsonb),
                                 ARRAY[%s, 'reputation'],
                                 to_jsonb(
                                     COALESCE(
-                                        (npc_relationships::jsonb -> %s ->> 'reputation')::int,
+                                        (npc_relationships -> %s ->> 'reputation')::int,
                                         50
                                     ) + %s
                                 )
-                            )::text
+                            )
                         WHERE user_id = %s AND world_id = %s
                     """, (npc_id, npc_id, reputation_change, user_id, world_id))
 
@@ -972,6 +972,13 @@ class CheckpointDetector:
         target_npc = checkpoint.get('target_npc', '')
         requires = checkpoint.get('requires', {})
 
+        # 调试日志
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[检查点检测] 检查点要求: grid_id={required_grid_id}, action={required_action}, npc={target_npc}")
+        logger.info(f"[检查点检测] 当前上下文: grid={world_context.get('current_grid', {}).get('id')}")
+        logger.info(f"[检查点检测] 行为分析: type={analysis.get('action_type')}, targets={analysis.get('targets', [])}")
+
         # Phase 1: 如果有 grid_id，使用精确的网格验证
         if required_grid_id:
             # 1. 网格验证（最重要）
@@ -980,7 +987,10 @@ class CheckpointDetector:
 
             if current_grid_id != required_grid_id:
                 result['reason'] = f"需要前往指定地点（当前: {current_grid.get('grid_name', '未知')}, 需要: 检查点位置）"
+                logger.info(f"[检查点检测] ❌ 网格不匹配: {current_grid_id} != {required_grid_id}")
                 return result
+
+            logger.info(f"[检查点检测] ✓ 网格匹配: {current_grid_id}")
 
             # 2. 行动类型验证
             action_type = analysis.get('action_type', '')
@@ -988,10 +998,12 @@ class CheckpointDetector:
             if required_action == 'dialogue':
                 if action_type != 'dialogue':
                     result['reason'] = "需要与NPC对话"
+                    logger.info(f"[检查点检测] ❌ 行动类型不匹配: {action_type} != dialogue")
                     return result
             elif required_action == 'investigation':
                 if action_type not in ['dialogue', 'investigate', 'other']:
                     result['reason'] = "需要调查或收集情报"
+                    logger.info(f"[检查点检测] ❌ 行动类型不匹配: {action_type} not in [dialogue, investigate, other]")
                     return result
             elif required_action == 'exploration':
                 # 探索类型较宽松，到达网格即可
@@ -999,11 +1011,15 @@ class CheckpointDetector:
             elif required_action == 'combat':
                 if action_type != 'combat':
                     result['reason'] = "需要战斗行动"
+                    logger.info(f"[检查点检测] ❌ 行动类型不匹配: {action_type} != combat")
                     return result
+
+            logger.info(f"[检查点检测] ✓ 行动类型匹配: {action_type}")
 
             # 3. 目标NPC验证（如果需要）
             if target_npc:
                 action_targets = analysis.get('targets', [])
+                logger.info(f"[检查点检测] 需要验证NPC: {target_npc}, 当前targets: {action_targets}")
                 # 修复：target_npc可能是名字或ID，都要检查
                 npc_found = any(
                     t.get('type') == 'npc' and (
@@ -1014,7 +1030,9 @@ class CheckpointDetector:
                 )
                 if not npc_found:
                     result['reason'] = f"需要与{target_npc}对话"
+                    logger.info(f"[检查点检测] ❌ NPC不匹配: 未找到 {target_npc}")
                     return result
+                logger.info(f"[检查点检测] ✓ NPC匹配: {target_npc}")
 
             # 4. 能力判定验证（如果需要）
             if requires:
@@ -1023,11 +1041,14 @@ class CheckpointDetector:
                 if required_ability and required_dc:
                     if not action_result.get('success'):
                         result['reason'] = f"判定失败（需要DC {required_dc}）"
+                        logger.info(f"[检查点检测] ❌ 判定失败: DC {required_dc}")
                         return result
+                    logger.info(f"[检查点检测] ✓ 判定成功: DC {required_dc}")
 
             # 所有条件满足
             result['completed'] = True
             result['reason'] = f"✅ 完成了检查点：{description}"
+            logger.info(f"[检查点检测] ✅ 检查点完成! {description}")
             return result
 
         else:
