@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>{{ spread_config.name }} - 塔罗占卜</title>
+
+  <!-- iOS 全屏 & 状态栏 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="若水占卜">
+
+  <!-- Android / Chrome 主题色（与 index 一致） -->
+  <meta name="theme-color" content="#1a1625" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#2d1b4e" media="(prefers-color-scheme: light)">
+
+  <!-- PWA 清单 / 图标（与 index 一致，可按需保留） -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- 本地化资源 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ========== 主题变量：与 index 完全对齐，同时兼容旧变量名 ========== */
+    :root{
+      /* index 的色板 */
+      --primary:#9d7ea8; --secondary:#6d5675; --gold:#e8d4a2; --gold-light:#f4e5c3;
+      --bg1:#2d1b4e; --bg2:#1a1625;
+      --text:#fff; --text-light:rgba(255,255,255,.88); --text-muted:rgba(255,255,255,.65);
+      --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
+      --star:#ffd700; --success:#10b981; --danger:#ef4444;
+
+      /* 兼容 spread_chat 旧变量名（映射至 index 色板） */
+      --primary-color:#9d7ea8;
+      --secondary-color:#f4e5c3;
+      --accent-color:#6d5675;
+      --light-color:#f8f4e9; /* 仅用于少量浅分隔线 */
+      --dark-color:#ffffff;
+      --chat-bg:transparent;
+      --user-msg-bg:linear-gradient(135deg, var(--primary), var(--secondary));
+      --ai-msg-bg:rgba(255,255,255,.06);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Noto Serif SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC','Hiragino Sans GB','Microsoft YaHei', serif;
+      color:var(--text);
+      min-height:100dvh;
+      min-height:calc(var(--vh,1vh)*100);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(157,126,168,.18), transparent 60%),
+        radial-gradient(1200px 700px at 80% 90%, rgba(232,212,162,.12), transparent 60%),
+        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+      display:flex;flex-direction:column;
+    }
+
+    /* 背景层（与 index 一致） */
+    .bg-stars{position:fixed;inset:0;z-index:-2;opacity:.25;background-image:
+      radial-gradient(1px 1px at 12% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 32% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 22% 80%, #fff, transparent);
+      background-size:220px 220px;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none;}
+    @keyframes twinkle{from{opacity:.15}to{opacity:.35}}
+    .bg-veil{position:fixed;inset:-10% -10% 0 -10%;z-index:-5;pointer-events:none;opacity:.9;filter:blur(2px);
+      background:
+        radial-gradient(800px 500px at 12% 14%, rgba(157,126,168,.18), transparent 60%),
+        radial-gradient(720px 460px at 82% 72%, rgba(232,212,162,.12), transparent 60%),
+        radial-gradient(900px 560px at 58% 12%, rgba(157,126,168,.10), transparent 70%);
+      animation:veilDrift 50s linear infinite alternate;}
+    @keyframes veilDrift{to{transform:translate3d(-10px,8px,0)}}
+    .bg-constellations{position:fixed;inset:0;z-index:-4;pointer-events:none;opacity:.18;mix-blend-mode:screen;}
+    .bg-constellations line{stroke:rgba(255,255,255,.18);stroke-width:.6}
+    .bg-constellations circle{fill:rgba(255,255,255,.7);r:1.2;animation:starBlink 4.6s ease-in-out infinite}
+    @keyframes starBlink{0%,100%{opacity:.25}50%{opacity:.85}}
+    .bg-glyphs{
+      position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.13;filter:drop-shadow(0 0 20px rgba(232,212,162,.06));
+      background-repeat:no-repeat;
+      background-size:68px 68px,76px 76px,64px 64px,72px 72px,60px 60px,70px 70px;
+      background-position:8% 24%,86% 22%,12% 78%,88% 68%,42% 88%,34% 34%;
+      animation:glyphFloat 40s ease-in-out infinite alternate;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>"),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M32 10 v36'/><path d='M22 30 h20'/><path d='M28 48 h8'/><circle cx='32' cy='10' r='3' fill='none'/></g></svg>"),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='32' cy='32' r='16'/><path d='M32 16 L37 40 L20 26 H44 L27 40 Z'/></g></svg>"),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 50 L50 14'/><circle cx='50' cy='14' r='4'/><path d='M18 46 q6 -2 8 4'/></g></svg>"),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%23e8d4a2' stroke-opacity='.35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 16 h32 a10 10 0 0 1 -10 10 h-12 a10 10 0 0 1 -10 -10 z'/><path d='M32 26 v16'/><path d='M24 42 h16'/></g></svg>");
+    }
+    @keyframes glyphFloat{to{transform:translate3d(0,-8px,0) rotate(-0.5deg)}}
+    .zodiac{position:fixed;width:820px;height:820px;left:50%;top:50%;transform:translate(-50%,-50%);z-index:-2;opacity:.1;filter:drop-shadow(0 0 20px rgba(255,255,255,.1));animation:rot 90s linear infinite;pointer-events:none;}
+    @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
+    @media (prefers-reduced-motion:reduce){.bg-veil,.bg-glyphs,.bg-constellations,.zodiac{animation:none}}
+
+    /* ========== 顶部栏（与 index 的 user-bar 观感统一） ========== */
+    .chat-header{
+      position:sticky;top:0;z-index:10;
+      background:rgba(28,22,40,.6);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--border);
+      padding:10px 16px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding-top:calc(env(safe-area-inset-top,0px) + 10px);
+    }
+    .back-button{
+      color:var(--gold-light);text-decoration:none;display:flex;align-items:center;gap:8px;
+      transition:.25s ease;font-weight:700;letter-spacing:.3px;
+    }
+    .back-button:hover{color:#fff;transform:translateX(-2px)}
+    .spread-info{display:flex;align-items:center;gap:12px}
+    .spread-icon{
+      width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:1px solid var(--border);
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
+    }
+    .spread-name{font-weight:800;color:#fff;margin:0;letter-spacing:.2px}
+    .spread-count{font-size:.9rem;color:var(--text-muted);margin-top:2px;text-align:center}
+    .chat-limit{
+      background:rgba(255,255,255,.08);
+      color:var(--gold-light);
+      border:1px solid var(--border);
+      padding:6px 12px;border-radius:999px;font-weight:700;font-size:.92rem;
+    }
+    .chat-limit .count{color:#fff}
+
+    /* ========== 主布局 ========== */
+    .main-container{flex:1;display:flex;overflow:hidden;position:relative;padding:16px;gap:16px}
+    @media (max-width:1024px){.main-container{padding:12px}}
+
+    /* 左侧：牌阵展示（玻璃卡片） */
+    .spread-display{
+      width:380px;min-width:300px;max-width:420px;
+      background:var(--panel);border:1px solid var(--border);
+      border-radius:18px;overflow:auto;padding:22px;
+      box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+      transition:margin-left .28s ease;
+    }
+    .spread-display.collapsed{margin-left:-380px}
+    .spread-title{font-size:1.3rem;font-weight:800;color:var(--gold-light);text-align:center;margin:0 0 10px;text-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .spread-question{
+      background:rgba(255,255,255,.06);
+      border:1px dashed var(--border);
+      color:var(--text-light);
+      padding:12px 14px;border-radius:12px;text-align:center;margin-bottom:18px;
+    }
+    .cards-layout{display:flex;flex-direction:column;gap:14px}
+    .card-position{
+      background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:14px;padding:14px;
+      transition:all .2s ease;position:relative;overflow:hidden;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+    }
+    .card-position:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.16)}
+    .position-number{
+      position:absolute;top:10px;left:12px;width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:#fff;font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);
+    }
+    .position-info{margin-left:38px}
+    .position-name{font-weight:800;color:#fff;margin-bottom:4px}
+    .position-meaning{font-size:.9rem;color:var(--text-muted);margin-bottom:10px}
+    .drawn-card{
+      background:linear-gradient(135deg, rgba(157,126,168,.10), rgba(232,212,162,.08));
+      border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;gap:12px;align-items:center;
+    }
+    .card-image{
+      width:62px;height:92px;border-radius:10px;overflow:hidden;flex:0 0 auto;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      display:flex;align-items:center;justify-content:center;color:#fff;
+      box-shadow:0 6px 18px rgba(0,0,0,.25);border:1px solid var(--border);
+    }
+    .card-image img{width:100%;height:100%;object-fit:cover;display:block}
+    .card-image.reversed img{transform:rotate(180deg)}
+    .card-details{flex:1}
+    .card-name{font-weight:800;color:#fff}
+    .card-direction{font-size:.88rem;color:var(--gold-light)}
+
+    /* 展开收起按钮（玻璃标签） */
+    .toggle-spread{
+      position:absolute;left:380px;top:50%;transform:translateY(-50%);
+      width:34px;height:60px;border:1px solid var(--border);border-left:none;
+      border-radius:0 12px 12px 0;background:rgba(255,255,255,.08);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;color:var(--text-light);
+      box-shadow:0 8px 18px rgba(0,0,0,.18);
+      backdrop-filter:blur(10px);z-index:3;
+    }
+    .toggle-spread:hover{background:rgba(255,255,255,.12);color:#fff}
+    .spread-display.collapsed + .toggle-spread{left:0}
+
+    /* 右侧：聊天区（玻璃面板） */
+    .chat-container{
+      flex:1;display:flex;flex-direction:column;
+      background:var(--panel);border:1px solid var(--border);border-radius:18px;
+      box-shadow:0 18px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .messages-area{
+      flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;
+    }
+    .messages-area::-webkit-scrollbar{width:6px}
+    .messages-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);border-radius:3px}
+    .loading-skeleton{text-align:center;color:var(--gold-light);padding:30px 10px;opacity:.95}
+
+    /* 对话泡泡（深色系） */
+    .message{display:flex;gap:10px;max-width:820px;width:100%;animation:msgIn .28s ease-out}
+    @keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .message.user{flex-direction:row-reverse;align-self:flex-end}
+    .message.assistant{align-self:flex-start}
+    .message-avatar{
+      width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));border:1px solid var(--border);
+    }
+    .message-content{
+      max-width:72%;padding:12px 16px;border-radius:18px;line-height:1.7;
+      background:var(--ai-msg-bg);color:var(--text);
+      border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.14);
+      word-wrap:break-word;overflow-wrap:break-word;border:1px solid var(--border);
+    }
+    .message.user .message-content{
+      background:var(--user-msg-bg);color:#fff;border-bottom-right-radius:6px;border-bottom-left-radius:18px;border-color:transparent;
+    }
+
+    /* Markdown（深色优化） */
+    .message-content h1{font-size:1.35rem;margin:1em 0 .5em;color:var(--gold-light);font-weight:800}
+    .message-content h2{font-size:1.2rem;margin:.9em 0 .45em;color:var(--gold-light);font-weight:700}
+    .message-content h3{font-size:1.06rem;margin:.7em 0 .35em;font-weight:700}
+    .message-content p{margin:.8em 0}
+    .message-content ul,.message-content ol{margin:.8em 0;padding-left:1.4em}
+    .message-content li{margin:.35em 0}
+    .message-content strong{font-weight:800;color:#fff}
+    .message.user .message-content strong{color:#fff}
+    .message-content em{font-style:italic}
+    .message-content del{opacity:.75;text-decoration:line-through}
+    .message-content blockquote{
+      margin:.8em 0;padding:.6em 1em;border-left:4px solid var(--primary);
+      background:rgba(255,255,255,.06);border-radius:0 10px 10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+    }
+    .message-content hr{border:none;border-top:2px solid var(--border);margin:1.2em 0}
+    .message-content code{
+      background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:.92em;color:var(--gold-light);
+    }
+    .message-content pre{
+      background:#0f0d18;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;margin:1em 0;color:var(--text-light);
+    }
+    .message-content pre code{background:none;padding:0;color:inherit;font-size:.9em}
+    /* 任务清单 */
+    .message-content .task-list{list-style:none;padding-left:0;margin:.8em 0}
+    .message-content .task-list li{margin:.35em 0}
+    .message-content .task-list input[type="checkbox"]{margin-right:8px;transform:scale(1.05);vertical-align:middle;accent-color:var(--primary);pointer-events:none}
+    /* 表格 */
+    .markdown-table{width:100%;border-collapse:collapse;margin:.9em 0;display:block;overflow:auto;border:1px solid var(--border)}
+    .markdown-table td,.markdown-table th{border:1px solid var(--border);padding:8px 12px;text-align:left}
+    .markdown-table tr:nth-child(even){background:rgba(255,255,255,.04)}
+    .markdown-table th{background:rgba(255,255,255,.08);font-weight:700}
+
+    /* 打字动画 & 快捷问题 */
+    .typing-indicator{display:flex;gap:10px;align-items:center;max-width:820px;width:100%;align-self:flex-start}
+    .typing-dots{display:flex;gap:4px;padding:14px;background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:18px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+    .typing-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.7);animation:td 1.4s infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+    @keyframes td{0%,60%,100%{transform:translateY(0);opacity:.55}30%{transform:translateY(-8px);opacity:1}}
+
+    .quick-questions{
+      display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:8px auto 14px;max-width:820px;
+    }
+    .quick-question{
+      background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:999px;
+      padding:9px 16px;font-weight:700;font-size:.95rem;cursor:pointer;transition:.2s;user-select:none;color:var(--text-light);
+      backdrop-filter:blur(8px);
+    }
+    .quick-question:hover{
+      background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;transform:translateY(-2px);
+      box-shadow:0 10px 22px rgba(157,126,168,.35);
+    }
+
+    /* 输入区 */
+    .input-area{
+      background:rgba(255,255,255,.04);border-top:1px solid var(--border);padding:12px 14px;
+      box-shadow:0 -4px 12px rgba(0,0,0,.14);border-radius:0 0 18px 18px;
+      padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    }
+    .input-container{display:flex;gap:12px;align-items:flex-end;max-width:820px;margin:0 auto}
+    .message-input{
+      flex:1;border:1px solid var(--border);border-radius:16px;padding:12px 14px;
+      resize:none;outline:none;transition:.2s;font-size:16px;max-height:140px;font-family:inherit;
+      background:rgba(255,255,255,.06);color:#fff;
+    }
+    .message-input:focus{border-color:var(--primary)}
+    .send-button{
+      width:48px;height:48px;border-radius:50%;border:1px solid var(--border);cursor:pointer;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:#fff;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 10px 24px rgba(157,126,168,.35);transition:.2s;flex-shrink:0;
+      touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+    }
+    .send-button:hover:not(:disabled){transform:translateY(-2px)}
+    .send-button:disabled{opacity:.6;cursor:not-allowed}
+    .limit-reached{
+      background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);
+      color:#fff;border-radius:12px;padding:14px;text-align:center;font-weight:700;
+    }
+
+    /* 响应式与侧栏行为 */
+    @media (max-width:1200px){.message-content{max-width:82%}}
+    @media (max-width:1024px){
+      .spread-display{position:absolute;left:0;top:0;bottom:0;z-index:4;width:320px}
+      .spread-display.collapsed{margin-left:-320px}
+      .toggle-spread{left:320px}
+      .spread-display.collapsed + .toggle-spread{left:0}
+    }
+    @media (max-width:768px){
+      .spread-info{display:none}
+      .message-content{max-width:90%}
+      .messages-area{padding:14px}
+      .main-container{gap:12px;padding:12px}
+    }
+
+    /* iOS 优化（与 index 一致） */
+    button,.send-button,.quick-question{touch-action:manipulation}
+    input,select,textarea{font-size:16px}
+    .bg-veil,.bg-constellations,.bg-glyphs,.zodiac{will-change:transform,opacity}
+
+    /* iOS 专用单层合成背景（避免 fixed 多层白屏） */
+    @supports (-webkit-touch-callout: none) {
+      .bg-veil,.bg-constellations,.bg-glyphs,.zodiac{display:none!important}
+      .bg-stars{
+        position:fixed!important;inset:0;height:100dvh;z-index:0;pointer-events:none;backface-visibility:hidden;animation:none;
+        background:
+          radial-gradient(820px 520px at 12% 14%, rgba(157,126,168,.26), transparent 60%),
+          radial-gradient(760px 480px at 82% 72%, rgba(232,212,162,.20), transparent 60%),
+          radial-gradient(920px 580px at 58% 12%, rgba(157,126,168,.16), transparent 72%),
+          radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,.95), transparent),
+          radial-gradient(1px 1px at 32% 60%, rgba(255,255,255,.95), transparent),
+          radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.95), transparent),
+          radial-gradient(1px 1px at 82% 70%, rgba(255,255,255,.95), transparent),
+          radial-gradient(1px 1px at 22% 80%, rgba(255,255,255,.95), transparent),
+          linear-gradient(135deg, #2d1b4e 0%, #1a1625 100%);
+        background-repeat:repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,no-repeat;
+        background-size:cover,cover,cover,220px 220px,220px 220px,220px 220px,220px 220px,220px 220px,cover;
+      }
+      html{background:#120c1d}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 背景层（纯视觉） -->
+  <div class="bg-stars"></div>
+  <div class="bg-veil" aria-hidden="true"></div>
+  <svg class="bg-constellations" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+    <g>
+      <line x1="90" y1="120" x2="160" y2="160"/><line x1="160" y1="160" x2="210" y2="110"/><line x1="160" y1="160" x2="110" y2="200"/>
+      <circle cx="90" cy="120"/><circle cx="160" cy="160" style="animation-delay:.6s"/><circle cx="210" cy="110" style="animation-delay:1.2s"/><circle cx="110" cy="200" style="animation-delay:1.8s"/>
+    </g>
+    <g>
+      <line x1="780" y1="120" x2="840" y2="160"/><line x1="840" y1="160" x2="900" y2="180"/><line x1="900" y1="180" x2="950" y2="150"/>
+      <circle cx="780" cy="120"/><circle cx="840" cy="160" style="animation-delay:.8s"/><circle cx="900" cy="180" style="animation-delay:1.4s"/><circle cx="950" cy="150" style="animation-delay:2s"/>
+    </g>
+    <g>
+      <line x1="760" y1="740" x2="820" y2="780"/><line x1="820" y1="780" x2="880" y2="740"/><line x1="820" y1="780" x2="840" y2="840"/>
+      <circle cx="760" cy="740"/><circle cx="820" cy="780" style="animation-delay:.7s"/><circle cx="880" cy="740" style="animation-delay:1.3s"/><circle cx="840" cy="840" style="animation-delay:1.9s"/>
+    </g>
+  </svg>
+  <div class="bg-glyphs" aria-hidden="true"></div>
+  <svg class="zodiac" viewBox="0 0 100 100" aria-hidden="true">
+    <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".3">
+      <circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="34" stroke-opacity=".4"/>
+      <g stroke-opacity=".25"><line x1="50" y1="6" x2="50" y2="94"/><line x1="6" y1="50" x2="94" y2="50"/><line x1="18" y1="18" x2="82" y2="82"/><line x1="18" y1="82" x2="82" y2="18"/></g>
+    </g>
+  </svg>
+
+  <!-- 顶部导航（结构不变，仅样式升级） -->
+  <div class="chat-header">
+    <a class="back-button" href="{{ url_for('spread') }}"><i class="fas fa-arrow-left"></i><span>返回</span></a>
+    <div class="spread-info">
+      <div class="spread-icon"><i class="fas fa-layer-group"></i></div>
+      <div class="spread-details">
+        <div class="spread-name">{{ spread_config.name }}</div>
+        <div class="spread-count">{{ spread_config.card_count }}张牌</div>
+      </div>
+    </div>
+    <div class="chat-limit">剩余对话：<span class="count" id="remaining-count">{{ remaining_chats }}</span></div>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="main-container">
+    <!-- 左侧：牌阵展示 -->
+    <div class="spread-display" id="spreadDisplay">
+      <h2 class="spread-title">{{ spread_config.name }}</h2>
+
+      {% if reading.question %}
+      <div class="spread-question">
+        <i class="fas fa-question-circle"></i>
+        {{ reading.question }}
+      </div>
+      {% endif %}
+
+      <div class="cards-layout">
+        {% for card in reading.cards %}
+        <div class="card-position">
+          <div class="position-number">{{ loop.index }}</div>
+          <div class="position-info">
+            <div class="position-name">{{ spread_config.positions[loop.index0].name }}</div>
+            <div class="position-meaning">{{ spread_config.positions[loop.index0].meaning }}</div>
+            <div class="drawn-card">
+              <div class="card-image {% if card.direction == '逆位' %}reversed{% endif %}">
+                {% if card.image %}
+                  <img src="{{ card.image }}" alt="{{ card.card_name }}"/>
+                {% else %}
+                  <i class="fas fa-star"></i>
+                {% endif %}
+              </div>
+              <div class="card-details">
+                <div class="card-name">{{ card.card_name }}</div>
+                <div class="card-direction">{{ card.direction }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 左侧开合按钮 -->
+    <div class="toggle-spread" id="toggleSpread" onclick="toggleSpreadDisplay()">
+      <i class="fas fa-chevron-left" id="toggleIcon"></i>
+    </div>
+
+    <!-- 右侧：聊天 -->
+    <div class="chat-container">
+      <div class="messages-area" id="messages-area">
+        {% if messages %}
+          {% for msg in messages %}
+          <div class="message {{ msg.role }}">
+            <div class="message-avatar">
+              {% if msg.role == 'user' %}
+                <i class="fas fa-user"></i>
+              {% else %}
+                {% if ai_personality == 'mystic' %}
+                  <i class="fas fa-moon"></i>
+                {% elif ai_personality == 'wisdom' %}
+                  <i class="fas fa-book"></i>
+                {% else %}
+                  <i class="fas fa-heart"></i>
+                {% endif %}
+              {% endif %}
+            </div>
+            <div class="message-content">{{ msg.content }}</div>
+          </div>
+          {% endfor %}
+
+          <!-- 若已有历史消息，直接显示快捷问题 -->
+          <div class="quick-questions" id="quick-questions">
+            <div class="quick-question" onclick="quickAsk('这个牌阵的整体建议是什么？')">整体建议</div>
+            <div class="quick-question" onclick="quickAsk('我应该注意什么？')">注意事项</div>
+            <div class="quick-question" onclick="quickAsk('下一步该怎么做？')">行动指南</div>
+          </div>
+        {% else %}
+          <!-- 首次进入：骨架加载 -->
+          <div class="loading-skeleton" id="loading-skeleton">
+            <div class="fas fa-spinner fa-spin" style="font-size:2.2rem;margin-bottom:12px;color:var(--gold-light)"></div>
+            <div>正在连接牌阵能量，请稍候…</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="input-area">
+        {% if can_chat %}
+        <div class="input-container">
+          <textarea class="message-input" id="message-input" rows="1" maxlength="500" placeholder="深入探讨这个牌阵…（Shift+Enter 换行）"></textarea>
+          <button class="send-button" id="send-button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        {% else %}
+        <div class="limit-reached">
+          <i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 与功能相关的 JS：完全保留（仅粘贴你原有内容） ===== -->
+  <script>
+    /* ===== 模板变量 ===== */
+    const readingId = "{{ reading.id }}";
+    const hasHistory = {{ has_history|tojson }};
+    const aiPersonality = "{{ ai_personality or 'warm' }}";
+    let remainingChats = {{ remaining_chats }};
+    let isTyping = false;
+
+    /* ===== 工具：HTML 转义 & Markdown 格式化 ===== */
+    function escapeHtml(text){
+      const map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+      return String(text||'').replace(/[&<>"']/g,m=>map[m]);
+    }
+
+// 依赖你现有的 escapeHtml(text) 函数
+function formatAIMessage(content){
+  let text = String(content || '').replace(/\r\n/g,'\n');
+
+  // ===== 0) 代码块：先摘走，再统一转义其他部分 =====
+  const fences = [];
+  text = text.replace(/```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g, (m, lang, body) => {
+    const id = `__FENCE_${fences.length}__`;
+    fences.push(
+      `<pre><code class="language-${(lang||'plaintext').toLowerCase()}">${escapeHtml(body)}</code></pre>`
+    );
+    return id;
+  });
+
+  // ===== 0.1) 表格容错：把“挤在一行”的表格修成多行 =====
+  text = normalizeCompactTables(text);
+
+  // ===== 1) 统一转义（安全基线）=====
+  text = escapeHtml(text);
+
+  // ===== 2) 标题 (# .. ######) =====
+  text = text.replace(/^\s*(#{1,6})[ \t\u00A0\u3000]+(.+)$/gm, (m, hs, t) => {
+    const lvl = Math.min(hs.length, 6);
+    return `<h${lvl}>${t.trim()}</h${lvl}>`;
+  });
+
+  // ===== 3) 水平线 ---- =====
+  text = text.replace(/^\s*---+\s*$/gm, '<hr>');
+
+  // ===== 4) 多行引用（> ...）合并为一个 blockquote =====
+  text = text.replace(/(?:^|\n)(?:&gt;\s?.*(?:\n|$))+?/g, (block) => {
+    const inner = block.replace(/(^|\n)&gt;\s?/g, '$1').trim();
+    return `\n<blockquote>${inner.replace(/\n/g,'<br>')}</blockquote>\n`;
+  });
+
+  // ===== 5) 行内代码 `code`（此时已转义，无需再次 escape）=====
+  text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
+
+  // ===== 6) 强/斜体（顺序重要）=====
+  text = text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // ===== 7) 安全链接 [text](https://...) =====
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer nofollow">$1</a>');
+
+  // ===== 8) 任务清单 - [ ] / - [x] =====
+  text = text.replace(
+    /^\s*[-*+]\s+\[( |x|X)\]\s+(.+)$/gm,
+    (m, chk, body) => `<li data-task="1"><input type="checkbox" disabled ${/x/i.test(chk)?'checked':''}> ${body}</li>`
+  );
+  text = text.replace(/(?:^(?:<li data-task="1">.*<\/li>\n?)+)/gms, (block) => {
+    return `<ul class="task-list">${block.replace(/ data-task="1"/g,'').trim()}</ul>\n`;
+  });
+
+  // ===== 9) 普通列表（先标记，再成组包裹）=====
+  text = text
+    .replace(/^\s*(\d+)\.\s+(.+)$/gm, (m, n, item) => `<li data-ol="1">${item}</li>`)
+    .replace(/^\s*[-*+]\s+(.+)$/gm, (m, item) => `<li data-ul="1">${item}</li>`);
+
+  text = text.replace(/(?:^(?:<li[^>]*>.*<\/li>\n?)+)/gms, (block) => {
+    const isOl = /<li[^>]*data-ol="1"/.test(block) && !/<li[^>]*data-ul="1"/.test(block);
+    const clean = block.replace(/ data-(ol|ul)="1"/g, '');
+    return (isOl ? `<ol>${clean.trim()}</ol>` : `<ul>${clean.trim()}</ul>`) + '\n';
+  });
+
+  // ===== 10) 标准 Markdown 表格 =====
+  text = text.replace(
+    /(?:^|\n)\|([^\n|]+(?:\|[^\n|]+)+)\|\n\|([ :\-|]+)\|\n((?:\|[^\n|]+(?:\|[^\n|]+)+\|\n?)+)/g,
+    (m, header, sep, rows) => {
+      const ths = header.split('|').map(s => `<th>${s.trim()}</th>`).join('');
+      const trs = rows.trim().split('\n').map(r => {
+        const tds = r.replace(/^\||\|$/g,'')
+          .split('|').map(s => `<td>${s.trim()}</td>`).join('');
+        return `<tr>${tds}</tr>`;
+      }).join('');
+      return `\n<table class="markdown-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>\n`;
+    }
+  );
+
+  // ===== 11) 段落包裹 =====
+  const parts = text.split(/\n{2,}/).map(seg => {
+    const s = seg.trim();
+    if (!s) return '';
+    if (/^<(h\d|blockquote|hr|ul|ol|table|pre)/i.test(s)) return s;
+    return `<p>${s.replace(/\n/g,'<br>')}</p>`;
+  }).filter(Boolean);
+
+  let html = parts.join('\n');
+
+  // ===== 12) 回填代码块 =====
+  fences.forEach((codeHtml, i) => { html = html.replace(`__FENCE_${i}__`, codeHtml); });
+
+  // ===== 13) 清理不必要的 <p> 包裹 =====
+  html = html.replace(/<p><(h\d|blockquote|hr|ul|ol|table|pre)/g,'<$1')
+             .replace(/<\/(h\d|blockquote|hr|ul|ol|table|pre)><\/p>/g,'</$1>');
+
+  return html;
+}
+
+// 表格“挤成一行”的容错拆分：在提取代码块之后、escapeHtml 之前执行
+function normalizeCompactTables(s){
+  s = s.replace(/\|\s*\|([ :\-|]{3,})\|\s*/g, '|\n|$1|\n');
+  s = s.replace(/\s\|\s\|/g, '\n|');
+  return s;
+}
+
+    /* ===== 初始化：格式化历史 / 首次触发与轮询 ===== */
+    document.addEventListener('DOMContentLoaded',()=>{
+      // 历史消息格式化
+      if(hasHistory){
+        document.querySelectorAll('.message.assistant .message-content').forEach(el=>{
+          const raw=el.textContent; el.innerHTML=formatAIMessage(raw);
+        });
+      }else{
+        kickOffInitialOnce();
+        pollInitialAndInsert();
+      }
+
+      // 输入区增强
+      const input=document.getElementById('message-input');
+      if(input){
+        input.addEventListener('input',function(){
+          this.style.height='auto';
+          this.style.height=Math.min(this.scrollHeight,140)+'px';
+        });
+        input.addEventListener('keydown',function(e){
+          if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); }
+        });
+      }
+    });
+
+    let _kicked=false;
+    async function kickOffInitialOnce(){
+      if(_kicked) return; _kicked=true;
+      try{
+        await fetch('/api/spread/generate_initial',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({reading_id:readingId}),
+          cache:'no-store'
+        });
+      }catch(e){ console.warn('kickOffInitial failed',e); }
+    }
+
+    let _inserted=false;
+    async function pollInitialAndInsert(){
+      const messagesArea=document.getElementById('messages-area');
+      const loading=document.getElementById('loading-skeleton');
+      const maxTries=25; let tries=0;
+
+      const timer=setInterval(async ()=>{
+        tries++;
+        try{
+          const r=await fetch(`/api/spread/status/${encodeURIComponent(readingId)}?t=${Date.now()}`,{cache:'no-store'});
+          if(!r.ok) throw new Error('status not ok');
+          const s=await r.json();
+
+          if(s.has_initial||s.status==='ready'){
+            clearInterval(timer);
+            if(!_inserted && s.initial_text){
+              if(loading) loading.remove();
+              appendMessage('assistant', s.initial_text, /*format*/true);
+              showQuickQuestions(); _inserted=true;
+            }
+            return;
+          }
+          if(!_inserted && s.message_count>0 && s.initial_text){
+            if(loading) loading.remove();
+            appendMessage('assistant', s.initial_text, true);
+            showQuickQuestions(); _inserted=true;
+          }
+          if(tries>=maxTries && !_inserted){
+            clearInterval(timer);
+            if(loading) loading.remove();
+            appendMessage('assistant', '服务器有点忙，我还在连接牌阵的能量…稍后也可以再点我继续聊～', true);
+          }
+        }catch(e){
+          console.warn('poll status failed',e);
+          if(tries>=maxTries && !_inserted){
+            clearInterval(timer);
+            if(loading) loading.remove();
+            appendMessage('assistant','网络有些不稳，稍后再试试或刷新页面。',true);
+          }
+        }
+      },1000);
+    }
+
+    /* ===== UI 操作 ===== */
+    function toggleSpreadDisplay(){
+      const panel=document.getElementById('spreadDisplay');
+      const icon=document.getElementById('toggleIcon');
+      panel.classList.toggle('collapsed');
+      icon.className = panel.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+    }
+
+    function showQuickQuestions(){
+      if(document.getElementById('quick-questions')) return;
+      const messagesArea=document.getElementById('messages-area');
+      const box=document.createElement('div');
+      box.className='quick-questions';
+      box.id='quick-questions';
+      box.innerHTML=`
+        <div class="quick-question" onclick="quickAsk('这个牌阵的整体建议是什么？')">整体建议</div>
+        <div class="quick-question" onclick="quickAsk('我应该注意什么？')">注意事项</div>
+        <div class="quick-question" onclick="quickAsk('下一步该怎么做？')">行动指南</div>
+      `;
+      messagesArea.appendChild(box);
+      messagesArea.scrollTop=messagesArea.scrollHeight;
+    }
+
+    function quickAsk(q){
+      const input=document.getElementById('message-input');
+      if(input){ input.value=q; sendMessage(); }
+    }
+
+    /* ===== 对话：插入/打字动画/发送 ===== */
+    function personaIcon(){
+      if(aiPersonality==='mystic') return '<i class="fas fa-moon"></i>';
+      if(aiPersonality==='wisdom') return '<i class="fas fa-book"></i>';
+      return '<i class="fas fa-heart"></i>';
+    }
+    function appendMessage(role, content, shouldFormat){
+      const area = document.getElementById('messages-area');
+      const quick = area.querySelector('.quick-questions');
+      if (quick && role === 'user') quick.remove();
+
+      const wrap = document.createElement('div'); wrap.className = `message ${role}`;
+      const avatar = document.createElement('div'); avatar.className = 'message-avatar';
+      avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : personaIcon();
+
+      const cont = document.createElement('div'); cont.className = 'message-content';
+      cont.innerHTML = (role === 'assistant') ? formatAIMessage(content) : escapeHtml(String(content||''));
+      wrap.appendChild(avatar); wrap.appendChild(cont); area.appendChild(wrap);
+
+      setTimeout(()=>{ area.scrollTop = area.scrollHeight; }, 50);
+    }
+
+    function showTyping(){
+      const area=document.getElementById('messages-area');
+      const typing=document.createElement('div');
+      typing.id='typing-indicator'; typing.className='message assistant typing-indicator';
+      typing.innerHTML=`<div class="message-avatar">${personaIcon()}</div>
+        <div class="typing-dots">
+          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        </div>`;
+      area.appendChild(typing); area.scrollTop=area.scrollHeight;
+    }
+
+    function hideTyping(){
+      const t=document.getElementById('typing-indicator'); if(t) t.remove();
+    }
+
+    async function sendMessage(){
+      const input=document.getElementById('message-input');
+      const msg=(input?.value||'').trim(); if(!msg || isTyping) return;
+      input.value=''; input.style.height='auto';
+      appendMessage('user', msg, false);
+      showTyping(); isTyping=true;
+
+      try{
+        const r=await fetch('/api/spread/chat/send',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({reading_id:readingId,message:msg}),
+          cache:'no-store'
+        });
+        const data=await r.json();
+        hideTyping(); isTyping=false;
+        appendMessage('assistant', data.reply || '让我再感应一下…', true);
+        if(typeof data.remaining==='number'){
+          remainingChats=data.remaining;
+          const el=document.getElementById('remaining-count'); if(el) el.textContent=remainingChats;
+        }
+        if(data.limit_reached){ disableInput(); }
+      }catch(e){
+        console.error(e);
+        hideTyping(); isTyping=false;
+        appendMessage('assistant','抱歉，网络有点卡，请稍后再试。',true); 
+      }
+    }
+
+    function disableInput(){
+      const box=document.querySelector('.input-area');
+      if(box){
+        box.innerHTML=`<div class="limit-reached"><i class="fas fa-moon"></i> 今日对话次数已用完，明天再来探索塔罗的奥秘吧</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>AI 斗蛐蛐 · 若水的小小工坊</title>
+  <link rel="stylesheet" href="{{ url_for('ai_duel.static', filename='main.css') }}">
+</head>
+<body id="ai-duel" data-base="{{ url_for('ai_duel.page') }}">
+  
+  <!-- 像素风格顶栏 -->
+  <header class="pixel-header">
+    <div class="header-content">
+      <div class="brand-zone">
+        <div class="pixel-logo">AI</div>
+        <div class="brand-text">
+          <h1 class="pixel-title">AI 斗蛐蛐</h1>
+          <p class="pixel-subtitle">双AI对话 · 自由交流 · 裁判点评</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="toggle-settings" class="pixel-btn btn-secondary">⚙ 设置</button>
+        <a href="{{ url_for('index') }}" class="pixel-btn btn-ghost">← 返回</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-content">
+      <span id="quota" class="status-pill">💰 配额：—</span>
+      <span id="models-state" class="status-pill">📦 模型：加载中</span>
+      <span id="battle-state" class="status-pill">💬 状态：待机</span>
+    </div>
+  </div>
+
+  <!-- 主界面容器 -->
+  <div class="main-container">
+    
+    <!-- 左侧面板 - 角色信息 -->
+    <aside class="side-panel left-panel">
+      <div class="character-card">
+        <div class="character-header bg-a">
+          <div class="character-avatar">A</div>
+          <div class="character-name">角色 A</div>
+        </div>
+        <div class="character-body">
+          <label class="mini-label">模型选择</label>
+          <select id="modelA" class="pixel-select"></select>
+          <label class="mini-label">角色设定</label>
+          <textarea id="presetA" class="pixel-textarea mini" rows="8" placeholder="可选：描述角色A的性格、背景、立场..."></textarea>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 中央聊天区 -->
+    <main class="chat-container">
+      <!-- 话题输入栏 -->
+      <div class="topic-bar">
+        <input id="topic" class="topic-input" placeholder="输入对话主题...例如：未来的教育会是什么样子？"/>
+        <div class="topic-chips">
+          <button class="chip" data-topic="程序员需要每天写代码吗？">👨‍💻 代码日更</button>
+          <button class="chip" data-topic="AI 会取代大部分工作吗？">🤖 AI影响</button>
+          <button class="chip" data-topic="远程办公是未来趋势吗？">🏠 远程办公</button>
+        </div>
+      </div>
+
+      <!-- 聊天窗口 -->
+      <div id="chat" class="chat-box">
+        <!-- 消息会动态插入这里 -->
+      </div>
+
+      <!-- 控制栏 -->
+      <div class="control-bar">
+        <div class="control-left">
+          <button id="start" class="pixel-btn btn-primary">▶ 开始对话</button>
+          <button id="stop" class="pixel-btn btn-danger" disabled>■ 停止</button>
+        </div>
+        <div class="control-right">
+          <button id="refresh-models" class="pixel-btn btn-ghost">↻ 刷新模型</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- 右侧面板 - 角色信息 -->
+    <aside class="side-panel right-panel">
+      <div class="character-card">
+        <div class="character-header bg-b">
+          <div class="character-avatar">B</div>
+          <div class="character-name">角色 B</div>
+        </div>
+        <div class="character-body">
+          <label class="mini-label">模型选择</label>
+          <select id="modelB" class="pixel-select"></select>
+          <label class="mini-label">角色设定</label>
+          <textarea id="presetB" class="pixel-textarea mini" rows="8" placeholder="可选：描述角色B的性格、背景、立场..."></textarea>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 设置面板 - 底部滑出 -->
+  <div id="settings" class="settings-panel">
+    <div class="settings-content">
+      
+      <!-- 对话设置 -->
+      <div class="setting-card">
+        <h3 class="setting-title">💬 对话设置</h3>
+        <div class="setting-grid">
+          <div class="setting-item">
+            <label class="pixel-label">回合数</label>
+            <input id="rounds" type="number" class="pixel-input" value="4" min="1" max="10"/>
+          </div>
+          <div class="setting-item">
+            <label class="pixel-label">回复长度</label>
+            <select id="reply-style" class="pixel-select">
+              <option value="short">简短</option>
+              <option value="medium" selected>适中</option>
+              <option value="long">详细</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label class="pixel-checkbox">
+              <input id="share-persona" type="checkbox"/>
+              <span class="checkbox-box"></span>
+              角色互知设定
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 裁判设置 -->
+      <div class="setting-card">
+        <h3 class="setting-title">⚖️ 裁判系统</h3>
+        <div class="setting-grid">
+          <div class="setting-item">
+            <label class="pixel-checkbox">
+              <input id="judge-on" type="checkbox" checked/>
+              <span class="checkbox-box"></span>
+              启用裁判
+            </label>
+          </div>
+          <div class="setting-item">
+            <label class="pixel-checkbox">
+              <input id="judge-per-round" type="checkbox"/>
+              <span class="checkbox-box"></span>
+              每轮点评
+            </label>
+          </div>
+          <div class="setting-item">
+            <label class="pixel-label">裁判模型</label>
+            <select id="judge-model" class="pixel-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI预设生成器 -->
+      <div class="setting-card">
+        <h3 class="setting-title">✨ AI角色生成器</h3>
+        <div class="generator-box">
+          <input id="seed" class="pixel-input" placeholder="一句话描述两个角色..."/>
+          <div class="generator-row">
+            <select id="builder-model" class="pixel-select"></select>
+            <button id="btn-build" class="pixel-btn btn-accent">生成角色</button>
+          </div>
+        </div>
+        <p class="setting-hint">AI会根据你的描述自动生成两个有趣的角色设定</p>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Toast提示 -->
+  <div id="toast" class="pixel-toast" hidden></div>
+
+  <script type="module" src="{{ url_for('ai_duel.static', filename='main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>智能牌阵推荐 - 塔罗占卜</title>
+
+  <!-- 本地化资源（与 spread.html 保持一致） -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/all.min.css') }}">
+
+  <style>
+    /* =========================
+       主题变量（与 spread.html 统一）
+       ========================= */
+    :root{
+      --primary-color: #8e6c88;   /* 丁香紫（主色） */
+      --accent-color:  #6d4c67;   /* 深梅紫（强调） */
+      --secondary-color:#d1bfa7;  /* 香槟米（辅助） */
+      --bg-ivory:      #f8f4e9;   /* 象牙浅底 */
+      --ink:           #333333;   /* 深文本 */
+      --muted:         #7a707a;   /* 次文本 */
+
+      --card:          #ffffff;
+      --border:        rgba(0,0,0,0.08);
+      --shadow-sm:     0 4px 16px rgba(30,20,35,0.08);
+      --shadow-md:     0 10px 28px rgba(30,20,35,0.12);
+      --shadow-lg:     0 16px 44px rgba(30,20,35,0.16);
+
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    /* 背景：细腻的丁香渐变 + 微微纹理感 */
+    html,body{ height:100% }
+    body{
+      margin:0;
+      color:var(--ink);
+      font-family: ui-sans-serif, -apple-system, "PingFang SC","Microsoft YaHei", Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      background:
+        radial-gradient(1000px 800px at 10% 0%, #fbf9f3 0%, rgba(251,249,243,0) 60%),
+        radial-gradient(1200px 900px at 90% 10%, #f3ece1 0%, rgba(243,236,225,0) 60%),
+        linear-gradient(135deg, #f8f4e9 0%, #ece4d7 100%);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ============= 顶部导航（与 spread.html 统一） ============= */
+    .navbar{
+      position:sticky; top:0; z-index:1000;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .navbar-content{
+      max-width:1200px; margin:0 auto; padding:14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .back-link{
+      display:flex; align-items:center; gap:8px;
+      color:var(--accent-color); text-decoration:none; font-weight:700;
+      transition: color .2s ease, transform .2s ease;
+    }
+    .back-link:hover{ color:var(--primary-color); transform: translateX(-2px); }
+    .nav-title{
+      font-size:18px; font-weight:800; color:var(--accent-color);
+    }
+
+    /* ============= 主容器 ============= */
+    .main{
+      max-width:900px; width:100%; margin:40px auto; padding:0 20px; flex:1;
+      display: flex; flex-direction: column;
+    }
+
+    .guide{
+      background: rgba(255,255,255,0.95);
+      border-radius: var(--radius-lg);
+      border:1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      overflow:hidden;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 装饰条 */
+    .decor{
+      height:6px;
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+    }
+
+    .stage{
+      padding:32px 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;            /* ✅ 允许滚动区收缩 */
+    }
+
+    /* ============= 进度指示器 ============= */
+    .progress{
+      display:flex; gap:12px; justify-content:center; margin-bottom:20px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background:#e5e7eb;
+      transition: all .3s ease;
+    }
+    .dot.active{
+      width:28px;
+      background:var(--primary-color);
+      box-shadow: 0 4px 12px rgba(142,108,136,.3);
+    }
+    .dot.done{ background:var(--secondary-color); }
+
+    /* ============= 对话区域 ============= */
+    .msgs{
+      display:flex; flex-direction:column; gap:16px;
+      flex: 1 1 0%;        /* ✅ 稳定 flex 行为 */
+      min-height: 0;       /* ✅ 配合父容器可收缩 */
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary-color) transparent;
+      scroll-behavior: smooth;   /* ✅ 自动滚动更顺滑 */
+    }
+    .msgs::-webkit-scrollbar { width: 6px; }
+    .msgs::-webkit-scrollbar-track { background: transparent; }
+    .msgs::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    .msg{
+      display:flex; gap:14px;
+      animation: msgSlideIn .25s ease-out;
+      max-width: 100%;
+    }
+    @keyframes msgSlideIn{
+      from{opacity:0; transform:translateY(8px);}
+      to{opacity:1; transform:translateY(0);}
+    }
+
+    .ava{
+      width:40px; height:40px; border-radius:50%;
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      box-shadow: var(--shadow-sm);
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
+    .bubble{
+      background: var(--card);
+      padding:16px 16px;
+      border-radius: var(--radius-md);
+      border-bottom-left-radius:6px;
+      line-height:1.6;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      flex: 1;
+      white-space: pre-line;
+    }
+
+    /* 折叠历史对话（仅保留最近2条展开） */
+    .msg.collapsed .bubble{ padding:10px 12px; opacity:.85; }
+    .msg.collapsed .options{ display:none !important; }
+    .msg.collapsed{ gap:10px; }
+    .user.collapsed .me{ padding:8px 12px; font-weight:500; opacity:.9; }
+
+    /* ============= 选项区域：两列网格（桌面端） ============= */
+    .options{
+      display:grid;                 /* ✅ 从竖排改为网格 */
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px; margin-top:12px;
+      align-items: stretch;
+    }
+    .opt{
+      background: var(--card);
+      border:2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding:14px 14px;
+      display:flex; align-items:center; gap:12px;
+      cursor:pointer;
+      transition: all .2s ease;
+      position: relative;
+      overflow: hidden;
+      min-height: 64px;            /* ✅ 统一高度，紧凑但不拥挤 */
+    }
+    .opt::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(142,108,136,0.05), transparent);
+      transition: left .4s ease;
+    }
+    .opt:hover::before { left: 100%; }
+    .opt:hover{
+      background: rgba(142,108,136,0.02);
+      border-color: var(--primary-color);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+    .opt .emoji{ width:28px; text-align:center; font-size:22px; flex-shrink: 0; }
+    .opt .content { flex: 1; min-width: 0; }
+    .opt .ttl{
+      font-weight:700; color:var(--accent-color); font-size: 15px;
+      margin-bottom: 2px; line-height: 1.25;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .opt .desc{
+      font-size:13px; color:var(--muted); line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .opt .arrow { color: var(--secondary-color); transition: transform .2s ease; }
+    .opt:hover .arrow { transform: translateX(3px); }
+
+    /* 用户选择消息 */
+    .user{ display:flex; justify-content:flex-end; }
+    .user .me{
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+      color:#fff; padding:10px 14px;
+      border-radius: var(--radius-md);
+      border-bottom-right-radius:6px;
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
+      max-width: 80%;
+      line-height: 1.4;
+    }
+
+    /* ============= 结果区域 ============= */
+    .result{
+      display:none; text-align:center; padding:28px 24px;
+      border-top:1px solid var(--border);
+      background: linear-gradient(135deg, rgba(248,244,233,0.3), rgba(236,228,215,0.3));
+    }
+    .result-icon { font-size: 44px; margin-bottom: 10px; }
+    .r-title{
+      font-size:22px; font-weight:800; color:var(--accent-color);
+      margin: 6px 0 6px;
+    }
+    .r-desc{ color:var(--muted); margin:0 0 18px; font-size: 15px; }
+
+    /* 推荐牌阵卡片 */
+    .spread-card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding:18px;
+      margin-bottom:18px;
+      text-align:left;
+      box-shadow: var(--shadow-sm);
+    }
+    .spread-name{ font-size:19px; font-weight:800; color:var(--primary-color); margin-bottom: 6px; }
+    .spread-meta{ color:var(--muted); font-size:13px; margin-bottom: 8px; }
+    .spread-desc { color: var(--ink); line-height: 1.6; }
+
+    /* ============= AI性格选择（与spread.html统一） ============= */
+    .personality-section { margin-bottom: 20px; }
+    .personality-label{
+      display: block;
+      color: var(--accent-color);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .personality-grid{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+      justify-items: stretch;
+    }
+    .personality-card{
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 14px 12px;
+      border: 2px solid var(--border); border-radius: var(--radius-md);
+      background: var(--card); box-shadow: var(--shadow-sm);
+      transition: all .2s ease;
+      height: 100%;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      min-height: 82px;
+    }
+    .personality-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(142,108,136,0.1), transparent);
+      transition: left .4s ease;
+    }
+    .personality-card:hover::before { left: 100%; }
+    .personality-card:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .personality-card.selected{
+      border-color: var(--primary-color);
+      background: linear-gradient(180deg, #fff, #fdf8f2);
+      box-shadow: 0 0 0 3px rgba(142,108,136,0.12), var(--shadow-md);
+    }
+    .personality-emoji{ font-size: 24px; margin-bottom: 6px; }
+    .personality-name{ font-size: 14px; font-weight: 800; color: var(--accent-color); margin-bottom: 2px; }
+    .personality-trait{ font-size: 12px; color: var(--muted); line-height: 1.2; }
+
+    /* ============= 底部操作区 ============= */
+    .footer{
+      padding:16px 0 0;
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap:12px;
+    }
+    .ghost-btn{
+      border:2px solid var(--border);
+      background: var(--card);
+      color: var(--accent-color);
+      border-radius: var(--radius-md);
+      padding:10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all .2s ease;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ghost-btn:hover { background: var(--bg-ivory); border-color: var(--primary-color); transform: translateY(-1px); }
+
+    .btn-primary{
+      background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+      color:#fff; border:none;
+      padding:12px 18px;
+      border-radius: var(--radius-md);
+      font-weight:700;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all .2s ease;
+      font-size: 15px;
+    }
+    .btn-primary:hover:not([disabled]) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .btn-primary[disabled]{ opacity:.6; cursor: not-allowed; transform: none !important; }
+
+    /* ============= 响应式 ============= */
+    @media (max-width:900px){
+      .options{ grid-template-columns: 1fr; }  /* ✅ 移动端单列，避免横向挤压 */
+      .personality-grid { grid-template-columns: 1fr; }
+      .msgs{ gap:14px; }
+    }
+    @media (max-width:768px){
+      .main{ margin:20px auto; padding: 0 16px; }
+      .stage { padding: 24px 20px; }
+      .msgs{ min-height:360px; }
+      .footer { flex-direction: column-reverse; gap: 10px; }
+      .ghost-btn, .btn-primary { width: 100%; justify-content: center; }
+    }
+    @media (max-width:480px){
+      .opt { padding: 12px 12px; }
+      .opt .emoji { font-size: 20px; width:24px; }
+      .opt .ttl { font-size: 14px; }
+    }
+
+    /* 尊重系统"减少动态"设置 */
+    @media (prefers-reduced-motion: reduce){
+      .opt, .personality-card, .btn-primary, .ghost-btn, .msg {
+        transition: none !important;
+        animation: none !important;
+      }
+      .opt::before, .personality-card::before { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <nav class="navbar">
+    <div class="navbar-content">
+      <a class="back-link" href="{{ url_for('spread') }}">
+        <i class="fas fa-chevron-left"></i>
+        <span>返回</span>
+      </a>
+      <div class="nav-title">智能牌阵推荐</div>
+      <div style="width:80px;"></div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <section class="guide">
+      <div class="decor"></div>
+
+      <div class="stage">
+        <!-- 进度 -->
+        <div class="progress" id="progress">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+
+        <!-- 对话区 -->
+        <div class="msgs" id="msgs"></div>
+
+        <!-- 结果区 -->
+        <div class="result" id="result">
+          <div class="result-icon">🎯</div>
+          <div class="r-title">找到最适合你的牌阵！</div>
+          <div class="r-desc">根据你的选项，我们为你推荐：</div>
+
+          <div class="spread-card">
+            <div class="spread-name" id="rName"></div>
+            <div class="spread-meta" id="rMeta"></div>
+            <div class="spread-desc" id="rDesc"></div>
+          </div>
+
+          <div class="personality-section">
+            <label class="personality-label">选择对话人格（只影响语气，不改变解读结论）</label>
+            <div class="personality-grid" id="personaList"></div>
+          </div>
+
+          <div class="footer">
+            <button class="ghost-btn" id="resetBtn">
+              <i class="fas fa-redo"></i>
+              重新选择
+            </button>
+            <button class="btn-primary" id="goBtn" disabled>
+              <i class="fas fa-sparkles"></i>
+              开始占卜
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /***************
+     * 决策树（与 DB spreads.id 对齐的 spread_id）
+     ***************/
+    const decision = {
+      start: {
+        message: "你好！我是你的塔罗引导师 ✨\n今天想探索什么主题？",
+        options: [
+          { emoji:"💕", title:"感情关系", desc:"爱情/人际相处", next:"love" },
+          { emoji:"💼", title:"事业工作", desc:"职业发展/机会", next:"career" },
+          { emoji:"💰", title:"财富金钱", desc:"财务/投资理财", next:"wealth" },
+          { emoji:"🌟", title:"个人成长", desc:"自我探索/意义感", next:"growth" },
+          { emoji:"❓", title:"通用指引", desc:"日常/短问题", next:"general" }
+        ]
+      },
+      love: {
+        message: "关于感情，你更想聚焦哪方面？",
+        options: [
+          { emoji:"👥", title:"现有关系", desc:"双方视角/走向", result:"relationship" },
+          { emoji:"💘", title:"未来缘分", desc:"趋势与机会", result:"three_cards" },
+          { emoji:"💔", title:"困惑/矛盾", desc:"定位问题与改善", result:"love_cross" }
+        ]
+      },
+      career: {
+        message: "关于事业，你此刻最需要？",
+        options: [
+          { emoji:"📈", title:"职业发展", desc:"资源/阻碍/机会/风险", result:"career" },
+          { emoji:"🤔", title:"工作选择", desc:"在 A/B 之间抉择", result:"choice_two" },
+          { emoji:"🎯", title:"节奏规划", desc:"过去-现在-未来", result:"three_cards" }
+        ]
+      },
+      wealth: {
+        message: "关于财富，你想了解？",
+        options: [
+          { emoji:"💸", title:"财务现状", desc:"现金流与优化", result:"wealth" },
+          { emoji:"📊", title:"投资决策", desc:"Yes/No 倾向", result:"yes_no" },
+          { emoji:"🏆", title:"机会窗口", desc:"短期把握", result:"three_cards" }
+        ]
+      },
+      growth: {
+        message: "你希望在哪方面获得成长？",
+        options: [
+          { emoji:"🧘", title:"身心平衡", desc:"身/心/灵调频", result:"mind_body_spirit" },
+          { emoji:"🌈", title:"人生方向", desc:"阶段课题与趋势", result:"spiritual" },
+          { emoji:"✨", title:"整体脉络", desc:"过去现在未来", result:"three_cards" }
+        ]
+      },
+      general: {
+        message: "通用指引想怎么来？",
+        options: [
+          { emoji:"📅", title:"每日提示", desc:"当下一条建议", result:"single_card" },
+          { emoji:"🎲", title:"是否判断", desc:"Yes/No 快速判断", result:"yes_no" },
+          { emoji:"🌅", title:"整体趋势", desc:"三张牌看走向", result:"three_cards" }
+        ]
+      }
+    };
+
+    // 展示信息（仅 UI，用于结果卡）
+    const spreadsShow = {
+      single_card:{ name:'单牌指引', cards:1, desc:'快速获取当下核心提示' },
+      yes_no:{ name:'是否牌阵', cards:1, desc:'判断倾向与注意点' },
+      three_cards:{ name:'时间三牌阵', cards:3, desc:'过去-现在-未来' },
+      relationship:{ name:'关系牌阵', cards:5, desc:'双方视角与走向' },
+      choice_two:{ name:'二选一牌阵', cards:3, desc:'权衡利弊与结论' },
+      mind_body_spirit:{ name:'身心灵牌阵', cards:3, desc:'自我平衡与调频' },
+      career:{ name:'职业发展牌阵', cards:5, desc:'资源/阻碍/机会/风险' },
+      wealth:{ name:'财富之路牌阵', cards:4, desc:'现金流/机会/风险' },
+      love_cross:{ name:'爱情十字牌阵', cards:5, desc:'现状/内外因/建议/走向' },
+      spiritual:{ name:'灵性成长牌阵', cards:7, desc:'长期方向与课题' }
+    };
+
+    // 人格：优先 /api/personas；失败使用 fallback
+    let personas = null;
+    const personasFallback = [
+      { id:'wisdom',  name:'智慧', desc:'理性分析' },
+      { id:'mystic',  name:'神秘', desc:'深邃直觉' },
+      { id:'warm',    name:'温暖', desc:'贴心陪伴' }
+    ];
+
+    // ====== 状态 ======
+    let current = 'start';
+    let history = [];
+    let chosenSpread = null;   // 与 DB 中 spreads.id 一致（varchar）
+    let aiPersonality = null;  // 提交给后端的 ai_personality
+    let personaDelegationBound = false;
+
+    // 工具：简单转义
+    const escapeHTML = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const escapeAttr = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // 平滑滚动到最新 & 折叠历史，减少手动下滑
+    function scrollToLatest(el){
+      const msgs = window.__msgs || document.getElementById('msgs');
+      if (!msgs) return;
+      requestAnimationFrame(()=>{
+        if (el && el.scrollIntoView) {
+          el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        }
+        msgs.scrollTo({ top: msgs.scrollHeight, behavior:'smooth' });
+      });
+    }
+    function collapseHistory(keep=2){
+      const msgs = window.__msgs || document.getElementById('msgs');
+      if (!msgs) return;
+      const nodes = Array.from(msgs.children).filter(n => n.classList.contains('msg') || n.classList.contains('user'));
+      nodes.slice(0, Math.max(0, nodes.length - keep)).forEach(n => n.classList.add('collapsed'));
+    }
+
+    // 初始化（兼容脚本延后插入）
+    function initGuide(){
+      try {
+        window.__msgs = document.getElementById('msgs') || document.querySelector('.msgs');
+        if (!window.__msgs) { console.error('[guide] 未找到 #msgs 容器'); return; }
+
+        // 绑定按钮事件（移除 inline onclick，兼容 CSP）
+        const resetBtn = document.getElementById('resetBtn');
+        const goBtn = document.getElementById('goBtn');
+        if (resetBtn) resetBtn.addEventListener('click', resetGuide);
+        if (goBtn) goBtn.addEventListener('click', proceedToSpread);
+
+        showStep('start');
+      } catch (e) { console.error('[guide] 初始化失败：', e); }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGuide, { once:true });
+    } else { initGuide(); }
+
+    async function ensurePersonasLoaded(){
+      if (personas) return personas;
+      try{
+        const res = await fetch('/api/personas');
+        if (!res.ok) throw new Error('no personas api');
+        const data = await res.json();
+        personas = Array.isArray(data) && data.length ? data.map(p=>({
+          id: p.id ?? p.code ?? 'warm',
+          name: p.name ?? '自定义人格',
+          desc: p.desc ?? (p.style ? `风格：${p.style}` : '')
+        })) : personasFallback;
+      }catch(_){ personas = personasFallback; }
+      return personas;
+    }
+
+    // ====== 渲染步骤 ======
+    function showStep(id){
+      try {
+        const node = decision[id];
+        if (!node) { console.warn('[guide] 未找到步骤：', id); return; }
+
+        const msgs = window.__msgs || document.getElementById('msgs');
+        if (!msgs) { console.error('[guide] #msgs 容器缺失，无法渲染'); return; }
+
+        current = id;
+        updateProgress();
+
+        const block = document.createElement('div');
+        block.className = 'msg';
+        const text = escapeHTML(node.message || '');
+
+        const optsHTML = Array.isArray(node.options) ? node.options.map((o,i)=>`
+          <div class="opt" data-idx="${i}">
+            <div class="emoji">${o.emoji || ''}</div>
+            <div class="content">
+              <div class="ttl">${escapeHTML(o.title || '')}</div>
+              <div class="desc">${escapeHTML(o.desc || '')}</div>
+            </div>
+            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+          </div>
+        `).join('') : '';
+
+        block.innerHTML = `
+          <div class="ava"><i class="fas fa-sparkles"></i></div>
+          <div class="bubble">
+            ${text}
+            <div class="options">
+              ${optsHTML}
+            </div>
+          </div>`;
+
+        msgs.appendChild(block);
+
+        // 仅给当前块的选项绑定点击
+        block.querySelectorAll('.opt').forEach(el=>{
+          el.addEventListener('click', ()=>{
+            const idx = parseInt(el.dataset.idx, 10);
+            selectOption(idx, block);
+          }, { once:true });
+        });
+
+        collapseHistory(2);   // ✅ 折叠旧消息
+        scrollToLatest(block); // ✅ 自动滚到新步骤
+      } catch (e) { console.error('[guide] showStep 渲染失败：', e); }
+    }
+
+    function selectOption(index, block){
+      try{
+        // 禁用该块
+        block.querySelectorAll('.opt').forEach(el=>{
+          el.style.pointerEvents='none';
+          el.style.opacity='.6';
+        });
+
+        const node = decision[current];
+        const opt = node?.options?.[index] || {};
+
+        // 用户选择泡泡
+        const me = document.createElement('div');
+        me.className = 'user';
+        me.innerHTML = `<div class="me">${escapeHTML(opt.emoji || '')} ${escapeHTML(opt.title || '')}</div>`;
+        (window.__msgs || document.getElementById('msgs')).appendChild(me);
+        history.push({ step: current, choice: index });
+
+        collapseHistory(2);    // ✅ 选择后也折叠旧消息
+        scrollToLatest(me);    // ✅ 拉到选择位置
+
+        setTimeout(()=>{
+          if (opt.result){ showResult(opt.result); }
+          else if (opt.next){ showStep(opt.next); }
+          scrollToLatest();    // ✅ 再次确保看到下一步
+        }, 250);
+        updateProgress();
+      }catch(e){ console.error('[guide] selectOption 失败：', e); }
+    }
+
+    function updateProgress(){
+      const dots = document.querySelectorAll('.dot');
+      const idx = history.length;
+      dots.forEach((d,i)=>{
+        d.classList.toggle('done', i < idx);
+        d.classList.toggle('active', i === idx);
+      });
+    }
+
+    // ====== 结果 & 人格选择 ======
+    async function showResult(spreadId){
+      chosenSpread = spreadId;
+      const s = spreadsShow[spreadId] || {name:spreadId, cards:'-', desc:''};
+
+      // 隐藏对话，展示结果卡
+      const resultEl = document.getElementById('result');
+      const progressEl = document.getElementById('progress');
+      const msgs = window.__msgs || document.getElementById('msgs');
+
+      if (resultEl) resultEl.style.display = 'block';
+      if (progressEl) progressEl.style.display = 'none';
+      if (msgs) msgs.style.display = 'none';
+
+      document.getElementById('rName').textContent = s.name;
+      document.getElementById('rMeta').textContent = `${s.cards} 张 · ${s.desc}`;
+
+      const descEl = document.getElementById('rDesc');
+      if (descEl) { descEl.textContent = getSpreadDescription(spreadId); }
+
+      // 渲染人格列表（事件委托）
+      const list = document.getElementById('personaList');
+      const data = await ensurePersonasLoaded();
+      list.innerHTML = data.map((p, idx)=>`
+        <div class="personality-card ${idx === 0 ? 'selected' : ''}"
+             data-personality="${escapeAttr(p.id)}"
+             data-name="${escapeAttr(p.name || p.id)}">
+          <div class="personality-emoji">${getPersonalityEmoji(p.id)}</div>
+          <div class="personality-name">${escapeHTML(p.name || p.id)}</div>
+          <div class="personality-trait">${escapeHTML(p.desc || '')}</div>
+        </div>
+      `).join('');
+
+      // 默认选中第一个人格
+      if (data.length > 0) { aiPersonality = data[0].id; updateGoButton(); }
+
+      bindPersonaDelegation();
+      resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+
+    function bindPersonaDelegation(){
+      if (personaDelegationBound) return;
+      personaDelegationBound = true;
+      const list = document.getElementById('personaList');
+      list.addEventListener('click', (e)=>{
+        const card = e.target.closest('.personality-card');
+        if (!card) return;
+        pickPersona(card.dataset.personality, card.dataset.name);
+      });
+    }
+
+    function getPersonalityEmoji(id) {
+      const emojiMap = { 'wisdom':'📚','mystic':'🔮','warm':'💝','blunt':'⚡','heal':'🌿','ritual':'🕯️','pro':'📊' };
+      return emojiMap[id] || '🗣️';
+    }
+
+    function getSpreadDescription(spreadId) {
+      const descriptions = {
+        single_card: '通过一张塔罗牌获得当下最重要的指引和建议。',
+        yes_no: '针对特定问题给出明确的是否倾向判断。',
+        three_cards: '从时间维度分析过去的影响、现在的状况和未来的趋势。',
+        relationship: '深入分析双方在关系中的视角、感受和可能的发展方向。',
+        choice_two: '帮助你在两个选项之间做出最适合的决策。',
+        mind_body_spirit: '从身体、心理、精神三个层面分析当前状态。',
+        career: '全面分析职业发展中的资源、障碍、机会和潜在风险。',
+        wealth: '从多角度分析财务状况和金钱能量的流动。',
+        love_cross: '深度剖析感情问题的根源和解决方案。',
+        spiritual: '探索个人精神成长的方向和人生课题。'
+      };
+      return descriptions[spreadId] || '为你提供深度的洞察和指引。';
+    }
+
+    function pickPersona(id, name){
+      document.querySelectorAll('.personality-card').forEach(card => card.classList.remove('selected'));
+      const selectedCard = document.querySelector(`.personality-card[data-personality="${CSS.escape(id)}"]`);
+      if (selectedCard) selectedCard.classList.add('selected');
+
+      aiPersonality = id;
+      updateGoButton();
+      showPersonalityConfirmation(name || id);
+    }
+
+    function showPersonalityConfirmation(name) {
+      const sec = document.querySelector('.personality-section');
+      if (!sec) return;
+      const existingHint = document.querySelector('.persona-confirmation');
+      if (existingHint) existingHint.remove();
+      const hint = document.createElement('div');
+      hint.className = 'persona-confirmation';
+      hint.style.cssText = `
+        margin: 10px 0 0 0; padding: 8px 12px;
+        background: rgba(142,108,136,0.05);
+        border: 1px solid rgba(142,108,136,0.12);
+        border-radius: 8px; color: var(--accent-color);
+        font-size: 14px; text-align: center;
+      `;
+      hint.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 6px;"></i>已选择对话人格：${escapeHTML(name)}`;
+      sec.appendChild(hint);
+    }
+
+    function updateGoButton() {
+      const btn = document.getElementById('goBtn');
+      if (btn) btn.disabled = !(chosenSpread && aiPersonality);
+    }
+
+    function generateQuestion(){
+      const titles = [];
+      for (const h of history){
+        const node = decision[h.step];
+        const opt = node?.options?.[h.choice];
+        if (opt?.title) titles.push(opt.title);
+      }
+      const main = titles.slice(-2).join('，');
+      const sName = (spreadsShow[chosenSpread]?.name) || '本次牌阵';
+      return main ? `我想用「${sName}」看看：${main}` : `我想用「${sName}」做一次占卜，给我具体建议。`;
+    }
+
+    // ====== 开始占卜（与后端一致：/api/spread/draw） ======
+    async function proceedToSpread(){
+      if (!chosenSpread){ alert('请先完成选择'); return; }
+      if (!aiPersonality){ alert('请先选择对话人格'); return; }
+
+      const btn = document.getElementById('goBtn');
+      const oldHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 准备中…';
+
+      try{
+        const payload = {
+          spread_id: chosenSpread,          // varchar，与 DB 主键一致
+          question: generateQuestion(),     // 合成首问
+          ai_personality: aiPersonality     // 字符串人格
+        };
+        const res = await fetch('/api/spread/draw', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('抽牌接口错误');
+        const data = await res.json();
+        if (data?.success && data?.redirect){
+          window.location.href = data.redirect; // /spread/chat/<reading_id>
+          return;
+        }
+        throw new Error(data?.error || '抽牌失败，请稍后重试');
+      }catch(err){
+        console.error(err);
+        alert(err.message || '网络错误，请稍后重试');
+        btn.disabled = false;
+        btn.innerHTML = oldHTML;
+      }
+    }
+
+    function resetGuide(){
+      history = [];
+      chosenSpread = null;
+      aiPersonality = null;
+      current = 'start';
+
+      const msgs = window.__msgs || document.getElementById('msgs');
+      msgs.innerHTML = '';
+      msgs.style.display = '';
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('progress').style.display = '';
+
+      document.querySelectorAll('.dot').forEach((d,i)=>{
+        d.classList.toggle('active', i===0);
+        d.classList.remove('done');
+      });
+
+      showStep('start');
+      scrollToLatest();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="expired-container">
+    <h2>过期的塔罗解读</h2>
+    <p>您在 {{ last_card.date }} 抽到了 {{ last_card.name }}（{{ last_card.direction }}）</p>
+    <p>塔罗牌的指引每日更新，昨日的智慧已经融入您的生命中。</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">抽取今日塔罗牌</a>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+[
+  {
+    "slug": "tarot",
+    "title": "塔罗 · 每日指引",
+    "subtitle": "塔罗牌占卜&你的AI占卜师好友",
+    "cover": "/static/images/covers/tarot.jpg",
+    "tags": ["Tarot", "AI对话", "长期记忆"],
+    "type": "link",
+    "path": "/tarot"
+  },
+  {
+    "slug": "ai-duel",
+    "title": "AI斗蛐蛐",
+    "subtitle": "看看谁家ai好用",
+    "cover": "/static/images/covers/ai_duel.jpg",
+    "tags": ["AI", "辩论"],
+    "type": "link",
+    "path": "/g/ai_duel/"
+  },
+  {
+    "slug": "tic_tac_toe",
+    "title": "井字棋",
+    "subtitle": "弱智ai",
+    "cover": "/static/images/covers/tic_tac_toe.jpg",
+    "tags": ["AI", "下棋"],
+    "type": "link",
+    "path": "/g/tic_tac_toe/"
+  },
+  {
+    "slug": "code_playground",
+    "title": "实时画布",
+    "subtitle": "写代码 · 看预览",
+    "cover": "/static/images/covers/code_playground.svg",
+    "tags": ["React", "Playground"],
+    "type": "link",
+    "path": "/g/code_playground/"
+  },
+  {
+    "slug": "daily_bulletin",
+    "title": "每日板报",
+    "subtitle": "位置 · 天气 · 新闻",
+    "cover": "/static/images/covers/daily_bulletin.svg",
+    "tags": ["天气", "新闻", "定位"],
+    "type": "link",
+    "path": "/g/daily_bulletin/"
+  },
+  {
+    "slug": "remotedesk",
+    "title": "RemoteDesk",
+    "subtitle": "Control PC from Mobile · Free",
+    "tags": ["Remote Control", "Mobile", "Gaming"],
+    "type": "link",
+    "path": "/g/remotedesk/"
+  }
+]

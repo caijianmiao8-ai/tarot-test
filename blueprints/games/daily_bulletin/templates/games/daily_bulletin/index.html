@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日板报 · Daily Bulletin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰圆点 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 10%;
+            left: 5%;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15), transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 15%;
+            right: 8%;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 装饰性连接线 */
+        .decoration-lines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+
+        .decoration-lines svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg,
+                rgba(14, 165, 233, 0.18) 0%,
+                rgba(30, 41, 59, 0.25) 50%,
+                rgba(245, 158, 11, 0.12) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 16px;
+            padding: 20px 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.1), transparent 60%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            color: #f0f9ff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: '📰';
+            font-size: 0.9em;
+        }
+
+        .header .subtitle {
+            font-size: 0.95em;
+            color: #cbd5e1;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(148, 163, 184, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(148, 163, 184, 0.2);
+            border-top: 4px solid #38bdf8;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            font-size: 1.1em;
+            color: #cbd5e1;
+        }
+
+        .content {
+            display: none;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .content.show {
+            display: grid;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 顶部状态栏 - 优化设计 */
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 32px;
+            padding: 16px 24px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.85) 0%,
+                rgba(30, 41, 59, 0.75) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 14px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.93em;
+            color: #cbd5e1;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .status-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -16px;
+            height: 18px;
+            width: 1px;
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .status-icon {
+            font-size: 1.3em;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .status-highlight {
+            color: #fbbf24;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+
+        /* 三列内容网格 - 优化布局 */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 1400px) {
+            .content-grid {
+                grid-template-columns: 1.2fr 1fr 1fr;
+            }
+        }
+
+        /* 列容器 - 优化高度 */
+        .column {
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.75) 0%,
+                rgba(30, 41, 59, 0.65) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(148, 163, 184, 0.15);
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 220px);
+            min-height: 600px;
+            max-height: 850px;
+        }
+
+        .column:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            flex-shrink: 0;
+        }
+
+        .column-icon {
+            font-size: 1.3em;
+        }
+
+        .column-title {
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #f0f9ff;
+            flex: 1;
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.5);
+        }
+
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .column-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .column-content::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        .column-content::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 3px;
+        }
+
+        .column-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid rgba(239, 68, 68, 0.4);
+            color: #fecaca;
+            padding: 24px;
+            border-radius: 16px;
+            margin: 20px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 24px rgba(239, 68, 68, 0.2);
+        }
+
+
+        /* 新闻样式 - 优化设计 */
+        .news-item {
+            position: relative;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.6) 0%,
+                rgba(30, 41, 59, 0.5) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-left: 3px solid rgba(56, 189, 248, 0.3);
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .news-item:hover {
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.7) 0%,
+                rgba(51, 65, 85, 0.6) 100%);
+            border-left-color: #38bdf8;
+            transform: translateX(3px);
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+        }
+
+        .news-title {
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .news-title a {
+            color: #f1f5f9;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-size: 0.94em;
+            line-height: 1.6;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            display: block;
+        }
+
+        .news-title a:hover {
+            color: #38bdf8;
+        }
+
+        .news-meta {
+            font-size: 0.76em;
+            color: #64748b;
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            align-items: center;
+        }
+
+        .news-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .news-meta span:first-child::before {
+            content: '📰';
+            font-size: 0.9em;
+        }
+
+        .news-description {
+            margin-top: 10px;
+            color: #94a3b8;
+            font-size: 0.84em;
+            line-height: 1.6;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* 响应式设计 - 优化 */
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+
+            .column:first-child {
+                grid-column: 1 / -1;
+            }
+
+            .column {
+                min-height: 500px;
+                max-height: 700px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 0 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .header {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+                padding: 14px 18px;
+            }
+
+            .status-item:not(:last-child)::after {
+                display: none;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .column {
+                height: auto;
+                min-height: 400px;
+                max-height: 600px;
+            }
+
+            .column:first-child {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .status-item {
+                font-size: 0.88em;
+            }
+
+            .status-icon {
+                font-size: 1.2em;
+            }
+
+            .column-content {
+                padding: 10px;
+            }
+
+            .news-item, .note-item, .todo-item {
+                padding: 12px 14px;
+            }
+        }
+
+        /* 快速添加样式 - 精致设计 */
+        .quick-add {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .quick-add textarea,
+        .quick-add input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+            color: #f1f5f9;
+            font-size: 0.9em;
+            font-family: inherit;
+            resize: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-add textarea::placeholder,
+        .quick-add input[type="text"]::placeholder {
+            color: #64748b;
+        }
+
+        .quick-add textarea:focus,
+        .quick-add input[type="text"]:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.8) 0%,
+                rgba(51, 65, 85, 0.7) 100%);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15),
+                        0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .quick-add-todo {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .quick-add-todo input {
+            flex: 1;
+        }
+
+        .quick-add-todo select {
+            padding: 12px 10px;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-add-todo select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.8) 0%,
+                rgba(51, 65, 85, 0.7) 100%);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .quick-add-todo select:hover {
+            transform: scale(1.05);
+        }
+
+        /* 笔记样式 */
+        .notes-list, .todos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .notes-list::-webkit-scrollbar,
+        .todos-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .notes-list::-webkit-scrollbar-track,
+        .todos-list::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 3px;
+        }
+
+        .notes-list::-webkit-scrollbar-thumb,
+        .todos-list::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
+        }
+
+        /* 笔记和待办卡片 - 高级设计 */
+        .note-item, .todo-item {
+            position: relative;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        /* 左侧装饰条 */
+        .note-item::before, .todo-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg,
+                rgba(56, 189, 248, 0.3) 0%,
+                rgba(14, 165, 233, 0.6) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .note-item:hover, .todo-item:hover {
+            background: linear-gradient(135deg,
+                rgba(30, 41, 59, 0.75) 0%,
+                rgba(51, 65, 85, 0.65) 100%);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15),
+                        0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .note-item:hover::before, .todo-item:hover::before {
+            opacity: 1;
+        }
+
+        /* 乐观更新状态 */
+        .note-item.optimistic, .todo-item.optimistic {
+            opacity: 0.7;
+            animation: pulseGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+            50% {
+                box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25),
+                            0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        /* 内容区域 */
+        .note-content, .todo-content {
+            color: #f1f5f9;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.92em;
+            cursor: text;
+            margin-bottom: 12px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        .note-content {
+            position: relative;
+            padding: 2px 0;
+        }
+
+        .todo-text {
+            flex: 1;
+        }
+
+        .note-content:hover {
+            color: #fff;
+        }
+
+        /* 内联编辑样式 */
+        .note-item.editing, .todo-item.editing {
+            background: linear-gradient(135deg,
+                rgba(56, 189, 248, 0.15) 0%,
+                rgba(14, 165, 233, 0.12) 100%);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 8px 32px rgba(56, 189, 248, 0.2);
+        }
+
+        .note-item.editing::before,
+        .todo-item.editing::before {
+            opacity: 1;
+        }
+
+        .note-item textarea.inline-edit,
+        .todo-item input.inline-edit {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #38bdf8;
+            border-radius: 8px;
+            color: #f1f5f9;
+            font-size: 0.92em;
+            font-family: inherit;
+            line-height: 1.65;
+            resize: vertical;
+            min-height: 80px;
+            transition: all 0.2s ease;
+        }
+
+        .note-item textarea.inline-edit:focus,
+        .todo-item input.inline-edit:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+            background: rgba(15, 23, 42, 1);
+        }
+
+        .todo-item input.inline-edit {
+            min-height: auto;
+            margin-bottom: 10px;
+        }
+
+        .priority-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .priority-select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .edit-actions button {
+            padding: 8px 20px;
+            font-size: 0.82em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: white;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
+
+        .btn-cancel {
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .btn-cancel:hover {
+            background: rgba(148, 163, 184, 0.25);
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+
+        /* Meta信息区域 */
+        .note-meta, .todo-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78em;
+            color: #94a3b8;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .note-time, .todo-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+
+        .note-time::before {
+            content: '🕒';
+            font-size: 0.9em;
+            opacity: 0.6;
+        }
+
+        .todo-time::before {
+            content: '📅';
+            font-size: 0.9em;
+            opacity: 0.6;
+        }
+
+        .note-actions, .todo-actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .note-item:hover .note-actions,
+        .todo-item:hover .todo-actions {
+            opacity: 1;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.75em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+        }
+
+        .btn-delete:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.25);
+            color: #ff6b6b;
+            transform: scale(1.05);
+        }
+
+        .btn-delete:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* 待办事项特殊样式 */
+        .todo-item.completed {
+            opacity: 0.5;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+
+        .todo-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .todo-checkbox input[type="checkbox"] {
+            margin-top: 2px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #38bdf8;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .todo-checkbox input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .todo-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .todo-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* 优先级指示器 - 圆点设计 */
+        .priority-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .priority-indicator.priority-high {
+            background: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        }
+
+        .priority-indicator.priority-medium {
+            background: #fbbf24;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        }
+
+        .priority-indicator.priority-low {
+            background: #22c55e;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+        }
+
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <!-- 装饰性背景线条 -->
+    <div class="decoration-lines">
+        <svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+            <line x1="100" y1="200" x2="300" y2="150" stroke="rgba(56, 189, 248, 0.15)" stroke-width="2"/>
+            <line x1="1620" y1="200" x2="1820" y2="250" stroke="rgba(251, 191, 36, 0.15)" stroke-width="2"/>
+            <line x1="100" y1="880" x2="300" y2="930" stroke="rgba(239, 68, 68, 0.15)" stroke-width="2"/>
+            <line x1="1620" y1="880" x2="1820" y2="830" stroke="rgba(56, 189, 248, 0.15)" stroke-width="2"/>
+            <circle cx="150" cy="175" r="6" fill="rgba(56, 189, 248, 0.4)"/>
+            <circle cx="1770" cy="225" r="6" fill="rgba(251, 191, 36, 0.4)"/>
+            <circle cx="150" cy="905" r="6" fill="rgba(239, 68, 68, 0.4)"/>
+            <circle cx="1770" cy="855" r="6" fill="rgba(56, 189, 248, 0.4)"/>
+        </svg>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>每日板报</h1>
+            <p class="subtitle">🌍 位置 · ☀️ 天气 · 📰 新闻</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>正在加载板报数据...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <strong>加载失败</strong><br>
+            <span id="error-message"></span>
+        </div>
+
+        <div id="content" class="content">
+            <!-- 顶部状态栏 - 一行式信息展示 -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-icon">📅</span>
+                    <span id="date">-</span>
+                    <span id="weekday">-</span>
+                    <span id="time" class="status-highlight">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">📍</span>
+                    <span id="location" class="status-highlight">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon" id="weather-icon">🌤️</span>
+                    <span id="weather-temp" class="status-highlight">-</span>
+                    <span id="weather-desc">-</span>
+                    <span style="opacity: 0.6;">|</span>
+                    <span>💧<span id="weather-humidity">-</span></span>
+                    <span>💨<span id="weather-wind">-</span></span>
+                </div>
+            </div>
+
+            <!-- 三列流式布局 -->
+            <div class="content-grid">
+                <!-- 新闻栏 -->
+                <div class="column">
+                    <div class="column-header">
+                        <span class="column-icon">📰</span>
+                        <span class="column-title">今日要闻</span>
+                    </div>
+                    <div class="column-content" id="news-list">
+                        <!-- 新闻将通过 JS 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 笔记栏 -->
+                <div class="column" id="notes-column" style="display: none;">
+                    <div class="column-header">
+                        <span class="column-icon">📝</span>
+                        <span class="column-title">笔记</span>
+                    </div>
+                    <div class="column-content">
+                        <!-- 快速添加 -->
+                        <div class="quick-add">
+                            <textarea id="quick-note-input" placeholder="输入笔记内容按 Enter 保存..." rows="2"></textarea>
+                        </div>
+                        <div id="notes-list">
+                            <!-- 笔记将动态加载 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 待办栏 -->
+                <div class="column" id="todos-column" style="display: none;">
+                    <div class="column-header">
+                        <span class="column-icon">✅</span>
+                        <span class="column-title">待办</span>
+                    </div>
+                    <div class="column-content">
+                        <!-- 快速添加 -->
+                        <div class="quick-add">
+                            <div class="quick-add-todo">
+                                <input type="text" id="quick-todo-input" placeholder="输入待办事项按 Enter 保存...">
+                                <select id="quick-todo-priority">
+                                    <option value="1">🔴</option>
+                                    <option value="2" selected>🟡</option>
+                                    <option value="3">🟢</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="todos-list">
+                            <!-- 待办事项将动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 登录提示（未登录时显示） -->
+            <div id="login-hint" class="section" style="display: none;">
+                <div class="login-hint-content">
+                    <div class="login-hint-icon">🔐</div>
+                    <h3>个性化功能</h3>
+                    <p>登录后即可使用记事本和待办事项功能</p>
+                    <p class="hint-note">访客用户的数据会保存在当前浏览器中</p>
+                    <button class="login-btn" onclick="window.location.href='/login'">前往登录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 天气图标映射
+        const weatherIcons = {
+            '01d': '☀️', '01n': '🌙',
+            '02d': '⛅', '02n': '☁️',
+            '03d': '☁️', '03n': '☁️',
+            '04d': '☁️', '04n': '☁️',
+            '09d': '🌧️', '09n': '🌧️',
+            '10d': '🌦️', '10n': '🌧️',
+            '11d': '⛈️', '11n': '⛈️',
+            '13d': '❄️', '13n': '❄️',
+            '50d': '🌫️', '50n': '🌫️'
+        };
+
+        async function loadBulletinData() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || '加载失败');
+                }
+
+                // 渲染数据
+                renderData(data);
+
+                // 显示内容，隐藏加载动画
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').classList.add('show');
+
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
+            }
+        }
+
+        function renderData(data) {
+            // 日期时间 - 使用用户本地时间
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[now.getDay()];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('date').textContent = `${year}年${month}月${day}日`;
+            document.getElementById('weekday').textContent = weekday;
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+
+            // 位置
+            if (data.location) {
+                const loc = data.location;
+                document.getElementById('location').textContent =
+                    `${loc.city || ''}${loc.region ? ', ' + loc.region : ''}, ${loc.country || ''}`;
+            }
+
+            // 天气
+            if (data.weather) {
+                const weather = data.weather;
+                const iconCode = weather.icon || '01d';
+                document.getElementById('weather-icon').textContent = weatherIcons[iconCode] || '☁️';
+                document.getElementById('weather-desc').textContent = weather.description || '-';
+                document.getElementById('weather-temp').textContent = weather.temp || '-';
+                document.getElementById('weather-humidity').textContent = weather.humidity || '-';
+                document.getElementById('weather-wind').textContent = weather.wind_speed || '-';
+            }
+
+            // 新闻
+            if (data.news) {
+                const newsList = document.getElementById('news-list');
+                newsList.innerHTML = '';
+
+                // 如果有错误信息
+                if (data.news.error) {
+                    newsList.innerHTML = `<p style="text-align: center; color: #e74c3c; background: rgba(231,76,60,0.1); padding: 15px; border-radius: 10px;">${data.news.error}</p>`;
+                } else if (data.news.articles && data.news.articles.length === 0) {
+                    newsList.innerHTML = '<p style="text-align: center; color: #888;">暂无新闻数据</p>';
+                } else if (data.news.articles) {
+                    data.news.articles.forEach((article, index) => {
+                        const newsItem = document.createElement('div');
+                        newsItem.className = 'news-item';
+                        newsItem.innerHTML = `
+                            <div class="news-title">
+                                <a href="${article.url}" target="_blank" rel="noopener">
+                                    ${index + 1}. ${article.title}
+                                </a>
+                            </div>
+                            <div class="news-meta">
+                                <span>来源: ${article.source}</span>
+                                ${article.publishedAt ? `<span>${formatDate(article.publishedAt)}</span>` : ''}
+                            </div>
+                            ${article.description ? `<div class="news-description">${article.description}</div>` : ''}
+                        `;
+                        newsList.appendChild(newsItem);
+                    });
+                }
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+            if (diffHours < 1) {
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                return `${diffMins}分钟前`;
+            } else if (diffHours < 24) {
+                return `${diffHours}小时前`;
+            } else {
+                return date.toLocaleDateString('zh-CN');
+            }
+        }
+
+        // 页面加载时获取数据
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBulletinData();
+            loadPersonalFeatures();
+        });
+
+        // 每秒更新一次时间，保持格式一致
+        setInterval(() => {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+        }, 1000);
+
+        // ============ 个性化功能JavaScript ============
+        let currentEditingNote = null;
+        let currentEditingTodo = null;
+
+        // 加载个性化功能
+        async function loadPersonalFeatures() {
+            try {
+                // 显示笔记和待办栏
+                document.getElementById('notes-column').style.display = 'flex';
+                document.getElementById('todos-column').style.display = 'flex';
+
+                // 加载笔记和待办事项
+                await Promise.all([loadNotes(), loadTodos()]);
+
+                // 设置快速添加事件监听器
+                setupQuickAdd();
+            } catch (error) {
+                console.error('Load personal features error:', error);
+            }
+        }
+
+        // 设置快速添加功能
+        function setupQuickAdd() {
+            const noteInput = document.getElementById('quick-note-input');
+            const todoInput = document.getElementById('quick-todo-input');
+
+            // 笔记快速添加 - Ctrl/Cmd+Enter 保存
+            noteInput.addEventListener('keydown', async (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    await quickAddNote();
+                }
+            });
+
+            // 待办快速添加 - Enter 保存
+            todoInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    await quickAddTodo();
+                }
+            });
+        }
+
+        // 快速添加笔记 - 乐观更新
+        async function quickAddNote() {
+            const input = document.getElementById('quick-note-input');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            // 立即清空输入框并创建临时ID
+            input.value = '';
+            input.style.height = 'auto';
+            const tempId = 'temp_' + Date.now();
+
+            // 乐观更新：立即显示在UI中
+            const tempNote = {
+                id: tempId,
+                content: content,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                _isOptimistic: true
+            };
+
+            // 获取当前笔记列表
+            const notesList = document.getElementById('notes-list');
+            const currentNotes = window.cachedNotes || [];
+            window.cachedNotes = [tempNote, ...currentNotes];
+            renderNotes(window.cachedNotes);
+
+            // 后台保存
+            try {
+                const response = await fetch('/g/daily_bulletin/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    // 成功：刷新以获取真实ID
+                    await loadNotes();
+                } else {
+                    // 失败：移除乐观添加的项并提示
+                    window.cachedNotes = currentNotes;
+                    renderNotes(window.cachedNotes);
+                    input.value = content; // 恢复内容
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Quick add note error:', error);
+                window.cachedNotes = currentNotes;
+                renderNotes(window.cachedNotes);
+                input.value = content;
+                alert('网络错误，保存失败');
+            }
+        }
+
+        // 快速添加待办 - 乐观更新
+        async function quickAddTodo() {
+            const input = document.getElementById('quick-todo-input');
+            const priority = parseInt(document.getElementById('quick-todo-priority').value);
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            // 立即清空输入框并创建临时ID
+            input.value = '';
+            const tempId = 'temp_' + Date.now();
+
+            // 乐观更新：立即显示在UI中
+            const tempTodo = {
+                id: tempId,
+                content: content,
+                priority: priority,
+                completed: false,
+                created_at: new Date().toISOString(),
+                _isOptimistic: true
+            };
+
+            // 获取当前待办列表
+            const currentTodos = window.cachedTodos || [];
+            window.cachedTodos = [tempTodo, ...currentTodos];
+            renderTodos(window.cachedTodos);
+
+            // 后台保存
+            try {
+                const response = await fetch('/g/daily_bulletin/api/todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, priority })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    // 成功：刷新以获取真实ID
+                    await loadTodos();
+                } else {
+                    // 失败：移除乐观添加的项并提示
+                    window.cachedTodos = currentTodos;
+                    renderTodos(window.cachedTodos);
+                    input.value = content; // 恢复内容
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Quick add todo error:', error);
+                window.cachedTodos = currentTodos;
+                renderTodos(window.cachedTodos);
+                input.value = content;
+                alert('网络错误，保存失败');
+            }
+        }
+
+        // ====== Notes Functions ======
+        async function loadNotes() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/notes');
+                const data = await response.json();
+
+                if (data.ok) {
+                    window.cachedNotes = data.notes;
+                    renderNotes(data.notes);
+                }
+            } catch (error) {
+                console.error('Load notes error:', error);
+            }
+        }
+
+        function renderNotes(notes) {
+            const notesList = document.getElementById('notes-list');
+
+            if (!notes || notes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>还没有笔记，在上方输入框输入内容<br>按 Ctrl+Enter 快速保存</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notesList.innerHTML = notes.map(note => {
+                const isOptimistic = note._isOptimistic;
+                return `
+                <div class="note-item ${isOptimistic ? 'optimistic' : ''}" data-id="${note.id}" data-content="${escapeHtml(note.content).replace(/"/g, '&quot;')}">
+                    <div class="note-content" ondblclick="startEditNote('${note.id}')">${escapeHtml(note.content)}</div>
+                    <div class="note-meta">
+                        <span class="note-time">${formatDateTime(note.updated_at || note.created_at)}</span>
+                        <div class="note-actions">
+                            <button class="btn-sm btn-delete" onclick="deleteNote('${note.id}')" ${isOptimistic ? 'disabled' : ''}>删除</button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // 开始编辑笔记（内联）
+        function startEditNote(id) {
+            const item = document.querySelector(`.note-item[data-id="${id}"]`);
+            if (!item || item.classList.contains('editing')) return;
+
+            const content = item.dataset.content;
+            const contentDiv = item.querySelector('.note-content');
+
+            item.classList.add('editing');
+            contentDiv.innerHTML = `
+                <textarea class="inline-edit">${unescapeHtml(content)}</textarea>
+                <div class="edit-actions">
+                    <button class="btn-save" onclick="saveInlineNote(${id})">保存</button>
+                    <button class="btn-cancel" onclick="cancelEditNote(${id})">取消</button>
+                </div>
+            `;
+
+            const textarea = contentDiv.querySelector('textarea');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+            // Enter保存 (Ctrl+Enter), Esc取消
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInlineNote(id);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEditNote(id);
+                }
+            });
+        }
+
+        // 保存内联编辑的笔记
+        async function saveInlineNote(id) {
+            const item = document.querySelector(`.note-item[data-id="${id}"]`);
+            const textarea = item.querySelector('textarea.inline-edit');
+            const content = textarea.value.trim();
+
+            if (!content) {
+                alert('笔记内容不能为空');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/notes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    await loadNotes();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Save note error:', error);
+                alert('保存失败');
+            }
+        }
+
+        // 取消编辑笔记
+        function cancelEditNote(id) {
+            loadNotes();
+        }
+
+
+        async function deleteNote(id) {
+            if (!confirm('确定要删除这条笔记吗？')) return;
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/notes/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    await loadNotes();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Delete note error:', error);
+                alert('删除失败');
+            }
+        }
+
+        // ====== Todos Functions ======
+        async function loadTodos() {
+            try {
+                const response = await fetch('/g/daily_bulletin/api/todos?include_completed=false');
+                const data = await response.json();
+
+                if (data.ok) {
+                    window.cachedTodos = data.todos;
+                    renderTodos(data.todos);
+                }
+            } catch (error) {
+                console.error('Load todos error:', error);
+            }
+        }
+
+        function renderTodos(todos) {
+            const todosList = document.getElementById('todos-list');
+
+            if (!todos || todos.length === 0) {
+                todosList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>还没有待办事项，在上方输入框输入内容<br>按 Enter 快速保存</p>
+                    </div>
+                `;
+                return;
+            }
+
+            todosList.innerHTML = todos.map(todo => {
+                const isOptimistic = todo._isOptimistic;
+                return `
+                <div class="todo-item ${todo.completed ? 'completed' : ''} ${isOptimistic ? 'optimistic' : ''}" data-id="${todo.id}" data-content="${escapeHtml(todo.content).replace(/"/g, '&quot;')}" data-priority="${todo.priority}">
+                    <div class="todo-checkbox">
+                        <input type="checkbox"
+                               ${todo.completed ? 'checked' : ''}
+                               ${isOptimistic ? 'disabled' : ''}
+                               onchange="toggleTodo('${todo.id}', this.checked)">
+                        <div class="todo-main">
+                            <div class="todo-content" ondblclick="startEditTodo('${todo.id}')">
+                                <span class="priority-indicator priority-${getPriorityClass(todo.priority)}"></span>
+                                <span class="todo-text">${escapeHtml(todo.content)}</span>
+                            </div>
+                            <div class="todo-meta">
+                                <span class="todo-time">${formatDateTime(todo.created_at)}</span>
+                                <div class="todo-actions">
+                                    <button class="btn-sm btn-delete" onclick="deleteTodo('${todo.id}')" ${isOptimistic ? 'disabled' : ''}>删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // 开始编辑待办（内联）
+        function startEditTodo(id) {
+            const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+            if (!item || item.classList.contains('editing')) return;
+
+            const content = item.dataset.content;
+            const priority = item.dataset.priority;
+            const contentDiv = item.querySelector('.todo-content');
+
+            item.classList.add('editing');
+            contentDiv.innerHTML = `
+                <input type="text" class="inline-edit" value="${unescapeHtml(content)}">
+                <select class="priority-select">
+                    <option value="1" ${priority == 1 ? 'selected' : ''}>🔴 高</option>
+                    <option value="2" ${priority == 2 ? 'selected' : ''}>🟡 中</option>
+                    <option value="3" ${priority == 3 ? 'selected' : ''}>🟢 低</option>
+                </select>
+                <div class="edit-actions">
+                    <button class="btn-save" onclick="saveInlineTodo(${id})">保存</button>
+                    <button class="btn-cancel" onclick="cancelEditTodo(${id})">取消</button>
+                </div>
+            `;
+
+            const input = contentDiv.querySelector('input');
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+
+            // Enter保存, Esc取消
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInlineTodo(id);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEditTodo(id);
+                }
+            });
+        }
+
+        // 保存内联编辑的待办
+        async function saveInlineTodo(id) {
+            const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+            const input = item.querySelector('input.inline-edit');
+            const select = item.querySelector('.priority-select');
+            const content = input.value.trim();
+            const priority = parseInt(select.value);
+
+            if (!content) {
+                alert('待办内容不能为空');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, priority })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    await loadTodos();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Save todo error:', error);
+                alert('保存失败');
+            }
+        }
+
+        // 取消编辑待办
+        function cancelEditTodo(id) {
+            loadTodos();
+        }
+
+
+        async function toggleTodo(id, completed) {
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    await loadTodos();
+                } else {
+                    alert('更新失败');
+                }
+            } catch (error) {
+                console.error('Toggle todo error:', error);
+                alert('更新失败');
+            }
+        }
+
+        async function deleteTodo(id) {
+            if (!confirm('确定要删除这个待办事项吗？')) return;
+
+            try {
+                const response = await fetch(`/g/daily_bulletin/api/todos/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    await loadTodos();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Delete todo error:', error);
+                alert('删除失败');
+            }
+        }
+
+        // ====== Helper Functions ======
+        function getPriorityClass(priority) {
+            const map = { 1: 'high', 2: 'medium', 3: 'low' };
+            return map[priority] || 'medium';
+        }
+
+        function getPriorityText(priority) {
+            const map = { 1: '高', 2: '中', 3: '低' };
+            return map[priority] || '中';
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function unescapeHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent;
+        }
+
+    </script>
+</body>
+</html>
