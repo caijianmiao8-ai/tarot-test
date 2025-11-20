@@ -476,14 +476,35 @@ def api_run_start():
                 if not character:
                     return jsonify({"ok": False, "error": "角色不存在"}), 400
 
-                # 获取初始位置（已发现的地点，或世界起始地点）
+                # 获取初始位置（如果角色从未使用过这个世界，重置到起始位置）
                 start_location_id = None
                 need_update_location = False
 
-                if progress.get('current_location_id'):
+                # 检查：如果是新角色（从未在此world冒险），重置位置
+                cur.execute("""
+                    SELECT COUNT(*) as run_count FROM adventure_runs
+                    WHERE user_id = %s AND world_id = %s AND character_id = %s AND status != 'cancelled'
+                """, (user_id, world_id, character_id))
+                previous_runs = cur.fetchone()
+                is_first_run_with_character = (previous_runs['run_count'] == 0)
+
+                if is_first_run_with_character:
+                    # 第一次用这个角色，查找起始地点
+                    cur.execute("""
+                        SELECT id FROM world_locations
+                        WHERE world_id = %s AND is_discovered = TRUE
+                        ORDER BY danger_level ASC
+                        LIMIT 1
+                    """, (world_id,))
+                    start_loc = cur.fetchone()
+                    if start_loc:
+                        start_location_id = start_loc['id']
+                        need_update_location = True
+                elif progress.get('current_location_id'):
+                    # 之前用过这个角色，继续上次位置
                     start_location_id = progress['current_location_id']
                 else:
-                    # 查找世界的起始地点（已发现的安全地点）
+                    # 容错：没有位置记录，查找起始地点
                     cur.execute("""
                         SELECT id FROM world_locations
                         WHERE world_id = %s AND is_discovered = TRUE

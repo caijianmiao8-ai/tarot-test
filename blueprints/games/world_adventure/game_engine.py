@@ -968,7 +968,7 @@ class CheckpointDetector:
 
         description = checkpoint.get('description', '')
         required_grid_id = checkpoint.get('grid_id', '')
-        required_action = checkpoint.get('required_action', '')
+        required_action = checkpoint.get('action_type', checkpoint.get('required_action', ''))  # 兼容两种字段名
         target_npc = checkpoint.get('target_npc', '')
         requires = checkpoint.get('requires', {})
 
@@ -1004,13 +1004,16 @@ class CheckpointDetector:
             # 3. 目标NPC验证（如果需要）
             if target_npc:
                 action_targets = analysis.get('targets', [])
+                # 修复：target_npc可能是名字或ID，都要检查
                 npc_found = any(
-                    t.get('type') == 'npc' and t.get('id') == target_npc
+                    t.get('type') == 'npc' and (
+                        t.get('id') == target_npc or  # 匹配ID
+                        t.get('name') == target_npc   # 匹配名字
+                    )
                     for t in action_targets
                 )
                 if not npc_found:
-                    # 获取NPC名称用于提示
-                    result['reason'] = "需要与指定NPC互动"
+                    result['reason'] = f"需要与{target_npc}对话"
                     return result
 
             # 4. 能力判定验证（如果需要）
