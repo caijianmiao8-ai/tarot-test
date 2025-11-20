@@ -89,24 +89,82 @@ class AdventureAIService:
 世界名称：{world_context['world_name']}
 世界传说：{world_context['world_lore'][:300]}"""
 
-        # 当前位置信息
+        # Phase 1: 网格信息（如果有）
         location_info = ""
-        current_loc = world_context.get('current_location')
-        if current_loc:
+        grid_constraint = ""
+        current_grid = world_context.get('current_grid')
+
+        if current_grid:
+            # 使用网格数据构建位置信息
+            connected_grids = current_grid.get('connected_grids', [])
+            if isinstance(connected_grids, str):
+                import json
+                connected_grids = json.loads(connected_grids)
+
+            interactive_objects = current_grid.get('interactive_objects', [])
+            if isinstance(interactive_objects, str):
+                interactive_objects = json.loads(interactive_objects)
+
+            # 构建可前往的地点列表
+            connections_text = ""
+            if connected_grids:
+                conn_list = [f"- {conn.get('direction', '')}：{conn.get('target_name', '')}"
+                           for conn in connected_grids]
+                connections_text = f"\n可前往：\n{chr(10).join(conn_list)}"
+
+            # 构建可交互物体列表
+            objects_text = ""
+            if interactive_objects:
+                obj_list = [f"- {obj.get('name', '')}：{obj.get('description', '')}"
+                          for obj in interactive_objects[:5]]
+                objects_text = f"\n可交互物体：\n{chr(10).join(obj_list)}"
+
             location_info = f"""
+【📍 当前位置】
+地点：{current_grid.get('grid_name', '')}
+描述：{current_grid.get('description', '')}
+氛围：{current_grid.get('atmosphere', '')}
+光线：{current_grid.get('lighting', '')}{connections_text}{objects_text}"""
+
+            # Phase 1: AI 约束指令（最重要）
+            grid_constraint = f"""
+⚠️ **重要约束** ⚠️
+
+你只能描述【当前位置】数据中存在的内容：
+1. NPC：只能描述【附近的人物】列表中的角色，不能随意创造新NPC
+2. 物体：只能提及【可交互物体】中列出的物品
+3. 地点：玩家只能前往【可前往】列表中的地点
+4. 环境：描述必须符合【描述】【氛围】【光线】的设定
+
+如果玩家尝试做不在数据范围内的事：
+✗ 说明该事物不存在或不可见
+✗ 例如：「你在这里没有看到那个人」「这里没有那样的物品」
+✓ 然后引导玩家关注实际存在的选项
+"""
+        else:
+            # Fallback: 旧版本位置信息
+            current_loc = world_context.get('current_location')
+            if current_loc:
+                location_info = f"""
 【当前位置】
 地点：{current_loc['location_name']}
 描述：{current_loc['description']}
 危险等级：{current_loc.get('danger_level', 'unknown')}/10"""
 
-        # 附近NPC信息
+        # 附近NPC信息（网格系统中包含活动信息）
         npcs_info = ""
         nearby_npcs = world_context.get('nearby_npcs', [])
         if nearby_npcs:
-            npc_list = [f"- {npc['npc_name']} ({npc['role']}): {npc.get('personality', '')}"
-                       for npc in nearby_npcs[:3]]
+            if current_grid:
+                # Phase 1: 使用网格中的活动信息
+                npc_list = [f"- {npc['npc_name']} ({npc['role']})\n  活动：{npc.get('activity', '在此处')}\n  位置：{npc.get('position', '')}"
+                           for npc in nearby_npcs[:5]]
+            else:
+                # Fallback: 旧版本
+                npc_list = [f"- {npc['npc_name']} ({npc['role']}): {npc.get('personality', '')}"
+                           for npc in nearby_npcs[:3]]
             npcs_info = f"""
-【附近的人物】
+【👥 附近的人物】
 {chr(10).join(npc_list)}"""
 
         # 当前任务信息（强化版）
@@ -258,7 +316,7 @@ class AdventureAIService:
 
 ---
 
-{dice_enforcement}{dm_instruction}
+{grid_constraint}{dice_enforcement}{dm_instruction}
 
 **回复格式要求**：
 - 长度：150-250字

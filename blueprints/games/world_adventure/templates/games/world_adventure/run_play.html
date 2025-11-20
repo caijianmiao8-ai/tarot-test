@@ -433,8 +433,60 @@
     <div class="main-container">
         <!-- 侧边栏 -->
         <div class="sidebar">
-            <!-- 当前地点 (V2) -->
-            {% if current_location %}
+            <!-- Phase 1: 当前网格 -->
+            {% if current_grid %}
+            <h3>📍 当前位置</h3>
+            <div class="info-item">
+                <div class="info-value" style="font-size: 1.1em; margin-bottom: 8px;">
+                    {{ current_grid.grid_name }}
+                </div>
+                <div class="info-label" style="line-height: 1.5; margin-bottom: 8px;">
+                    {{ current_grid.description[:120] }}{% if current_grid.description and current_grid.description|length > 120 %}...{% endif %}
+                </div>
+
+                <!-- 氛围和光线 -->
+                <div style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
+                    <div>🌫️ {{ current_grid.atmosphere }}</div>
+                    <div>💡 光线: {{ current_grid.lighting }}</div>
+                </div>
+
+                <!-- Phase 1: 可前往的地点 -->
+                {% if current_grid.connected_grids %}
+                <div style="margin-top: 12px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                    <div style="font-weight: 500; margin-bottom: 6px; font-size: 0.9em;">🚪 可前往：</div>
+                    {% for conn in current_grid.connected_grids %}
+                    <div style="padding: 4px 0; font-size: 0.85em; color: #555;">
+                        <span style="color: #007bff;">{{ conn.direction }}:</span> {{ conn.target_name }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Phase 1: 可交互物体 -->
+                {% if current_grid.interactive_objects %}
+                <div style="margin-top: 12px; padding: 8px; background: #fff8e1; border-radius: 4px;">
+                    <div style="font-weight: 500; margin-bottom: 6px; font-size: 0.9em;">🔍 可交互物体：</div>
+                    {% for obj in current_grid.interactive_objects[:3] %}
+                    <div style="padding: 4px 0; font-size: 0.85em; color: #555;">
+                        • {{ obj.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- 安全性标记 -->
+                {% if current_grid.is_safe %}
+                <span class="location-badge safe" style="margin-top: 8px;">
+                    ✅ 安全区域
+                </span>
+                {% else %}
+                <span class="location-badge dangerous" style="margin-top: 8px;">
+                    ⚠️ 危险区域
+                </span>
+                {% endif %}
+            </div>
+            {% elif current_location %}
+            <!-- Fallback: 旧版本位置显示 -->
             <h3>📍 当前位置</h3>
             <div class="info-item">
                 <div class="info-value" style="font-size: 1.1em; margin-bottom: 8px;">
@@ -457,16 +509,26 @@
             </div>
             {% endif %}
 
-            <!-- 附近的 NPC (V2) -->
+            <!-- 附近的 NPC (Phase 1: 包含活动信息) -->
             {% if nearby_npcs %}
             <h3 style="margin-top: 30px;">👥 附近的人物</h3>
             <div class="npc-list">
                 {% for npc in nearby_npcs %}
                 <div class="npc-item">
                     <span class="npc-mood">{{ npc.mood_icon or '😐' }}</span>
-                    <div>
+                    <div style="flex: 1;">
                         <div style="font-weight: 500;">{{ npc.npc_name }}</div>
                         <div style="font-size: 0.85em; color: #888;">{{ npc.role }}</div>
+                        {% if npc.activity %}
+                        <div style="font-size: 0.8em; color: #555; margin-top: 4px; font-style: italic;">
+                            {{ npc.activity }}
+                        </div>
+                        {% endif %}
+                        {% if npc.position %}
+                        <div style="font-size: 0.75em; color: #999; margin-top: 2px;">
+                            📍 {{ npc.position }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

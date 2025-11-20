@@ -240,9 +240,46 @@ def run_play_page(run_id):
                 """, (run['current_location_id'],))
                 current_location = cur.fetchone()
 
-            # V2: 获取附近的 NPC
+            # Phase 1: 获取当前网格信息
+            current_grid = None
+            cur.execute("""
+                SELECT current_grid_id FROM player_world_progress
+                WHERE user_id = %s AND world_id = %s
+            """, (run['user_id'], run['world_id']))
+            progress = cur.fetchone()
+
+            if progress and progress.get('current_grid_id'):
+                cur.execute("""
+                    SELECT * FROM location_grids WHERE id = %s
+                """, (progress['current_grid_id'],))
+                current_grid = cur.fetchone()
+
+            # V2: 获取附近的 NPC（Phase 1: 从网格数据获取）
             nearby_npcs = []
-            if run.get('current_location_id'):
+            if current_grid:
+                # Phase 1: 从网格的 npcs_present 获取
+                import json
+                npcs_present = current_grid.get('npcs_present', [])
+                if isinstance(npcs_present, str):
+                    npcs_present = json.loads(npcs_present)
+
+                npc_ids = [npc.get('npc_id') for npc in npcs_present if npc.get('npc_id')]
+                if npc_ids:
+                    cur.execute("""
+                        SELECT * FROM world_npcs WHERE id = ANY(%s)
+                    """, (npc_ids,))
+                    npc_details = {npc['id']: npc for npc in cur.fetchall()}
+
+                    # 合并活动信息
+                    for npc_info in npcs_present:
+                        npc_id = npc_info.get('npc_id')
+                        if npc_id in npc_details:
+                            npc = dict(npc_details[npc_id])
+                            npc['activity'] = npc_info.get('activity', '')
+                            npc['position'] = npc_info.get('position', '')
+                            nearby_npcs.append(npc)
+            elif run.get('current_location_id'):
+                # Fallback: 旧版本逻辑
                 cur.execute("""
                     SELECT * FROM world_npcs
                     WHERE world_id = %s AND current_location_id = %s
@@ -261,6 +298,7 @@ def run_play_page(run_id):
         current_quest=current_quest,
         quest_progress=quest_progress,
         current_location=current_location,
+        current_grid=current_grid,  # Phase 1: 添加当前网格
         nearby_npcs=nearby_npcs
     )
 
@@ -587,13 +625,39 @@ def api_run_action(run_id):
         )
 
         # 【V2 新增】智能行为分析
-        from .game_engine import ActionAnalyzer, CheckpointDetector
+        from .game_engine import ActionAnalyzer, CheckpointDetector, GridMovementSystem
 
         analysis = ActionAnalyzer.analyze_action(
             action_text,
             world_context,
             run_data
         )
+
+        # 【Phase 1 新增】网格移动检测
+        movement_occurred = False
+        movement_description = ""
+
+        current_grid_id = progress.get('current_grid_id')
+        if current_grid_id:
+            # 检测是否有移动意图
+            target_grid_id = GridMovementSystem.detect_movement(action_text, current_grid_id)
+
+            if target_grid_id:
+                # 执行移动
+                move_result = GridMovementSystem.execute_movement(
+                    user_id,
+                    run_data['world_id'],
+                    target_grid_id
+                )
+
+                if move_result.get('moved'):
+                    movement_occurred = True
+                    new_grid = move_result.get('new_grid', {})
+                    movement_description = f"\n\n📍 **你来到了：{new_grid.get('grid_name')}**\n{move_result.get('description', '')}"
+
+                    # 更新 progress 和 world_context
+                    progress = engine.state.get_or_create_player_progress(user_id, run_data['world_id'])
+                    world_context = engine.get_world_context_for_ai(run_data, progress, run_data)
 
         # 【V2 新增】自动更新世界状态（NPC关系、地点探索）
         state_updates = ActionAnalyzer.auto_update_world_state(
@@ -649,6 +713,10 @@ def api_run_action(run_id):
             conversation_history=conversation_history,
             action_result=action_result
         )
+
+        # 添加移动描述（如果发生移动）
+        if movement_occurred and movement_description:
+            dm_response = movement_description + "\n\n" + (dm_response or "")
 
         # 如果检查点完成，在DM响应后添加系统消息
         if checkpoint_completed and checkpoint_message:

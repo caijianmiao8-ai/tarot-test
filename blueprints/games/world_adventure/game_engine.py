@@ -290,6 +290,179 @@ class WorldStateTracker:
                 conn.commit()
 
 
+class GridMovementSystem:
+    """网格移动系统 - Phase 1"""
+
+    @staticmethod
+    def get_grid_by_id(grid_id):
+        """获取网格数据"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT * FROM location_grids WHERE id = %s
+                """, (grid_id,))
+                return cur.fetchone()
+
+    @staticmethod
+    def get_grids_by_location(location_id):
+        """获取某个地点的所有网格"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT * FROM location_grids WHERE location_id = %s
+                """, (location_id,))
+                return cur.fetchall()
+
+    @staticmethod
+    def detect_movement(action_text, current_grid_id):
+        """
+        检测玩家是否尝试移动到其他网格
+
+        返回: grid_id (如果检测到移动) 或 None
+        """
+        if not current_grid_id:
+            return None
+
+        current_grid = GridMovementSystem.get_grid_by_id(current_grid_id)
+        if not current_grid:
+            return None
+
+        connected = current_grid.get('connected_grids', [])
+        if isinstance(connected, str):
+            connected = json.loads(connected)
+
+        # 方向关键词映射
+        direction_keywords = {
+            'north': ['北', '北面', '往北', '向北', '北边'],
+            'south': ['南', '南面', '往南', '向南', '南边'],
+            'east': ['东', '东面', '往东', '向东', '东边'],
+            'west': ['西', '西面', '往西', '向西', '西边']
+        }
+
+        # 移动关键词
+        move_keywords = ['前往', '走向', '去', '进入', '到达', '移动', '走进', '走到', '来到']
+        has_move_intent = any(kw in action_text for kw in move_keywords)
+
+        for conn in connected:
+            direction = conn.get('direction')
+            target_grid_id = conn.get('grid_id')
+            target_name = conn.get('target_name', '')
+
+            # 检查方向关键词
+            if direction in direction_keywords:
+                keywords = direction_keywords[direction]
+                if any(kw in action_text for kw in keywords):
+                    return target_grid_id
+
+            # 检查目标网格名称
+            if target_name and target_name in action_text:
+                return target_grid_id
+
+            # 检查连接描述中的关键词
+            description = conn.get('description', '')
+            # 如果有移动意图，并且描述中的关键词匹配
+            if has_move_intent and target_name:
+                # 简化匹配：例如 "商业街区" 匹配 "商业街"
+                for word in target_name:
+                    if len(word) > 1 and word in action_text:
+                        return target_grid_id
+
+        return None
+
+    @staticmethod
+    def get_player_current_grid(user_id, world_id):
+        """获取玩家当前网格"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT current_grid_id FROM player_world_progress
+                    WHERE user_id = %s AND world_id = %s
+                """, (user_id, world_id))
+                result = cur.fetchone()
+                if result:
+                    return result.get('current_grid_id')
+        return None
+
+    @staticmethod
+    def check_first_visit(user_id, world_id, grid_id):
+        """检查是否首次访问某个网格"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT discovered_locations FROM player_world_progress
+                    WHERE user_id = %s AND world_id = %s
+                """, (user_id, world_id))
+                result = cur.fetchone()
+                if result:
+                    visited_grids = result.get('discovered_locations', [])
+                    if isinstance(visited_grids, str):
+                        visited_grids = json.loads(visited_grids)
+                    # 使用 grid_id 作为访问标记
+                    return grid_id not in visited_grids
+        return True
+
+    @staticmethod
+    def record_grid_visit(user_id, world_id, grid_id):
+        """记录网格访问"""
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE player_world_progress
+                    SET discovered_locations =
+                        CASE
+                            WHEN discovered_locations ? %s THEN discovered_locations
+                            ELSE discovered_locations || %s::jsonb
+                        END,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND world_id = %s
+                """, (grid_id, json.dumps([grid_id]), user_id, world_id))
+                conn.commit()
+
+    @staticmethod
+    def execute_movement(user_id, world_id, new_grid_id):
+        """
+        执行移动，更新数据库
+
+        返回: {
+            'moved': True,
+            'new_grid': grid_data,
+            'description': str,
+            'is_first_visit': bool
+        }
+        """
+        new_grid = GridMovementSystem.get_grid_by_id(new_grid_id)
+        if not new_grid:
+            return {'moved': False, 'error': 'Grid not found'}
+
+        # 更新玩家当前网格
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE player_world_progress
+                    SET current_grid_id = %s,
+                        current_location_id = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND world_id = %s
+                """, (new_grid_id, new_grid['location_id'], user_id, world_id))
+                conn.commit()
+
+        # 检查是否首次访问
+        is_first_visit = GridMovementSystem.check_first_visit(user_id, world_id, new_grid_id)
+
+        if is_first_visit:
+            GridMovementSystem.record_grid_visit(user_id, world_id, new_grid_id)
+            description = new_grid.get('first_visit_description') or new_grid.get('description')
+        else:
+            description = new_grid.get('description')
+
+        return {
+            'moved': True,
+            'new_grid': new_grid,
+            'description': description,
+            'is_first_visit': is_first_visit
+        }
+
+
 class WorldExpansionEngine:
     """世界扩展引擎 - AI动态生成新内容"""
 
@@ -419,7 +592,7 @@ class GameEngine:
 
     def get_world_context_for_ai(self, world, progress, run):
         """
-        为AI生成完整的世界上下文
+        为AI生成完整的世界上下文（Phase 1 - 包含网格信息）
         """
         world_id = world.get('id')
 
@@ -433,6 +606,49 @@ class GameEngine:
                     """, (progress['current_location_id'],))
                     current_location = cur.fetchone()
 
+                # Phase 1: 获取当前网格
+                current_grid = None
+                if progress.get('current_grid_id'):
+                    cur.execute("""
+                        SELECT * FROM location_grids WHERE id = %s
+                    """, (progress['current_grid_id'],))
+                    current_grid = cur.fetchone()
+
+                    # 如果有当前网格，从网格数据中获取 NPC 信息
+                    if current_grid:
+                        npcs_present = current_grid.get('npcs_present', [])
+                        if isinstance(npcs_present, str):
+                            npcs_present = json.loads(npcs_present)
+
+                        # 获取这些NPC的详细信息
+                        nearby_npcs = []
+                        npc_ids = [npc.get('npc_id') for npc in npcs_present if npc.get('npc_id')]
+                        if npc_ids:
+                            cur.execute("""
+                                SELECT * FROM world_npcs
+                                WHERE id = ANY(%s) AND is_alive = TRUE
+                            """, (npc_ids,))
+                            npc_details = {npc['id']: npc for npc in cur.fetchall()}
+
+                            # 合并网格中的活动信息和数据库中的NPC详情
+                            for npc_info in npcs_present:
+                                npc_id = npc_info.get('npc_id')
+                                if npc_id in npc_details:
+                                    npc = dict(npc_details[npc_id])
+                                    npc['activity'] = npc_info.get('activity', '')
+                                    npc['position'] = npc_info.get('position', '')
+                                    nearby_npcs.append(npc)
+                else:
+                    # Fallback: 旧版本逻辑，基于地点获取NPC
+                    nearby_npcs = []
+                    if current_location:
+                        cur.execute("""
+                            SELECT * FROM world_npcs
+                            WHERE current_location_id = %s AND is_alive = TRUE
+                            LIMIT 5
+                        """, (current_location['id'],))
+                        nearby_npcs = cur.fetchall()
+
                 # 获取当前任务
                 current_quest = None
                 if run.get('current_quest_id'):
@@ -440,16 +656,6 @@ class GameEngine:
                         SELECT * FROM world_quests WHERE id = %s
                     """, (run['current_quest_id'],))
                     current_quest = cur.fetchone()
-
-                # 获取附近的NPC
-                nearby_npcs = []
-                if current_location:
-                    cur.execute("""
-                        SELECT * FROM world_npcs
-                        WHERE current_location_id = %s AND is_alive = TRUE
-                        LIMIT 5
-                    """, (current_location['id'],))
-                    nearby_npcs = cur.fetchall()
 
                 # 获取已访问的地点
                 discovered_locations = []
@@ -481,6 +687,7 @@ class GameEngine:
             'world_name': world.get('world_name'),
             'world_lore': world.get('world_lore'),
             'current_location': current_location,
+            'current_grid': current_grid,  # Phase 1: 添加当前网格
             'nearby_npcs': nearby_npcs,
             'current_quest': current_quest,
             'discovered_locations': discovered_locations,
@@ -587,17 +794,17 @@ class ActionAnalyzer:
 
 
 class CheckpointDetector:
-    """检查点完成检测器 - 自动识别玩家是否完成任务检查点"""
+    """检查点完成检测器 - 基于网格系统的精确检测"""
 
     @staticmethod
     def check_checkpoint_completion(checkpoint, analysis, action_result, world_context, user_id, world_id):
         """
-        检测检查点是否完成（宽松版 - 容易触发）
+        检测检查点是否完成（Phase 1 - 基于网格ID的精确验证）
 
-        checkpoint: 检查点数据
+        checkpoint: 检查点数据（包含 grid_id）
         analysis: 行为分析结果
         action_result: 行动结果（骰子等）
-        world_context: 世界上下文
+        world_context: 世界上下文（包含 current_grid）
 
         返回: {
             'completed': True/False,
@@ -610,54 +817,115 @@ class CheckpointDetector:
         }
 
         description = checkpoint.get('description', '')
-        required_location_id = checkpoint.get('location', '')
+        required_grid_id = checkpoint.get('grid_id', '')
+        required_action = checkpoint.get('required_action', '')
+        target_npc = checkpoint.get('target_npc', '')
         requires = checkpoint.get('requires', {})
 
-        # 1. 如果有特殊要求（能力判定），必须通过
-        if requires:
-            required_ability = requires.get('ability')
-            required_dc = requires.get('dc')
-            if required_ability and required_dc:
-                if not action_result.get('success'):
-                    result['reason'] = f"判定失败（需要DC {required_dc}）"
+        # Phase 1: 如果有 grid_id，使用精确的网格验证
+        if required_grid_id:
+            # 1. 网格验证（最重要）
+            current_grid = world_context.get('current_grid', {})
+            current_grid_id = current_grid.get('id', '')
+
+            if current_grid_id != required_grid_id:
+                result['reason'] = f"需要前往指定地点（当前: {current_grid.get('grid_name', '未知')}, 需要: 检查点位置）"
+                return result
+
+            # 2. 行动类型验证
+            action_type = analysis.get('action_type', '')
+
+            if required_action == 'dialogue':
+                if action_type != 'dialogue':
+                    result['reason'] = "需要与NPC对话"
+                    return result
+            elif required_action == 'investigation':
+                if action_type not in ['dialogue', 'investigate', 'other']:
+                    result['reason'] = "需要调查或收集情报"
+                    return result
+            elif required_action == 'exploration':
+                # 探索类型较宽松，到达网格即可
+                pass
+            elif required_action == 'combat':
+                if action_type != 'combat':
+                    result['reason'] = "需要战斗行动"
                     return result
 
-        # 2. 检查地点（如果有要求）
-        location_ok = True
-        if required_location_id:
-            current_loc = world_context.get('current_location', {})
-            current_loc_id = current_loc.get('id', '')
-            location_ok = (current_loc_id == required_location_id)
+            # 3. 目标NPC验证（如果需要）
+            if target_npc:
+                action_targets = analysis.get('targets', [])
+                npc_found = any(
+                    t.get('type') == 'npc' and t.get('id') == target_npc
+                    for t in action_targets
+                )
+                if not npc_found:
+                    # 获取NPC名称用于提示
+                    result['reason'] = "需要与指定NPC互动"
+                    return result
 
-        # 3. 宽松的行动类型匹配
-        action_type = analysis.get('action_type', '')
-        action_ok = True  # 默认宽松
+            # 4. 能力判定验证（如果需要）
+            if requires:
+                required_ability = requires.get('ability')
+                required_dc = requires.get('dc')
+                if required_ability and required_dc:
+                    if not action_result.get('success'):
+                        result['reason'] = f"判定失败（需要DC {required_dc}）"
+                        return result
 
-        # 只对明确的行动类型要求才检查
-        if '对话' in description or '了解' in description or '汇报' in description:
-            # 对话类检查点
-            if action_type != 'dialogue':
-                action_ok = False
-        elif '前往' in description:
-            # 前往类检查点 - 任何行动都算（宽松）
-            action_ok = True
-        elif '搜寻' in description or '调查' in description:
-            # 调查类检查点
-            if action_type not in ['investigate', 'dialogue', 'other']:
-                action_ok = False
-        elif '追踪' in description or '夺回' in description or '击败' in description:
-            # 战斗类检查点
-            if action_type not in ['combat', 'investigate']:
-                action_ok = False
-
-        # 4. 综合判断
-        if location_ok and action_ok:
+            # 所有条件满足
             result['completed'] = True
-            result['reason'] = f"完成了检查点：{description}"
-        else:
-            if not location_ok:
-                result['reason'] = f"需要前往指定地点"
-            else:
-                result['reason'] = f"行动类型不符合要求"
+            result['reason'] = f"✅ 完成了检查点：{description}"
+            return result
 
-        return result
+        else:
+            # Fallback: 旧版本检查点（没有 grid_id）
+            required_location_id = checkpoint.get('location', '')
+
+            # 1. 如果有特殊要求（能力判定），必须通过
+            if requires:
+                required_ability = requires.get('ability')
+                required_dc = requires.get('dc')
+                if required_ability and required_dc:
+                    if not action_result.get('success'):
+                        result['reason'] = f"判定失败（需要DC {required_dc}）"
+                        return result
+
+            # 2. 检查地点（如果有要求）
+            location_ok = True
+            if required_location_id:
+                current_loc = world_context.get('current_location', {})
+                current_loc_id = current_loc.get('id', '')
+                location_ok = (current_loc_id == required_location_id)
+
+            # 3. 宽松的行动类型匹配
+            action_type = analysis.get('action_type', '')
+            action_ok = True  # 默认宽松
+
+            # 只对明确的行动类型要求才检查
+            if '对话' in description or '了解' in description or '汇报' in description:
+                # 对话类检查点
+                if action_type != 'dialogue':
+                    action_ok = False
+            elif '前往' in description:
+                # 前往类检查点 - 任何行动都算（宽松）
+                action_ok = True
+            elif '搜寻' in description or '调查' in description:
+                # 调查类检查点
+                if action_type not in ['investigate', 'dialogue', 'other']:
+                    action_ok = False
+            elif '追踪' in description or '夺回' in description or '击败' in description:
+                # 战斗类检查点
+                if action_type not in ['combat', 'investigate']:
+                    action_ok = False
+
+            # 4. 综合判断
+            if location_ok and action_ok:
+                result['completed'] = True
+                result['reason'] = f"完成了检查点：{description}"
+            else:
+                if not location_ok:
+                    result['reason'] = f"需要前往指定地点"
+                else:
+                    result['reason'] = f"行动类型不符合要求"
+
+            return result
