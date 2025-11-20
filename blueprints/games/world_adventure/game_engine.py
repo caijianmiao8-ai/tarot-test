@@ -436,7 +436,10 @@ class GameEngine:
                 # 获取当前任务
                 current_quest = None
                 if run.get('current_quest_id'):
-                    current_quest = self.quest.get_quest(run['current_quest_id'])
+                    cur.execute("""
+                        SELECT * FROM world_quests WHERE id = %s
+                    """, (run['current_quest_id'],))
+                    current_quest = cur.fetchone()
 
                 # 获取附近的NPC
                 nearby_npcs = []
@@ -460,6 +463,20 @@ class GameEngine:
                     """, (discovered_ids,))
                     discovered_locations = cur.fetchall()
 
+                # 获取任务进度（在同一个连接中）
+                quest_progress = None
+                if run.get('current_quest_id'):
+                    cur.execute("""
+                        SELECT quest_progress FROM player_world_progress
+                        WHERE user_id = %s AND world_id = %s
+                    """, (progress.get('user_id'), world_id))
+                    result = cur.fetchone()
+                    if result and result.get('quest_progress'):
+                        quest_progress = result['quest_progress'].get(str(run['current_quest_id']), {
+                            'checkpoints_completed': [],
+                            'current_checkpoint': 0
+                        })
+
         context = {
             'world_name': world.get('world_name'),
             'world_lore': world.get('world_lore'),
@@ -467,11 +484,7 @@ class GameEngine:
             'nearby_npcs': nearby_npcs,
             'current_quest': current_quest,
             'discovered_locations': discovered_locations,
-            'quest_progress': self.quest.get_player_quest_progress(
-                progress.get('user_id'),
-                world_id,
-                run.get('current_quest_id')
-            ) if run.get('current_quest_id') else None
+            'quest_progress': quest_progress
         }
 
         return context
