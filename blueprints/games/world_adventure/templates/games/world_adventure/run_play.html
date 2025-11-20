@@ -757,6 +757,11 @@
                     // V2: 显示 DM 响应（带骰子结果）
                     addMessage('dm', result.dm_response, true, result.dice_result);
 
+                    // Phase 1: 动态更新左侧边栏（如果有grid数据）
+                    if (result.current_grid || result.nearby_npcs) {
+                        updateSidebar(result.current_grid, result.nearby_npcs);
+                    }
+
                     // 检查是否结束
                     if (result.run_ended) {
                         setTimeout(() => {
@@ -817,6 +822,114 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // Phase 1: 动态更新侧边栏
+        function updateSidebar(grid, npcs) {
+            const sidebar = document.querySelector('.sidebar');
+            if (!sidebar) return;
+
+            // 更新当前位置
+            if (grid) {
+                // 查找或创建当前位置区域
+                let locationSection = sidebar.querySelector('h3');
+                if (!locationSection || !locationSection.textContent.includes('📍')) {
+                    locationSection = document.createElement('h3');
+                    locationSection.textContent = '📍 当前位置';
+                    sidebar.insertBefore(locationSection, sidebar.firstChild);
+                }
+
+                // 查找或创建info-item
+                let infoItem = locationSection.nextElementSibling;
+                if (!infoItem || !infoItem.classList.contains('info-item')) {
+                    infoItem = document.createElement('div');
+                    infoItem.className = 'info-item';
+                    sidebar.insertBefore(infoItem, locationSection.nextSibling);
+                }
+
+                // 构建网格信息HTML
+                let connectionsHtml = '';
+                if (grid.connected_grids && grid.connected_grids.length > 0) {
+                    const connList = grid.connected_grids.map(conn =>
+                        `<div style="padding: 4px 0; font-size: 0.85em; color: #555;">
+                            <span style="color: #007bff;">${conn.direction}:</span> ${conn.target_name}
+                        </div>`
+                    ).join('');
+                    connectionsHtml = `
+                        <div style="margin-top: 12px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                            <div style="font-weight: 500; margin-bottom: 6px; font-size: 0.9em;">🚪 可前往：</div>
+                            ${connList}
+                        </div>`;
+                }
+
+                let objectsHtml = '';
+                if (grid.interactive_objects && grid.interactive_objects.length > 0) {
+                    const objList = grid.interactive_objects.slice(0, 3).map(obj =>
+                        `<div style="padding: 4px 0; font-size: 0.85em; color: #555;">• ${obj.name}</div>`
+                    ).join('');
+                    objectsHtml = `
+                        <div style="margin-top: 12px; padding: 8px; background: #fff8e1; border-radius: 4px;">
+                            <div style="font-weight: 500; margin-bottom: 6px; font-size: 0.9em;">🔍 可交互物体：</div>
+                            ${objList}
+                        </div>`;
+                }
+
+                infoItem.innerHTML = `
+                    <div class="info-value" style="font-size: 1.1em; margin-bottom: 8px;">
+                        ${grid.grid_name}
+                    </div>
+                    <div class="info-label" style="line-height: 1.5; margin-bottom: 8px;">
+                        ${grid.description.substring(0, 120)}${grid.description.length > 120 ? '...' : ''}
+                    </div>
+                    <div style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
+                        <div>🌫️ ${grid.atmosphere}</div>
+                        <div>💡 光线: ${grid.lighting}</div>
+                    </div>
+                    ${connectionsHtml}
+                    ${objectsHtml}
+                `;
+            }
+
+            // 更新NPC列表
+            if (npcs && npcs.length > 0) {
+                // 查找NPC section
+                let npcSection = sidebar.querySelector('h3:nth-of-type(2)');
+                if (!npcSection || !npcSection.textContent.includes('👥')) {
+                    npcSection = document.createElement('h3');
+                    npcSection.textContent = '👥 附近的人物';
+                    npcSection.style.marginTop = '30px';
+
+                    // 插入到当前位置区域后面
+                    const locationSection = sidebar.querySelector('h3');
+                    const infoItem = locationSection?.nextElementSibling;
+                    if (infoItem) {
+                        sidebar.insertBefore(npcSection, infoItem.nextSibling);
+                    } else {
+                        sidebar.appendChild(npcSection);
+                    }
+                }
+
+                // 查找或创建npc-list
+                let npcList = npcSection.nextElementSibling;
+                if (!npcList || !npcList.classList.contains('npc-list')) {
+                    npcList = document.createElement('div');
+                    npcList.className = 'npc-list';
+                    sidebar.insertBefore(npcList, npcSection.nextSibling);
+                }
+
+                // 构建NPC列表HTML
+                npcList.innerHTML = npcs.map(npc => `
+                    <div class="npc-item">
+                        <span class="npc-mood">${npc.mood || '😐'}</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500;">${npc.npc_name}</div>
+                            <div style="font-size: 0.85em; color: #888;">${npc.role}</div>
+                            ${npc.activity ? `<div style="font-size: 0.8em; color: #555; margin-top: 4px; font-style: italic;">${npc.activity}</div>` : ''}
+                            ${npc.position ? `<div style="font-size: 0.75em; color: #999; margin-top: 2px;">📍 ${npc.position}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
 
         // 初始化能力值显示

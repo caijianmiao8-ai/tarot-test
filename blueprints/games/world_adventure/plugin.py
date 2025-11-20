@@ -786,13 +786,41 @@ def api_run_action(run_id):
         # 检查是否达到回合上限
         run_ended = current_turn >= run_data['max_turns']
 
+        # Phase 1: 获取更新后的网格和NPC信息（用于前端动态更新）
+        updated_grid = world_context.get('current_grid')
+        updated_npcs = world_context.get('nearby_npcs', [])
+
+        # 构建简化的NPC数据（用于前端显示）
+        npcs_for_frontend = []
+        if updated_npcs:
+            for npc in updated_npcs[:5]:
+                npcs_for_frontend.append({
+                    'npc_name': npc.get('npc_name'),
+                    'role': npc.get('role'),
+                    'activity': npc.get('activity', ''),
+                    'position': npc.get('position', ''),
+                    'mood': npc.get('mood', '')
+                })
+
         return jsonify({
             "ok": True,
             "turn": current_turn,
             "dm_response": dm_response,
             "run_ended": run_ended,
             "dice_result": action_result.get('dice_result') if action_result.get('requires_check') else None,
-            "narrative": action_result.get('narrative', '')
+            "narrative": action_result.get('narrative', ''),
+            # Phase 1: 新增 - 用于前端动态更新
+            "movement_occurred": movement_occurred,
+            "current_grid": {
+                'id': updated_grid.get('id'),
+                'grid_name': updated_grid.get('grid_name'),
+                'description': updated_grid.get('description'),
+                'atmosphere': updated_grid.get('atmosphere'),
+                'lighting': updated_grid.get('lighting'),
+                'connected_grids': updated_grid.get('connected_grids', []),
+                'interactive_objects': updated_grid.get('interactive_objects', [])
+            } if updated_grid else None,
+            "nearby_npcs": npcs_for_frontend
         })
 
     except Exception as e:
