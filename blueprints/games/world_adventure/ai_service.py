@@ -126,20 +126,36 @@ class AdventureAIService:
 氛围：{current_grid.get('atmosphere', '')}
 光线：{current_grid.get('lighting', '')}{connections_text}{objects_text}"""
 
-            # Phase 1: AI 约束指令（最重要）
+            # Phase 1: AI 约束指令（最重要） - 增强版
+            # 明确列出存在的物品和NPC
+            existing_objects = [obj.get('name', '') for obj in interactive_objects]
+            nearby_npcs_temp = world_context.get('nearby_npcs', [])
+            existing_npcs = [npc['npc_name'] for npc in nearby_npcs_temp] if nearby_npcs_temp else []
+
+            objects_list_str = "、".join(existing_objects) if existing_objects else "无"
+            npcs_list_str = "、".join(existing_npcs) if existing_npcs else "无"
+
             grid_constraint = f"""
-⚠️ **重要约束** ⚠️
+🚫 **绝对约束 - 必须严格遵守** 🚫
 
-你只能描述【当前位置】数据中存在的内容：
-1. NPC：只能描述【附近的人物】列表中的角色，不能随意创造新NPC
-2. 物体：只能提及【可交互物体】中列出的物品
-3. 地点：玩家只能前往【可前往】列表中的地点
-4. 环境：描述必须符合【描述】【氛围】【光线】的设定
+【当前场景中存在的全部内容】
+可交互物体：{objects_list_str}
+在场人物：{npcs_list_str}
 
-如果玩家尝试做不在数据范围内的事：
-✗ 说明该事物不存在或不可见
-✗ 例如：「你在这里没有看到那个人」「这里没有那样的物品」
-✓ 然后引导玩家关注实际存在的选项
+【禁止行为】
+❌ 禁止创造不在上述列表中的物品、人物、线索
+❌ 禁止提及纸条、痕迹、线索等不在列表中的东西
+❌ 禁止编造商队、组织、事件等不在任务描述中的内容
+
+【正确做法】
+✓ 只描述上述列表中的物品和人物
+✓ 如玩家调查周围，只描述【可交互物体】列表中的内容
+✓ 如玩家找不到某物，明确告知「这里没有那样的东西」
+
+【示例】
+玩家：「调查周围」
+错误回复：「你发现了焦黑的纸屑...」（❌ 不存在的物品）
+正确回复：「你环顾四周，看到{objects_list_str}」（✓ 只描述实际存在的）
 """
         else:
             # Fallback: 旧版本位置信息
@@ -316,7 +332,11 @@ class AdventureAIService:
 
 ---
 
-{grid_constraint}{dice_enforcement}{dm_instruction}
+{grid_constraint}
+
+---
+
+{dice_enforcement}{dm_instruction}
 
 **回复格式要求**：
 - 长度：150-250字
