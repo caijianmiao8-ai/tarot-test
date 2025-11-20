@@ -134,31 +134,14 @@ class AdventureAIService:
 
             objects_list_str = "、".join(existing_objects) if existing_objects else "无"
             npcs_list_str = "、".join(existing_npcs) if existing_npcs else "无"
-
-            grid_constraint = f"""
-🚫 **绝对约束 - 必须严格遵守** 🚫
-
-【当前场景中存在的全部内容】
-可交互物体：{objects_list_str}
-在场人物：{npcs_list_str}
-
-【禁止行为】
-❌ 禁止创造不在上述列表中的物品、人物、线索
-❌ 禁止提及纸条、痕迹、线索等不在列表中的东西
-❌ 禁止编造商队、组织、事件等不在任务描述中的内容
-
-【正确做法】
-✓ 只描述上述列表中的物品和人物
-✓ 如玩家调查周围，只描述【可交互物体】列表中的内容
-✓ 如玩家找不到某物，明确告知「这里没有那样的东西」
-
-【示例】
-玩家：「调查周围」
-错误回复：「你发现了焦黑的纸屑...」（❌ 不存在的物品）
-正确回复：「你环顾四周，看到{objects_list_str}」（✓ 只描述实际存在的）
-"""
         else:
-            # Fallback: 旧版本位置信息
+            # Fallback: 旧版本位置信息（无grid时）
+            nearby_npcs_temp = world_context.get('nearby_npcs', [])
+            existing_npcs = [npc['npc_name'] for npc in nearby_npcs_temp] if nearby_npcs_temp else []
+
+            objects_list_str = "无"
+            npcs_list_str = "、".join(existing_npcs) if existing_npcs else "无"
+
             current_loc = world_context.get('current_location')
             if current_loc:
                 location_info = f"""
@@ -329,7 +312,30 @@ class AdventureAIService:
 通过叙述自然地展现接下来的可能性。
 """
 
-        prompt = f"""{world_info}{location_info}{npcs_info}{quest_info}{character_info}{dice_info}{explored_info}
+        prompt = f"""🚨 **CRITICAL SYSTEM RULES - MUST FOLLOW** 🚨
+
+你是一个TRPG的DM，但你必须遵守以下绝对规则：
+
+【🔒 数据约束 - 违反将导致失败】
+当前场景中存在的全部内容：
+• 可交互物体：{objects_list_str}
+• 在场人物：{npcs_list_str}
+• 当前位置名称：{current_grid.get('grid_name', '') if current_grid else '未知'}
+
+❌ **绝对禁止**：
+1. 禁止提及不在上述列表中的物品（例：不能提及"纸条"、"痕迹"、"信件"等，除非列表中有）
+2. 禁止给位置编造名字（例：当前位置是"{current_grid.get('grid_name', '')}"，不能叫"橡木灯酒馆"或其他名字）
+3. 禁止编造NPC对话（除非玩家直接与NPC对话）
+4. 禁止提及任务描述之外的背景故事（不能提及"守夜人"、"商队"、"红顶商号"等）
+
+✅ **正确做法**：
+- 回答"我在哪"时，只说：「你在{current_grid.get('grid_name', '')}」+简单的氛围描述
+- 如果玩家没有与NPC对话，不要让NPC主动说话
+- 只描述列表中存在的物品和人物
+
+---
+
+{world_info}{location_info}{npcs_info}{quest_info}{character_info}{dice_info}{explored_info}
 
 【最近对话】
 {history_text if history_text else '(冒险刚刚开始)'}
@@ -339,16 +345,18 @@ class AdventureAIService:
 
 ---
 
-{grid_constraint}
-
----
+🚨 **生成回复前再次检查**：
+1. 我是否只使用了列表中的物品？（{objects_list_str}）
+2. 我是否只使用了列表中的人物？（{npcs_list_str}）
+3. 我是否使用了正确的位置名称？（{current_grid.get('grid_name', '') if current_grid else ''}）
+4. 如果玩家问"我在哪"，我是否只说了位置名称而没有编造细节？
 
 {dice_enforcement}{dm_instruction}
 
 **回复格式要求**：
-- 长度：150-250字
+- 长度：80-150字（简洁！）
 - 直接给出DM叙述，不要元信息
-- 使用生动的场景描写
+- 只描述实际存在的内容
 - 如果NPC说话，用引号："..."
 
 DM回应："""
