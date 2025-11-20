@@ -7,7 +7,7 @@ import uuid
 import json
 from datetime import datetime
 from database import DatabaseManager
-from services import DifyService  # 复用现有的 Dify AI 服务
+from .ai_service import AdventureAIService  # AI 服务统一接口
 
 SLUG = "world_adventure"
 
@@ -49,63 +49,20 @@ def _get_session_id():
 def generate_world_with_ai(template, world_name, user_prompt=None, stability=50, danger=50, mystery=50):
     """使用 AI 生成世界内容"""
     try:
-        # 构建 AI Prompt
-        base_prompt = template.get('prompt_template', '')
-
-        context = f"""你是一个专业的跑团 DM，正在为玩家生成一个冒险世界。
-
-世界模板：{template['name']} ({template['description']})
-世界名称：{world_name}
-世界参数：稳定度 {stability}/100，危险度 {danger}/100，神秘度 {mystery}/100
-
-{base_prompt}
-
-玩家补充：{user_prompt if user_prompt else '无'}
-
-请以 JSON 格式返回世界内容，包含：
-{{
-  "world_description": "世界的详细描述（100-200字）",
-  "world_lore": "世界的背景故事和历史（150-300字）",
-  "locations": [
-    {{"name": "地点名", "type": "类型", "description": "描述"}}
-  ],
-  "factions": [
-    {{"name": "势力名", "power": "影响力等级", "stance": "立场/目标"}}
-  ],
-  "npcs": [
-    {{"name": "NPC名", "role": "身份", "personality": "性格", "secrets": "秘密/钩子"}}
-  ]
-}}"""
-
-        # 调用 AI（使用 Dify）
-        response = DifyService.guided_chat(
-            user_message=context,
-            conversation_id=None,
-            user_ref=f"world_gen_{uuid.uuid4().hex[:8]}",
-            ai_personality='warm'
+        world_data = AdventureAIService.generate_world(
+            template=template,
+            world_name=world_name,
+            user_prompt=user_prompt,
+            stability=stability,
+            danger=danger,
+            mystery=mystery
         )
 
-        # 解析 AI 返回（尝试提取 JSON）
-        ai_text = response.get('answer', '{}')
-
-        # 尝试从文本中提取 JSON
-        try:
-            # 如果 AI 返回包含 ```json，提取出来
-            if '```json' in ai_text:
-                start = ai_text.index('```json') + 7
-                end = ai_text.index('```', start)
-                ai_text = ai_text[start:end].strip()
-            elif '```' in ai_text:
-                start = ai_text.index('```') + 3
-                end = ai_text.index('```', start)
-                ai_text = ai_text[start:end].strip()
-
-            world_data = json.loads(ai_text)
-        except:
-            # AI 返回不是标准 JSON，使用默认值
-            world_data = {
-                "world_description": ai_text[:200] if ai_text else f"{world_name}是一个充满未知的世界...",
-                "world_lore": ai_text[200:500] if len(ai_text) > 200 else "这个世界有着悠久的历史...",
+        # 如果 AI 返回 None，使用默认值
+        if world_data is None:
+            return {
+                "world_description": f"{world_name}是一个神秘的世界，等待勇敢的冒险者探索。",
+                "world_lore": "关于这个世界的历史，还有许多未解之谜...",
                 "locations": [],
                 "factions": [],
                 "npcs": []
@@ -139,66 +96,18 @@ def generate_dm_response(run, character, world, player_action):
                 """, (run['id'],))
                 messages = cur.fetchall()
 
-        # 构建上下文
-        history_text = "\n".join([
-            f"{'DM' if msg['role'] == 'dm' else '玩家'}: {msg['content']}"
-            for msg in messages[-5:]  # 只取最近5条
-        ])
-
-        prompt = f"""你是一个经验丰富的 TRPG DM，正在主持一场冒险。
-
-【世界信息】
-名称：{world.get('world_name')}
-描述：{world.get('world_description', '')}
-当前状态：稳定度 {world.get('stability')}/100，危险度 {world.get('danger')}/100
-
-【角色信息】
-名字：{character.get('char_name')}
-职业：{character.get('char_class')}
-能力：战斗 {character.get('ability_combat')}/10，社交 {character.get('ability_social')}/10，潜行 {character.get('ability_stealth')}/10，知识 {character.get('ability_knowledge')}/10，生存 {character.get('ability_survival')}/10
-
-【任务信息】
-标题：{run.get('run_title')}
-目标：{run.get('mission_objective')}
-当前回合：{run.get('current_turn')}/{run.get('max_turns')}
-
-【最近对话】
-{history_text if history_text else '(刚开始)'}
-
-【玩家行动】
-{player_action}
-
-请作为 DM 回应玩家的行动：
-1. 描述玩家行动的结果（成功/失败/部分成功）
-2. 推进剧情，描述新的情况
-3. 给玩家新的选择或挑战
-4. 保持沉浸感和戏剧性
-
-回复长度：100-200字。直接给出 DM 的叙述，不要元信息。"""
-
-        # 调用 AI
-        conversation_id = run.get('ai_conversation_id')
-
-        response = DifyService.guided_chat(
-            user_message=prompt,
-            conversation_id=conversation_id,
-            user_ref=f"run_{run['id']}",
-            ai_personality='warm'
+        # 使用新的 AI 服务
+        dm_response = AdventureAIService.generate_dm_response(
+            run=run,
+            character=character,
+            world=world,
+            player_action=player_action,
+            conversation_history=messages
         )
 
-        dm_response = response.get('answer', '(AI 响应失败)')
-        new_conversation_id = response.get('conversation_id', conversation_id)
-
-        # 更新会话 ID
-        if new_conversation_id and new_conversation_id != conversation_id:
-            with DatabaseManager.get_db() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE adventure_runs
-                        SET ai_conversation_id = %s
-                        WHERE id = %s
-                    """, (new_conversation_id, run['id']))
-                    conn.commit()
+        # 如果 AI 返回 None，使用默认响应
+        if dm_response is None:
+            dm_response = f"(你执行了行动: {player_action[:50]}...)，周围的环境发生了一些变化..."
 
         return dm_response
 
