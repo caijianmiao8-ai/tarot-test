@@ -609,10 +609,12 @@
                     'failure': '❌ 失败'
                 };
 
+                const dcText = diceResult.dc ? ` vs DC${diceResult.dc}` : '';
+
                 diceHtml = `
                     <div class="dice-roll ${level}">
                         <span class="dice-icon">🎲</span>
-                        <span>${abilityIcon} ${diceResult.roll} + ${diceResult.modifier} = ${diceResult.total}</span>
+                        <span>${abilityIcon} ${diceResult.roll} + ${diceResult.modifier} = ${diceResult.total}${dcText}</span>
                         <span style="margin-left: 8px; font-weight: bold;">${levelText[level] || level}</span>
                     </div>
                 `;

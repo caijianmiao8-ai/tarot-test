@@ -632,6 +632,13 @@ def api_run_action(run_id):
                         )
                         checkpoint_completed = True
                         checkpoint_message = f"\n\n✅ **任务进度更新**：{detection['reason']}"
+
+                        # 重新获取world_context以反映更新后的任务进度
+                        world_context = engine.get_world_context_for_ai(
+                            run_data,
+                            engine.state.get_or_create_player_progress(user_id, run_data['world_id']),
+                            run_data
+                        )
                     break
 
         # 使用 V2 AI 服务生成 DM 响应

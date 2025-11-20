@@ -163,13 +163,48 @@ class AdventureAIService:
 职业：{character.get('char_class')}
 能力：⚔️战斗{character.get('ability_combat')}/10 | 💬社交{character.get('ability_social')}/10 | 🥷潜行{character.get('ability_stealth')}/10 | 📚知识{character.get('ability_knowledge')}/10 | 🏕️生存{character.get('ability_survival')}/10"""
 
-        # 骰子判定结果
+        # 骰子判定结果（强化版 - 强制AI响应）
         dice_info = ""
+        dice_enforcement = ""
         if action_result and action_result.get('requires_check'):
             dice_result = action_result.get('dice_result', {})
+            level = dice_result.get('level', 'partial')
+
             dice_info = f"""
-【判定结果】
-{action_result.get('narrative', '')}"""
+【🎲 判定结果 - 必须严格遵循】
+{action_result.get('narrative', '')}
+骰子：{dice_result.get('roll')} + {dice_result.get('modifier')} = {dice_result.get('total')} vs DC{dice_result.get('dc')}
+结果：{level}"""
+
+            # 根据成功等级给出强制性指令
+            if level == 'critical':
+                dice_enforcement = """
+**⚠️ 大成功响应要求：**
+- 必须描述令人印象深刻的成功场景
+- 给予额外好处或发现
+- NPC反应极为积极
+"""
+            elif level == 'success':
+                dice_enforcement = """
+**⚠️ 成功响应要求：**
+- 描述行动顺利完成
+- 达到预期效果
+- 推进剧情
+"""
+            elif level == 'partial':
+                dice_enforcement = """
+**⚠️ 部分成功响应要求：**
+- 描述行动勉强达成
+- 但有小代价或并发症
+- 例如：信息不完整、引起怀疑、消耗资源等
+"""
+            else:  # failure
+                dice_enforcement = """
+**⚠️ 失败响应要求：**
+- 描述行动失败的具体情况
+- 可能引起负面后果
+- 但要给出其他尝试的机会
+"""
 
         # 已探索的地点
         explored_info = ""
@@ -231,7 +266,7 @@ class AdventureAIService:
 
 ---
 
-{dm_instruction}
+{dice_enforcement}{dm_instruction}
 
 **回复格式要求**：
 - 长度：150-250字
