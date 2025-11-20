@@ -334,11 +334,79 @@ class GridMovementSystem:
                 return cur.fetchall()
 
     @staticmethod
+    def find_path_to_grid(start_grid_id, target_grid_id, max_depth=3):
+        """
+        使用BFS查找从起始grid到目标grid的路径
+
+        返回: {
+            'found': bool,
+            'path': [grid_id1, grid_id2, ...],  # 包含所有途经grid，最后一个是目标
+            'names': [name1, name2, ...]  # 途经地点名称
+        }
+        """
+        if start_grid_id == target_grid_id:
+            return {'found': True, 'path': [], 'names': []}
+
+        from collections import deque
+
+        # BFS队列: (current_grid_id, path_ids, path_names)
+        queue = deque([(start_grid_id, [], [])])
+        visited = {start_grid_id}
+
+        while queue:
+            current_id, path_ids, path_names = queue.popleft()
+
+            # 限制最大深度
+            if len(path_ids) >= max_depth:
+                continue
+
+            # 获取当前grid
+            current_grid = GridMovementSystem.get_grid_by_id(current_id)
+            if not current_grid:
+                continue
+
+            connected = current_grid.get('connected_grids', [])
+            if isinstance(connected, str):
+                connected = json.loads(connected)
+
+            for conn in connected:
+                next_id = conn.get('grid_id')
+                if not next_id or next_id in visited:
+                    continue
+
+                # 获取下一个grid的名称
+                next_grid = GridMovementSystem.get_grid_by_id(next_id)
+                if not next_grid:
+                    continue
+
+                next_name = next_grid.get('grid_name', '')
+                new_path_ids = path_ids + [next_id]
+                new_path_names = path_names + [next_name]
+
+                # 找到目标！
+                if next_id == target_grid_id:
+                    return {
+                        'found': True,
+                        'path': new_path_ids,
+                        'names': new_path_names
+                    }
+
+                visited.add(next_id)
+                queue.append((next_id, new_path_ids, new_path_names))
+
+        return {'found': False, 'path': [], 'names': []}
+
+    @staticmethod
     def detect_movement(action_text, current_grid_id):
         """
-        检测玩家是否尝试移动到其他网格
+        检测玩家是否尝试移动到其他网格（支持跨grid路径查找）
 
-        返回: grid_id (如果检测到移动) 或 None
+        返回: {
+            'target_grid_id': str,
+            'is_direct': bool,  # 是否直接连接
+            'path': [],  # 如果非直接，包含途经的grid IDs
+            'path_names': []  # 途经地点名称
+        } 或 None
         """
         if not current_grid_id:
             return None
@@ -384,20 +452,20 @@ class GridMovementSystem:
                 if current_keywords and current_keywords in action_text:
                     # 优先选择名称包含"入口"的连接
                     if '入口' in target_name:
-                        return target_grid_id
+                        return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
                     # 或者选择第一个连接（通常是出口）
                     if direction == 'north' or direction == 'south':
-                        return target_grid_id
+                        return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
 
             # 检查方向关键词
             if direction in direction_keywords:
                 keywords = direction_keywords[direction]
                 if any(kw in action_text for kw in keywords):
-                    return target_grid_id
+                    return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
 
             # 检查目标网格名称（精确匹配）
             if target_name and target_name in action_text:
-                return target_grid_id
+                return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
 
             # 模糊匹配：提取目标名称的关键词
             if has_move_intent and target_name:
@@ -406,14 +474,48 @@ class GridMovementSystem:
 
                 # 分词匹配：例如 "酒馆" 匹配 "酒馆入口"
                 if name_keywords and name_keywords in action_text:
-                    return target_grid_id
+                    return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
 
                 # 逐字匹配：例如 "商业街" 匹配 "商业街区"
                 for i in range(len(name_keywords)):
                     for j in range(i+2, len(name_keywords)+1):
                         keyword = name_keywords[i:j]
                         if keyword in action_text:
-                            return target_grid_id
+                            return {'target_grid_id': target_grid_id, 'is_direct': True, 'path': [], 'path_names': []}
+
+        # 如果直接连接中没找到，尝试跨grid路径查找
+        if has_move_intent:
+            # 获取当前location的所有grids
+            current_location_id = current_grid.get('location_id')
+            if current_location_id:
+                all_grids = GridMovementSystem.get_grids_by_location(current_location_id)
+
+                # 在所有grids中查找名称匹配的
+                for grid in all_grids:
+                    if grid['id'] == current_grid_id:
+                        continue  # 跳过当前grid
+
+                    grid_name = grid.get('grid_name', '')
+
+                    # 提取关键词
+                    name_keywords = grid_name.replace('入口', '').replace('内部', '').replace('广场', '').replace('街区', '').strip()
+
+                    # 检查是否匹配
+                    if (grid_name in action_text) or (name_keywords and name_keywords in action_text):
+                        # 找到目标grid！使用BFS查找路径
+                        path_result = GridMovementSystem.find_path_to_grid(
+                            current_grid_id,
+                            grid['id'],
+                            max_depth=3
+                        )
+
+                        if path_result['found']:
+                            return {
+                                'target_grid_id': grid['id'],
+                                'is_direct': False,
+                                'path': path_result['path'],
+                                'path_names': path_result['names']
+                            }
 
         return None
 

@@ -638,17 +638,21 @@ def api_run_action(run_id):
             run_data
         )
 
-        # 【Phase 1 新增】网格移动检测
+        # 【Phase 1 新增】网格移动检测（支持跨grid路径）
         movement_occurred = False
         movement_description = ""
 
         current_grid_id = progress.get('current_grid_id')
         if current_grid_id:
-            # 检测是否有移动意图
-            target_grid_id = GridMovementSystem.detect_movement(action_text, current_grid_id)
+            # 检测是否有移动意图（现在返回字典而不是grid_id）
+            movement_info = GridMovementSystem.detect_movement(action_text, current_grid_id)
 
-            if target_grid_id:
-                # 执行移动
+            if movement_info:
+                target_grid_id = movement_info['target_grid_id']
+                is_direct = movement_info['is_direct']
+                path_names = movement_info['path_names']
+
+                # 执行移动（最终目标）
                 move_result = GridMovementSystem.execute_movement(
                     user_id,
                     run_data['world_id'],
@@ -658,7 +662,18 @@ def api_run_action(run_id):
                 if move_result.get('moved'):
                     movement_occurred = True
                     new_grid = move_result.get('new_grid', {})
-                    movement_description = f"\n\n📍 **你来到了：{new_grid.get('grid_name')}**\n{move_result.get('description', '')}"
+
+                    # 构建移动描述
+                    if is_direct:
+                        # 直接连接
+                        movement_description = f"\n\n📍 **你来到了：{new_grid.get('grid_name')}**\n{move_result.get('description', '')}"
+                    else:
+                        # 跨grid移动，显示途经路径
+                        if path_names:
+                            path_str = " → ".join(path_names)
+                            movement_description = f"\n\n🚶 **你穿过了：{path_str}**\n\n📍 **最终抵达：{new_grid.get('grid_name')}**\n{move_result.get('description', '')}"
+                        else:
+                            movement_description = f"\n\n📍 **你来到了：{new_grid.get('grid_name')}**\n{move_result.get('description', '')}"
 
                     # 更新 progress 和 world_context
                     progress = engine.state.get_or_create_player_progress(user_id, run_data['world_id'])
