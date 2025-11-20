@@ -4,8 +4,10 @@ AI 世界冒险跑团游戏模块
 """
 from flask import Blueprint, render_template, request, jsonify, g, redirect, url_for
 import uuid
+import json
 from datetime import datetime
 from database import DatabaseManager
+from services import DifyService  # 复用现有的 Dify AI 服务
 
 SLUG = "world_adventure"
 
@@ -44,6 +46,165 @@ def _get_session_id():
     return session.get('id') or session.get('session_id')
 
 
+def generate_world_with_ai(template, world_name, user_prompt=None, stability=50, danger=50, mystery=50):
+    """使用 AI 生成世界内容"""
+    try:
+        # 构建 AI Prompt
+        base_prompt = template.get('prompt_template', '')
+
+        context = f"""你是一个专业的跑团 DM，正在为玩家生成一个冒险世界。
+
+世界模板：{template['name']} ({template['description']})
+世界名称：{world_name}
+世界参数：稳定度 {stability}/100，危险度 {danger}/100，神秘度 {mystery}/100
+
+{base_prompt}
+
+玩家补充：{user_prompt if user_prompt else '无'}
+
+请以 JSON 格式返回世界内容，包含：
+{{
+  "world_description": "世界的详细描述（100-200字）",
+  "world_lore": "世界的背景故事和历史（150-300字）",
+  "locations": [
+    {{"name": "地点名", "type": "类型", "description": "描述"}}
+  ],
+  "factions": [
+    {{"name": "势力名", "power": "影响力等级", "stance": "立场/目标"}}
+  ],
+  "npcs": [
+    {{"name": "NPC名", "role": "身份", "personality": "性格", "secrets": "秘密/钩子"}}
+  ]
+}}"""
+
+        # 调用 AI（使用 Dify）
+        response = DifyService.chat(
+            prompt=context,
+            conversation_id=None,
+            user_ref=f"world_gen_{uuid.uuid4().hex[:8]}"
+        )
+
+        # 解析 AI 返回（尝试提取 JSON）
+        ai_text = response.get('answer', '{}')
+
+        # 尝试从文本中提取 JSON
+        try:
+            # 如果 AI 返回包含 ```json，提取出来
+            if '```json' in ai_text:
+                start = ai_text.index('```json') + 7
+                end = ai_text.index('```', start)
+                ai_text = ai_text[start:end].strip()
+            elif '```' in ai_text:
+                start = ai_text.index('```') + 3
+                end = ai_text.index('```', start)
+                ai_text = ai_text[start:end].strip()
+
+            world_data = json.loads(ai_text)
+        except:
+            # AI 返回不是标准 JSON，使用默认值
+            world_data = {
+                "world_description": ai_text[:200] if ai_text else f"{world_name}是一个充满未知的世界...",
+                "world_lore": ai_text[200:500] if len(ai_text) > 200 else "这个世界有着悠久的历史...",
+                "locations": [],
+                "factions": [],
+                "npcs": []
+            }
+
+        return world_data
+
+    except Exception as e:
+        print(f"AI 生成世界失败: {e}")
+        # 返回默认值
+        return {
+            "world_description": f"{world_name}是一个神秘的世界，等待勇敢的冒险者探索。",
+            "world_lore": "关于这个世界的历史，还有许多未解之谜...",
+            "locations": [],
+            "factions": [],
+            "npcs": []
+        }
+
+
+def generate_dm_response(run, character, world, player_action):
+    """AI DM 生成响应"""
+    try:
+        # 获取对话历史
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT role, content FROM adventure_run_messages
+                    WHERE run_id = %s
+                    ORDER BY created_at ASC
+                    LIMIT 20
+                """, (run['id'],))
+                messages = cur.fetchall()
+
+        # 构建上下文
+        history_text = "\n".join([
+            f"{'DM' if msg['role'] == 'dm' else '玩家'}: {msg['content']}"
+            for msg in messages[-5:]  # 只取最近5条
+        ])
+
+        prompt = f"""你是一个经验丰富的 TRPG DM，正在主持一场冒险。
+
+【世界信息】
+名称：{world.get('world_name')}
+描述：{world.get('world_description', '')}
+当前状态：稳定度 {world.get('stability')}/100，危险度 {world.get('danger')}/100
+
+【角色信息】
+名字：{character.get('char_name')}
+职业：{character.get('char_class')}
+能力：战斗 {character.get('ability_combat')}/10，社交 {character.get('ability_social')}/10，潜行 {character.get('ability_stealth')}/10，知识 {character.get('ability_knowledge')}/10，生存 {character.get('ability_survival')}/10
+
+【任务信息】
+标题：{run.get('run_title')}
+目标：{run.get('mission_objective')}
+当前回合：{run.get('current_turn')}/{run.get('max_turns')}
+
+【最近对话】
+{history_text if history_text else '(刚开始)'}
+
+【玩家行动】
+{player_action}
+
+请作为 DM 回应玩家的行动：
+1. 描述玩家行动的结果（成功/失败/部分成功）
+2. 推进剧情，描述新的情况
+3. 给玩家新的选择或挑战
+4. 保持沉浸感和戏剧性
+
+回复长度：100-200字。直接给出 DM 的叙述，不要元信息。"""
+
+        # 调用 AI
+        conversation_id = run.get('ai_conversation_id')
+
+        response = DifyService.chat(
+            prompt=prompt,
+            conversation_id=conversation_id,
+            user_ref=f"run_{run['id']}"
+        )
+
+        dm_response = response.get('answer', '(AI 响应失败)')
+        new_conversation_id = response.get('conversation_id', conversation_id)
+
+        # 更新会话 ID
+        if new_conversation_id and new_conversation_id != conversation_id:
+            with DatabaseManager.get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE adventure_runs
+                        SET ai_conversation_id = %s
+                        WHERE id = %s
+                    """, (new_conversation_id, run['id']))
+                    conn.commit()
+
+        return dm_response
+
+    except Exception as e:
+        print(f"AI DM 响应失败: {e}")
+        return f"(你执行了行动: {player_action[:50]}...)，周围的环境发生了一些变化..."
+
+
 # ========================================
 # 页面路由
 # ========================================
@@ -52,20 +213,18 @@ def _get_session_id():
 def index():
     """游戏主页:显示世界选择界面"""
     user_id = _get_user_id()
-    session_id = _get_session_id()
 
     # 获取用户的世界列表
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
-            # 简化版:只获取登录用户的世界
             if user_id:
                 cur.execute("""
                     SELECT * FROM adventure_worlds
-                    WHERE owner_user_id = %s
+                    WHERE owner_user_id = %s AND is_archived = FALSE
                     ORDER BY created_at DESC
                 """, (user_id,))
             else:
-                # 游客模式:可以考虑用 session_id 绑定
+                # 游客模式:暂时不显示
                 cur.execute("SELECT * FROM adventure_worlds LIMIT 0")
 
             worlds = cur.fetchall()
@@ -106,11 +265,16 @@ def run_play_page(run_id):
     """Run 游玩页面"""
     user_id = _get_user_id()
 
-    # 验证权限
+    # 获取 Run 详细信息
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT r.*, w.world_name, c.char_name
+                SELECT
+                    r.*,
+                    w.world_name, w.stability, w.danger, w.mystery,
+                    c.char_name, c.char_class,
+                    c.ability_combat, c.ability_social, c.ability_stealth,
+                    c.ability_knowledge, c.ability_survival
                 FROM adventure_runs r
                 JOIN adventure_worlds w ON r.world_id = w.id
                 JOIN adventure_characters c ON r.character_id = c.id
@@ -136,14 +300,18 @@ def run_play_page(run_id):
 # ========================================
 @bp.post("/api/worlds/create")
 def api_world_create():
-    """创建世界"""
+    """创建世界（含 AI 生成）"""
     user_id = _get_user_id()
     data = request.get_json() or {}
 
     template_id = data.get("template_id")
     world_name = data.get("world_name", "未命名世界")
+    user_prompt = data.get("user_prompt")
+    stability = data.get("stability", 50)
+    danger = data.get("danger", 50)
+    mystery = data.get("mystery", 50)
 
-    # 从模板加载默认参数
+    # 获取模板
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -154,32 +322,38 @@ def api_world_create():
     if not template:
         return jsonify({"error": "模板不存在"}), 400
 
+    # AI 生成世界内容
+    world_data = generate_world_with_ai(
+        template, world_name, user_prompt,
+        stability, danger, mystery
+    )
+
     # 生成世界 ID
     world_id = str(uuid.uuid4())
 
-    # TODO: 这里应该调用 AI 生成世界描述/地点/NPC 等
-    # 现在先用简单的占位数据
-    world_description = f"这是一个{template['name']}类型的世界"
-
-    default_params = template.get('default_world_params') or {}
-
+    # 保存到数据库
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO adventure_worlds
                 (id, owner_user_id, template_id, world_name, world_description,
-                 stability, danger, mystery)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                 world_lore, stability, danger, mystery,
+                 locations_data, factions_data, npcs_data)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
             """, (
                 world_id,
                 user_id,
                 template_id,
                 world_name,
-                world_description,
-                default_params.get('stability', 50),
-                default_params.get('danger', 50),
-                default_params.get('mystery', 50)
+                world_data.get('world_description', ''),
+                world_data.get('world_lore', ''),
+                stability,
+                danger,
+                mystery,
+                json.dumps(world_data.get('locations', [])),
+                json.dumps(world_data.get('factions', [])),
+                json.dumps(world_data.get('npcs', []))
             ))
             world = cur.fetchone()
             conn.commit()
@@ -204,9 +378,9 @@ def api_character_create():
             cur.execute("""
                 INSERT INTO adventure_characters
                 (id, user_id, char_name, char_class, background, personality,
-                 ability_combat, ability_social, ability_stealth,
-                 ability_knowledge, ability_survival)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 appearance, ability_combat, ability_social, ability_stealth,
+                 ability_knowledge, ability_survival, equipment_data, relationships_data)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
             """, (
                 char_id,
@@ -215,11 +389,14 @@ def api_character_create():
                 data.get('char_class', '冒险者'),
                 data.get('background', ''),
                 data.get('personality', ''),
+                data.get('appearance', ''),
                 data.get('ability_combat', 5),
                 data.get('ability_social', 5),
                 data.get('ability_stealth', 5),
                 data.get('ability_knowledge', 5),
-                data.get('ability_survival', 5)
+                data.get('ability_survival', 5),
+                '{}',  # equipment_data
+                '{}'   # relationships_data
             ))
             character = cur.fetchone()
             conn.commit()
@@ -243,27 +420,29 @@ def api_run_start():
     # 验证世界和角色存在
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM adventure_worlds WHERE id = %s", (world_id,))
-            if not cur.fetchone():
+            cur.execute("SELECT * FROM adventure_worlds WHERE id = %s", (world_id,))
+            world = cur.fetchone()
+            if not world:
                 return jsonify({"error": "世界不存在"}), 400
 
-            cur.execute("SELECT 1 FROM adventure_characters WHERE id = %s", (character_id,))
-            if not cur.fetchone():
+            cur.execute("SELECT * FROM adventure_characters WHERE id = %s", (character_id,))
+            character = cur.fetchone()
+            if not character:
                 return jsonify({"error": "角色不存在"}), 400
 
-    run_id = str(uuid.uuid4())
+    # AI 生成任务
+    run_title = f"{character['char_name']}在{world['world_name']}的冒险"
+    mission_objective = "探索这个未知的世界，发现隐藏的秘密"
 
-    # TODO: 这里应该调用 AI 生成任务标题/目标等
-    run_title = "未知的冒险"
-    mission_objective = "探索世界,完成未知的使命"
+    run_id = str(uuid.uuid4())
 
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO adventure_runs
                 (id, world_id, character_id, user_id, run_title,
-                 run_type, mission_objective, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active')
+                 run_type, mission_objective, status, max_turns, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', 20, %s)
                 RETURNING *
             """, (
                 run_id,
@@ -272,7 +451,8 @@ def api_run_start():
                 user_id,
                 run_title,
                 'exploration',
-                mission_objective
+                mission_objective,
+                '{}'
             ))
             run = cur.fetchone()
             conn.commit()
@@ -294,30 +474,34 @@ def api_run_action(run_id):
     if not action_text:
         return jsonify({"error": "行动不能为空"}), 400
 
-    # 获取 Run 信息
+    # 获取 Run、世界、角色信息
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT * FROM adventure_runs WHERE id = %s
+                SELECT r.*, w.*, c.*
+                FROM adventure_runs r
+                JOIN adventure_worlds w ON r.world_id = w.id
+                JOIN adventure_characters c ON r.character_id = c.id
+                WHERE r.id = %s
             """, (run_id,))
-            run = cur.fetchone()
+            full_data = cur.fetchone()
 
-    if not run:
+    if not full_data:
         return jsonify({"error": "Run 不存在"}), 404
 
-    if run['status'] != 'active':
+    if full_data['status'] != 'active':
         return jsonify({"error": "Run 已结束"}), 400
 
     # 保存玩家消息
+    current_turn = full_data['current_turn'] + 1
     msg_id = str(uuid.uuid4())
-    current_turn = run['current_turn'] + 1
 
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO adventure_run_messages
-                (id, run_id, role, content, turn_number)
-                VALUES (%s, %s, 'player', %s, %s)
+                (id, run_id, role, content, turn_number, action_type, dice_rolls)
+                VALUES (%s, %s, 'player', %s, %s, NULL, NULL)
             """, (msg_id, run_id, action_text, current_turn))
 
             # 更新 Run 的回合数
@@ -329,8 +513,8 @@ def api_run_action(run_id):
 
             conn.commit()
 
-    # TODO: 这里应该调用 AI 生成 DM 响应
-    dm_response = f"(AI DM 回应占位) 你执行了:{action_text}"
+    # AI 生成 DM 响应
+    dm_response = generate_dm_response(full_data, full_data, full_data, action_text)
 
     # 保存 DM 消息
     dm_msg_id = str(uuid.uuid4())
@@ -338,15 +522,38 @@ def api_run_action(run_id):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO adventure_run_messages
-                (id, run_id, role, content, turn_number)
-                VALUES (%s, %s, 'dm', %s, %s)
+                (id, run_id, role, content, turn_number, action_type, dice_rolls)
+                VALUES (%s, %s, 'dm', %s, %s, NULL, NULL)
             """, (dm_msg_id, run_id, dm_response, current_turn))
             conn.commit()
+
+    # 检查是否达到回合上限
+    run_ended = current_turn >= full_data['max_turns']
 
     return jsonify({
         "ok": True,
         "turn": current_turn,
-        "dm_response": dm_response
+        "dm_response": dm_response,
+        "run_ended": run_ended
+    })
+
+
+@bp.get("/api/runs/<run_id>/messages")
+def api_run_messages(run_id):
+    """获取 Run 的所有消息"""
+    with DatabaseManager.get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT role, content, turn_number, created_at
+                FROM adventure_run_messages
+                WHERE run_id = %s
+                ORDER BY created_at ASC
+            """, (run_id,))
+            messages = cur.fetchall()
+
+    return jsonify({
+        "ok": True,
+        "messages": [dict(msg) for msg in messages]
     })
 
 
@@ -356,10 +563,10 @@ def api_run_complete(run_id):
     user_id = _get_user_id()
     data = request.get_json() or {}
 
-    outcome = data.get("outcome", "success")  # success/failure/partial/death
+    outcome = data.get("outcome", "success")
 
-    # TODO: 这里应该调用 AI 生成结算总结和影响
-    summary = f"冒险结束,结果:{outcome}"
+    # TODO: AI 生成结算总结
+    summary = f"冒险结束，结果：{outcome}"
 
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:

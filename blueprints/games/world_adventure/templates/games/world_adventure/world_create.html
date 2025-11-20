@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建世界 - AI 世界冒险</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #f39c12;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #888;
+            font-size: 1.1em;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .step {
+            padding: 10px 20px;
+            background: #0f3460;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        .step.active {
+            background: #f39c12;
+            color: #fff;
+            font-weight: bold;
+        }
+        .form-section {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .form-section h2 {
+            color: #f39c12;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .template-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .template-card:hover {
+            border-color: #f39c12;
+            transform: translateY(-2px);
+        }
+        .template-card.selected {
+            border-color: #f39c12;
+            background: #1a4d7a;
+        }
+        .template-card h3 {
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+        .template-card p {
+            font-size: 0.9em;
+            color: #ccc;
+            line-height: 1.5;
+        }
+        .template-card .theme-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(243, 156, 18, 0.2);
+            border-radius: 12px;
+            font-size: 0.8em;
+            color: #f39c12;
+            margin-top: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #f39c12;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            border: 2px solid #1a4d7a;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #f39c12;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #888;
+            font-size: 0.85em;
+        }
+        .slider-group {
+            margin-bottom: 25px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .slider-label span:first-child {
+            color: #f39c12;
+            font-weight: 500;
+        }
+        .slider-label span:last-child {
+            color: #fff;
+            font-weight: bold;
+            background: #0f3460;
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #0f3460;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #f39c12;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #f39c12;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #f39c12;
+            color: #fff;
+            font-weight: bold;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+        }
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #34495e;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #2c3e50;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #0f3460;
+            border-top-color: #f39c12;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 创建新世界</h1>
+            <p>选择一个世界模板，AI 将为你生成独特的冒险世界</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active">1. 选择模板</div>
+            <div class="step">2. 自定义设置</div>
+            <div class="step">3. AI 生成</div>
+        </div>
+
+        <div id="error-msg" class="error"></div>
+
+        <form id="world-form">
+            <!-- 模板选择 -->
+            <div class="form-section">
+                <h2>选择世界模板</h2>
+                <div class="template-grid" id="template-grid">
+                    {% for template in templates %}
+                    <div class="template-card" data-template-id="{{ template.id }}"
+                         data-params='{{ template.default_world_params | tojson }}'>
+                        <h3>{{ template.name }}</h3>
+                        <p>{{ template.description }}</p>
+                        <span class="theme-badge">{{ template.theme }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="template_id" id="template_id" required>
+            </div>
+
+            <!-- 基本信息 -->
+            <div class="form-section">
+                <h2>世界基本信息</h2>
+                <div class="form-group">
+                    <label for="world_name">世界名称 *</label>
+                    <input type="text" id="world_name" name="world_name" required
+                           placeholder="例如：边境小镇艾尔登">
+                    <small>给你的世界起一个独特的名字</small>
+                </div>
+                <div class="form-group">
+                    <label for="user_prompt">创作指引（可选）</label>
+                    <textarea id="user_prompt" name="user_prompt"
+                              placeholder="你可以在这里补充一些想法，比如：我希望这是一个充满阴谋的世界，有一个神秘的地下组织..."></textarea>
+                    <small>AI 会根据你的想法生成更符合期待的世界</small>
+                </div>
+            </div>
+
+            <!-- 世界参数 -->
+            <div class="form-section">
+                <h2>世界状态指标</h2>
+                <p style="color: #888; margin-bottom: 20px;">这些指标会影响 AI 生成的任务类型和故事走向</p>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>稳定度 (Stability)</span>
+                        <span id="stability-value">50</span>
+                    </div>
+                    <input type="range" id="stability" name="stability" min="0" max="100" value="50">
+                    <small style="color: #888; display: block; margin-top: 5px;">
+                        低 = 动荡不安 | 高 = 秩序井然
+                    </small>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>危险度 (Danger)</span>
+                        <span id="danger-value">50</span>
+                    </div>
+                    <input type="range" id="danger" name="danger" min="0" max="100" value="50">
+                    <small style="color: #888; display: block; margin-top: 5px;">
+                        低 = 相对安全 | 高 = 危机四伏
+                    </small>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>神秘度 (Mystery)</span>
+                        <span id="mystery-value">50</span>
+                    </div>
+                    <input type="range" id="mystery" name="mystery" min="0" max="100" value="50">
+                    <small style="color: #888; display: block; margin-top: 5px;">
+                        低 = 平凡世界 | 高 = 充满未知
+                    </small>
+                </div>
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="actions">
+                <a href="/g/world_adventure/" class="btn btn-secondary">取消</a>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    🎨 创建世界
+                </button>
+            </div>
+        </form>
+
+        <!-- 加载状态 -->
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>AI 正在为你生成世界...</p>
+            <p style="color: #888; font-size: 0.9em;">这可能需要 10-30 秒</p>
+        </div>
+    </div>
+
+    <script>
+        // 模板选择
+        const templateCards = document.querySelectorAll('.template-card');
+        const templateIdInput = document.getElementById('template_id');
+        const stabilitySlider = document.getElementById('stability');
+        const dangerSlider = document.getElementById('danger');
+        const mysterySlider = document.getElementById('mystery');
+
+        templateCards.forEach(card => {
+            card.addEventListener('click', () => {
+                templateCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                templateIdInput.value = card.dataset.templateId;
+
+                // 加载模板的默认参数
+                try {
+                    const params = JSON.parse(card.dataset.params);
+                    if (params) {
+                        stabilitySlider.value = params.stability || 50;
+                        dangerSlider.value = params.danger || 50;
+                        mysterySlider.value = params.mystery || 50;
+                        updateSliderValues();
+                    }
+                } catch (e) {
+                    console.error('解析模板参数失败:', e);
+                }
+            });
+        });
+
+        // 滑块实时更新
+        function updateSliderValues() {
+            document.getElementById('stability-value').textContent = stabilitySlider.value;
+            document.getElementById('danger-value').textContent = dangerSlider.value;
+            document.getElementById('mystery-value').textContent = mysterySlider.value;
+        }
+
+        stabilitySlider.addEventListener('input', updateSliderValues);
+        dangerSlider.addEventListener('input', updateSliderValues);
+        mysterySlider.addEventListener('input', updateSliderValues);
+
+        // 表单提交
+        const form = document.getElementById('world-form');
+        const loading = document.getElementById('loading');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorMsg = document.getElementById('error-msg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 验证模板选择
+            if (!templateIdInput.value) {
+                showError('请先选择一个世界模板');
+                return;
+            }
+
+            // 显示加载状态
+            loading.classList.add('active');
+            submitBtn.disabled = true;
+            errorMsg.classList.remove('show');
+
+            const formData = {
+                template_id: parseInt(templateIdInput.value),
+                world_name: document.getElementById('world_name').value,
+                user_prompt: document.getElementById('user_prompt').value,
+                stability: parseInt(stabilitySlider.value),
+                danger: parseInt(dangerSlider.value),
+                mystery: parseInt(mysterySlider.value)
+            };
+
+            try {
+                const response = await fetch('/g/world_adventure/api/worlds/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    // 成功 - 跳转到世界详情页
+                    window.location.href = `/g/world_adventure/?created=${result.world_id}`;
+                } else {
+                    showError(result.error || '创建世界失败，请重试');
+                    loading.classList.remove('active');
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                showError('网络错误，请检查连接后重试');
+                loading.classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.classList.add('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

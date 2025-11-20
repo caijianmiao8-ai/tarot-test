@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ run.run_title or '冒险进行中' }} - AI 世界冒险</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(15, 52, 96, 0.9);
+            padding: 15px 20px;
+            border-bottom: 2px solid #f39c12;
+            backdrop-filter: blur(10px);
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .run-title {
+            color: #f39c12;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        .run-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        .run-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-badge.active {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .status-badge.completed {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+        .main-container {
+            flex: 1;
+            display: flex;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 300px;
+            background: rgba(15, 52, 96, 0.6);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #0f3460;
+        }
+        .sidebar h3 {
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .info-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(26, 77, 122, 0.3);
+            border-radius: 6px;
+        }
+        .info-label {
+            color: #888;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #fff;
+            font-weight: 500;
+        }
+        .abilities {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .ability-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+        }
+        .ability-name {
+            color: #aaa;
+        }
+        .ability-dots {
+            display: flex;
+            gap: 3px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2c3e50;
+        }
+        .dot.filled {
+            background: #f39c12;
+        }
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(22, 33, 62, 0.8);
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.dm {
+            align-self: flex-start;
+        }
+        .message.player {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f39c12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+        .message.player .message-avatar {
+            background: #3498db;
+        }
+        .message-content {
+            background: #0f3460;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+        .message.player .message-content {
+            background: #1a4d7a;
+        }
+        .message-role {
+            font-size: 0.75em;
+            color: #f39c12;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .message.player .message-role {
+            color: #3498db;
+        }
+        .input-area {
+            padding: 20px;
+            background: rgba(15, 52, 96, 0.9);
+            border-top: 1px solid #0f3460;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .input-container textarea {
+            flex: 1;
+            padding: 12px 16px;
+            background: #0f3460;
+            border: 2px solid #1a4d7a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            font-family: inherit;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+        }
+        .input-container textarea:focus {
+            outline: none;
+            border-color: #f39c12;
+        }
+        .input-container button {
+            padding: 12px 24px;
+            background: #f39c12;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .input-container button:hover:not(:disabled) {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+        }
+        .input-container button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #0f3460;
+            border-radius: 12px;
+            max-width: fit-content;
+        }
+        .typing-indicator.active {
+            display: flex;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f39c12;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        .actions-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .action-btn {
+            padding: 8px 16px;
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid #f39c12;
+            color: #f39c12;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: rgba(243, 156, 18, 0.3);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .empty-state h3 {
+            color: #f39c12;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <div class="run-title">{{ run.run_title or '冒险进行中' }}</div>
+                <div class="run-meta">
+                    <span>🌍 {{ run.world_name }}</span>
+                    <span>👤 {{ run.char_name }}</span>
+                    <span>📖 回合 {{ run.current_turn }}/{{ run.max_turns }}</span>
+                </div>
+            </div>
+            <span class="status-badge {{ run.status }}">
+                {% if run.status == 'active' %}
+                    ⚡ 进行中
+                {% elif run.status == 'completed' %}
+                    ✅ 已完成
+                {% else %}
+                    {{ run.status }}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <h3>📋 任务信息</h3>
+            <div class="info-item">
+                <div class="info-label">任务类型</div>
+                <div class="info-value">{{ run.run_type or '探索' }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">任务目标</div>
+                <div class="info-value">{{ run.mission_objective or '未知' }}</div>
+            </div>
+
+            <h3 style="margin-top: 30px;">👤 角色能力</h3>
+            <div class="abilities">
+                <div class="ability-bar">
+                    <span class="ability-name">⚔️ 战斗</span>
+                    <div class="ability-dots" data-ability="combat">
+                        <!-- 将由 JS 填充 -->
+                    </div>
+                </div>
+                <div class="ability-bar">
+                    <span class="ability-name">💬 社交</span>
+                    <div class="ability-dots" data-ability="social"></div>
+                </div>
+                <div class="ability-bar">
+                    <span class="ability-name">🥷 潜行</span>
+                    <div class="ability-dots" data-ability="stealth"></div>
+                </div>
+                <div class="ability-bar">
+                    <span class="ability-name">📚 知识</span>
+                    <div class="ability-dots" data-ability="knowledge"></div>
+                </div>
+                <div class="ability-bar">
+                    <span class="ability-name">🏕️ 生存</span>
+                    <div class="ability-dots" data-ability="survival"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                {% if run.current_turn == 0 %}
+                <div class="empty-state">
+                    <h3>🎭 冒险即将开始</h3>
+                    <p>在下方输入你的第一个行动，AI DM 将为你编织精彩的故事</p>
+                </div>
+                {% endif %}
+                <!-- 消息将由 JavaScript 动态加载 -->
+            </div>
+
+            <div class="input-area">
+                <div class="actions-bar">
+                    <button class="action-btn" onclick="quickAction('调查周围')">🔍 调查</button>
+                    <button class="action-btn" onclick="quickAction('与 NPC 交谈')">💬 交谈</button>
+                    <button class="action-btn" onclick="quickAction('小心前进')">🚶 前进</button>
+                    <button class="action-btn" onclick="quickAction('等待观察')">👀 观察</button>
+                </div>
+                <div class="input-container">
+                    <textarea id="action-input" placeholder="描述你的行动...（例如：我走向酒馆，询问老板最近的奇怪事件）"
+                              {% if run.status != 'active' %}disabled{% endif %}></textarea>
+                    <button id="send-btn" {% if run.status != 'active' %}disabled{% endif %}>
+                        发送
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const RUN_ID = "{{ run.id }}";
+        const RUN_STATUS = "{{ run.status }}";
+        const messagesContainer = document.getElementById('messages');
+        const actionInput = document.getElementById('action-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // 加载历史消息
+        async function loadMessages() {
+            try {
+                const response = await fetch(`/g/world_adventure/api/runs/${RUN_ID}/messages`);
+                const data = await response.json();
+
+                if (data.ok && data.messages.length > 0) {
+                    messagesContainer.innerHTML = '';
+                    data.messages.forEach(msg => {
+                        addMessage(msg.role, msg.content, false);
+                    });
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('加载消息失败:', error);
+            }
+        }
+
+        // 添加消息到界面
+        function addMessage(role, content, animate = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            if (!animate) messageDiv.style.animation = 'none';
+
+            const avatar = role === 'dm' ? '🎭' : '👤';
+            const roleName = role === 'dm' ? 'AI DM' : '你';
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div>
+                    <div class="message-role">${roleName}</div>
+                    <div class="message-content">${escapeHtml(content)}</div>
+                </div>
+            `;
+
+            // 移除空状态
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            messagesContainer.appendChild(messageDiv);
+            if (animate) scrollToBottom();
+        }
+
+        // 显示输入中指示器
+        function showTypingIndicator() {
+            let indicator = document.querySelector('.typing-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'typing-indicator';
+                indicator.innerHTML = `
+                    <span style="color: #f39c12;">AI DM 正在思考...</span>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                `;
+                messagesContainer.appendChild(indicator);
+            }
+            indicator.classList.add('active');
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.querySelector('.typing-indicator');
+            if (indicator) indicator.classList.remove('active');
+        }
+
+        // 发送行动
+        async function sendAction(actionText) {
+            if (!actionText.trim()) return;
+            if (RUN_STATUS !== 'active') {
+                alert('此 Run 已结束');
+                return;
+            }
+
+            // 禁用输入
+            actionInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // 显示玩家消息
+            addMessage('player', actionText);
+            actionInput.value = '';
+
+            // 显示 AI 思考中
+            showTypingIndicator();
+
+            try {
+                const response = await fetch(`/g/world_adventure/api/runs/${RUN_ID}/action`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: actionText })
+                });
+
+                const result = await response.json();
+                hideTypingIndicator();
+
+                if (result.ok) {
+                    // 显示 DM 响应
+                    addMessage('dm', result.dm_response);
+
+                    // 检查是否结束
+                    if (result.run_ended) {
+                        setTimeout(() => {
+                            if (confirm('冒险已结束！是否查看结算？')) {
+                                window.location.reload();
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    alert(result.error || '发送失败，请重试');
+                    actionInput.disabled = false;
+                    sendBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('发送失败:', error);
+                hideTypingIndicator();
+                alert('网络错误，请重试');
+                actionInput.disabled = false;
+                sendBtn.disabled = false;
+            }
+
+            // 重新启用输入（如果 Run 仍在进行）
+            if (RUN_STATUS === 'active') {
+                actionInput.disabled = false;
+                sendBtn.disabled = false;
+                actionInput.focus();
+            }
+        }
+
+        // 快速行动
+        function quickAction(text) {
+            actionInput.value = text;
+            actionInput.focus();
+        }
+
+        // 事件监听
+        sendBtn.addEventListener('click', () => {
+            sendAction(actionInput.value);
+        });
+
+        actionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAction(actionInput.value);
+            }
+        });
+
+        // 工具函数
+        function scrollToBottom() {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // 初始化能力值显示
+        const abilities = {
+            combat: {{ run.get('ability_combat', 5) }},
+            social: {{ run.get('ability_social', 5) }},
+            stealth: {{ run.get('ability_stealth', 5) }},
+            knowledge: {{ run.get('ability_knowledge', 5) }},
+            survival: {{ run.get('ability_survival', 5) }}
+        };
+
+        Object.keys(abilities).forEach(key => {
+            const container = document.querySelector(`[data-ability="${key}"]`);
+            if (container) {
+                const value = abilities[key];
+                for (let i = 1; i <= 10; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = `dot ${i <= value ? 'filled' : ''}`;
+                    container.appendChild(dot);
+                }
+            }
+        });
+
+        // 页面加载时加载历史消息
+        loadMessages();
+    </script>
+</body>
+</html>
