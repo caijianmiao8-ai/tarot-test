@@ -1,6 +1,6 @@
 """
-AI 世界冒险跑团游戏模块
-支持:世界生成 → 角色创建 → Run 游玩 → 结算
+AI 世界冒险跑团游戏模块 V2
+支持:共享持久世界 → 角色创建 → 任务冒险 → 骰子判定
 """
 from flask import Blueprint, render_template, request, jsonify, g, redirect, url_for
 import uuid
@@ -8,6 +8,7 @@ import json
 from datetime import datetime
 from database import DatabaseManager
 from .ai_service import AdventureAIService  # AI 服务统一接口
+from .game_engine import GameEngine  # V2 游戏引擎
 
 SLUG = "world_adventure"
 
@@ -122,25 +123,32 @@ def generate_dm_response(run, character, world, player_action):
 @bp.get("/")
 @bp.get("")
 def index():
-    """游戏主页:显示世界选择界面"""
+    """游戏主页:显示官方世界选择界面 (V2)"""
     user_id = _get_user_id()
 
     worlds = []
     characters = []
 
-    # 获取用户的世界列表和角色列表
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
-            if user_id:
-                # 查询世界
-                cur.execute("""
-                    SELECT * FROM adventure_worlds
-                    WHERE owner_user_id = %s AND is_archived = FALSE
-                    ORDER BY created_at DESC
-                """, (user_id,))
-                worlds = cur.fetchall()
+            # V2: 查询官方共享世界
+            cur.execute("""
+                SELECT w.*,
+                    COUNT(DISTINCT l.id) as location_count,
+                    COUNT(DISTINCT n.id) as npc_count,
+                    COUNT(DISTINCT q.id) as quest_count
+                FROM adventure_worlds w
+                LEFT JOIN world_locations l ON w.id = l.world_id
+                LEFT JOIN world_npcs n ON w.id = n.world_id
+                LEFT JOIN world_quests q ON w.id = q.world_id
+                WHERE w.is_official_world = TRUE
+                GROUP BY w.id
+                ORDER BY w.created_at DESC
+            """)
+            worlds = cur.fetchall()
 
-                # 查询角色
+            # 查询角色（只有登录用户才有角色）
+            if user_id:
                 cur.execute("""
                     SELECT * FROM adventure_characters
                     WHERE user_id = %s
@@ -358,7 +366,7 @@ def api_character_create():
 
 @bp.post("/api/runs/start")
 def api_run_start():
-    """开始一个新的 Run"""
+    """开始一个新的 Run (V2 - 使用游戏引擎)"""
     try:
         user_id = _get_user_id()
         data = request.get_json() or {}
@@ -368,6 +376,9 @@ def api_run_start():
 
         if not world_id or not character_id:
             return jsonify({"ok": False, "error": "请选择世界和角色"}), 400
+
+        # 初始化游戏引擎
+        engine = GameEngine()
 
         # 验证世界和角色存在
         with DatabaseManager.get_db() as conn:
@@ -382,7 +393,40 @@ def api_run_start():
                 if not character:
                     return jsonify({"ok": False, "error": "角色不存在"}), 400
 
-        # AI 生成任务
+                # 获取或创建玩家进度
+                progress = engine.state.get_or_create_player_progress(user_id, world_id)
+
+                # 获取初始位置（已发现的地点，或世界起始地点）
+                start_location_id = None
+                if progress.get('current_location_id'):
+                    start_location_id = progress['current_location_id']
+                else:
+                    # 查找世界的起始地点（已发现的安全地点）
+                    cur.execute("""
+                        SELECT id FROM world_locations
+                        WHERE world_id = %s AND is_discovered = TRUE
+                        ORDER BY danger_level ASC
+                        LIMIT 1
+                    """, (world_id,))
+                    start_loc = cur.fetchone()
+                    if start_loc:
+                        start_location_id = start_loc['id']
+                        # 设置为当前位置
+                        engine.state.update_current_location(user_id, world_id, start_location_id)
+
+                # 获取或分配主线任务
+                current_quest_id = None
+                cur.execute("""
+                    SELECT id FROM world_quests
+                    WHERE world_id = %s AND quest_type = 'main' AND is_active = TRUE
+                    ORDER BY difficulty ASC
+                    LIMIT 1
+                """, (world_id,))
+                quest = cur.fetchone()
+                if quest:
+                    current_quest_id = quest['id']
+
+        # 创建Run
         run_title = f"{character['char_name']}在{world['world_name']}的冒险"
         mission_objective = "探索这个未知的世界，发现隐藏的秘密"
 
@@ -393,8 +437,9 @@ def api_run_start():
                 cur.execute("""
                     INSERT INTO adventure_runs
                     (id, world_id, character_id, user_id, run_title,
-                     run_type, mission_objective, status, max_turns, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', 20, %s)
+                     run_type, mission_objective, status, max_turns, metadata,
+                     current_quest_id, current_location_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', 50, %s, %s, %s)
                     RETURNING *
                 """, (
                     run_id,
@@ -404,7 +449,9 @@ def api_run_start():
                     run_title,
                     'exploration',
                     mission_objective,
-                    '{}'
+                    '{}',
+                    current_quest_id,
+                    start_location_id
                 ))
                 run = cur.fetchone()
                 conn.commit()
@@ -427,7 +474,7 @@ def api_run_start():
 
 @bp.post("/api/runs/<run_id>/action")
 def api_run_action(run_id):
-    """玩家在 Run 中执行行动"""
+    """玩家在 Run 中执行行动 (V2 - 使用游戏引擎和骰子判定)"""
     try:
         user_id = _get_user_id()
         data = request.get_json() or {}
@@ -436,35 +483,109 @@ def api_run_action(run_id):
         if not action_text:
             return jsonify({"ok": False, "error": "行动不能为空"}), 400
 
+        # 初始化游戏引擎
+        engine = GameEngine()
+
         # 获取 Run、世界、角色信息
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT r.*, w.*, c.*
+                    SELECT
+                        r.id as run_id, r.current_turn, r.max_turns, r.status,
+                        r.run_title, r.mission_objective, r.current_quest_id,
+                        r.current_location_id,
+                        w.id as world_id, w.world_name, w.world_lore, w.world_description,
+                        w.stability, w.danger, w.mystery,
+                        c.id as character_id, c.char_name, c.char_class, c.background,
+                        c.ability_combat, c.ability_social, c.ability_stealth,
+                        c.ability_knowledge, c.ability_survival
                     FROM adventure_runs r
                     JOIN adventure_worlds w ON r.world_id = w.id
                     JOIN adventure_characters c ON r.character_id = c.id
                     WHERE r.id = %s
                 """, (run_id,))
-                full_data = cur.fetchone()
+                run_data = cur.fetchone()
 
-        if not full_data:
+        if not run_data:
             return jsonify({"ok": False, "error": "Run 不存在"}), 404
 
-        if full_data['status'] != 'active':
+        if run_data['status'] != 'active':
             return jsonify({"ok": False, "error": "Run 已结束"}), 400
 
-        # 保存玩家消息
-        current_turn = full_data['current_turn'] + 1
-        msg_id = str(uuid.uuid4())
+        # 获取玩家进度
+        progress = engine.state.get_or_create_player_progress(
+            user_id,
+            run_data['world_id']
+        )
 
+        # 获取对话历史
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT role, content FROM adventure_run_messages
+                    WHERE run_id = %s
+                    ORDER BY created_at ASC
+                """, (run_id,))
+                conversation_history = cur.fetchall()
+
+        # 使用游戏引擎处理行动（骰子判定等）
+        action_result = engine.process_player_action(
+            run_data,
+            run_data,  # character
+            run_data,  # world
+            action_text,
+            progress
+        )
+
+        # 获取完整的世界上下文
+        world_context = engine.get_world_context_for_ai(
+            run_data,
+            progress,
+            run_data
+        )
+
+        # 使用 V2 AI 服务生成 DM 响应
+        dm_response = AdventureAIService.generate_dm_response_v2(
+            world_context=world_context,
+            character=run_data,
+            player_action=action_text,
+            conversation_history=conversation_history,
+            action_result=action_result
+        )
+
+        # 如果 AI 返回 None，使用默认响应
+        if dm_response is None:
+            if action_result.get('narrative'):
+                dm_response = action_result['narrative']
+            else:
+                dm_response = f"(你执行了行动: {action_text[:50]}...)，周围的环境发生了一些变化..."
+
+        # 更新回合
+        current_turn = run_data['current_turn'] + 1
+
+        # 保存玩家消息
+        msg_id = str(uuid.uuid4())
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     INSERT INTO adventure_run_messages
-                    (id, run_id, role, content, turn_number, action_type, dice_rolls)
-                    VALUES (%s, %s, 'player', %s, %s, NULL, NULL)
-                """, (msg_id, run_id, action_text, current_turn))
+                    (id, run_id, role, content, turn_number, dice_result,
+                     ability_used, success_level)
+                    VALUES (%s, %s, 'player', %s, %s, %s, %s, %s)
+                """, (
+                    msg_id, run_id, action_text, current_turn,
+                    action_result.get('dice_result', {}).get('roll') if action_result.get('requires_check') else None,
+                    action_result.get('check_type'),
+                    action_result.get('dice_result', {}).get('level') if action_result.get('requires_check') else None
+                ))
+
+                # 保存 DM 消息
+                dm_msg_id = str(uuid.uuid4())
+                cur.execute("""
+                    INSERT INTO adventure_run_messages
+                    (id, run_id, role, content, turn_number)
+                    VALUES (%s, %s, 'dm', %s, %s)
+                """, (dm_msg_id, run_id, dm_response, current_turn))
 
                 # 更新 Run 的回合数
                 cur.execute("""
@@ -475,28 +596,29 @@ def api_run_action(run_id):
 
                 conn.commit()
 
-        # AI 生成 DM 响应
-        dm_response = generate_dm_response(full_data, full_data, full_data, action_text)
-
-        # 保存 DM 消息
-        dm_msg_id = str(uuid.uuid4())
-        with DatabaseManager.get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO adventure_run_messages
-                    (id, run_id, role, content, turn_number, action_type, dice_rolls)
-                    VALUES (%s, %s, 'dm', %s, %s, NULL, NULL)
-                """, (dm_msg_id, run_id, dm_response, current_turn))
-                conn.commit()
+        # 记录行动到日志
+        engine.state.log_player_action(
+            run_id=run_id,
+            user_id=user_id,
+            world_id=run_data['world_id'],
+            action_type=action_result.get('check_type', 'general'),
+            action_content=action_text,
+            location_id=run_data.get('current_location_id'),
+            dice_result=action_result.get('dice_result', {}).get('roll') if action_result.get('requires_check') else None,
+            success=action_result.get('success'),
+            outcome=dm_response
+        )
 
         # 检查是否达到回合上限
-        run_ended = current_turn >= full_data['max_turns']
+        run_ended = current_turn >= run_data['max_turns']
 
         return jsonify({
             "ok": True,
             "turn": current_turn,
             "dm_response": dm_response,
-            "run_ended": run_ended
+            "run_ended": run_ended,
+            "dice_result": action_result.get('dice_result') if action_result.get('requires_check') else None,
+            "narrative": action_result.get('narrative', '')
         })
 
     except Exception as e:
