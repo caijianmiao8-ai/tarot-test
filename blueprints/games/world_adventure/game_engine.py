@@ -374,18 +374,25 @@ class GridMovementSystem:
                 if any(kw in action_text for kw in keywords):
                     return target_grid_id
 
-            # 检查目标网格名称
+            # 检查目标网格名称（精确匹配）
             if target_name and target_name in action_text:
                 return target_grid_id
 
-            # 检查连接描述中的关键词
-            description = conn.get('description', '')
-            # 如果有移动意图，并且描述中的关键词匹配
+            # 模糊匹配：提取目标名称的关键词
             if has_move_intent and target_name:
-                # 简化匹配：例如 "商业街区" 匹配 "商业街"
-                for word in target_name:
-                    if len(word) > 1 and word in action_text:
-                        return target_grid_id
+                # 提取名称中的关键词（去掉"入口"等修饰词）
+                name_keywords = target_name.replace('入口', '').replace('内部', '').replace('广场', '').replace('街区', '').strip()
+
+                # 分词匹配：例如 "酒馆" 匹配 "酒馆入口"
+                if name_keywords and name_keywords in action_text:
+                    return target_grid_id
+
+                # 逐字匹配：例如 "商业街" 匹配 "商业街区"
+                for i in range(len(name_keywords)):
+                    for j in range(i+2, len(name_keywords)+1):
+                        keyword = name_keywords[i:j]
+                        if keyword in action_text:
+                            return target_grid_id
 
         return None
 
