@@ -363,10 +363,31 @@ class GridMovementSystem:
         move_keywords = ['前往', '走向', '去', '进入', '到达', '移动', '走进', '走到', '来到']
         has_move_intent = any(kw in action_text for kw in move_keywords)
 
+        # 特殊：离开当前位置的关键词
+        exit_keywords = ['出', '离开', '走出', '退出', '出去', '离去']
+        has_exit_intent = any(kw in action_text for kw in exit_keywords)
+
         for conn in connected:
             direction = conn.get('direction')
             target_grid_id = conn.get('grid_id')
             target_name = conn.get('target_name', '')
+
+            # 特殊处理：如果玩家说"出酒馆"、"离开"等，检测当前grid名称
+            if has_exit_intent:
+                # 检查玩家是否提到当前位置的名称（如"出酒馆"中的"酒馆"）
+                current_name = current_grid.get('grid_name', '')
+
+                # 提取当前名称的关键词（去掉"内部"、"入口"等）
+                current_keywords = current_name.replace('内部', '').replace('入口', '').replace('广场', '').replace('街区', '').strip()
+
+                # 如果玩家说"出XX"且XX匹配当前位置，则尝试找到"入口"或相反方向
+                if current_keywords and current_keywords in action_text:
+                    # 优先选择名称包含"入口"的连接
+                    if '入口' in target_name:
+                        return target_grid_id
+                    # 或者选择第一个连接（通常是出口）
+                    if direction == 'north' or direction == 'south':
+                        return target_grid_id
 
             # 检查方向关键词
             if direction in direction_keywords:
