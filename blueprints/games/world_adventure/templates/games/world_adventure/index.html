@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 世界冒险 - 跑团游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 {
+            text-align: center;
+            color: #f39c12;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #16213e;
+            border-radius: 8px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #f39c12;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #e67e22;
+        }
+        .world-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .world-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .world-card h3 {
+            margin: 0 0 10px 0;
+            color: #f39c12;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎲 AI 世界冒险</h1>
+    <p style="text-align: center; color: #888;">
+        单人跑团 · 持久世界 · AI 扮演 DM
+    </p>
+
+    <div class="section">
+        <h2>🌍 我的世界</h2>
+        {% if worlds %}
+            <div class="world-list">
+                {% for world in worlds %}
+                <div class="world-card">
+                    <h3>{{ world.world_name }}</h3>
+                    <p>{{ world.world_description[:100] }}...</p>
+                    <p style="font-size: 0.9em; color: #888;">
+                        冒险次数: {{ world.total_runs }} |
+                        稳定度: {{ world.stability }} |
+                        危险度: {{ world.danger }}
+                    </p>
+                    <a href="/g/world_adventure/worlds/{{ world.id }}" class="btn">
+                        进入世界
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>你还没有创建任何世界</p>
+            </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/g/world_adventure/worlds/create" class="btn">
+                ✨ 创建新世界
+            </a>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>👤 快速开始</h2>
+        <p>开始你的冒险之旅:</p>
+        <ol>
+            <li>创建一个世界(选择世界模板,AI 会生成世界背景)</li>
+            <li>创建一个角色(选择职业和能力)</li>
+            <li>开始 Run(AI 会根据世界和角色生成任务)</li>
+            <li>与 AI DM 对话,完成冒险!</li>
+        </ol>
+        <a href="/g/world_adventure/characters/create" class="btn">
+            👤 创建角色
+        </a>
+    </div>
+
+    <div class="section">
+        <h2>ℹ️ 关于游戏</h2>
+        <p>
+            这是一个 AI 驱动的单人跑团游戏。AI 扮演 DM(地下城主),
+            根据你的行动动态生成剧情。每个世界都是持久的,你的行动
+            会影响世界的状态,NPC 和势力也会随之变化。
+        </p>
+    </div>
+</body>
+</html>
