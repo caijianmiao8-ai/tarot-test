@@ -125,24 +125,33 @@ def index():
     """游戏主页:显示世界选择界面"""
     user_id = _get_user_id()
 
-    # 获取用户的世界列表
+    worlds = []
+    characters = []
+
+    # 获取用户的世界列表和角色列表
     with DatabaseManager.get_db() as conn:
         with conn.cursor() as cur:
             if user_id:
+                # 查询世界
                 cur.execute("""
                     SELECT * FROM adventure_worlds
                     WHERE owner_user_id = %s AND is_archived = FALSE
                     ORDER BY created_at DESC
                 """, (user_id,))
-            else:
-                # 游客模式:暂时不显示
-                cur.execute("SELECT * FROM adventure_worlds LIMIT 0")
+                worlds = cur.fetchall()
 
-            worlds = cur.fetchall()
+                # 查询角色
+                cur.execute("""
+                    SELECT * FROM adventure_characters
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                """, (user_id,))
+                characters = cur.fetchall()
 
     return render_template(
         f"games/{SLUG}/index.html",
-        worlds=worlds
+        worlds=worlds,
+        characters=characters
     )
 
 

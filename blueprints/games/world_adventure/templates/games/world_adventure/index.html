@@ -5,117 +5,365 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 世界冒险 - 跑团游戏</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
         }
         h1 {
             text-align: center;
             color: #f39c12;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
         }
         .section {
             margin: 30px 0;
-            padding: 20px;
+            padding: 25px;
             background: #16213e;
-            border-radius: 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #f39c12;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px 5px;
+        .section h2 {
+            color: #f39c12;
+            margin-bottom: 20px;
+            font-size: 1.8em;
         }
-        .btn:hover {
-            background: #e67e22;
-        }
-        .world-list {
+        .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
             margin-top: 15px;
         }
-        .world-card {
+        .card {
             background: #0f3460;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
         }
-        .world-card h3 {
+        .card:hover {
+            border-color: #f39c12;
+            transform: translateY(-2px);
+        }
+        .card.selected {
+            border-color: #f39c12;
+            background: #1a4d7a;
+        }
+        .card h3 {
             margin: 0 0 10px 0;
             color: #f39c12;
+        }
+        .card p {
+            font-size: 0.9em;
+            color: #ccc;
+            line-height: 1.5;
+        }
+        .card .meta {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #f39c12;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn:hover:not(:disabled) {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+        }
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #34495e;
+        }
+        .btn-secondary:hover {
+            background: #2c3e50;
         }
         .empty-state {
             text-align: center;
             padding: 40px;
             color: #888;
         }
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .selection-info {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .selection-info p {
+            margin: 5px 0;
+            color: #ccc;
+        }
+        .selection-info strong {
+            color: #f39c12;
+        }
+        .error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+        .ability-stats {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+        .ability-stat {
+            background: rgba(243, 156, 18, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #f39c12;
+        }
     </style>
 </head>
 <body>
-    <h1>🎲 AI 世界冒险</h1>
-    <p style="text-align: center; color: #888;">
-        单人跑团 · 持久世界 · AI 扮演 DM
-    </p>
+    <div class="container">
+        <h1>🎲 AI 世界冒险</h1>
+        <p class="subtitle">单人跑团 · 持久世界 · AI DM</p>
 
-    <div class="section">
-        <h2>🌍 我的世界</h2>
-        {% if worlds %}
-            <div class="world-list">
-                {% for world in worlds %}
-                <div class="world-card">
-                    <h3>{{ world.world_name }}</h3>
-                    <p>{{ world.world_description[:100] }}...</p>
-                    <p style="font-size: 0.9em; color: #888;">
-                        冒险次数: {{ world.total_runs }} |
-                        稳定度: {{ world.stability }} |
-                        危险度: {{ world.danger }}
-                    </p>
-                    <a href="/g/world_adventure/worlds/{{ world.id }}" class="btn">
-                        进入世界
-                    </a>
+        <div id="error-msg" class="error"></div>
+
+        <!-- 世界列表 -->
+        <div class="section">
+            <h2>🌍 选择世界</h2>
+            {% if worlds %}
+                <div class="grid" id="world-grid">
+                    {% for world in worlds %}
+                    <div class="card world-card" data-world-id="{{ world.id }}" data-world-name="{{ world.world_name }}">
+                        <h3>{{ world.world_name }}</h3>
+                        <p>{{ world.world_description[:100] }}{% if world.world_description|length > 100 %}...{% endif %}</p>
+                        <div class="meta">
+                            🎮 冒险次数: {{ world.total_runs }} |
+                            ⚖️ 稳定度: {{ world.stability }} |
+                            ⚔️ 危险度: {{ world.danger }} |
+                            🔮 神秘度: {{ world.mystery }}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <p>你还没有创建任何世界</p>
-            </div>
-        {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌍</div>
+                    <p>你还没有创建任何世界</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">点击下方按钮创建你的第一个冒险世界</p>
+                </div>
+            {% endif %}
 
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="/g/world_adventure/worlds/create" class="btn">
-                ✨ 创建新世界
-            </a>
+            <div class="actions">
+                <a href="/g/world_adventure/worlds/create" class="btn">
+                    ✨ 创建新世界
+                </a>
+            </div>
+        </div>
+
+        <!-- 角色列表 -->
+        <div class="section">
+            <h2>👤 选择角色</h2>
+            {% if characters %}
+                <div class="grid" id="character-grid">
+                    {% for char in characters %}
+                    <div class="card character-card" data-character-id="{{ char.id }}" data-character-name="{{ char.char_name }}">
+                        <h3>{{ char.char_name }}</h3>
+                        <p><strong>{{ char.char_class }}</strong></p>
+                        {% if char.background %}
+                        <p style="margin-top: 8px;">{{ char.background[:80] }}{% if char.background|length > 80 %}...{% endif %}</p>
+                        {% endif %}
+                        <div class="ability-stats">
+                            <span class="ability-stat">⚔️ {{ char.ability_combat }}</span>
+                            <span class="ability-stat">💬 {{ char.ability_social }}</span>
+                            <span class="ability-stat">🥷 {{ char.ability_stealth }}</span>
+                            <span class="ability-stat">📚 {{ char.ability_knowledge }}</span>
+                            <span class="ability-stat">🏕️ {{ char.ability_survival }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">👤</div>
+                    <p>你还没有创建任何角色</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">点击下方按钮创建你的第一个冒险角色</p>
+                </div>
+            {% endif %}
+
+            <div class="actions">
+                <a href="/g/world_adventure/characters/create" class="btn">
+                    👤 创建新角色
+                </a>
+            </div>
+        </div>
+
+        <!-- 开始冒险 -->
+        <div class="section">
+            <h2>🎮 开始冒险</h2>
+            <div class="selection-info">
+                <p><strong>已选世界：</strong><span id="selected-world-name">未选择</span></p>
+                <p><strong>已选角色：</strong><span id="selected-character-name">未选择</span></p>
+            </div>
+
+            <div class="actions">
+                <button id="start-btn" class="btn" disabled>
+                    🚀 开始冒险
+                </button>
+            </div>
+        </div>
+
+        <!-- 游戏说明 -->
+        <div class="section">
+            <h2>ℹ️ 游戏说明</h2>
+            <p style="line-height: 1.8;">
+                这是一个 AI 驱动的单人跑团游戏。AI 扮演 DM（地下城主），
+                根据你的行动动态生成剧情。每个世界都是持久的，你的行动
+                会影响世界的状态，NPC 和势力也会随之变化。
+            </p>
+            <br>
+            <p style="line-height: 1.8; color: #888;">
+                <strong style="color: #f39c12;">游戏流程：</strong><br>
+                1. 选择或创建一个世界（设定冒险背景）<br>
+                2. 选择或创建一个角色（确定你的身份）<br>
+                3. 开始冒险（AI DM 会引导你的旅程）<br>
+                4. 与 AI 对话，做出选择，完成任务！
+            </p>
         </div>
     </div>
 
-    <div class="section">
-        <h2>👤 快速开始</h2>
-        <p>开始你的冒险之旅:</p>
-        <ol>
-            <li>创建一个世界(选择世界模板,AI 会生成世界背景)</li>
-            <li>创建一个角色(选择职业和能力)</li>
-            <li>开始 Run(AI 会根据世界和角色生成任务)</li>
-            <li>与 AI DM 对话,完成冒险!</li>
-        </ol>
-        <a href="/g/world_adventure/characters/create" class="btn">
-            👤 创建角色
-        </a>
-    </div>
+    <script>
+        let selectedWorldId = null;
+        let selectedWorldName = null;
+        let selectedCharacterId = null;
+        let selectedCharacterName = null;
 
-    <div class="section">
-        <h2>ℹ️ 关于游戏</h2>
-        <p>
-            这是一个 AI 驱动的单人跑团游戏。AI 扮演 DM(地下城主),
-            根据你的行动动态生成剧情。每个世界都是持久的,你的行动
-            会影响世界的状态,NPC 和势力也会随之变化。
-        </p>
-    </div>
+        // 世界选择
+        const worldCards = document.querySelectorAll('.world-card');
+        worldCards.forEach(card => {
+            card.addEventListener('click', () => {
+                worldCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedWorldId = card.dataset.worldId;
+                selectedWorldName = card.dataset.worldName;
+                document.getElementById('selected-world-name').textContent = selectedWorldName;
+                updateStartButton();
+            });
+        });
+
+        // 角色选择
+        const characterCards = document.querySelectorAll('.character-card');
+        characterCards.forEach(card => {
+            card.addEventListener('click', () => {
+                characterCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedCharacterId = card.dataset.characterId;
+                selectedCharacterName = card.dataset.characterName;
+                document.getElementById('selected-character-name').textContent = selectedCharacterName;
+                updateStartButton();
+            });
+        });
+
+        // 更新开始按钮状态
+        function updateStartButton() {
+            const startBtn = document.getElementById('start-btn');
+            if (selectedWorldId && selectedCharacterId) {
+                startBtn.disabled = false;
+            } else {
+                startBtn.disabled = true;
+            }
+        }
+
+        // 开始冒险
+        const startBtn = document.getElementById('start-btn');
+        const errorMsg = document.getElementById('error-msg');
+
+        startBtn.addEventListener('click', async () => {
+            if (!selectedWorldId || !selectedCharacterId) {
+                showError('请先选择世界和角色');
+                return;
+            }
+
+            startBtn.disabled = true;
+            startBtn.textContent = '🔄 正在启动冒险...';
+            errorMsg.classList.remove('show');
+
+            try {
+                const response = await fetch('/g/world_adventure/api/runs/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        world_id: selectedWorldId,
+                        character_id: selectedCharacterId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    // 成功 - 跳转到游戏界面
+                    window.location.href = result.redirect;
+                } else {
+                    showError(result.error || '开始冒险失败，请重试');
+                    startBtn.disabled = false;
+                    startBtn.textContent = '🚀 开始冒险';
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                showError('网络错误，请检查连接后重试');
+                startBtn.disabled = false;
+                startBtn.textContent = '🚀 开始冒险';
+            }
+        });
+
+        function showError(message) {
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.classList.add('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>
