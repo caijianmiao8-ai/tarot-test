@@ -484,8 +484,8 @@
                 {% if current_quest.checkpoints %}
                 <div class="quest-progress">
                     {% for checkpoint in current_quest.checkpoints %}
-                    <div class="checkpoint {{ 'completed' if quest_progress and quest_progress.get(checkpoint.id) else 'pending' }}">
-                        <span class="checkpoint-icon">{{ '✅' if quest_progress and quest_progress.get(checkpoint.id) else '⭕' }}</span>
+                    <div class="checkpoint {{ 'completed' if quest_progress and checkpoint.id in quest_progress.get('checkpoints_completed', []) else 'pending' }}">
+                        <span class="checkpoint-icon">{{ '✅' if quest_progress and checkpoint.id in quest_progress.get('checkpoints_completed', []) else '⭕' }}</span>
                         <span>{{ checkpoint.description }}</span>
                     </div>
                     {% endfor %}

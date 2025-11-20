@@ -592,7 +592,7 @@ class CheckpointDetector:
     @staticmethod
     def check_checkpoint_completion(checkpoint, analysis, action_result, world_context, user_id, world_id):
         """
-        检测检查点是否完成
+        检测检查点是否完成（宽松版 - 容易触发）
 
         checkpoint: 检查点数据
         analysis: 行为分析结果
@@ -613,77 +613,51 @@ class CheckpointDetector:
         required_location_id = checkpoint.get('location', '')
         requires = checkpoint.get('requires', {})
 
-        # 1. 检查地点要求（使用ID匹配）
+        # 1. 如果有特殊要求（能力判定），必须通过
+        if requires:
+            required_ability = requires.get('ability')
+            required_dc = requires.get('dc')
+            if required_ability and required_dc:
+                if not action_result.get('success'):
+                    result['reason'] = f"判定失败（需要DC {required_dc}）"
+                    return result
+
+        # 2. 检查地点（如果有要求）
         location_ok = True
         if required_location_id:
             current_loc = world_context.get('current_location', {})
             current_loc_id = current_loc.get('id', '')
             location_ok = (current_loc_id == required_location_id)
-            if not location_ok:
-                result['reason'] = f"需要在{current_loc.get('location_name', '指定地点')}完成"
-                return result
 
-        # 2. 检查特殊要求（能力判定）
-        if requires:
-            required_ability = requires.get('ability')
-            required_dc = requires.get('dc')
-            if required_ability and required_dc:
-                # 需要通过特定能力检定
-                if not action_result.get('requires_check'):
-                    result['reason'] = f"需要{required_ability}判定"
-                    return result
-                if not action_result.get('success'):
-                    result['reason'] = f"判定失败（DC {required_dc}）"
-                    return result
-
-        # 3. 从description推断行动类型
-        action_ok = False
+        # 3. 宽松的行动类型匹配
         action_type = analysis.get('action_type', '')
+        action_ok = True  # 默认宽松
 
-        # 对话类检查点
-        if '对话' in description or '了解' in description or '汇报' in description or '询问' in description:
-            if action_type == 'dialogue':
-                action_ok = True
-            else:
-                result['reason'] = "需要与NPC对话"
-
-        # 前往类检查点
-        elif '前往' in description or '到达' in description:
-            if action_type in ['explore', 'investigate']:
-                action_ok = True
-            else:
-                result['reason'] = "需要前往指定地点"
-
-        # 搜寻/调查类检查点
-        elif '搜寻' in description or '调查' in description or '搜索' in description:
-            if action_type == 'investigate':
-                action_ok = True
-            else:
-                result['reason'] = "需要调查或搜寻"
-
-        # 追踪/战斗类检查点
+        # 只对明确的行动类型要求才检查
+        if '对话' in description or '了解' in description or '汇报' in description:
+            # 对话类检查点
+            if action_type != 'dialogue':
+                action_ok = False
+        elif '前往' in description:
+            # 前往类检查点 - 任何行动都算（宽松）
+            action_ok = True
+        elif '搜寻' in description or '调查' in description:
+            # 调查类检查点
+            if action_type not in ['investigate', 'dialogue', 'other']:
+                action_ok = False
         elif '追踪' in description or '夺回' in description or '击败' in description:
-            if action_type in ['combat', 'investigate']:
-                action_ok = True
-            else:
-                result['reason'] = "需要战斗或追踪"
+            # 战斗类检查点
+            if action_type not in ['combat', 'investigate']:
+                action_ok = False
 
-        # 其他类型：只要在对的地方就算完成
-        else:
-            action_ok = location_ok
-
-        # 4. 判断是否完成
+        # 4. 综合判断
         if location_ok and action_ok:
-            # 如果有能力要求，必须成功
-            if requires:
-                if action_result.get('success', False):
-                    result['completed'] = True
-                    result['reason'] = f"完成了检查点：{description}"
-                else:
-                    result['reason'] = "行动失败，检查点未完成"
+            result['completed'] = True
+            result['reason'] = f"完成了检查点：{description}"
+        else:
+            if not location_ok:
+                result['reason'] = f"需要前往指定地点"
             else:
-                # 没有特殊要求，直接完成
-                result['completed'] = True
-                result['reason'] = f"完成了检查点：{description}"
+                result['reason'] = f"行动类型不符合要求"
 
         return result
