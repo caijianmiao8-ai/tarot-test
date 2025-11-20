@@ -189,15 +189,35 @@ class WorldStateTracker:
 
     @staticmethod
     def update_current_location(user_id, world_id, location_id):
-        """更新玩家当前位置"""
+        """更新玩家当前位置（Phase 1: 同时设置起始网格）"""
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
-                # 更新当前位置
+                # Phase 1: 查找该地点的起始网格（如果有）
                 cur.execute("""
-                    UPDATE player_world_progress
-                    SET current_location_id = %s, updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = %s AND world_id = %s
-                """, (location_id, user_id, world_id))
+                    SELECT id FROM location_grids
+                    WHERE location_id = %s
+                    ORDER BY grid_position->>'x', grid_position->>'y'
+                    LIMIT 1
+                """, (location_id,))
+                start_grid = cur.fetchone()
+                start_grid_id = start_grid['id'] if start_grid else None
+
+                # 更新当前位置和网格
+                if start_grid_id:
+                    cur.execute("""
+                        UPDATE player_world_progress
+                        SET current_location_id = %s,
+                            current_grid_id = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = %s AND world_id = %s
+                    """, (location_id, start_grid_id, user_id, world_id))
+                else:
+                    # Fallback: 没有网格的地点，只更新位置
+                    cur.execute("""
+                        UPDATE player_world_progress
+                        SET current_location_id = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = %s AND world_id = %s
+                    """, (location_id, user_id, world_id))
 
                 # 添加到已发现列表
                 cur.execute("""
