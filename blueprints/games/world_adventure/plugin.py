@@ -212,241 +212,292 @@ def run_play_page(run_id):
 @bp.post("/api/worlds/create")
 def api_world_create():
     """创建世界（含 AI 生成）"""
-    user_id = _get_user_id()
-    data = request.get_json() or {}
+    try:
+        user_id = _get_user_id()
+        data = request.get_json() or {}
 
-    template_id = data.get("template_id")
-    world_name = data.get("world_name", "未命名世界")
-    user_prompt = data.get("user_prompt")
-    stability = data.get("stability", 50)
-    danger = data.get("danger", 50)
-    mystery = data.get("mystery", 50)
+        template_id = data.get("template_id")
+        world_name = data.get("world_name", "未命名世界")
+        user_prompt = data.get("user_prompt")
+        stability = data.get("stability", 50)
+        danger = data.get("danger", 50)
+        mystery = data.get("mystery", 50)
 
-    # 获取模板
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT * FROM adventure_world_templates WHERE id = %s
-            """, (template_id,))
-            template = cur.fetchone()
+        if not template_id:
+            return jsonify({"ok": False, "error": "请选择世界模板"}), 400
 
-    if not template:
-        return jsonify({"error": "模板不存在"}), 400
+        # 获取模板
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT * FROM adventure_world_templates WHERE id = %s
+                """, (template_id,))
+                template = cur.fetchone()
 
-    # AI 生成世界内容
-    world_data = generate_world_with_ai(
-        template, world_name, user_prompt,
-        stability, danger, mystery
-    )
+        if not template:
+            return jsonify({"ok": False, "error": "模板不存在"}), 400
 
-    # 生成世界 ID
-    world_id = str(uuid.uuid4())
+        # AI 生成世界内容
+        world_data = generate_world_with_ai(
+            template, world_name, user_prompt,
+            stability, danger, mystery
+        )
 
-    # 保存到数据库
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO adventure_worlds
-                (id, owner_user_id, template_id, world_name, world_description,
-                 world_lore, stability, danger, mystery,
-                 locations_data, factions_data, npcs_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING *
-            """, (
-                world_id,
-                user_id,
-                template_id,
-                world_name,
-                world_data.get('world_description', ''),
-                world_data.get('world_lore', ''),
-                stability,
-                danger,
-                mystery,
-                json.dumps(world_data.get('locations', [])),
-                json.dumps(world_data.get('factions', [])),
-                json.dumps(world_data.get('npcs', []))
-            ))
-            world = cur.fetchone()
-            conn.commit()
+        # 生成世界 ID
+        world_id = str(uuid.uuid4())
 
-    return jsonify({
-        "ok": True,
-        "world_id": world_id,
-        "world": dict(world) if world else None
-    })
+        # 保存到数据库
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO adventure_worlds
+                    (id, owner_user_id, template_id, world_name, world_description,
+                     world_lore, stability, danger, mystery,
+                     locations_data, factions_data, npcs_data)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING *
+                """, (
+                    world_id,
+                    user_id,
+                    template_id,
+                    world_name,
+                    world_data.get('world_description', ''),
+                    world_data.get('world_lore', ''),
+                    stability,
+                    danger,
+                    mystery,
+                    json.dumps(world_data.get('locations', [])),
+                    json.dumps(world_data.get('factions', [])),
+                    json.dumps(world_data.get('npcs', []))
+                ))
+                world = cur.fetchone()
+                conn.commit()
+
+        return jsonify({
+            "ok": True,
+            "world_id": world_id,
+            "world": dict(world) if world else None
+        })
+
+    except Exception as e:
+        print(f"创建世界失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": f"创建世界失败: {str(e)}"
+        }), 500
 
 
 @bp.post("/api/characters/create")
 def api_character_create():
     """创建角色"""
-    user_id = _get_user_id()
-    data = request.get_json() or {}
+    try:
+        user_id = _get_user_id()
+        data = request.get_json() or {}
 
-    char_id = str(uuid.uuid4())
+        # 验证必需字段
+        char_name = data.get('char_name', '').strip()
+        if not char_name:
+            return jsonify({"ok": False, "error": "请输入角色名称"}), 400
 
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO adventure_characters
-                (id, user_id, char_name, char_class, background, personality,
-                 appearance, ability_combat, ability_social, ability_stealth,
-                 ability_knowledge, ability_survival, equipment_data, relationships_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING *
-            """, (
-                char_id,
-                user_id,
-                data.get('char_name', '无名冒险者'),
-                data.get('char_class', '冒险者'),
-                data.get('background', ''),
-                data.get('personality', ''),
-                data.get('appearance', ''),
-                data.get('ability_combat', 5),
-                data.get('ability_social', 5),
-                data.get('ability_stealth', 5),
-                data.get('ability_knowledge', 5),
-                data.get('ability_survival', 5),
-                '{}',  # equipment_data
-                '{}'   # relationships_data
-            ))
-            character = cur.fetchone()
-            conn.commit()
+        char_id = str(uuid.uuid4())
 
-    return jsonify({
-        "ok": True,
-        "character_id": char_id,
-        "character": dict(character) if character else None
-    })
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO adventure_characters
+                    (id, user_id, char_name, char_class, background, personality,
+                     appearance, ability_combat, ability_social, ability_stealth,
+                     ability_knowledge, ability_survival, equipment_data, relationships_data)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING *
+                """, (
+                    char_id,
+                    user_id,
+                    char_name,
+                    data.get('char_class', '冒险者'),
+                    data.get('background', ''),
+                    data.get('personality', ''),
+                    data.get('appearance', ''),
+                    data.get('ability_combat', 5),
+                    data.get('ability_social', 5),
+                    data.get('ability_stealth', 5),
+                    data.get('ability_knowledge', 5),
+                    data.get('ability_survival', 5),
+                    '{}',  # equipment_data
+                    '{}'   # relationships_data
+                ))
+                character = cur.fetchone()
+                conn.commit()
+
+        return jsonify({
+            "ok": True,
+            "character_id": char_id,
+            "character": dict(character) if character else None
+        })
+
+    except Exception as e:
+        print(f"创建角色失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": f"创建角色失败: {str(e)}"
+        }), 500
 
 
 @bp.post("/api/runs/start")
 def api_run_start():
     """开始一个新的 Run"""
-    user_id = _get_user_id()
-    data = request.get_json() or {}
+    try:
+        user_id = _get_user_id()
+        data = request.get_json() or {}
 
-    world_id = data.get("world_id")
-    character_id = data.get("character_id")
+        world_id = data.get("world_id")
+        character_id = data.get("character_id")
 
-    # 验证世界和角色存在
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM adventure_worlds WHERE id = %s", (world_id,))
-            world = cur.fetchone()
-            if not world:
-                return jsonify({"error": "世界不存在"}), 400
+        if not world_id or not character_id:
+            return jsonify({"ok": False, "error": "请选择世界和角色"}), 400
 
-            cur.execute("SELECT * FROM adventure_characters WHERE id = %s", (character_id,))
-            character = cur.fetchone()
-            if not character:
-                return jsonify({"error": "角色不存在"}), 400
+        # 验证世界和角色存在
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM adventure_worlds WHERE id = %s", (world_id,))
+                world = cur.fetchone()
+                if not world:
+                    return jsonify({"ok": False, "error": "世界不存在"}), 400
 
-    # AI 生成任务
-    run_title = f"{character['char_name']}在{world['world_name']}的冒险"
-    mission_objective = "探索这个未知的世界，发现隐藏的秘密"
+                cur.execute("SELECT * FROM adventure_characters WHERE id = %s", (character_id,))
+                character = cur.fetchone()
+                if not character:
+                    return jsonify({"ok": False, "error": "角色不存在"}), 400
 
-    run_id = str(uuid.uuid4())
+        # AI 生成任务
+        run_title = f"{character['char_name']}在{world['world_name']}的冒险"
+        mission_objective = "探索这个未知的世界，发现隐藏的秘密"
 
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO adventure_runs
-                (id, world_id, character_id, user_id, run_title,
-                 run_type, mission_objective, status, max_turns, metadata)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', 20, %s)
-                RETURNING *
-            """, (
-                run_id,
-                world_id,
-                character_id,
-                user_id,
-                run_title,
-                'exploration',
-                mission_objective,
-                '{}'
-            ))
-            run = cur.fetchone()
-            conn.commit()
+        run_id = str(uuid.uuid4())
 
-    return jsonify({
-        "ok": True,
-        "run_id": run_id,
-        "redirect": url_for(f"{SLUG}.run_play_page", run_id=run_id)
-    })
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO adventure_runs
+                    (id, world_id, character_id, user_id, run_title,
+                     run_type, mission_objective, status, max_turns, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', 20, %s)
+                    RETURNING *
+                """, (
+                    run_id,
+                    world_id,
+                    character_id,
+                    user_id,
+                    run_title,
+                    'exploration',
+                    mission_objective,
+                    '{}'
+                ))
+                run = cur.fetchone()
+                conn.commit()
+
+        return jsonify({
+            "ok": True,
+            "run_id": run_id,
+            "redirect": url_for(f"{SLUG}.run_play_page", run_id=run_id)
+        })
+
+    except Exception as e:
+        print(f"开始游戏失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": f"开始游戏失败: {str(e)}"
+        }), 500
 
 
 @bp.post("/api/runs/<run_id>/action")
 def api_run_action(run_id):
     """玩家在 Run 中执行行动"""
-    user_id = _get_user_id()
-    data = request.get_json() or {}
+    try:
+        user_id = _get_user_id()
+        data = request.get_json() or {}
 
-    action_text = data.get("action", "").strip()
-    if not action_text:
-        return jsonify({"error": "行动不能为空"}), 400
+        action_text = data.get("action", "").strip()
+        if not action_text:
+            return jsonify({"ok": False, "error": "行动不能为空"}), 400
 
-    # 获取 Run、世界、角色信息
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT r.*, w.*, c.*
-                FROM adventure_runs r
-                JOIN adventure_worlds w ON r.world_id = w.id
-                JOIN adventure_characters c ON r.character_id = c.id
-                WHERE r.id = %s
-            """, (run_id,))
-            full_data = cur.fetchone()
+        # 获取 Run、世界、角色信息
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT r.*, w.*, c.*
+                    FROM adventure_runs r
+                    JOIN adventure_worlds w ON r.world_id = w.id
+                    JOIN adventure_characters c ON r.character_id = c.id
+                    WHERE r.id = %s
+                """, (run_id,))
+                full_data = cur.fetchone()
 
-    if not full_data:
-        return jsonify({"error": "Run 不存在"}), 404
+        if not full_data:
+            return jsonify({"ok": False, "error": "Run 不存在"}), 404
 
-    if full_data['status'] != 'active':
-        return jsonify({"error": "Run 已结束"}), 400
+        if full_data['status'] != 'active':
+            return jsonify({"ok": False, "error": "Run 已结束"}), 400
 
-    # 保存玩家消息
-    current_turn = full_data['current_turn'] + 1
-    msg_id = str(uuid.uuid4())
+        # 保存玩家消息
+        current_turn = full_data['current_turn'] + 1
+        msg_id = str(uuid.uuid4())
 
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO adventure_run_messages
-                (id, run_id, role, content, turn_number, action_type, dice_rolls)
-                VALUES (%s, %s, 'player', %s, %s, NULL, NULL)
-            """, (msg_id, run_id, action_text, current_turn))
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO adventure_run_messages
+                    (id, run_id, role, content, turn_number, action_type, dice_rolls)
+                    VALUES (%s, %s, 'player', %s, %s, NULL, NULL)
+                """, (msg_id, run_id, action_text, current_turn))
 
-            # 更新 Run 的回合数
-            cur.execute("""
-                UPDATE adventure_runs
-                SET current_turn = %s
-                WHERE id = %s
-            """, (current_turn, run_id))
+                # 更新 Run 的回合数
+                cur.execute("""
+                    UPDATE adventure_runs
+                    SET current_turn = %s
+                    WHERE id = %s
+                """, (current_turn, run_id))
 
-            conn.commit()
+                conn.commit()
 
-    # AI 生成 DM 响应
-    dm_response = generate_dm_response(full_data, full_data, full_data, action_text)
+        # AI 生成 DM 响应
+        dm_response = generate_dm_response(full_data, full_data, full_data, action_text)
 
-    # 保存 DM 消息
-    dm_msg_id = str(uuid.uuid4())
-    with DatabaseManager.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO adventure_run_messages
-                (id, run_id, role, content, turn_number, action_type, dice_rolls)
-                VALUES (%s, %s, 'dm', %s, %s, NULL, NULL)
-            """, (dm_msg_id, run_id, dm_response, current_turn))
-            conn.commit()
+        # 保存 DM 消息
+        dm_msg_id = str(uuid.uuid4())
+        with DatabaseManager.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO adventure_run_messages
+                    (id, run_id, role, content, turn_number, action_type, dice_rolls)
+                    VALUES (%s, %s, 'dm', %s, %s, NULL, NULL)
+                """, (dm_msg_id, run_id, dm_response, current_turn))
+                conn.commit()
 
-    # 检查是否达到回合上限
-    run_ended = current_turn >= full_data['max_turns']
+        # 检查是否达到回合上限
+        run_ended = current_turn >= full_data['max_turns']
 
-    return jsonify({
-        "ok": True,
-        "turn": current_turn,
-        "dm_response": dm_response,
-        "run_ended": run_ended
-    })
+        return jsonify({
+            "ok": True,
+            "turn": current_turn,
+            "dm_response": dm_response,
+            "run_ended": run_ended
+        })
+
+    except Exception as e:
+        print(f"执行行动失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": f"执行行动失败: {str(e)}"
+        }), 500
 
 
 @bp.get("/api/runs/<run_id>/messages")
