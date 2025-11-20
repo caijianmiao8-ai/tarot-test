@@ -51,5 +51,14 @@
     "tags": ["Remote Control", "Mobile", "Gaming"],
     "type": "link",
     "path": "/g/remotedesk/"
+  },
+  {
+    "slug": "world_adventure",
+    "title": "AI 世界冒险",
+    "subtitle": "单人跑团 · 持久世界 · AI DM",
+    "cover": "/static/images/covers/world_adventure.svg",
+    "tags": ["AI", "RPG", "冒险"],
+    "type": "link",
+    "path": "/g/world_adventure/"
   }
 ]

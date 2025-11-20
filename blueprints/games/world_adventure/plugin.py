@@ -78,10 +78,11 @@ def generate_world_with_ai(template, world_name, user_prompt=None, stability=50,
 }}"""
 
         # 调用 AI（使用 Dify）
-        response = DifyService.chat(
-            prompt=context,
+        response = DifyService.guided_chat(
+            user_message=context,
             conversation_id=None,
-            user_ref=f"world_gen_{uuid.uuid4().hex[:8]}"
+            user_ref=f"world_gen_{uuid.uuid4().hex[:8]}",
+            ai_personality='warm'
         )
 
         # 解析 AI 返回（尝试提取 JSON）
@@ -178,10 +179,11 @@ def generate_dm_response(run, character, world, player_action):
         # 调用 AI
         conversation_id = run.get('ai_conversation_id')
 
-        response = DifyService.chat(
-            prompt=prompt,
+        response = DifyService.guided_chat(
+            user_message=prompt,
             conversation_id=conversation_id,
-            user_ref=f"run_{run['id']}"
+            user_ref=f"run_{run['id']}",
+            ai_personality='warm'
         )
 
         dm_response = response.get('answer', '(AI 响应失败)')
