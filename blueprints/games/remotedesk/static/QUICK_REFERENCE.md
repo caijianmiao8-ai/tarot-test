@@ -1,4 +1,4 @@
-# Glintdesk 图标设计 - 快速参考
+# Glint 图标设计 - 快速参考
 
 ## 🎨 核心要求（5 分钟速览）
 
@@ -132,7 +132,7 @@ R/D 字母创意设计
 ┌───────────────────────────────┐
 │        [Logo 图标]             │  ← 居中放置 Logo
 │                               │
-│       Glintdesk              │  ← 产品名称（大号字体）
+│       Glint              │  ← 产品名称（大号字体）
 │  Control your PC from mobile  │  ← 副标题
 │                               │
 │    [设备连接示意图或渐变背景]    │  ← 视觉元素
@@ -195,7 +195,7 @@ R/D 字母创意设计
 ## 📦 交付打包结构
 
 ```
-Glintdesk-Assets.zip
+Glint-Assets.zip
 ├── logo/
 │   ├── logo.svg
 │   └── logo.png

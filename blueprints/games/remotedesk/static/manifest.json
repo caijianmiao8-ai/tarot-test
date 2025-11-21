@@ -1,6 +1,6 @@
 {
-  "name": "Glintdesk - Control Your PC from Mobile",
-  "short_name": "Glintdesk",
+  "name": "Glint - Control Your PC from Mobile",
+  "short_name": "Glint",
   "description": "Access your PC from anywhere using your mobile device. Perfect for work and gaming.",
   "start_url": "/g/remotedesk/",
   "display": "standalone",
@@ -62,7 +62,7 @@
     {
       "name": "Download",
       "short_name": "Download",
-      "description": "Download Glintdesk apps",
+      "description": "Download Glint apps",
       "url": "/g/remotedesk/#download",
       "icons": [
         {

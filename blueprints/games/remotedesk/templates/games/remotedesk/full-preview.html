@@ -1,0 +1,2849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+
+  <!-- Primary Meta Tags -->
+  <title>Glint - Control Your PC from Mobile. Free Forever.</title>
+  <meta name="title" content="Glint - Control Your PC from Mobile. Free Forever."/>
+  <meta name="description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
+  <meta name="keywords" content="remote desktop, mobile control, PC remote access, remote gaming, work from home, remote desktop app, free remote desktop"/>
+  <meta name="author" content="Glint"/>
+  <meta name="robots" content="index, follow"/>
+
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#0071e3"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://glintdesk.com/"/>
+  <meta property="og:title" content="Glint - Control Your PC from Mobile. Free Forever."/>
+  <meta property="og:description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
+  <meta property="og:image" content="https://glintdesk.com/static/images/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:site_name" content="Glint"/>
+  <meta property="og:locale" content="en_US"/>
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:url" content="https://glintdesk.com/"/>
+  <meta name="twitter:title" content="Glint - Control Your PC from Mobile. Free Forever."/>
+  <meta name="twitter:description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
+  <meta name="twitter:image" content="https://glintdesk.com/static/images/twitter-card.png"/>
+  <meta name="twitter:creator" content="@glintdesk"/>
+  <meta name="twitter:site" content="@glintdesk"/>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/games/remotedesk/favicon.ico"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/games/remotedesk/favicon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/games/remotedesk/favicon-16x16.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/games/remotedesk/apple-touch-icon.png"/>
+  <link rel="manifest" href="/static/games/remotedesk/manifest.json"/>
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://glintdesk.com/"/>
+
+  <!-- Performance Optimization -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://www.google-analytics.com"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Glint",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": ["Windows 10+", "macOS 11+", "iOS 14+", "Android 8+"],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "1250"
+    },
+    "description": "Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees.",
+    "screenshot": "https://glintdesk.com/static/images/screenshot.png",
+    "softwareVersion": "2.0.1-beta",
+    "datePublished": "2024-01-01",
+    "author": {
+      "@type": "Organization",
+      "name": "Glint",
+      "url": "https://glintdesk.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Glint",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://glintdesk.com/static/games/remotedesk/logo.png"
+      }
+    }
+  }
+  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --black: #000000;
+      --near-black: #1d1d1f;
+      --gray: #6e6e73;
+      --light-gray: #f5f5f7;
+      --white: #ffffff;
+      --blue: #0071e3;
+      --blue-hover: #0077ed;
+      --spacing-xs: 8px;
+      --spacing-sm: 16px;
+      --spacing-md: 24px;
+      --spacing-lg: 40px;
+      --spacing-xl: 64px;
+      --spacing-xxl: 96px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #fafbfc;
+      color: var(--near-black);
+      line-height: 1.47059;
+      font-weight: 400;
+      letter-spacing: -0.022em;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Dynamic background layers with parallax */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+    }
+
+    /* Multiple animation variations for each orb */
+    .bg-orb-1 {
+      width: 600px;
+      height: 600px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      top: -200px;
+      right: -100px;
+      animation: float-1 15s ease-in-out infinite, pulse-1 8s ease-in-out infinite, rotate-1 30s linear infinite;
+    }
+
+    .bg-orb-2 {
+      width: 500px;
+      height: 500px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      bottom: -200px;
+      left: -100px;
+      animation: float-2 18s ease-in-out infinite, pulse-2 10s ease-in-out infinite;
+      animation-delay: -6s, -3s;
+    }
+
+    .bg-orb-3 {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: float-3 12s ease-in-out infinite, breathe 6s ease-in-out infinite, drift 20s ease-in-out infinite;
+      animation-delay: -4s, -2s, 0s;
+    }
+
+    /* Float animations - position movement */
+    @keyframes float-1 {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-150px, 80px); }
+      50% { transform: translate(-80px, 180px); }
+      75% { transform: translate(100px, 100px); }
+    }
+
+    @keyframes float-2 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(120px, -120px); }
+      66% { transform: translate(-80px, -80px); }
+    }
+
+    @keyframes float-3 {
+      0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+      33% { transform: translate(-50%, -50%) translate(100px, -80px); }
+      66% { transform: translate(-50%, -50%) translate(-100px, 80px); }
+    }
+
+    /* Pulse animations - opacity variation */
+    @keyframes pulse-1 {
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.18; }
+    }
+
+    @keyframes pulse-2 {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.22; }
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.1; filter: blur(120px) hue-rotate(0deg); }
+      50% { opacity: 0.2; filter: blur(100px) hue-rotate(15deg); }
+    }
+
+    /* Rotation animation */
+    @keyframes rotate-1 {
+      from { filter: blur(120px) hue-rotate(0deg); }
+      to { filter: blur(120px) hue-rotate(360deg); }
+    }
+
+    /* Drift animation - subtle horizontal sway */
+    @keyframes drift {
+      0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+      50% { transform: translate(-50%, -50%) translateX(50px); }
+    }
+
+    /* Navigation - Premium Design */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      background: rgba(251, 251, 253, 0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 10px rgba(0, 0, 0, 0.06);
+      z-index: 1000;
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .navbar.scrolled {
+      background: rgba(251, 251, 253, 0.92);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-container {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 0 22px;
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--near-black);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--blue);
+      transition: width 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .logo:hover::after {
+      width: 100%;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0;
+      list-style: none;
+      align-items: center;
+      position: relative;
+    }
+
+    .nav-links > li {
+      position: relative;
+      padding: 0 16px;
+    }
+
+    .nav-links > li::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      transition: width 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      opacity: 0;
+    }
+
+    .nav-links > li:hover::after {
+      width: 100%;
+      opacity: 1;
+    }
+
+    .nav-links a {
+      color: var(--near-black);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 400;
+      opacity: 0.85;
+      transition: all 0.25s cubic-bezier(0.28, 0.11, 0.32, 1);
+      display: block;
+      padding: 12px 0;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links > li:hover > a {
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    /* Dropdown menu - redesigned */
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 200px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s cubic-bezier(0.28, 0.11, 0.32, 1),
+                  visibility 0.25s cubic-bezier(0.28, 0.11, 0.32, 1),
+                  transform 0.25s cubic-bezier(0.28, 0.11, 0.32, 1);
+      pointer-events: none;
+      box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06),
+                  0 10px 25px -5px rgba(0, 0, 0, 0.12),
+                  0 20px 40px -10px rgba(0, 0, 0, 0.08);
+      margin-top: 4px;
+      z-index: 1001;
+    }
+
+    .nav-links > li:hover .dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: all;
+      transition-delay: 0.1s;
+    }
+
+    /* Bridge the gap for continuous hover */
+    .nav-links > li::before {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      height: 12px;
+      background: transparent;
+    }
+
+    .dropdown li {
+      margin: 0;
+      list-style: none;
+    }
+
+    .dropdown a {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--near-black);
+      opacity: 0.9;
+      transition: all 0.2s cubic-bezier(0.28, 0.11, 0.32, 1);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dropdown a:hover {
+      background: linear-gradient(90deg, rgba(0, 113, 227, 0.08), rgba(0, 113, 227, 0.12));
+      opacity: 1;
+      transform: translateX(2px);
+    }
+
+    .dropdown a::before {
+      content: '→';
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: all 0.2s cubic-bezier(0.28, 0.11, 0.32, 1);
+      font-size: 10px;
+      color: var(--blue);
+    }
+
+    .dropdown a:hover::before {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Hero Section - Redesigned */
+    .hero {
+      margin-top: 44px;
+      padding: clamp(100px, 18vh, 200px) 20px clamp(120px, 20vh, 240px);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+      min-height: calc(100vh - 44px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-eyebrow {
+      font-size: 19px;
+      line-height: 1.21053;
+      font-weight: 600;
+      letter-spacing: 0.012em;
+      color: var(--blue);
+      margin-bottom: 16px;
+      text-transform: none;
+    }
+
+    .hero-title {
+      font-size: clamp(48px, 8vw, 96px);
+      line-height: 1.04167;
+      font-weight: 600;
+      letter-spacing: -0.009em;
+      color: var(--near-black);
+      margin: 0 auto 24px;
+      max-width: 980px;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(21px, 2.5vw, 28px);
+      line-height: 1.381;
+      font-weight: 400;
+      letter-spacing: 0.011em;
+      color: var(--gray);
+      margin: 0 auto 48px;
+      max-width: 640px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 56px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 32px;
+      font-size: 17px;
+      line-height: 1.17648;
+      font-weight: 500;
+      letter-spacing: -0.022em;
+      border-radius: 980px;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      border: none;
+      cursor: pointer;
+      min-width: 160px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(0, 113, 227, 0.95), rgba(0, 119, 237, 0.9));
+      backdrop-filter: blur(10px);
+      color: var(--white);
+      box-shadow: 0 4px 20px rgba(0, 113, 227, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-primary:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 8px 35px rgba(0, 113, 227, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(15px) saturate(140%);
+      -webkit-backdrop-filter: blur(15px) saturate(140%);
+      color: var(--blue);
+      border: 1px solid rgba(0, 113, 227, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-secondary::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(0, 113, 227, 0.1);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-secondary:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.7);
+      border-color: var(--blue);
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 6px 25px rgba(0, 113, 227, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .btn-secondary:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    /* Features Section - Redesigned */
+    .section {
+      padding: clamp(80px, 12vh, 140px) 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: clamp(64px, 10vh, 96px);
+    }
+
+    .section-title {
+      font-size: clamp(40px, 6vw, 64px);
+      line-height: 1.0625;
+      font-weight: 600;
+      letter-spacing: -0.007em;
+      color: var(--near-black);
+      margin-bottom: 20px;
+    }
+
+    .section-subtitle {
+      font-size: clamp(19px, 2vw, 24px);
+      line-height: 1.42105;
+      font-weight: 400;
+      letter-spacing: 0.012em;
+      color: var(--gray);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* Use Cases - Redesigned with Better Spacing */
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+      gap: clamp(24px, 4vw, 48px);
+      margin-bottom: clamp(64px, 10vh, 120px);
+    }
+
+    .use-case {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      border-radius: 24px;
+      padding: clamp(48px, 6vw, 72px) clamp(32px, 5vw, 56px);
+      text-align: center;
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        0 12px 40px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle gradient overlays */
+    .use-case:nth-child(1) {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(252, 252, 255, 0.68));
+    }
+
+    .use-case:nth-child(2) {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 252, 253, 0.68));
+    }
+
+    .use-case::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    }
+
+    .use-case::after {
+      content: '';
+      position: absolute;
+      bottom: -50%;
+      right: -50%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      transition: all 0.6s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .use-case:hover::after {
+      bottom: -30%;
+      right: -30%;
+    }
+
+    .use-case:hover {
+      transform: translateY(-8px);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.06),
+        0 24px 60px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+      background: rgba(255, 255, 255, 0.82);
+      border-color: rgba(255, 255, 255, 0.95);
+    }
+
+    .use-case-icon {
+      font-size: clamp(56px, 8vw, 80px);
+      margin-bottom: clamp(20px, 3vh, 32px);
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
+      display: inline-block;
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .use-case:hover .use-case-icon {
+      transform: translateY(-8px) scale(1.08);
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.12));
+      animation: icon-bounce 0.6s ease-in-out;
+    }
+
+    @keyframes icon-bounce {
+      0%, 100% { transform: translateY(-8px) scale(1.08); }
+      50% { transform: translateY(-12px) scale(1.12); }
+    }
+
+    .use-case-title {
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--near-black);
+      margin-bottom: 16px;
+    }
+
+    .use-case-description {
+      font-size: clamp(17px, 2vw, 21px);
+      line-height: 1.47619;
+      font-weight: 400;
+      letter-spacing: 0.011em;
+      color: var(--gray);
+    }
+
+    /* Features Grid - Refined Layout */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      gap: clamp(20px, 3vw, 32px);
+      margin-top: clamp(48px, 8vh, 72px);
+    }
+
+    .feature {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+      padding: clamp(36px, 5vw, 48px) clamp(24px, 4vw, 36px);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        0 8px 24px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Alternating accent colors for visual interest */
+    .feature:nth-child(1) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(102, 126, 234, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
+    .feature:nth-child(2) .feature-icon { background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(245, 87, 108, 0.1)); border-color: rgba(240, 147, 251, 0.3); }
+    .feature:nth-child(3) .feature-icon { background: linear-gradient(135deg, rgba(79, 172, 254, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(79, 172, 254, 0.3); }
+    .feature:nth-child(4) .feature-icon { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); border-color: rgba(102, 126, 234, 0.3); }
+    .feature:nth-child(5) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
+    .feature:nth-child(6) .feature-icon { background: linear-gradient(135deg, rgba(245, 87, 108, 0.15), rgba(240, 147, 251, 0.1)); border-color: rgba(245, 87, 108, 0.3); }
+
+    .feature::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .feature:hover::before {
+      opacity: 1;
+    }
+
+    .feature:hover {
+      transform: translateY(-6px) scale(1.01);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.05),
+        0 16px 48px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    }
+
+    .feature-icon {
+      width: clamp(52px, 7vw, 64px);
+      height: clamp(52px, 7vw, 64px);
+      margin: 0 auto clamp(20px, 3vh, 28px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(24px, 3.5vw, 32px);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      border: 1px solid;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .feature:hover .feature-icon {
+      transform: scale(1.08) rotate(3deg);
+    }
+
+    .feature-title {
+      font-size: clamp(19px, 2.5vw, 24px);
+      line-height: 1.2;
+      font-weight: 500;
+      letter-spacing: -0.003em;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .feature-description {
+      font-size: clamp(15px, 2vw, 17px);
+      line-height: 1.52941;
+      font-weight: 400;
+      letter-spacing: 0.011em;
+      color: var(--gray);
+    }
+
+    /* Divider - Refined */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+      margin: clamp(80px, 12vh, 120px) auto;
+      max-width: 1100px;
+    }
+
+    /* CTA Section - Elegant Dark */
+    .cta-section {
+      padding: clamp(96px, 14vh, 140px) 20px;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(29, 29, 31, 0.96), rgba(24, 24, 26, 0.94));
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      color: var(--white);
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .cta-section .section-title {
+      color: var(--white);
+      margin-bottom: 24px;
+      font-size: clamp(40px, 6vw, 56px);
+    }
+
+    .cta-section .section-subtitle {
+      color: rgba(255, 255, 255, 0.75);
+      margin-bottom: 48px;
+      font-size: clamp(19px, 2vw, 24px);
+    }
+
+    .cta-section .btn-primary {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      color: var(--near-black);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .cta-section .btn-primary:hover {
+      background: rgba(255, 255, 255, 1);
+      box-shadow: 0 8px 40px rgba(255, 255, 255, 0.3);
+    }
+
+    /* ========= Product Screenshots Section ========= */
+    .screenshots-section {
+      background: transparent;
+      position: relative;
+    }
+
+    .screenshots-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+      gap: clamp(48px, 8vw, 80px);
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .device-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      opacity: 0;
+      transform: translateX(0);
+      transition: none;
+    }
+
+    /* Animation states */
+    .device-preview.mobile-preview {
+      transform: translateX(-100px);
+    }
+
+    .device-preview.desktop-preview {
+      transform: translateX(100px);
+    }
+
+    .device-preview.animate-in {
+      animation: slideInDevice 1s cubic-bezier(0.28, 0.11, 0.32, 1) forwards;
+    }
+
+    @keyframes slideInDevice {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Phone Frame - Glass effect */
+    .phone-frame {
+      position: relative;
+      width: 280px;
+      height: 580px;
+      background: linear-gradient(145deg, rgba(45, 45, 47, 0.5), rgba(26, 26, 28, 0.6));
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border-radius: 42px;
+      padding: 12px;
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.12),
+        0 20px 60px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 2px 4px rgba(255, 255, 255, 0.05) inset;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 28px;
+      background: rgba(0, 0, 0, 0.95);
+      border-radius: 0 0 18px 18px;
+      z-index: 10;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(245, 245, 247, 0.95), rgba(245, 245, 247, 0.98));
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Desktop Frame - Lighter, more transparent */
+    .desktop-frame {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      background: linear-gradient(145deg, rgba(232, 232, 234, 0.3), rgba(209, 209, 214, 0.4));
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border-radius: 16px;
+      padding: 8px 8px 32px;
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      padding: 8px 0 16px 12px;
+    }
+
+    .control-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .control-btn.red { background: #ff5f57; }
+    .control-btn.yellow { background: #ffbd2e; }
+    .control-btn.green { background: #28c840; }
+
+    .desktop-screen {
+      width: 100%;
+      height: 380px;
+      background: linear-gradient(to bottom, rgba(245, 245, 247, 0.95), rgba(245, 245, 247, 0.98));
+      backdrop-filter: blur(20px);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Mock UI Styles */
+    .mock-ui {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      background: var(--light-gray);
+      font-size: 11px;
+    }
+
+    .mobile-ui .mock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+    }
+
+    .mobile-ui .mock-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    .mobile-ui .mock-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mobile-ui .mock-icon {
+      width: 28px;
+      height: 28px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+    }
+
+    .device-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .device-card .card-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0A84FF, #0051C7);
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .device-card .card-icon.offline {
+      background: #999;
+    }
+
+    .device-card .card-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .device-card .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--near-black);
+      margin-bottom: 3px;
+    }
+
+    .device-card .card-subtitle {
+      font-size: 10px;
+      color: var(--gray);
+      font-family: monospace;
+      margin-bottom: 6px;
+    }
+
+    .device-card .card-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 9px;
+    }
+
+    .device-card .status-badge {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .device-card .status-badge.offline {
+      background: rgba(0, 0, 0, 0.05);
+      color: #999;
+    }
+
+    .device-card .latency {
+      color: #10b981;
+      font-weight: 500;
+    }
+
+    .mock-tabbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(30px);
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tab-item .tab-icon {
+      width: 20px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+    }
+
+    .tab-item.active .tab-icon {
+      background: #0A84FF;
+    }
+
+    .tab-item .tab-label {
+      font-size: 9px;
+      color: var(--gray);
+    }
+
+    .tab-item.active .tab-label {
+      color: #0A84FF;
+    }
+
+    /* Desktop UI */
+    .desktop-ui {
+      display: flex;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 140px;
+      background: rgba(255, 255, 255, 0.5);
+      border-right: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 16px 12px;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #0A84FF, #0051C7);
+      border-radius: 6px;
+    }
+
+    .brand-text {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .menu-item {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--gray);
+    }
+
+    .menu-item.active {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--near-black);
+      font-weight: 500;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 16px;
+    }
+
+    .content-header {
+      margin-bottom: 16px;
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--near-black);
+      margin-bottom: 4px;
+    }
+
+    .header-subtitle {
+      font-size: 10px;
+      color: var(--gray);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    .preview-caption {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray);
+      text-align: center;
+    }
+
+    /* ========= How it Works Section ========= */
+    .how-it-works-section {
+      background: transparent;
+      position: relative;
+    }
+
+    .steps-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(24px, 4vw, 48px);
+      max-width: 1100px;
+      margin: 0 auto clamp(60px, 8vh, 80px);
+      flex-wrap: wrap;
+    }
+
+    .step-card {
+      flex: 1;
+      min-width: 220px;
+      max-width: 300px;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 28px;
+      padding: clamp(32px, 4vw, 40px);
+      text-align: center;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.03),
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      position: relative;
+    }
+
+    .step-card:hover {
+      transform: translateY(-8px);
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.06),
+        0 20px 60px rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .step-number {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      background: rgba(10, 132, 255, 0.08);
+      color: #0A84FF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(10, 132, 255, 0.15);
+    }
+
+    .step-icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+      display: block;
+      line-height: 1;
+    }
+
+    .step-title {
+      font-size: clamp(19px, 2.5vw, 24px);
+      line-height: 1.2;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .step-description {
+      font-size: clamp(15px, 2vw, 17px);
+      line-height: 1.47;
+      color: var(--gray);
+    }
+
+    .step-arrow {
+      font-size: 32px;
+      color: rgba(10, 132, 255, 0.25);
+      font-weight: 300;
+      flex-shrink: 0;
+    }
+
+    .tech-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(32px, 5vw, 48px) clamp(24px, 4vw, 40px);
+      max-width: 900px;
+      margin: 0 auto;
+      padding: clamp(40px, 6vh, 60px);
+      background: rgba(10, 132, 255, 0.02);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border-radius: 28px;
+      border: 1px solid rgba(10, 132, 255, 0.1);
+      box-shadow:
+        0 20px 60px rgba(10, 132, 255, 0.03),
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+    }
+
+    @media (max-width: 640px) {
+      .tech-specs {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    .spec-item {
+      text-align: center;
+    }
+
+    .spec-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .spec-label {
+      font-size: 13px;
+      color: var(--gray);
+      margin-bottom: 6px;
+    }
+
+    .spec-value {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    /* ========= FAQ Section ========= */
+    .faq-section {
+      background: transparent;
+      position: relative;
+    }
+
+    .faq-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .faq-item {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 24px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+    }
+
+    .faq-item:hover {
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.04),
+        0 10px 40px rgba(0, 0, 0, 0.02),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+    }
+
+    .faq-question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: clamp(20px, 3vw, 28px) clamp(24px, 4vw, 32px);
+      cursor: pointer;
+      list-style: none;
+      font-size: clamp(15px, 2.5vw, 19px);
+      line-height: 1.4;
+      font-weight: 600;
+      color: var(--near-black);
+      transition: color 0.3s;
+    }
+
+    .faq-question:hover {
+      color: #0A84FF;
+    }
+
+    .faq-question span {
+      flex: 1;
+      padding-right: 16px;
+    }
+
+    .faq-icon {
+      flex-shrink: 0;
+      transition: transform 0.3s;
+    }
+
+    details[open] .faq-icon {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 clamp(24px, 4vw, 32px) clamp(24px, 3vw, 32px);
+      font-size: clamp(14px, 2vw, 17px);
+      line-height: 1.6;
+      color: var(--gray);
+    }
+
+    .faq-answer a {
+      color: #0A84FF;
+      text-decoration: none;
+    }
+
+    .faq-answer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ========= Download Grid ========= */
+    .download-grid {
+      max-width: 900px;
+      margin: 0 auto clamp(40px, 6vh, 60px);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+      gap: clamp(32px, 5vw, 48px);
+    }
+
+    .download-category {
+      text-align: center;
+    }
+
+    .download-category-title {
+      font-size: 19px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 24px;
+    }
+
+    .download-buttons {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      margin-bottom: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .download-buttons.desktop {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .store-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      color: var(--white);
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      flex: 1;
+      min-width: 180px;
+      max-width: 220px;
+      justify-content: center;
+    }
+
+    .store-badge:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-2px);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    }
+
+    .store-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .store-text {
+      text-align: left;
+    }
+
+    .store-subtitle {
+      font-size: 11px;
+      opacity: 0.8;
+      line-height: 1.2;
+    }
+
+    .store-title {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .download-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      color: var(--white);
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      flex: 1;
+      min-width: 160px;
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    }
+
+    .download-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-2px);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    }
+
+    .download-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .download-text {
+      text-align: left;
+      flex: 1;
+    }
+
+    .download-platform {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .download-version {
+      font-size: 11px;
+      opacity: 0.7;
+      line-height: 1.2;
+    }
+
+    .download-requirements {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      font-style: italic;
+    }
+
+    .beta-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    }
+
+    .beta-icon {
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    /* Footer - Refined */
+    .footer {
+      background: rgba(248, 248, 250, 0.4);
+      backdrop-filter: blur(40px) saturate(150%);
+      -webkit-backdrop-filter: blur(40px) saturate(150%);
+      padding: clamp(60px, 8vh, 80px) 20px clamp(32px, 5vh, 40px);
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.02);
+    }
+
+    .footer-brand-section {
+      max-width: 1100px;
+      margin: 0 auto clamp(56px, 8vh, 72px);
+      text-align: center;
+    }
+
+    .footer-brand {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .footer-logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .footer-tagline {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--gray);
+      margin-bottom: 24px;
+    }
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      color: var(--gray);
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    .social-link:hover {
+      background: rgba(255, 255, 255, 0.6);
+      border-color: rgba(0, 0, 0, 0.08);
+      color: var(--near-black);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .social-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+      gap: clamp(32px, 5vw, 56px);
+      margin-bottom: clamp(48px, 6vh, 64px);
+    }
+
+    .footer-section h3 {
+      font-size: 13px;
+      line-height: 1.38462;
+      font-weight: 600;
+      letter-spacing: -0.008em;
+      color: var(--near-black);
+      margin-bottom: 20px;
+    }
+
+    .footer-section ul {
+      list-style: none;
+    }
+
+    .footer-section li {
+      margin-bottom: 12px;
+    }
+
+    .footer-section a {
+      font-size: 13px;
+      line-height: 1.46154;
+      font-weight: 400;
+      letter-spacing: -0.008em;
+      color: var(--gray);
+      text-decoration: none;
+      transition: color 0.25s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .footer-section a:hover {
+      color: var(--near-black);
+    }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-legal {
+      font-size: 13px;
+      line-height: 1.38462;
+      font-weight: 400;
+      letter-spacing: -0.008em;
+      color: var(--gray);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-legal-links {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-legal-links a,
+    .footer-legal a {
+      color: var(--gray);
+      text-decoration: none;
+      transition: color 0.25s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .footer-legal-links a:hover,
+    .footer-legal a:hover {
+      color: var(--near-black);
+    }
+
+    .footer-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--gray);
+      flex-wrap: wrap;
+    }
+
+    .footer-version {
+      color: var(--gray);
+      font-weight: 500;
+    }
+
+    .footer-separator {
+      color: rgba(0, 0, 0, 0.2);
+    }
+
+    .back-link {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--blue);
+      text-decoration: none;
+      transition: opacity 0.25s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .back-link:hover {
+      opacity: 0.8;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1068px) {
+      .hero-title {
+        font-size: 64px;
+      }
+
+      .hero-subtitle {
+        font-size: 24px;
+      }
+
+      .section-title {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 734px) {
+      .nav-links {
+        display: none;
+      }
+
+      .dropdown {
+        display: none;
+      }
+
+      .hero {
+        padding: 80px 22px 60px;
+      }
+
+      .hero-title {
+        font-size: 40px;
+      }
+
+      .hero-subtitle {
+        font-size: 19px;
+      }
+
+      .section {
+        padding: 60px 22px;
+      }
+
+      .section-header {
+        margin-bottom: 50px;
+      }
+
+      .section-title {
+        font-size: 32px;
+      }
+
+      .section-subtitle {
+        font-size: 17px;
+      }
+
+      .use-cases {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .use-case {
+        padding: 40px 30px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+  </style>
+
+  <!-- Google Analytics (Replace GA_MEASUREMENT_ID with your actual ID) -->
+  <!--
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID');
+  </script>
+  -->
+
+  <!-- Microsoft Clarity (Optional - Replace CLARITY_ID with your actual ID) -->
+  <!--
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "CLARITY_ID");
+  </script>
+  -->
+
+  <!-- Hotjar (Optional - Replace HOTJAR_ID with your actual ID) -->
+  <!--
+  <script>
+    (function(h,o,t,j,a,r){
+        h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+        h._hjSettings={hjid:HOTJAR_ID,hjsv:6};
+        a=o.getElementsByTagName('head')[0];
+        r=o.createElement('script');r.async=1;
+        r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+        a.appendChild(r);
+    })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+  </script>
+  -->
+</head>
+<body>
+  <!-- Dynamic Background Layer -->
+  <div class="bg-layer">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
+      <a href="#" class="logo" aria-label="Glint home">Glint</a>
+      <ul class="nav-links" role="menubar">
+        <li role="none">
+          <a href="#features" role="menuitem" aria-haspopup="true" aria-expanded="false">Features</a>
+          <ul class="dropdown" role="menu" aria-label="Features menu">
+            <li role="none"><a href="#features" role="menuitem">All Features</a></li>
+            <li role="none"><a href="#features" role="menuitem">Mobile Control</a></li>
+            <li role="none"><a href="#features" role="menuitem">Low Latency</a></li>
+            <li role="none"><a href="#features" role="menuitem">Security</a></li>
+          </ul>
+        </li>
+        <li role="none">
+          <a href="#download" role="menuitem" aria-haspopup="true" aria-expanded="false">Download</a>
+          <ul class="dropdown" role="menu" aria-label="Download menu">
+            <li role="none"><a href="#download" role="menuitem">iOS App</a></li>
+            <li role="none"><a href="#download" role="menuitem">Android App</a></li>
+            <li role="none"><a href="#download" role="menuitem">Windows Client</a></li>
+            <li role="none"><a href="#download" role="menuitem">macOS Client</a></li>
+          </ul>
+        </li>
+        <li role="none">
+          <a href="#support" role="menuitem" aria-haspopup="true" aria-expanded="false">Support</a>
+          <ul class="dropdown" role="menu" aria-label="Support menu">
+            <li role="none"><a href="#support" role="menuitem">Documentation</a></li>
+            <li role="none"><a href="#faq" role="menuitem">FAQ</a></li>
+            <li role="none"><a href="#support" role="menuitem">Community</a></li>
+            <li role="none"><a href="#support" role="menuitem">Contact</a></li>
+          </ul>
+        </li>
+        <li role="none"><a href="{{ url_for('index') }}" role="menuitem">Back to Lab</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-eyebrow fade-in">Coming Soon - Phase 1</div>
+    <h1 class="hero-title fade-in delay-1">Control your PC<br/>from your phone.</h1>
+    <p class="hero-subtitle fade-in delay-2">Work from anywhere. Game on the go. Access your desktop with just a tap.</p>
+    <div class="cta-buttons fade-in delay-3">
+      <a href="#download" class="btn btn-primary">Download Beta</a>
+      <a href="#features" class="btn btn-secondary">Learn More</a>
+    </div>
+  </section>
+
+  <!-- Product Screenshots Section -->
+  <section class="section screenshots-section">
+    <div class="section-header">
+      <div class="hero-eyebrow">See it in action</div>
+      <h2 class="section-title">Beautiful on every device.</h2>
+      <p class="section-subtitle">Native apps designed with Apple's precision.<br/>Premium experience from mobile to desktop.</p>
+    </div>
+
+    <div class="screenshots-container">
+      <!-- Mobile Preview -->
+      <div class="device-preview mobile-preview">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <!-- Simulated Mobile UI -->
+            <div class="mock-ui mobile-ui">
+              <div class="mock-header">
+                <div class="mock-title">My Devices</div>
+                <div class="mock-controls">
+                  <div class="mock-icon"></div>
+                  <div class="mock-icon"></div>
+                </div>
+              </div>
+
+              <div class="device-card online">
+                <div class="card-icon"></div>
+                <div class="card-content">
+                  <div class="card-title">Work PC</div>
+                  <div class="card-subtitle">192.168.1.100</div>
+                  <div class="card-meta">
+                    <span class="status-badge">Online</span>
+                    <span class="latency">5ms</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="device-card">
+                <div class="card-icon offline"></div>
+                <div class="card-content">
+                  <div class="card-title">MacBook Pro</div>
+                  <div class="card-subtitle">192.168.1.105</div>
+                  <div class="card-meta">
+                    <span class="status-badge offline">Offline</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mock-tabbar">
+                <div class="tab-item active">
+                  <div class="tab-icon"></div>
+                  <div class="tab-label">Devices</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon"></div>
+                  <div class="tab-label">Profile</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="preview-caption">iOS & Android Apps</p>
+      </div>
+
+      <!-- Desktop Preview -->
+      <div class="device-preview desktop-preview">
+        <div class="desktop-frame">
+          <div class="window-controls">
+            <span class="control-btn red"></span>
+            <span class="control-btn yellow"></span>
+            <span class="control-btn green"></span>
+          </div>
+          <div class="desktop-screen">
+            <!-- Simulated Desktop UI -->
+            <div class="mock-ui desktop-ui">
+              <div class="sidebar">
+                <div class="sidebar-brand">
+                  <div class="brand-icon"></div>
+                  <div class="brand-text">Glint</div>
+                </div>
+                <div class="sidebar-menu">
+                  <div class="menu-item active">Home</div>
+                  <div class="menu-item">Devices</div>
+                  <div class="menu-item">Settings</div>
+                </div>
+              </div>
+              <div class="main-content">
+                <div class="content-header">
+                  <div class="header-title">Welcome back</div>
+                  <div class="header-subtitle">This machine is ready for remote control</div>
+                </div>
+                <div class="stats-grid">
+                  <div class="stat-card">
+                    <div class="stat-label">Online Devices</div>
+                    <div class="stat-value">3</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Network</div>
+                    <div class="stat-value">5ms</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="preview-caption">Windows & macOS Clients</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases Section -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <h2 class="section-title">Built for work.<br/>Perfect for gaming.</h2>
+      <p class="section-subtitle">Whether you're accessing files from home or playing PC games on your phone, Glint delivers seamless performance.</p>
+    </div>
+
+    <div class="use-cases">
+      <div class="use-case">
+        <div class="use-case-icon">💼</div>
+        <h3 class="use-case-title">For Work</h3>
+        <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
+      </div>
+
+      <div class="use-case">
+        <div class="use-case-icon">🎮</div>
+        <h3 class="use-case-title">For Gaming</h3>
+        <p class="use-case-description">Stream your favorite PC games to your phone. Low latency, high performance, wherever you are.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Simple. Secure. Free.</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <h3 class="feature-title">Mobile First</h3>
+        <p class="feature-description">Designed for iOS and Android. Control your PC with intuitive touch gestures.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Ultra Low Latency</h3>
+        <p class="feature-description">Advanced streaming technology ensures responsive, real-time control.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">End-to-End Encrypted</h3>
+        <p class="feature-description">Bank-level security protects your connection and data at all times.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3 class="feature-title">Anywhere Access</h3>
+        <p class="feature-description">Connect from anywhere in the world. No VPN required.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">One-Tap Setup</h3>
+        <p class="feature-description">No complex configuration. Just install and connect.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">💰</div>
+        <h3 class="feature-title">Always Free</h3>
+        <p class="feature-description">No subscriptions. No hidden fees. Free forever.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works Section -->
+  <section class="section how-it-works-section">
+    <div class="section-header">
+      <div class="hero-eyebrow">Three simple steps</div>
+      <h2 class="section-title">Get started in minutes.</h2>
+      <p class="section-subtitle">No complex setup. No technical knowledge required.<br/>Just download, pair, and control.</p>
+    </div>
+
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <div class="step-icon">📱</div>
+        <h3 class="step-title">Download Apps</h3>
+        <p class="step-description">Install Glint on your phone and computer. Available for iOS, Android, Windows, and macOS.</p>
+      </div>
+
+      <div class="step-arrow">→</div>
+
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <div class="step-icon">🔗</div>
+        <h3 class="step-title">Sign In & Pair</h3>
+        <p class="step-description">Log in with the same account on both devices. They'll automatically discover each other—no manual pairing needed.</p>
+      </div>
+
+      <div class="step-arrow">→</div>
+
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <div class="step-icon">✨</div>
+        <h3 class="step-title">Start Controlling</h3>
+        <p class="step-description">Tap any online device to connect instantly. Control your PC from anywhere with ultra-low latency.</p>
+      </div>
+    </div>
+
+    <div class="tech-specs">
+      <div class="spec-item">
+        <div class="spec-icon">⚡</div>
+        <div class="spec-label">Typical Latency</div>
+        <div class="spec-value">5-15ms (LAN)</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-icon">🎯</div>
+        <div class="spec-label">Connection Modes</div>
+        <div class="spec-value">LAN / P2P / Relay</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-icon">🔒</div>
+        <div class="spec-label">Encryption</div>
+        <div class="spec-value">AES-256</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-icon">📊</div>
+        <div class="spec-label">Max Resolution</div>
+        <div class="spec-value">4K @ 60fps</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section faq-section" id="faq">
+    <div class="section-header">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <p class="section-subtitle">Everything you need to know about Glint.</p>
+    </div>
+
+    <div class="faq-container">
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>How do I connect my phone to my PC?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          Simply sign in with the same account on both your phone and PC. Your devices will automatically appear in each other's device list. Tap any online device to connect instantly—no IP addresses or manual configuration needed.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Do I need to be on the same WiFi network?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          No! While same-network (LAN) connections offer the lowest latency (5-15ms), Glint also supports P2P and relay modes for remote access from anywhere in the world. The app automatically chooses the best connection method.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Is it really free forever?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          Yes. Glint Phase 1 (mobile-to-PC control) is completely free with no subscriptions, time limits, or hidden fees. We're building this for the community, and core features will always remain free.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Is my connection secure?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          Absolutely. All connections use end-to-end AES-256 encryption. Your streaming data never passes through our servers unencrypted, and we don't store any session recordings. Your privacy is our priority.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>What are the system requirements?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          <strong>Mobile:</strong> iOS 14+ or Android 8+<br/>
+          <strong>Desktop:</strong> Windows 10/11, macOS 11+ (Big Sur or later)<br/>
+          <strong>Network:</strong> Minimum 5 Mbps upload on host PC for smooth streaming
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Can I use it for gaming?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          Yes! Glint is optimized for low-latency gaming. On LAN connections, you can expect 5-15ms latency—perfect for strategy games, RPGs, and even some action games. We support virtual gamepad controls and keyboard mapping.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>How is this different from TeamViewer or AnyDesk?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          Glint is designed specifically for mobile-to-PC control with gaming and productivity in mind. We offer lower latency through intelligent P2P connections, a mobile-first touch interface, and it's 100% free with no commercial-use restrictions.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>What if I need help?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </summary>
+        <div class="faq-answer">
+          We have comprehensive documentation, an active Discord community, and email support at <a href="mailto:support@glintdesk.com">support@glintdesk.com</a>. Check our GitHub issues page for known bugs and feature requests.
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CTA Section -->
+  <section class="cta-section" id="download">
+    <h2 class="section-title">Ready to get started?</h2>
+    <p class="section-subtitle">Join the beta and be among the first to experience<br/>mobile-to-PC remote control done right.</p>
+
+    <div class="download-grid">
+      <!-- Mobile Apps -->
+      <div class="download-category">
+        <h3 class="download-category-title">Mobile Apps</h3>
+        <div class="download-buttons">
+          <a href="#" class="store-badge apple">
+            <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            <div class="store-text">
+              <div class="store-subtitle">Download on the</div>
+              <div class="store-title">App Store</div>
+            </div>
+          </a>
+
+          <a href="#" class="store-badge google">
+            <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+            </svg>
+            <div class="store-text">
+              <div class="store-subtitle">Get it on</div>
+              <div class="store-title">Google Play</div>
+            </div>
+          </a>
+        </div>
+        <p class="download-requirements">Requires iOS 14+ or Android 8+</p>
+      </div>
+
+      <!-- Desktop Apps -->
+      <div class="download-category">
+        <h3 class="download-category-title">Desktop Clients</h3>
+        <div class="download-buttons desktop">
+          <a href="#" class="download-btn">
+            <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/>
+              <line x1="20" y1="14" x2="23" y2="14"/>
+              <line x1="1" y1="9" x2="4" y2="9"/>
+              <line x1="1" y1="14" x2="4" y2="14"/>
+            </svg>
+            <div class="download-text">
+              <div class="download-platform">Windows</div>
+              <div class="download-version">v2.0.1 • 45 MB</div>
+            </div>
+          </a>
+
+          <a href="#" class="download-btn">
+            <svg class="download-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            <div class="download-text">
+              <div class="download-platform">macOS</div>
+              <div class="download-version">v2.0.1 • 52 MB</div>
+            </div>
+          </a>
+        </div>
+        <p class="download-requirements">Windows 10+ or macOS 11+</p>
+      </div>
+    </div>
+
+    <div class="beta-notice">
+      <svg class="beta-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="10" cy="10" r="8"/>
+        <line x1="10" y1="6" x2="10" y2="10"/>
+        <circle cx="10" cy="14" r="0.5" fill="currentColor"/>
+      </svg>
+      <span>Currently in Beta • Phase 1 focuses on mobile-to-PC control</span>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer" id="support">
+    <div class="footer-brand-section">
+      <div class="footer-brand">
+        <div class="footer-logo">Glint</div>
+        <p class="footer-tagline">Control your PC from your phone.<br/>Anywhere. Anytime.</p>
+
+        <!-- Social Links -->
+        <div class="social-links">
+          <a href="#" class="social-link" title="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-link" title="Discord">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-link" title="Twitter/X">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-link" title="Reddit">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Product</h3>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#download">Download</a></li>
+          <li><a href="#">System Requirements</a></li>
+          <li><a href="#">Roadmap</a></li>
+          <li><a href="#">Release Notes</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h3>Resources</h3>
+        <ul>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#">Community Forum</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="#">API Reference</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h3>Support</h3>
+        <ul>
+          <li><a href="mailto:support@glintdesk.com">Email Support</a></li>
+          <li><a href="#">Discord Community</a></li>
+          <li><a href="#">Report a Bug</a></li>
+          <li><a href="#">Feature Request</a></li>
+          <li><a href="#">Status Page</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h3>Legal</h3>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+          <li><a href="#">GDPR Compliance</a></li>
+          <li><a href="#">Security</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-legal">
+        <span>&copy; <span id="copyright-year">2024</span> Glint. All rights reserved.</span>
+        <div class="footer-legal-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Cookies</a>
+          <a href="#">GDPR</a>
+        </div>
+      </div>
+      <div class="footer-info">
+        <span class="footer-version">v2.0.1-beta</span>
+        <span class="footer-separator">•</span>
+        <a href="{{ url_for('index') }}" class="back-link">← Back to Ruoshui Lab</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ============= Dynamic Copyright Year =============
+    document.getElementById('copyright-year').textContent = new Date().getFullYear();
+
+    // ============= Smooth Scroll =============
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          const offset = 48;
+          const targetPosition = target.offsetTop - offset;
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+
+    // ============= Background Orbs (Now CSS-animated, independent of scroll) =============
+    // Background orbs use pure CSS animations for smooth, continuous floating
+    // No scroll binding - keeps background layer separate from UI interactions
+
+    // ============= Navbar Scroll Effect =============
+    const navbar = document.querySelector('.navbar');
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // ============= Scroll Progress Indicator =============
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.cssText = `
+      position: fixed;
+      top: 44px;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #0071e3, #667eea);
+      z-index: 9999;
+      width: 0%;
+      transition: width 0.15s cubic-bezier(0.28, 0.11, 0.32, 1);
+    `;
+    document.body.appendChild(progressBar);
+
+    window.addEventListener('scroll', () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = window.pageYOffset;
+      const progress = (scrolled / scrollable) * 100;
+      progressBar.style.width = `${Math.min(progress, 100)}%`;
+    });
+
+    // ============= Intersection Observer for UI Element Animations =============
+    // Separate observer for use-cases and features for better control
+    const observerOptions = {
+      threshold: 0.2,
+      rootMargin: '0px 0px -80px 0px'
+    };
+
+    // Use-case cards animation (larger, more prominent)
+    const useCaseObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, idx) => {
+        if (entry.isIntersecting) {
+          // Stagger animation for cards in the same section
+          setTimeout(() => {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, idx * 120); // Slight stagger for use-cases
+        } else {
+          entry.target.style.opacity = '0';
+          entry.target.style.transform = 'translateY(30px)';
+        }
+      });
+    }, observerOptions);
+
+    // Feature cards animation (smaller, tighter grouping)
+    const featureObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        } else {
+          entry.target.style.opacity = '0';
+          entry.target.style.transform = 'translateY(20px)';
+        }
+      });
+    }, observerOptions);
+
+    // Apply to use-cases
+    document.querySelectorAll('.use-case').forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+      useCaseObserver.observe(el);
+    });
+
+    // Apply to features (as a group, no individual stagger)
+    document.querySelectorAll('.feature').forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      featureObserver.observe(el);
+    });
+
+    // ============= Device Preview Slide-in Animation =============
+    const devicePreviewObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Add a slight delay to stagger mobile and desktop animations
+          const delay = entry.target.classList.contains('mobile-preview') ? 0 : 200;
+          setTimeout(() => {
+            entry.target.classList.add('animate-in');
+          }, delay);
+          devicePreviewObserver.unobserve(entry.target); // Only animate once
+        }
+      });
+    }, {
+      threshold: 0.2,
+      rootMargin: '0px 0px -80px 0px'
+    });
+
+    // Apply to device previews
+    document.querySelectorAll('.device-preview').forEach((el) => {
+      devicePreviewObserver.observe(el);
+    });
+
+    // ============= Card Hover Tilt Effect (3D) - Optimized =============
+    document.querySelectorAll('.use-case, .feature').forEach(card => {
+      // Only apply tilt when card is fully visible (not during scroll animation)
+      let isVisible = false;
+
+      // Track visibility state
+      const visibilityObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isVisible = entry.isIntersecting;
+          if (!isVisible) {
+            // Reset transform when leaving viewport
+            card.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+          }
+        });
+      }, { threshold: 0.5 });
+
+      visibilityObserver.observe(card);
+
+      card.addEventListener('mouseenter', () => {
+        if (isVisible) {
+          // Switch to faster transition for hover effects
+          card.style.transition = 'transform 0.15s ease-out';
+        }
+      });
+
+      card.addEventListener('mousemove', (e) => {
+        if (!isVisible) return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        // Gentle tilt effect
+        const rotateX = (y - centerY) / 40;
+        const rotateY = (centerX - x) / 40;
+
+        card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transition = 'transform 0.3s cubic-bezier(0.28, 0.11, 0.32, 1)';
+        card.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) scale(1)';
+      });
+    });
+
+    // ============= Hero Title Word-by-Word Reveal - Refined =============
+    const heroTitle = document.querySelector('.hero-title');
+    if (heroTitle) {
+      const text = heroTitle.textContent;
+      const words = text.split(/(<br\/>|\s+)/);
+      heroTitle.innerHTML = '';
+
+      words.forEach((word, index) => {
+        if (word === '<br/>') {
+          heroTitle.innerHTML += '<br/>';
+        } else if (word.trim()) {
+          const span = document.createElement('span');
+          span.textContent = word + ' ';
+          span.style.opacity = '0';
+          span.style.display = 'inline-block';
+          span.style.animation = `fadeInWord 0.6s cubic-bezier(0.28, 0.11, 0.32, 1) ${index * 0.08}s forwards`;
+          heroTitle.appendChild(span);
+        }
+      });
+    }
+
+    // ============= Add Keyframes and Styles =============
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInWord {
+        from {
+          opacity: 0;
+          transform: translateY(8px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      /* Smooth transitions for interactive elements */
+      .btn {
+        transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+      }
+
+      .navbar {
+        transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+      }
+
+      /* 3D perspective for cards - transitions controlled by JS */
+      .use-case, .feature {
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+      }
+
+      /* Smooth scroll progress bar */
+      #progressBar {
+        will-change: width;
+      }
+
+      /* Disable animations on reduced motion preference */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // ============= Accessibility handled via CSS media query =============
+    // See @media (prefers-reduced-motion: reduce) in styles above
+
+    // ============= Cookie Consent Banner =============
+    const cookieBanner = document.createElement('div');
+    cookieBanner.id = 'cookie-consent';
+    cookieBanner.style.cssText = `
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      padding: 24px;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 10000;
+      display: none;
+      animation: slideInUp 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+    `;
+
+    cookieBanner.innerHTML = `
+      <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--near-black);">
+            🍪 We use cookies to enhance your browsing experience and analyze site traffic.
+            By clicking "Accept", you consent to our use of cookies.
+            <a href="#" style="color: var(--blue); text-decoration: underline;">Learn more</a>
+          </p>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button id="cookie-decline" style="padding: 10px 24px; background: rgba(0, 0, 0, 0.05); color: var(--near-black); border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+            Decline
+          </button>
+          <button id="cookie-accept" style="padding: 10px 24px; background: var(--blue); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+            Accept
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Add slide-in animation
+    const cookieStyle = document.createElement('style');
+    cookieStyle.textContent = `
+      @keyframes slideInUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      #cookie-accept:hover {
+        background: var(--blue-hover) !important;
+        transform: translateY(-2px);
+      }
+      #cookie-decline:hover {
+        background: rgba(0, 0, 0, 0.08) !important;
+      }
+    `;
+    document.head.appendChild(cookieStyle);
+    document.body.appendChild(cookieBanner);
+
+    // Check if user has already consented
+    if (!localStorage.getItem('cookieConsent')) {
+      setTimeout(() => {
+        cookieBanner.style.display = 'block';
+      }, 1500); // Show after 1.5 seconds
+    }
+
+    // Handle accept
+    document.getElementById('cookie-accept')?.addEventListener('click', () => {
+      localStorage.setItem('cookieConsent', 'accepted');
+      cookieBanner.style.animation = 'slideInUp 0.3s cubic-bezier(0.28, 0.11, 0.32, 1) reverse';
+      setTimeout(() => {
+        cookieBanner.style.display = 'none';
+      }, 300);
+
+      // Uncomment to enable analytics after consent
+      // if (typeof gtag === 'function') {
+      //   gtag('consent', 'update', {
+      //     'analytics_storage': 'granted'
+      //   });
+      // }
+    });
+
+    // Handle decline
+    document.getElementById('cookie-decline')?.addEventListener('click', () => {
+      localStorage.setItem('cookieConsent', 'declined');
+      cookieBanner.style.animation = 'slideInUp 0.3s cubic-bezier(0.28, 0.11, 0.32, 1) reverse';
+      setTimeout(() => {
+        cookieBanner.style.display = 'none';
+      }, 300);
+    });
+  </script>
+</body>
+</html>
