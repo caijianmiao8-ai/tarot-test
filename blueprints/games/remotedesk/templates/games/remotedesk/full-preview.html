@@ -694,91 +694,544 @@
       color: var(--gray);
     }
 
-    /* Features Grid - Refined Layout */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-      gap: clamp(40px, 5vw, 64px);
-      margin-top: clamp(48px, 8vh, 72px);
+    /* Features Showcase - Large Visual Blocks */
+    .features-showcase {
+      max-width: 1280px;
     }
 
-    .feature {
-      text-align: center;
-      background: transparent;
-      padding: clamp(36px, 5vw, 48px) clamp(16px, 3vw, 24px);
-      border-radius: 16px;
-      border: none;
-      box-shadow: none;
-      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
+    .feature-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(60px, 8vw, 120px);
+      align-items: center;
+      margin-bottom: clamp(120px, 18vh, 200px);
+      position: relative;
+    }
+
+    .feature-block-left .feature-visual {
+      order: 1;
+    }
+
+    .feature-block-left .feature-content {
+      order: 2;
+    }
+
+    .feature-block-right .feature-content {
+      order: 1;
+    }
+
+    .feature-block-right .feature-visual {
+      order: 2;
+    }
+
+    .feature-visual {
+      position: relative;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .feature-content {
+      padding: 20px 0;
+    }
+
+    .feature-big-title {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--near-black);
+      margin-bottom: 24px;
+    }
+
+    .feature-big-description {
+      font-size: clamp(17px, 2vw, 21px);
+      line-height: 1.6;
+      color: var(--gray);
+      margin-bottom: 32px;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-list li {
+      font-size: 17px;
+      color: var(--gray);
+      padding: 12px 0 12px 32px;
+      position: relative;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--blue);
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    /* Latency Demo */
+    .latency-demo {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       position: relative;
       overflow: hidden;
     }
 
-    /* Alternating accent colors for visual interest */
-    .feature:nth-child(1) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(102, 126, 234, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
-    .feature:nth-child(2) .feature-icon { background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(245, 87, 108, 0.1)); border-color: rgba(240, 147, 251, 0.3); }
-    .feature:nth-child(3) .feature-icon { background: linear-gradient(135deg, rgba(79, 172, 254, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(79, 172, 254, 0.3); }
-    .feature:nth-child(4) .feature-icon { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); border-color: rgba(102, 126, 234, 0.3); }
-    .feature:nth-child(5) .feature-icon { background: linear-gradient(135deg, rgba(0, 113, 227, 0.15), rgba(0, 242, 254, 0.1)); border-color: rgba(0, 113, 227, 0.3); }
-    .feature:nth-child(6) .feature-icon { background: linear-gradient(135deg, rgba(245, 87, 108, 0.15), rgba(240, 147, 251, 0.1)); border-color: rgba(245, 87, 108, 0.3); }
-
-    .feature::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
-      border-radius: 20px;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-    }
-
-    .feature:hover::before {
-      opacity: 1;
-    }
-
-    .feature:hover {
-      transform: translateY(-4px);
-      background: rgba(255, 255, 255, 0.03);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-    }
-
-    .feature-icon {
-      width: clamp(52px, 7vw, 64px);
-      height: clamp(52px, 7vw, 64px);
-      margin: 0 auto clamp(20px, 3vh, 28px);
+    .latency-graph {
       display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      height: 150px;
+      margin-bottom: 40px;
+    }
+
+    .graph-bar {
+      flex: 1;
+      background: linear-gradient(180deg, var(--blue) 0%, rgba(0, 113, 227, 0.6) 100%);
+      border-radius: 8px 8px 0 0;
+      animation: barPulse 2s ease-in-out infinite;
+      min-width: 20px;
+    }
+
+    @keyframes barPulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+
+    .latency-badge {
+      text-align: center;
+    }
+
+    .latency-value {
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--blue);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .latency-label {
+      font-size: 17px;
+      color: var(--gray);
+      font-weight: 500;
+    }
+
+    .signal-indicator {
+      position: absolute;
+      bottom: 40px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .signal-wave {
+      width: 4px;
+      height: 20px;
+      background: var(--blue);
+      border-radius: 2px;
+      animation: waveAnimation 1.5s ease-in-out infinite;
+    }
+
+    .signal-wave:nth-child(2) {
+      animation-delay: 0.2s;
+      height: 30px;
+    }
+
+    .signal-wave:nth-child(3) {
+      animation-delay: 0.4s;
+      height: 40px;
+    }
+
+    @keyframes waveAnimation {
+      0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+      50% { opacity: 1; transform: scaleY(1); }
+    }
+
+    /* Security Demo */
+    .security-demo {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 80px 40px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: clamp(24px, 3.5vw, 32px);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      border: 1px solid;
-      transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
     }
 
-    .feature:hover .feature-icon {
-      transform: scale(1.08) rotate(3deg);
+    .encryption-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 40px;
     }
 
-    .feature-title {
-      font-size: clamp(19px, 2.5vw, 24px);
-      line-height: 1.2;
-      font-weight: 500;
-      letter-spacing: -0.003em;
-      color: var(--near-black);
+    .device-node {
+      text-align: center;
+    }
+
+    .device-icon {
+      font-size: 48px;
       margin-bottom: 12px;
     }
 
-    .feature-description {
-      font-size: clamp(15px, 2vw, 17px);
-      line-height: 1.52941;
-      font-weight: 400;
-      letter-spacing: 0.011em;
+    .device-label {
+      font-size: 15px;
       color: var(--gray);
+      font-weight: 500;
+    }
+
+    .encryption-pipe {
+      flex: 1;
+      margin: 0 32px;
+      position: relative;
+      height: 4px;
+      background: linear-gradient(90deg, rgba(0, 113, 227, 0.3), rgba(0, 113, 227, 0.3));
+      border-radius: 2px;
+    }
+
+    .lock-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      background: white;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .encrypted-data {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 8px;
+    }
+
+    .data-packet {
+      width: 12px;
+      height: 12px;
+      background: var(--blue);
+      border-radius: 2px;
+      animation: packetFlow 3s linear infinite;
+    }
+
+    .data-packet:nth-child(2) { animation-delay: 1s; }
+    .data-packet:nth-child(3) { animation-delay: 2s; }
+
+    @keyframes packetFlow {
+      0% { transform: translateX(0) scale(0.8); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateX(400px) scale(0.8); opacity: 0; }
+    }
+
+    .encryption-badge {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--blue);
+      padding: 12px 24px;
+      background: rgba(0, 113, 227, 0.1);
+      border-radius: 20px;
+      border: 1px solid rgba(0, 113, 227, 0.2);
+    }
+
+    /* Network Demo */
+    .network-demo {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .network-map {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin-bottom: 40px;
+    }
+
+    .map-dot {
+      position: absolute;
+      text-align: center;
+    }
+
+    .map-dot-1 { top: 20%; left: 50%; transform: translateX(-50%); }
+    .map-dot-2 { bottom: 20%; left: 20%; }
+    .map-dot-3 { bottom: 20%; right: 20%; }
+
+    .dot-pulse {
+      width: 56px;
+      height: 56px;
+      background: var(--blue);
+      border-radius: 50%;
+      position: relative;
+      margin: 0 auto 8px;
+    }
+
+    .dot-pulse::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--blue);
+      border-radius: 50%;
+      animation: dotPulse 2s ease-out infinite;
+    }
+
+    @keyframes dotPulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
+    .dot-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray);
+    }
+
+    .connection-line {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue), rgba(0, 113, 227, 0.3));
+      transform-origin: left center;
+    }
+
+    .connection-1 {
+      top: 35%;
+      left: 50%;
+      width: 120px;
+      transform: rotate(45deg);
+      animation: lineGlow 3s ease-in-out infinite;
+    }
+
+    .connection-2 {
+      top: 35%;
+      left: 50%;
+      width: 120px;
+      transform: rotate(-45deg);
+      animation: lineGlow 3s ease-in-out infinite;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes lineGlow {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .mode-badges {
+      display: flex;
+      gap: 12px;
+    }
+
+    .mode-badge {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--gray);
+    }
+
+    .mode-badge.mode-active {
+      background: var(--blue);
+      color: white;
+    }
+
+    /* Simplicity Demo */
+    .simplicity-demo {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+    }
+
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .step-dot {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--gray);
+    }
+
+    .step-dot.step-done {
+      background: var(--blue);
+      color: white;
+    }
+
+    .step-dot.step-active {
+      background: var(--blue);
+      color: white;
+      animation: stepPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes stepPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .step-line {
+      width: 40px;
+      height: 2px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .action-button {
+      position: relative;
+      padding: 20px 48px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-hover));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(0, 113, 227, 0.3);
+      animation: buttonFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes buttonFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .btn-icon {
+      font-size: 24px;
+    }
+
+    .btn-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .btn-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      border-radius: 16px;
+      opacity: 0;
+      animation: btnGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes btnGlow {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.2; }
+    }
+
+    .success-check {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      animation: checkFadeIn 1s ease-in-out 2s forwards;
+    }
+
+    @keyframes checkFadeIn {
+      to { opacity: 1; }
+    }
+
+    .check-icon {
+      width: 40px;
+      height: 40px;
+      background: #34C759;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: 700;
+    }
+
+    .check-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #34C759;
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+      .feature-block {
+        grid-template-columns: 1fr;
+        gap: 60px;
+      }
+
+      .feature-block-left .feature-visual,
+      .feature-block-right .feature-visual {
+        order: 1;
+      }
+
+      .feature-block-left .feature-content,
+      .feature-block-right .feature-content {
+        order: 2;
+      }
+
+      .feature-visual {
+        min-height: 300px;
+      }
+
+      .latency-demo, .security-demo, .network-demo, .simplicity-demo {
+        max-width: 100%;
+        padding: 40px;
+      }
     }
 
     /* Divider - Refined */
@@ -2096,47 +2549,152 @@
     </div>
   </section>
 
-  <!-- Features Grid -->
-  <section class="section">
+  <!-- Features - Large Visual Blocks -->
+  <section class="section features-showcase">
     <div class="section-header">
-      <h2 class="section-title">Simple. Secure. Free.</h2>
+      <h2 class="section-title">Built for professionals.<br/>Designed for everyone.</h2>
+      <p class="section-subtitle">Experience the perfect balance of power and simplicity.</p>
     </div>
 
-    <div class="features-grid">
-      <div class="feature">
-        <div class="feature-icon">📱</div>
-        <h3 class="feature-title">Mobile First</h3>
-        <p class="feature-description">Designed for iOS and Android. Control your PC with intuitive touch gestures.</p>
+    <!-- Feature 1: Ultra Low Latency -->
+    <div class="feature-block feature-block-left">
+      <div class="feature-visual">
+        <div class="latency-demo">
+          <div class="latency-graph">
+            <div class="graph-bar" style="height: 20%; animation-delay: 0s;"></div>
+            <div class="graph-bar" style="height: 15%; animation-delay: 0.1s;"></div>
+            <div class="graph-bar" style="height: 18%; animation-delay: 0.2s;"></div>
+            <div class="graph-bar" style="height: 22%; animation-delay: 0.3s;"></div>
+            <div class="graph-bar" style="height: 16%; animation-delay: 0.4s;"></div>
+            <div class="graph-bar" style="height: 19%; animation-delay: 0.5s;"></div>
+            <div class="graph-bar" style="height: 17%; animation-delay: 0.6s;"></div>
+          </div>
+          <div class="latency-badge">
+            <div class="latency-value">5ms</div>
+            <div class="latency-label">Average Latency</div>
+          </div>
+          <div class="signal-indicator">
+            <div class="signal-wave"></div>
+            <div class="signal-wave"></div>
+            <div class="signal-wave"></div>
+          </div>
+        </div>
       </div>
-
-      <div class="feature">
-        <div class="feature-icon">⚡</div>
-        <h3 class="feature-title">Ultra Low Latency</h3>
-        <p class="feature-description">Advanced streaming technology ensures responsive, real-time control.</p>
+      <div class="feature-content">
+        <h3 class="feature-big-title">Feel like you're<br/>sitting at your desk.</h3>
+        <p class="feature-big-description">Advanced P2P routing and adaptive streaming deliver ultra-low latency. Control your PC as if you were right there — smooth, responsive, instant.</p>
+        <ul class="feature-list">
+          <li>Sub-10ms latency on local networks</li>
+          <li>Intelligent connection routing</li>
+          <li>Adaptive bitrate streaming</li>
+        </ul>
       </div>
+    </div>
 
-      <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <h3 class="feature-title">End-to-End Encrypted</h3>
-        <p class="feature-description">Bank-level security protects your connection and data at all times.</p>
+    <!-- Feature 2: Security -->
+    <div class="feature-block feature-block-right">
+      <div class="feature-content">
+        <h3 class="feature-big-title">Bank-level security.<br/>Zero compromises.</h3>
+        <p class="feature-big-description">End-to-end AES-256 encryption protects every connection. Your data never touches our servers unencrypted — complete privacy guaranteed.</p>
+        <ul class="feature-list">
+          <li>End-to-end AES-256 encryption</li>
+          <li>Zero-knowledge architecture</li>
+          <li>No data collection or tracking</li>
+        </ul>
       </div>
-
-      <div class="feature">
-        <div class="feature-icon">🌐</div>
-        <h3 class="feature-title">Anywhere Access</h3>
-        <p class="feature-description">Connect from anywhere in the world. No VPN required.</p>
+      <div class="feature-visual">
+        <div class="security-demo">
+          <div class="encryption-flow">
+            <div class="device-node device-left">
+              <div class="device-icon">📱</div>
+              <div class="device-label">Your Phone</div>
+            </div>
+            <div class="encryption-pipe">
+              <div class="lock-icon">🔒</div>
+              <div class="encrypted-data">
+                <div class="data-packet"></div>
+                <div class="data-packet"></div>
+                <div class="data-packet"></div>
+              </div>
+            </div>
+            <div class="device-node device-right">
+              <div class="device-icon">💻</div>
+              <div class="device-label">Your PC</div>
+            </div>
+          </div>
+          <div class="encryption-badge">AES-256 Encrypted</div>
+        </div>
       </div>
+    </div>
 
-      <div class="feature">
-        <div class="feature-icon">🎯</div>
-        <h3 class="feature-title">One-Tap Setup</h3>
-        <p class="feature-description">No complex configuration. Just install and connect.</p>
+    <!-- Feature 3: Global Access -->
+    <div class="feature-block feature-block-left">
+      <div class="feature-visual">
+        <div class="network-demo">
+          <div class="network-map">
+            <div class="map-dot map-dot-1">
+              <div class="dot-pulse"></div>
+              <div class="dot-label">Home</div>
+            </div>
+            <div class="map-dot map-dot-2">
+              <div class="dot-pulse"></div>
+              <div class="dot-label">Office</div>
+            </div>
+            <div class="map-dot map-dot-3">
+              <div class="dot-pulse"></div>
+              <div class="dot-label">Cafe</div>
+            </div>
+            <div class="connection-line connection-1"></div>
+            <div class="connection-line connection-2"></div>
+          </div>
+          <div class="mode-badges">
+            <div class="mode-badge mode-active">LAN</div>
+            <div class="mode-badge">P2P</div>
+            <div class="mode-badge">Relay</div>
+          </div>
+        </div>
       </div>
+      <div class="feature-content">
+        <h3 class="feature-big-title">Access from<br/>anywhere.</h3>
+        <p class="feature-big-description">Whether you're on the same network or across the globe, Glint automatically finds the fastest connection path. LAN, P2P, or relay — it just works.</p>
+        <ul class="feature-list">
+          <li>Automatic connection discovery</li>
+          <li>Smart relay fallback</li>
+          <li>Works behind any firewall</li>
+        </ul>
+      </div>
+    </div>
 
-      <div class="feature">
-        <div class="feature-icon">💰</div>
-        <h3 class="feature-title">Always Free</h3>
-        <p class="feature-description">No subscriptions. No hidden fees. Free forever.</p>
+    <!-- Feature 4: Simple -->
+    <div class="feature-block feature-block-right">
+      <div class="feature-content">
+        <h3 class="feature-big-title">One tap.<br/>Instant control.</h3>
+        <p class="feature-big-description">No complex setup. No port forwarding. No technical knowledge required. Just sign in, see your devices, and tap to connect.</p>
+        <ul class="feature-list">
+          <li>Zero configuration required</li>
+          <li>Automatic device pairing</li>
+          <li>Free during beta testing</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="simplicity-demo">
+          <div class="step-indicator">
+            <div class="step-dot step-done">1</div>
+            <div class="step-line"></div>
+            <div class="step-dot step-done">2</div>
+            <div class="step-line"></div>
+            <div class="step-dot step-active">3</div>
+          </div>
+          <div class="action-button">
+            <div class="btn-icon">⚡</div>
+            <div class="btn-text">Connect Now</div>
+            <div class="btn-glow"></div>
+          </div>
+          <div class="success-check">
+            <div class="check-icon">✓</div>
+            <div class="check-text">Connected</div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
