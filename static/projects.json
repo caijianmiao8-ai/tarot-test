@@ -45,10 +45,10 @@
     "path": "/g/daily_bulletin/"
   },
   {
-    "slug": "remotedesk",
-    "title": "RemoteDesk",
-    "subtitle": "Control PC from Mobile · Free",
-    "tags": ["Remote Control", "Mobile", "Gaming"],
+    "slug": "glint",
+    "title": "Glint",
+    "subtitle": "Customer command center",
+    "tags": ["Incidents", "Support", "Realtime"],
     "type": "link",
     "path": "/g/remotedesk/"
   },
