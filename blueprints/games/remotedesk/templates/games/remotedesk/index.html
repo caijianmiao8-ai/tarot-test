@@ -143,15 +143,15 @@
     .bg-orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.15;
+      filter: blur(150px);
+      opacity: 0.08;
     }
 
     /* Multiple animation variations for each orb */
     .bg-orb-1 {
       width: 600px;
       height: 600px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #60a5fa 0%, #0095ff 100%);
       top: -200px;
       right: -100px;
       animation: float-1 15s ease-in-out infinite, pulse-1 8s ease-in-out infinite, rotate-1 30s linear infinite;
@@ -160,7 +160,7 @@
     .bg-orb-2 {
       width: 500px;
       height: 500px;
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
       bottom: -200px;
       left: -100px;
       animation: float-2 18s ease-in-out infinite, pulse-2 10s ease-in-out infinite;
@@ -170,7 +170,7 @@
     .bg-orb-3 {
       width: 400px;
       height: 400px;
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: linear-gradient(135deg, #0071e3 0%, #2563eb 100%);
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -200,24 +200,24 @@
 
     /* Pulse animations - opacity variation */
     @keyframes pulse-1 {
-      0%, 100% { opacity: 0.12; }
-      50% { opacity: 0.18; }
+      0%, 100% { opacity: 0.06; }
+      50% { opacity: 0.10; }
     }
 
     @keyframes pulse-2 {
-      0%, 100% { opacity: 0.15; }
-      50% { opacity: 0.22; }
+      0%, 100% { opacity: 0.08; }
+      50% { opacity: 0.12; }
     }
 
     @keyframes breathe {
-      0%, 100% { opacity: 0.1; filter: blur(120px) hue-rotate(0deg); }
-      50% { opacity: 0.2; filter: blur(100px) hue-rotate(15deg); }
+      0%, 100% { opacity: 0.05; filter: blur(150px) hue-rotate(0deg); }
+      50% { opacity: 0.10; filter: blur(130px) hue-rotate(15deg); }
     }
 
     /* Rotation animation */
     @keyframes rotate-1 {
-      from { filter: blur(120px) hue-rotate(0deg); }
-      to { filter: blur(120px) hue-rotate(360deg); }
+      from { filter: blur(150px) hue-rotate(0deg); }
+      to { filter: blur(150px) hue-rotate(360deg); }
     }
 
     /* Drift animation - subtle horizontal sway */
@@ -526,6 +526,28 @@
       transform: translateY(0);
       background: rgba(0, 113, 227, 0.08);
     }
+
+    .hero-product-demo {
+      margin-top: 80px;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .hero-product-demo img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transform-style: preserve-3d;
+      transition: transform 0.6s ease;
+    }
+
+    .hero-product-demo:hover img {
+      transform: translateY(-8px);
+    }
+
 
     /* Features Section - More breathing space */
     .section {
@@ -2679,6 +2701,14 @@
     <div class="cta-buttons fade-in delay-3">
       <a href="#download" class="btn btn-primary">Download Beta</a>
       <a href="#features" class="btn btn-secondary">Learn More</a>
+    </div>
+
+    <!-- Hero Product Demo -->
+    <div class="hero-product-demo fade-in delay-4">
+      <img src="{{ url_for('remotedesk.static', filename='hero-product-light.svg') }}" 
+           alt="Glint app interface on desktop and mobile showing device management" 
+           loading="eager"
+           style="width: 100%; max-width: 1200px; height: auto; margin: 0 auto; display: block;"/>
     </div>
   </section>
 
