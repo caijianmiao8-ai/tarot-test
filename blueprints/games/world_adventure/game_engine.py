@@ -759,7 +759,8 @@ class GameEngine:
         """
         为AI生成完整的世界上下文（Phase 1 - 包含网格信息）
         """
-        world_id = world.get('id')
+        # 兼容 world 参数可能是 world 对象（包含 'id'）或 run_data 对象（包含 'world_id'）
+        world_id = world.get('id') or world.get('world_id')
 
         with DatabaseManager.get_db() as conn:
             with conn.cursor() as cur:
