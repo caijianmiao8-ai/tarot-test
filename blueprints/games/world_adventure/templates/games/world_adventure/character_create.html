@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建角色 - AI 世界冒险</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #f39c12;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #888;
+            font-size: 1.1em;
+        }
+        .form-section {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .form-section h2 {
+            color: #f39c12;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #f39c12;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            border: 2px solid #1a4d7a;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #f39c12;
+        }
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #888;
+            font-size: 0.85em;
+        }
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .class-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .class-card:hover {
+            border-color: #f39c12;
+            transform: translateY(-2px);
+        }
+        .class-card.selected {
+            border-color: #f39c12;
+            background: #1a4d7a;
+        }
+        .class-card .icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .class-card h3 {
+            color: #f39c12;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .class-card p {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+        .abilities-grid {
+            display: grid;
+            gap: 20px;
+        }
+        .ability-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .ability-info {
+            flex: 1;
+        }
+        .ability-name {
+            color: #f39c12;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .ability-desc {
+            font-size: 0.85em;
+            color: #888;
+        }
+        .ability-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ability-value {
+            background: #0f3460;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            color: #f39c12;
+            min-width: 40px;
+            text-align: center;
+        }
+        .ability-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            background: #f39c12;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ability-btn:hover {
+            background: #e67e22;
+            transform: scale(1.1);
+        }
+        .ability-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+        .points-remaining {
+            background: rgba(243, 156, 18, 0.2);
+            border: 2px solid #f39c12;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .points-remaining .count {
+            font-size: 2em;
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #f39c12;
+            color: #fff;
+            font-weight: bold;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+        }
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #34495e;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #2c3e50;
+        }
+        .error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👤 创建角色</h1>
+            <p>塑造你的冒险者，开启传奇故事</p>
+        </div>
+
+        <div id="error-msg" class="error"></div>
+
+        <form id="character-form">
+            <!-- 基本信息 -->
+            <div class="form-section">
+                <h2>角色基本信息</h2>
+                <div class="form-group">
+                    <label for="char_name">角色名 *</label>
+                    <input type="text" id="char_name" name="char_name" required
+                           placeholder="例如：艾伦·沃克">
+                </div>
+
+                <div class="form-group">
+                    <label>选择职业 *</label>
+                    <div class="class-grid">
+                        <div class="class-card" data-class="warrior">
+                            <div class="icon">⚔️</div>
+                            <h3>战士</h3>
+                            <p>精通战斗</p>
+                        </div>
+                        <div class="class-card" data-class="rogue">
+                            <div class="icon">🗡️</div>
+                            <h3>盗贼</h3>
+                            <p>擅长潜行</p>
+                        </div>
+                        <div class="class-card" data-class="scholar">
+                            <div class="icon">📚</div>
+                            <h3>学者</h3>
+                            <p>博学多识</p>
+                        </div>
+                        <div class="class-card" data-class="diplomat">
+                            <div class="icon">💬</div>
+                            <h3>外交官</h3>
+                            <p>社交达人</p>
+                        </div>
+                        <div class="class-card" data-class="ranger">
+                            <div class="icon">🏹</div>
+                            <h3>游侠</h3>
+                            <p>野外生存</p>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char_class" id="char_class" required>
+                </div>
+            </div>
+
+            <!-- 角色背景 -->
+            <div class="form-section">
+                <h2>角色背景故事</h2>
+                <div class="form-group">
+                    <label for="background">出身背景（可选）</label>
+                    <textarea id="background" name="background"
+                              placeholder="例如：曾是王国骑士，因为不满贵族的腐败而离开，现在四处游历..."></textarea>
+                    <small>AI 会根据背景生成更贴合的剧情</small>
+                </div>
+                <div class="form-group">
+                    <label for="personality">性格特质（可选）</label>
+                    <textarea id="personality" name="personality"
+                              placeholder="例如：沉默寡言，但心怀正义；对弱者慷慨，对强权不屈..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="appearance">外貌描述（可选）</label>
+                    <textarea id="appearance" name="appearance"
+                              placeholder="例如：身材魁梧，留着胡须，左眼有一道疤痕..."></textarea>
+                </div>
+            </div>
+
+            <!-- 能力值分配 -->
+            <div class="form-section">
+                <h2>能力值分配</h2>
+                <div class="points-remaining">
+                    <div>剩余点数</div>
+                    <div class="count" id="points-remaining">10</div>
+                    <small style="color: #888;">总共 30 点，已预分配 25 点（每项 5 点）</small>
+                </div>
+
+                <div class="abilities-grid">
+                    <div class="ability-item">
+                        <div class="ability-info">
+                            <div class="ability-name">⚔️ 战斗 (Combat)</div>
+                            <div class="ability-desc">近战、远程战斗能力</div>
+                        </div>
+                        <div class="ability-controls">
+                            <button type="button" class="ability-btn" data-ability="combat" data-delta="-1">-</button>
+                            <div class="ability-value" id="combat-value">5</div>
+                            <button type="button" class="ability-btn" data-ability="combat" data-delta="1">+</button>
+                        </div>
+                    </div>
+
+                    <div class="ability-item">
+                        <div class="ability-info">
+                            <div class="ability-name">💬 社交 (Social)</div>
+                            <div class="ability-desc">说服、谈判、欺骗能力</div>
+                        </div>
+                        <div class="ability-controls">
+                            <button type="button" class="ability-btn" data-ability="social" data-delta="-1">-</button>
+                            <div class="ability-value" id="social-value">5</div>
+                            <button type="button" class="ability-btn" data-ability="social" data-delta="1">+</button>
+                        </div>
+                    </div>
+
+                    <div class="ability-item">
+                        <div class="ability-info">
+                            <div class="ability-name">🥷 潜行 (Stealth)</div>
+                            <div class="ability-desc">隐蔽、偷窃、敏捷行动</div>
+                        </div>
+                        <div class="ability-controls">
+                            <button type="button" class="ability-btn" data-ability="stealth" data-delta="-1">-</button>
+                            <div class="ability-value" id="stealth-value">5</div>
+                            <button type="button" class="ability-btn" data-ability="stealth" data-delta="1">+</button>
+                        </div>
+                    </div>
+
+                    <div class="ability-item">
+                        <div class="ability-info">
+                            <div class="ability-name">📚 知识 (Knowledge)</div>
+                            <div class="ability-desc">学识、调查、解谜能力</div>
+                        </div>
+                        <div class="ability-controls">
+                            <button type="button" class="ability-btn" data-ability="knowledge" data-delta="-1">-</button>
+                            <div class="ability-value" id="knowledge-value">5</div>
+                            <button type="button" class="ability-btn" data-ability="knowledge" data-delta="1">+</button>
+                        </div>
+                    </div>
+
+                    <div class="ability-item">
+                        <div class="ability-info">
+                            <div class="ability-name">🏕️ 生存 (Survival)</div>
+                            <div class="ability-desc">野外生存、感知、追踪</div>
+                        </div>
+                        <div class="ability-controls">
+                            <button type="button" class="ability-btn" data-ability="survival" data-delta="-1">-</button>
+                            <div class="ability-value" id="survival-value">5</div>
+                            <button type="button" class="ability-btn" data-ability="survival" data-delta="1">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="ability_combat" id="ability_combat" value="5">
+                <input type="hidden" name="ability_social" id="ability_social" value="5">
+                <input type="hidden" name="ability_stealth" id="ability_stealth" value="5">
+                <input type="hidden" name="ability_knowledge" id="ability_knowledge" value="5">
+                <input type="hidden" name="ability_survival" id="ability_survival" value="5">
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="actions">
+                <a href="/g/world_adventure/" class="btn btn-secondary">取消</a>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    ✨ 创建角色
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 职业选择
+        const classCards = document.querySelectorAll('.class-card');
+        const charClassInput = document.getElementById('char_class');
+
+        const classTranslations = {
+            'warrior': '战士',
+            'rogue': '盗贼',
+            'scholar': '学者',
+            'diplomat': '外交官',
+            'ranger': '游侠'
+        };
+
+        classCards.forEach(card => {
+            card.addEventListener('click', () => {
+                classCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                charClassInput.value = classTranslations[card.dataset.class];
+            });
+        });
+
+        // 能力值系统
+        const abilities = {
+            combat: 5,
+            social: 5,
+            stealth: 5,
+            knowledge: 5,
+            survival: 5
+        };
+
+        const TOTAL_POINTS = 30;
+        const MIN_ABILITY = 1;
+        const MAX_ABILITY = 10;
+
+        function getUsedPoints() {
+            return Object.values(abilities).reduce((sum, val) => sum + val, 0);
+        }
+
+        function getRemainingPoints() {
+            return TOTAL_POINTS - getUsedPoints();
+        }
+
+        function updateUI() {
+            // 更新显示值
+            Object.keys(abilities).forEach(key => {
+                document.getElementById(`${key}-value`).textContent = abilities[key];
+                document.getElementById(`ability_${key}`).value = abilities[key];
+            });
+
+            // 更新剩余点数
+            const remaining = getRemainingPoints();
+            document.getElementById('points-remaining').textContent = remaining;
+
+            // 更新按钮状态
+            document.querySelectorAll('.ability-btn').forEach(btn => {
+                const ability = btn.dataset.ability;
+                const delta = parseInt(btn.dataset.delta);
+                const newValue = abilities[ability] + delta;
+
+                // 禁用条件
+                if (delta > 0) {
+                    // + 按钮：没有剩余点数 或 已达上限
+                    btn.disabled = remaining <= 0 || newValue > MAX_ABILITY;
+                } else {
+                    // - 按钮：已达下限
+                    btn.disabled = newValue < MIN_ABILITY;
+                }
+            });
+        }
+
+        // 能力值调整
+        document.querySelectorAll('.ability-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const ability = btn.dataset.ability;
+                const delta = parseInt(btn.dataset.delta);
+                const newValue = abilities[ability] + delta;
+
+                // 检查限制
+                if (newValue >= MIN_ABILITY && newValue <= MAX_ABILITY) {
+                    if (delta > 0 && getRemainingPoints() <= 0) {
+                        return; // 没有剩余点数
+                    }
+                    abilities[ability] = newValue;
+                    updateUI();
+                }
+            });
+        });
+
+        // 初始化UI
+        updateUI();
+
+        // 表单提交
+        const form = document.getElementById('character-form');
+        const errorMsg = document.getElementById('error-msg');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 验证职业选择
+            if (!charClassInput.value) {
+                showError('请选择角色职业');
+                return;
+            }
+
+            // 验证点数分配
+            if (getRemainingPoints() !== 0) {
+                showError(`请分配完所有能力点数（剩余 ${getRemainingPoints()} 点）`);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            errorMsg.classList.remove('show');
+
+            const formData = {
+                char_name: document.getElementById('char_name').value,
+                char_class: charClassInput.value,
+                background: document.getElementById('background').value,
+                personality: document.getElementById('personality').value,
+                appearance: document.getElementById('appearance').value,
+                ability_combat: abilities.combat,
+                ability_social: abilities.social,
+                ability_stealth: abilities.stealth,
+                ability_knowledge: abilities.knowledge,
+                ability_survival: abilities.survival
+            };
+
+            try {
+                const response = await fetch('/g/world_adventure/api/characters/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    // 成功 - 跳转回主页
+                    window.location.href = `/g/world_adventure/?char_created=${result.character_id}`;
+                } else {
+                    showError(result.error || '创建角色失败，请重试');
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                showError('网络错误，请检查连接后重试');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.classList.add('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
