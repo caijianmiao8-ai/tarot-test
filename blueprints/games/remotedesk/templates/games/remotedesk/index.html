@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Glint — Remote Desktop, Reimagined</title>
-  <meta name="description" content="Access your PC from anywhere. Built for professionals who demand speed and simplicity."/>
-  <meta name="theme-color" content="#6366F1"/>
-  
+  <title>Glint — 远程桌面，重新定义</title>
+  <meta name="description" content="更快、更美、更简单的远程桌面解决方案"/>
   <style>
     * {
       margin: 0;
@@ -15,65 +13,112 @@
     }
 
     :root {
-      --bg: #FFFFFF;
-      --text: #0F172A;
-      --text-secondary: #475569;
-      --text-tertiary: #94A3B8;
-      --border: #E2E8F0;
       --primary: #6366F1;
-      --surface: #F8FAFC;
-    }
-
-    html {
-      scroll-behavior: smooth;
+      --primary-dark: #4F46E5;
+      --secondary: #8B5CF6;
+      --accent: #06B6D4;
+      --glow: rgba(99, 102, 241, 0.5);
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
       -webkit-font-smoothing: antialiased;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.7;
-      font-size: 17px;
+      background: #0A0A0F;
+      color: #FFFFFF;
+      overflow-x: hidden;
     }
 
-    /* Navigation - Linear style */
-    .nav {
+    /* Animated gradient background */
+    .bg-gradient {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      bottom: 0;
+      z-index: -1;
+      background: linear-gradient(135deg, #0A0A0F 0%, #1A0B2E 50%, #0F0A1E 100%);
+      animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(20deg); }
+    }
+
+    /* Floating particles */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: float 20s infinite;
+      opacity: 0.3;
+    }
+
+    .particle:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 30%; top: 40%; animation-delay: 2s; }
+    .particle:nth-child(3) { left: 50%; top: 30%; animation-delay: 4s; }
+    .particle:nth-child(4) { left: 70%; top: 50%; animation-delay: 1s; }
+    .particle:nth-child(5) { left: 90%; top: 25%; animation-delay: 3s; }
+    .particle:nth-child(6) { left: 20%; top: 70%; animation-delay: 5s; }
+    .particle:nth-child(7) { left: 60%; top: 80%; animation-delay: 2.5s; }
+    .particle:nth-child(8) { left: 85%; top: 65%; animation-delay: 4.5s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(30px, -30px) scale(1.2); }
+      50% { transform: translate(-20px, -60px) scale(0.8); }
+      75% { transform: translate(40px, -40px) scale(1.1); }
+    }
+
+    /* Glass morphism navigation */
+    .nav {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1000;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 12px 32px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     .nav-container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 40px;
-      height: 100%;
       display: flex;
-      justify-content: space-between;
+      gap: 48px;
       align-items: center;
     }
 
-    .logo-link {
+    .logo {
       display: flex;
       align-items: center;
       gap: 10px;
-      text-decoration: none;
-      color: var(--text);
       font-weight: 600;
       font-size: 18px;
+      color: white;
+      text-decoration: none;
     }
 
     .logo-icon {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 0 8px var(--glow));
     }
 
     .nav-links {
@@ -83,281 +128,549 @@
     }
 
     .nav-links a {
-      color: var(--text-secondary);
+      color: rgba(255, 255, 255, 0.7);
       text-decoration: none;
       font-size: 15px;
       font-weight: 500;
-      transition: color 0.2s;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transition: width 0.3s;
     }
 
     .nav-links a:hover {
-      color: var(--primary);
+      color: white;
     }
 
-    /* Hero - Massive title like Linear */
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    /* Hero section with massive gradient text */
     .hero {
-      margin-top: 60px;
-      padding: clamp(120px, 20vh, 200px) 40px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
-      max-width: 1100px;
-      margin-left: auto;
-      margin-right: auto;
+      padding: 0 40px;
+      position: relative;
     }
 
     .hero-title {
-      font-size: clamp(56px, 10vw, 96px);
-      font-weight: 700;
+      font-size: clamp(48px, 12vw, 120px);
+      font-weight: 800;
       letter-spacing: -0.04em;
       line-height: 1.05;
-      margin-bottom: 24px;
-      background: linear-gradient(135deg, var(--text) 30%, #6366F1 100%);
+      margin-bottom: 32px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #8B5CF6 50%, #06B6D4 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      animation: gradientText 8s ease infinite;
+      background-size: 200% 200%;
+    }
+
+    @keyframes gradientText {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     .hero-subtitle {
-      font-size: clamp(20px, 3vw, 28px);
-      color: var(--text-secondary);
-      max-width: 700px;
-      margin: 0 auto 48px;
+      font-size: clamp(20px, 3vw, 32px);
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 800px;
+      margin-bottom: 48px;
       line-height: 1.5;
     }
 
     .cta-group {
       display: flex;
-      gap: 16px;
-      justify-content: center;
+      gap: 20px;
       flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 120px;
     }
 
+    /* Glowing button with animation */
     .btn {
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 16px;
+      padding: 18px 40px;
+      border-radius: 14px;
+      font-size: 17px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.2s;
-      display: inline-block;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
     }
 
     .btn-primary {
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
+      box-shadow: 0 0 40px var(--glow), 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.6s;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
     }
 
     .btn-primary:hover {
-      background: #4F46E5;
-      transform: translateY(-1px);
+      transform: translateY(-3px);
+      box-shadow: 0 0 60px var(--glow), 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 
     .btn-secondary {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
     }
 
     .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
       border-color: var(--primary);
+      transform: translateY(-2px);
     }
 
-    /* Features - No cards, just content flow */
-    .section {
-      padding: clamp(80px, 15vh, 140px) 40px;
-      max-width: 1280px;
-      margin: 0 auto;
+    /* Device mockup with floating animation */
+    .device-showcase {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      margin: 80px 0;
+      flex-wrap: wrap;
     }
 
-    .section-title {
-      font-size: clamp(40px, 7vw, 64px);
+    .device {
+      position: relative;
+      animation: deviceFloat 6s ease-in-out infinite;
+    }
+
+    .device:nth-child(2) {
+      animation-delay: 1s;
+    }
+
+    @keyframes deviceFloat {
+      0%, 100% { transform: translateY(0px) rotateY(0deg); }
+      50% { transform: translateY(-20px) rotateY(5deg); }
+    }
+
+    /* Phone mockup */
+    .phone {
+      width: 280px;
+      height: 560px;
+      background: linear-gradient(145deg, #1A1A2E, #0F0F1E);
+      border-radius: 40px;
+      padding: 14px;
+      box-shadow:
+        0 0 0 8px rgba(255, 255, 255, 0.05),
+        0 0 60px rgba(99, 102, 241, 0.4),
+        0 30px 80px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 28px;
+      background: #0A0A0F;
+      border-radius: 0 0 20px 20px;
+      z-index: 2;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #6366F1 0%, #8B5CF6 100%);
+      border-radius: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone-screen::after {
+      content: '';
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+      50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.2; }
+    }
+
+    .phone-content {
+      padding: 60px 24px 24px;
+      color: white;
+      position: relative;
+      z-index: 1;
+    }
+
+    .phone-title {
+      font-size: 24px;
       font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: 64px;
-      text-align: center;
+      margin-bottom: 12px;
     }
 
-    /* Feature grid - Simple, no borders */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 64px 40px;
-    }
-
-    .feature-item {
-      text-align: left;
-    }
-
-    .feature-icon {
-      width: 40px;
-      height: 40px;
-      margin-bottom: 20px;
-      color: var(--primary);
-    }
-
-    .feature-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    .feature-desc {
-      font-size: 16px;
-      color: var(--text-secondary);
+    .phone-text {
+      font-size: 14px;
+      opacity: 0.9;
       line-height: 1.6;
     }
 
-    /* Use cases - Large visual blocks */
-    .use-cases {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 80px;
-      margin-top: 80px;
+    /* Laptop mockup */
+    .laptop {
+      width: 480px;
+      perspective: 1200px;
     }
 
-    .use-case {
-      text-align: left;
+    .laptop-screen {
+      width: 100%;
+      height: 300px;
+      background: linear-gradient(145deg, #1A1A2E, #0F0F1E);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow:
+        0 0 0 8px rgba(255, 255, 255, 0.05),
+        0 0 80px rgba(99, 102, 241, 0.5),
+        0 40px 100px rgba(0, 0, 0, 0.7);
+      transform: rotateX(5deg);
+      transform-style: preserve-3d;
     }
 
-    .use-case-number {
+    .laptop-display {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0F0F1E 0%, #1A0B2E 50%, #0F0A1E 100%);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .laptop-display::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.1) 50%, transparent 100%);
+      animation: scan 4s linear infinite;
+    }
+
+    @keyframes scan {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .laptop-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .laptop-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      filter: drop-shadow(0 0 20px var(--glow));
+    }
+
+    .laptop-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .laptop-base {
+      width: 100%;
+      height: 20px;
+      background: linear-gradient(180deg, #1A1A2E 0%, #0F0F1E 100%);
+      border-radius: 0 0 20px 20px;
+      margin-top: -2px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Feature sections with glass cards */
+    .section {
+      padding: clamp(80px, 15vh, 160px) 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .section-label {
+      display: inline-block;
       font-size: 14px;
       font-weight: 600;
       color: var(--primary);
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 16px;
+      letter-spacing: 0.15em;
+      margin-bottom: 20px;
+      padding: 8px 20px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 20px;
     }
 
-    .use-case-title {
-      font-size: clamp(32px, 5vw, 48px);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
-      margin-bottom: 16px;
+    .section-title {
+      font-size: clamp(36px, 7vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #FFFFFF 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    .use-case-desc {
-      font-size: 18px;
-      color: var(--text-secondary);
+    .section-subtitle {
+      font-size: clamp(18px, 2.5vw, 24px);
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 700px;
+      margin: 0 auto;
       line-height: 1.6;
     }
 
-    /* Steps - Horizontal flow, no cards */
-    .steps {
+    /* Glass cards with hover effects */
+    .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 48px;
-      margin-top: 80px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 32px;
     }
 
-    .step {
-      text-align: center;
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 40px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
 
-    .step-number {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
-      color: white;
-      border-radius: 50%;
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow:
+        0 0 60px rgba(99, 102, 241, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon-wrapper {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+      position: relative;
+    }
+
+    .feature-icon {
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+
+    .feature-title {
+      font-size: 22px;
       font-weight: 700;
-      margin: 0 auto 24px;
-    }
-
-    .step-title {
-      font-size: 20px;
-      font-weight: 600;
       margin-bottom: 12px;
+      color: white;
     }
 
-    .step-desc {
+    .feature-desc {
       font-size: 16px;
-      color: var(--text-secondary);
-      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.7;
     }
 
-    /* Gradient section - Like Linear */
-    .gradient-section {
-      background: linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Dark section - Like Apple */
-    .dark-section {
-      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-      color: white;
-    }
-
-    .dark-section .section-title,
-    .dark-section .feature-title,
-    .dark-section .use-case-title {
-      color: white;
-    }
-
-    .dark-section .feature-desc,
-    .dark-section .use-case-desc,
-    .dark-section .step-desc {
-      color: #CBD5E1;
-    }
-
-    /* Stats bar - Clean, no borders */
+    /* Stats with glow */
     .stats {
-      display: flex;
-      justify-content: center;
-      gap: 80px;
-      margin: 64px 0;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 48px;
+      margin: 80px 0;
     }
 
     .stat {
       text-align: center;
+      padding: 40px 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+
+    .stat:hover {
+      transform: scale(1.05);
+      border-color: var(--primary);
+      box-shadow: 0 0 40px rgba(99, 102, 241, 0.3);
     }
 
     .stat-value {
-      font-size: 48px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+      line-height: 1.2;
     }
 
     .stat-label {
-      font-size: 15px;
-      color: var(--text-secondary);
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.7);
       font-weight: 500;
     }
 
-    /* FAQ - Simple accordion */
+    /* Use case sections with large visuals */
+    .use-case-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 80px;
+      align-items: center;
+      margin: 120px 0;
+    }
+
+    .use-case-content h3 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, white, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .use-case-content p {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .use-case-features {
+      list-style: none;
+    }
+
+    .use-case-features li {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 16px;
+      padding-left: 32px;
+      position: relative;
+    }
+
+    .use-case-features li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    /* FAQ with glass effect */
     .faq {
-      max-width: 800px;
-      margin: 80px auto 0;
+      max-width: 900px;
+      margin: 80px auto;
     }
 
     .faq-item {
-      border-bottom: 1px solid var(--border);
-      padding: 24px 0;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(99, 102, 241, 0.5);
     }
 
     .faq-question {
+      padding: 28px 32px;
       font-size: 18px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      color: white;
     }
 
     .faq-answer {
-      margin-top: 16px;
-      color: var(--text-secondary);
+      padding: 0 32px 28px;
+      color: rgba(255, 255, 255, 0.7);
       line-height: 1.7;
       display: none;
     }
@@ -366,15 +679,61 @@
       display: block;
     }
 
+    details[open] .faq-question {
+      color: var(--primary);
+    }
+
+    /* CTA section with massive glow */
+    .cta-section {
+      text-align: center;
+      padding: 160px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.3), transparent 60%);
+      animation: ctaGlow 8s ease-in-out infinite;
+    }
+
+    @keyframes ctaGlow {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+    }
+
+    .cta-section h2 {
+      font-size: clamp(40px, 8vw, 80px);
+      font-weight: 800;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-section p {
+      font-size: clamp(18px, 2.5vw, 24px);
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 700px;
+      margin: 0 auto 48px;
+      position: relative;
+      z-index: 1;
+    }
+
     /* Footer */
     .footer {
-      background: var(--surface);
       padding: 80px 40px 40px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
     }
 
     .footer-content {
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -382,12 +741,13 @@
       margin-bottom: 48px;
     }
 
-    .footer-section h3 {
+    .footer-section h4 {
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      color: white;
     }
 
     .footer-section ul {
@@ -399,9 +759,10 @@
     }
 
     .footer-section a {
-      color: var(--text-secondary);
+      color: rgba(255, 255, 255, 0.6);
       text-decoration: none;
       font-size: 15px;
+      transition: color 0.3s;
     }
 
     .footer-section a:hover {
@@ -409,19 +770,16 @@
     }
 
     .footer-bottom {
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
       padding-top: 32px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       justify-content: space-between;
       font-size: 14px;
-      color: var(--text-tertiary);
-    }
-
-    .footer-bottom a {
-      color: var(--text-secondary);
-      text-decoration: none;
+      color: rgba(255, 255, 255, 0.5);
+      flex-wrap: wrap;
+      gap: 20px;
     }
 
     /* Responsive */
@@ -430,27 +788,47 @@
         display: none;
       }
 
-      .features-grid,
-      .use-cases,
-      .steps {
-        grid-template-columns: 1fr;
+      .device-showcase {
+        flex-direction: column;
       }
 
-      .stats {
+      .laptop {
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .use-case-section {
+        grid-template-columns: 1fr;
         gap: 48px;
       }
 
-      .footer-content {
-        grid-template-columns: repeat(2, 1fr);
+      .stats {
+        grid-template-columns: 1fr;
+        gap: 24px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Navigation -->
+  <!-- Animated background -->
+  <div class="bg-gradient"></div>
+
+  <!-- Floating particles -->
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- Glass morphism navigation -->
   <nav class="nav">
     <div class="nav-container">
-      <a href="#" class="logo-link">
+      <a href="#" class="logo">
         <svg class="logo-icon" viewBox="0 0 36 36" fill="none">
           <defs>
             <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -458,7 +836,7 @@
               <stop offset="100%" style="stop-color:#8B5CF6"/>
             </linearGradient>
           </defs>
-          <path d="M18 4C10.268 4 4 10.268 4 18C4 25.732 10.268 32 18 32C21.866 32 25.37 30.38 27.8 27.8" 
+          <path d="M18 4C10.268 4 4 10.268 4 18C4 25.732 10.268 32 18 32C21.866 32 25.37 30.38 27.8 27.8"
                 stroke="url(#logoGrad)" stroke-width="3" stroke-linecap="round"/>
           <path d="M28 18H18V28" stroke="url(#logoGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="28" cy="18" r="2.5" fill="url(#logoGrad)"/>
@@ -468,243 +846,265 @@
         <span>Glint</span>
       </a>
       <ul class="nav-links">
-        <li><a href="#features">Features</a></li>
-        <li><a href="#download">Download</a></li>
-        <li><a href="{{ url_for('index') }}">Back</a></li>
+        <li><a href="#features">功能</a></li>
+        <li><a href="#download">下载</a></li>
+        <li><a href="{{ url_for('index') }}">返回</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- Hero -->
+  <!-- Hero with massive gradient text -->
   <section class="hero">
-    <h1 class="hero-title">Remote desktop<br/>that just works.</h1>
+    <h1 class="hero-title">更快 更美 更简单</h1>
     <p class="hero-subtitle">
-      Built for professionals who demand speed, security, and simplicity.
-      Access your workstation from anywhere with zero-compromise performance.
+      专为专业人士打造的远程桌面解决方案<br/>
+      随时随地访问您的工作站，享受零妥协的性能体验
     </p>
     <div class="cta-group">
-      <a href="#download" class="btn btn-primary">Download Beta</a>
-      <a href="#features" class="btn btn-secondary">Learn More</a>
+      <a href="#download" class="btn btn-primary">立即下载 Beta</a>
+      <a href="#features" class="btn btn-secondary">了解更多</a>
     </div>
-    
+
+    <!-- Floating device mockups -->
+    <div class="device-showcase">
+      <div class="device phone">
+        <div class="phone-screen">
+          <div class="phone-content">
+            <div class="phone-title">随时控制</div>
+            <div class="phone-text">在手机上流畅操作您的 PC，如同触摸自己的设备</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="device laptop">
+        <div class="laptop-screen">
+          <div class="laptop-display">
+            <div class="laptop-content">
+              <svg class="laptop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              <div class="laptop-title">极速连接</div>
+            </div>
+          </div>
+        </div>
+        <div class="laptop-base"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats with glow effect -->
+  <section class="section">
     <div class="stats">
       <div class="stat">
         <div class="stat-value">&lt;5ms</div>
-        <div class="stat-label">LAN Latency</div>
+        <div class="stat-label">局域网延迟</div>
       </div>
       <div class="stat">
         <div class="stat-value">4K@60</div>
-        <div class="stat-label">Max Resolution</div>
+        <div class="stat-label">最高分辨率</div>
       </div>
       <div class="stat">
         <div class="stat-value">AES-256</div>
-        <div class="stat-label">Encryption</div>
+        <div class="stat-label">军事级加密</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">零配置</div>
+        <div class="stat-label">即连即用</div>
       </div>
     </div>
   </section>
 
-  <!-- Features -->
-  <section class="section">
-    <h2 class="section-title">Built for speed. Designed for simplicity.</h2>
-    
+  <!-- Features with glass cards -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <span class="section-label">核心功能</span>
+      <h2 class="section-title">为速度而生，为简约而设计</h2>
+      <p class="section-subtitle">
+        集成最先进的远程桌面技术，为您提供专业级的使用体验
+      </p>
+    </div>
+
     <div class="features-grid">
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-        <h3 class="feature-title">Ultra-Low Latency</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">超低延迟</h3>
         <p class="feature-desc">
-          Intelligent P2P routing and adaptive bitrate deliver sub-10ms latency on LAN.
-          Feel like you're sitting at your desk.
+          智能 P2P 路由和自适应码率，局域网延迟低至 5ms。
+          让您感觉就像坐在桌前操作一样流畅。
         </p>
       </div>
 
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="5" y="11" width="14" height="10" rx="2"/>
-          <circle cx="12" cy="16" r="1"/>
-          <path d="M9 11V7a3 3 0 0 1 6 0v4"/>
-        </svg>
-        <h3 class="feature-title">Enterprise Security</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="11" width="14" height="10" rx="2"/>
+            <circle cx="12" cy="16" r="1"/>
+            <path d="M9 11V7a3 3 0 0 1 6 0v4"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">企业级安全</h3>
         <p class="feature-desc">
-          End-to-end AES-256 encryption with zero-knowledge architecture.
-          Your data never touches our servers.
+          端到端 AES-256 加密，零知识架构设计。
+          您的数据永远不会接触我们的服务器。
         </p>
       </div>
 
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="5" y="2" width="14" height="20" rx="2"/>
-          <path d="M12 18h.01"/>
-        </svg>
-        <h3 class="feature-title">Mobile-First</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2"/>
+            <path d="M12 18h.01"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">移动优先</h3>
         <p class="feature-desc">
-          Native iOS and Android apps with gesture controls.
-          Control your desktop as naturally as your phone.
+          原生 iOS 和 Android 应用，支持手势控制。
+          像操作手机一样自然地控制您的桌面。
         </p>
       </div>
 
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          <path d="M2 12h20"/>
-        </svg>
-        <h3 class="feature-title">Global Access</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            <path d="M2 12h20"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">全球访问</h3>
         <p class="feature-desc">
-          Connect from anywhere with automatic relay fallback.
-          LAN, P2P, or cloud—we choose the fastest route.
+          随时随地连接，自动中继回退。
+          局域网、P2P 或云端 — 我们选择最快的路由。
         </p>
       </div>
 
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
-        </svg>
-        <h3 class="feature-title">Zero Configuration</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">零配置</h3>
         <p class="feature-desc">
-          Sign in once, connect instantly. Automatic device discovery—no
-          IP addresses or port forwarding.
+          登录一次，即刻连接。自动设备发现 —
+          无需 IP 地址或端口转发配置。
         </p>
       </div>
 
-      <div class="feature-item">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/>
-          <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
-          <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
-        </svg>
-        <h3 class="feature-title">Free During Beta</h3>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M2 12h20"/>
+            <circle cx="12" cy="12" r="9"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Beta 期间免费</h3>
         <p class="feature-desc">
-          Free during beta testing. Help shape the product with early
-          feedback and priority support.
+          Beta 测试期间完全免费。
+          帮助我们完善产品，享受优先支持服务。
         </p>
       </div>
     </div>
   </section>
 
-  <!-- Use Cases -->
-  <section class="section gradient-section">
-    <h2 class="section-title">Work anywhere. Game everywhere.</h2>
-    
-    <div class="use-cases">
-      <div class="use-case">
-        <div class="use-case-number">For Professionals</div>
-        <h3 class="use-case-title">Your workstation, anywhere</h3>
-        <p class="use-case-desc">
-          Access your powerful desktop from any device. Edit 4K video, compile code,
-          or run virtual machines—all from your phone or tablet.
-        </p>
-      </div>
-
-      <div class="use-case">
-        <div class="use-case-number">For Gamers</div>
-        <h3 class="use-case-title">PC gaming on-the-go</h3>
-        <p class="use-case-desc">
-          Stream AAA titles to your phone with low-latency P2P connection.
-          Play anywhere with responsive controls and smooth gameplay.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works -->
+  <!-- Use case section -->
   <section class="section">
-    <h2 class="section-title">Get started in under 2 minutes</h2>
-    
-    <div class="steps">
-      <div class="step">
-        <div class="step-number">1</div>
-        <h3 class="step-title">Install Apps</h3>
-        <p class="step-desc">
-          Download for your mobile device and desktop. Available for iOS,
-          Android, Windows, and macOS.
+    <div class="use-case-section">
+      <div class="use-case-content">
+        <h3>随地工作<br/>随心游戏</h3>
+        <p>
+          无论您是需要访问强大工作站的专业人士，
+          还是想在移动设备上畅玩 PC 游戏的玩家，
+          Glint 都能为您提供完美的远程桌面体验。
         </p>
+        <ul class="use-case-features">
+          <li>4K 视频编辑，无缝流畅</li>
+          <li>代码编译，实时响应</li>
+          <li>AAA 游戏串流，低延迟操控</li>
+          <li>虚拟机运行，随时随地</li>
+        </ul>
       </div>
-
-      <div class="step">
-        <div class="step-number">2</div>
-        <h3 class="step-title">Sign In</h3>
-        <p class="step-desc">
-          Use the same account on all devices. They'll automatically discover
-          each other on your network.
-        </p>
-      </div>
-
-      <div class="step">
-        <div class="step-number">3</div>
-        <h3 class="step-title">Connect</h3>
-        <p class="step-desc">
-          Tap any device to connect instantly. Control your PC from anywhere
-          with ultra-low latency.
-        </p>
+      <div class="device phone" style="margin: 0;">
+        <div class="phone-screen" style="background: linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%);">
+          <div class="phone-content">
+            <div class="phone-title">专业工作流</div>
+            <div class="phone-text">平板控制台式机，办公效率翻倍</div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- FAQ -->
   <section class="section">
-    <h2 class="section-title">Frequently asked questions</h2>
-    
+    <div class="section-header">
+      <span class="section-label">常见问题</span>
+      <h2 class="section-title">您想了解的一切</h2>
+    </div>
+
     <div class="faq">
       <details class="faq-item">
         <summary class="faq-question">
-          <span>How do I connect my phone to my PC?</span>
+          <span>如何将手机连接到电脑？</span>
           <span>+</span>
         </summary>
         <p class="faq-answer">
-          Simply sign in with the same account on both devices. Your devices will automatically
-          appear in each other's device list. Tap any online device to connect instantly.
+          只需在两台设备上使用相同账户登录，您的设备将自动出现在彼此的设备列表中。
+          点击任何在线设备即可立即连接。
         </p>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Do I need to be on the same WiFi?</span>
+          <span>需要在同一个 WiFi 网络吗？</span>
           <span>+</span>
         </summary>
         <p class="faq-answer">
-          No! While same-network connections offer the lowest latency, Glint also supports
-          P2P and relay modes for remote access from anywhere in the world.
+          不需要！虽然同网络连接提供最低延迟，但 Glint 也支持 P2P 和中继模式，
+          让您可以从世界任何地方进行远程访问。
         </p>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Is it free during the beta?</span>
+          <span>Beta 期间真的免费吗？</span>
           <span>+</span>
         </summary>
         <p class="faq-answer">
-          Yes. Glint is currently free during beta testing. We're gathering feedback
-          to improve the product before the official launch.
+          是的。Glint 目前在 Beta 测试期间完全免费。
+          我们正在收集反馈以改进产品，为正式发布做准备。
         </p>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Is my connection secure?</span>
+          <span>连接安全吗？</span>
           <span>+</span>
         </summary>
         <p class="faq-answer">
-          Absolutely. All connections use end-to-end AES-256 encryption. Your streaming
-          data never passes through our servers unencrypted.
+          绝对安全。所有连接都使用端到端 AES-256 加密。
+          您的串流数据永远不会以未加密形式通过我们的服务器。
         </p>
       </details>
     </div>
   </section>
 
-  <!-- Download CTA -->
-  <section class="section dark-section" id="download">
-    <h2 class="section-title">Ready to experience Glint?</h2>
-    <p style="text-align: center; font-size: 20px; color: #CBD5E1; max-width: 700px; margin: 0 auto 48px;">
-      Join the beta program and be among the first to access professional remote desktop.
+  <!-- CTA with massive glow -->
+  <section class="cta-section" id="download">
+    <h2>准备体验 Glint？</h2>
+    <p>
+      加入 Beta 计划，成为首批体验专业远程桌面的用户
     </p>
     <div class="cta-group">
-      <a href="#" class="btn btn-primary">Download for iOS</a>
-      <a href="#" class="btn btn-primary">Download for Android</a>
-      <a href="#" class="btn btn-secondary" style="background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">Download for Windows</a>
-      <a href="#" class="btn btn-secondary" style="background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">Download for macOS</a>
+      <a href="#" class="btn btn-primary">下载 iOS 版</a>
+      <a href="#" class="btn btn-primary">下载 Android 版</a>
+      <a href="#" class="btn btn-secondary">下载 Windows 版</a>
+      <a href="#" class="btn btn-secondary">下载 macOS 版</a>
     </div>
   </section>
 
@@ -712,45 +1112,45 @@
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-section">
-        <h3>Product</h3>
+        <h4>产品</h4>
         <ul>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#download">Download</a></li>
-          <li><a href="#">Documentation</a></li>
+          <li><a href="#features">功能</a></li>
+          <li><a href="#download">下载</a></li>
+          <li><a href="#">文档</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
-        <h3>Resources</h3>
+        <h4>资源</h4>
         <ul>
-          <li><a href="#">API Reference</a></li>
-          <li><a href="#">Community</a></li>
+          <li><a href="#">API 参考</a></li>
+          <li><a href="#">社区</a></li>
           <li><a href="#">GitHub</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
-        <h3>Support</h3>
+        <h4>支持</h4>
         <ul>
-          <li><a href="mailto:support@glintdesk.com">Email Support</a></li>
+          <li><a href="mailto:support@glintdesk.com">邮件支持</a></li>
           <li><a href="#">Discord</a></li>
-          <li><a href="#">Report Bug</a></li>
+          <li><a href="#">报告问题</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
-        <h3>Legal</h3>
+        <h4>法律</h4>
         <ul>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Security</a></li>
+          <li><a href="#">隐私政策</a></li>
+          <li><a href="#">服务条款</a></li>
+          <li><a href="#">安全</a></li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
-      <span>&copy; <span id="year">2024</span> Glint. All rights reserved.</span>
-      <a href="{{ url_for('index') }}">← Back to Lab</a>
+      <span>&copy; <span id="year">2024</span> Glint. 保留所有权利。</span>
+      <a href="{{ url_for('index') }}">← 返回实验室</a>
     </div>
   </footer>
 
