@@ -38,6 +38,7 @@
   <meta name="twitter:site" content="@glintdesk"/>
 
   <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/games/remotedesk/favicon.svg"/>
   <link rel="icon" type="image/x-icon" href="/static/games/remotedesk/favicon.ico"/>
   <link rel="icon" type="image/png" sizes="32x32" href="/static/games/remotedesk/favicon-32x32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="/static/games/remotedesk/favicon-16x16.png"/>
@@ -72,7 +73,7 @@
       "ratingCount": "1250"
     },
     "description": "Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees.",
-    "screenshot": "/static/games/remotedesk/screenshot-desktop.svg",
+    "screenshot": "/static/games/remotedesk/screenshot-desktop-dark.svg",
     "softwareVersion": "2.0.1-beta",
     "datePublished": "2024-01-01",
     "author": {
@@ -2602,6 +2603,11 @@
       <a href="#download" class="btn btn-primary">Download Beta</a>
       <a href="#features" class="btn btn-secondary">Learn More</a>
     </div>
+
+    <!-- Hero Visual -->
+    <div class="hero-visual fade-in delay-4" style="margin-top: 80px; max-width: 1400px; margin-left: auto; margin-right: auto;">
+      <img src="/static/games/remotedesk/screenshot-isometric.svg" alt="Glint app showcased across multiple platforms with 3D perspective" loading="eager" style="width: 100%; height: auto; opacity: 0.95;"/>
+    </div>
   </section>
 
   <!-- Product Screenshots Section -->
@@ -2615,99 +2621,13 @@
     <div class="screenshots-container">
       <!-- Mobile Preview -->
       <div class="device-preview mobile-preview">
-        <div class="phone-frame">
-          <div class="phone-notch"></div>
-          <div class="phone-screen">
-            <!-- Simulated Mobile UI -->
-            <div class="mock-ui mobile-ui">
-              <div class="mock-header">
-                <div class="mock-title">My Devices</div>
-                <div class="mock-controls">
-                  <div class="mock-icon"></div>
-                  <div class="mock-icon"></div>
-                </div>
-              </div>
-
-              <div class="device-card online">
-                <div class="card-icon"></div>
-                <div class="card-content">
-                  <div class="card-title">Work PC</div>
-                  <div class="card-subtitle">192.168.1.100</div>
-                  <div class="card-meta">
-                    <span class="status-badge">Online</span>
-                    <span class="latency">5ms</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="device-card">
-                <div class="card-icon offline"></div>
-                <div class="card-content">
-                  <div class="card-title">MacBook Pro</div>
-                  <div class="card-subtitle">192.168.1.105</div>
-                  <div class="card-meta">
-                    <span class="status-badge offline">Offline</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mock-tabbar">
-                <div class="tab-item active">
-                  <div class="tab-icon"></div>
-                  <div class="tab-label">Devices</div>
-                </div>
-                <div class="tab-item">
-                  <div class="tab-icon"></div>
-                  <div class="tab-label">Profile</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <img src="/static/games/remotedesk/screenshot-mobile-dark.svg" alt="Glint mobile app interface showing device list with glassmorphism design" loading="lazy" style="width: 100%; height: auto; border-radius: 50px; box-shadow: 0 40px 80px rgba(0,0,0,0.4);"/>
         <p class="preview-caption">iOS & Android Apps</p>
       </div>
 
       <!-- Desktop Preview -->
       <div class="device-preview desktop-preview">
-        <div class="desktop-frame">
-          <div class="window-controls">
-            <span class="control-btn red"></span>
-            <span class="control-btn yellow"></span>
-            <span class="control-btn green"></span>
-          </div>
-          <div class="desktop-screen">
-            <!-- Simulated Desktop UI -->
-            <div class="mock-ui desktop-ui">
-              <div class="sidebar">
-                <div class="sidebar-brand">
-                  <div class="brand-icon"></div>
-                  <div class="brand-text">Glint</div>
-                </div>
-                <div class="sidebar-menu">
-                  <div class="menu-item active">Home</div>
-                  <div class="menu-item">Devices</div>
-                  <div class="menu-item">Settings</div>
-                </div>
-              </div>
-              <div class="main-content">
-                <div class="content-header">
-                  <div class="header-title">Welcome back</div>
-                  <div class="header-subtitle">This machine is ready for remote control</div>
-                </div>
-                <div class="stats-grid">
-                  <div class="stat-card">
-                    <div class="stat-label">Online Devices</div>
-                    <div class="stat-value">3</div>
-                  </div>
-                  <div class="stat-card">
-                    <div class="stat-label">Network</div>
-                    <div class="stat-value">5ms</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <img src="/static/games/remotedesk/screenshot-desktop-dark.svg" alt="Glint desktop client with dashboard showing network status and device information" loading="lazy" style="width: 100%; height: auto; border-radius: 18px; box-shadow: 0 50px 100px rgba(0,0,0,0.5);"/>
         <p class="preview-caption">Windows & macOS Clients</p>
       </div>
     </div>

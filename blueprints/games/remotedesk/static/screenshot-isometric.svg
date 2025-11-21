@@ -1,0 +1,301 @@
+<svg width="1400" height="1000" viewBox="0 0 1400 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="iso-bg" cx="50%" cy="30%">
+      <stop offset="0%" stop-color="rgba(80,80,90,0.25)"/>
+      <stop offset="80%" stop-color="rgba(10,10,12,0.98)"/>
+    </radialGradient>
+
+    <linearGradient id="blue-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A84FF"/>
+      <stop offset="100%" stop-color="#0051C7"/>
+    </linearGradient>
+
+    <filter id="layer-shadow-1">
+      <feDropShadow dx="0" dy="30" stdDeviation="40" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="layer-shadow-2">
+      <feDropShadow dx="0" dy="50" stdDeviation="60" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="layer-shadow-3">
+      <feDropShadow dx="0" dy="70" stdDeviation="80" flood-opacity="0.4"/>
+    </filter>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1400" height="1000" fill="url(#iso-bg)"/>
+
+  <!-- 第三层 - 设置界面 (最远，最模糊) -->
+  <g transform="translate(100, 400) rotate(-8) skewY(-4) scale(0.85)" opacity="0.4">
+    <rect x="0" y="0" width="900" height="500" rx="16" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)" stroke-width="1" filter="url(#layer-shadow-3)"/>
+
+    <!-- 窗口控制按钮 -->
+    <circle cx="20" cy="20" r="5" fill="#FF5F57"/>
+    <circle cx="38" cy="20" r="5" fill="#FFBD2E"/>
+    <circle cx="56" cy="20" r="5" fill="#28CA42"/>
+
+    <!-- 模糊内容 -->
+    <g transform="translate(40, 60)">
+      <rect width="820" height="40" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <rect y="60" width="820" height="100" rx="12" fill="rgba(255,255,255,0.04)"/>
+      <rect y="180" width="820" height="100" rx="12" fill="rgba(255,255,255,0.04)"/>
+      <rect y="300" width="820" height="100" rx="12" fill="rgba(255,255,255,0.04)"/>
+    </g>
+  </g>
+
+  <!-- 第二层 - 设备列表界面 (中间层) -->
+  <g transform="translate(200, 250) rotate(-5) skewY(-3) scale(0.92)" opacity="0.7">
+    <rect x="0" y="0" width="1000" height="560" rx="18" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.1)" stroke-width="1" filter="url(#layer-shadow-2)"/>
+
+    <!-- 窗口控制按钮 -->
+    <circle cx="22" cy="22" r="6" fill="#FF5F57"/>
+    <circle cx="42" cy="22" r="6" fill="#FFBD2E"/>
+    <circle cx="62" cy="22" r="6" fill="#28CA42"/>
+
+    <!-- 顶栏 -->
+    <rect x="0" y="0" width="1000" height="44" rx="18" fill="rgba(255,255,255,0.02)"/>
+    <rect x="0" y="43" width="1000" height="1" fill="rgba(255,255,255,0.08)"/>
+
+    <!-- 侧边栏 -->
+    <rect x="0" y="44" width="220" height="516" fill="rgba(255,255,255,0.015)"/>
+    <rect x="219" y="44" width="1" height="516" fill="rgba(255,255,255,0.06)"/>
+
+    <!-- Logo区 -->
+    <g transform="translate(24, 64)">
+      <rect width="44" height="44" rx="12" fill="url(#blue-accent)"/>
+      <rect width="44" height="44" rx="12" fill="rgba(255,255,255,0.1)"/>
+      <text x="56" y="26" font-family="-apple-system, sans-serif" font-size="15" font-weight="600" fill="#ffffff">Glint</text>
+    </g>
+
+    <!-- 菜单项 -->
+    <g transform="translate(20, 130)">
+      <rect width="180" height="36" rx="10" fill="rgba(255,255,255,0.08)"/>
+      <rect y="48" width="180" height="36" rx="10" fill="rgba(255,255,255,0.03)"/>
+      <rect y="96" width="180" height="36" rx="10" fill="rgba(255,255,255,0.03)"/>
+    </g>
+
+    <!-- 主内容区 - 设备卡片 -->
+    <g transform="translate(240, 64)">
+      <text x="0" y="0" font-family="-apple-system, sans-serif" font-size="32" font-weight="600" fill="#ffffff">可用设备</text>
+
+      <!-- 设备卡片 -->
+      <g transform="translate(0, 48)">
+        <rect width="720" height="100" rx="18" fill="rgba(255,255,255,0.04)"/>
+        <rect x="1" y="1" width="718" height="98" rx="17" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <rect x="20" y="20" width="60" height="60" rx="16" fill="rgba(59,130,246,0.1)"/>
+        <rect x="35" y="35" width="30" height="20" rx="3" fill="#3B82F6" fill-opacity="0.8"/>
+
+        <text x="95" y="42" font-family="-apple-system, sans-serif" font-size="18" font-weight="600" fill="#ffffff">工作电脑</text>
+        <text x="95" y="64" font-family="Monaco, monospace" font-size="12" fill="rgba(255,255,255,0.5)">192.168.1.100</text>
+
+        <circle cx="100" cy="77" r="4" fill="#10B981">
+          <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="110" y="82" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="#10B981">在线</text>
+      </g>
+
+      <g transform="translate(0, 164)">
+        <rect width="720" height="100" rx="18" fill="rgba(255,255,255,0.04)"/>
+        <rect x="1" y="1" width="718" height="98" rx="17" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <rect x="20" y="20" width="60" height="60" rx="16" fill="rgba(249,115,22,0.1)"/>
+        <rect x="35" y="35" width="30" height="20" rx="3" fill="#F97316" fill-opacity="0.8"/>
+
+        <text x="95" y="42" font-family="-apple-system, sans-serif" font-size="18" font-weight="600" fill="#ffffff">家用电脑</text>
+      </g>
+
+      <g transform="translate(0, 280)">
+        <rect width="720" height="100" rx="18" fill="rgba(255,255,255,0.04)"/>
+        <rect x="1" y="1" width="718" height="98" rx="17" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <rect x="20" y="20" width="60" height="60" rx="16" fill="rgba(34,197,94,0.1)"/>
+        <rect x="35" y="35" width="30" height="20" rx="3" fill="#22C55E" fill-opacity="0.8"/>
+
+        <text x="95" y="42" font-family="-apple-system, sans-serif" font-size="18" font-weight="600" fill="#ffffff">测试设备</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- 第一层 - 主界面 (最近，最清晰) -->
+  <g transform="translate(350, 150) rotate(-3) skewY(-2)" opacity="1">
+    <rect x="0" y="0" width="1000" height="600" rx="18" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="1" filter="url(#layer-shadow-1)"/>
+
+    <!-- 窗口控制按钮 -->
+    <circle cx="24" cy="24" r="6" fill="#FF5F57"/>
+    <circle cx="46" cy="24" r="6" fill="#FFBD2E"/>
+    <circle cx="68" cy="24" r="6" fill="#28CA42"/>
+
+    <!-- 窗口标题 -->
+    <text x="500" y="30" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="rgba(255,255,255,0.7)" text-anchor="middle">Glint - 我的工作电脑</text>
+
+    <!-- 顶栏 -->
+    <rect x="0" y="0" width="1000" height="48" rx="18" fill="rgba(255,255,255,0.025)"/>
+    <rect x="0" y="47" width="1000" height="1" fill="rgba(255,255,255,0.08)"/>
+
+    <!-- 右上角控制按钮 -->
+    <g transform="translate(900, 16)">
+      <rect width="24" height="16" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <line x1="6" y1="8" x2="18" y2="8" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+    </g>
+    <g transform="translate(936, 16)">
+      <rect width="24" height="16" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="6" y="5" width="12" height="6" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+    </g>
+
+    <!-- 主内容 -->
+    <g transform="translate(0, 48)">
+      <!-- 侧边栏 -->
+      <rect x="0" y="0" width="260" height="552" fill="rgba(255,255,255,0.02)"/>
+      <rect x="259" y="0" width="1" height="552" fill="rgba(255,255,255,0.06)"/>
+
+      <!-- Logo区 -->
+      <g transform="translate(30, 30)">
+        <rect width="52" height="52" rx="14" fill="url(#blue-accent)"/>
+        <rect width="52" height="52" rx="14" fill="rgba(255,255,255,0.1)"/>
+        <rect x="13" y="19" width="26" height="16" rx="3" fill="#ffffff" fill-opacity="0.95"/>
+        <rect x="17" y="23" width="18" height="8" rx="2" fill="rgba(10,132,255,0.3)"/>
+
+        <text x="64" y="30" font-family="-apple-system, sans-serif" font-size="17" font-weight="600" fill="#ffffff">Glint</text>
+        <text x="64" y="48" font-family="-apple-system, sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">v2.0.1</text>
+      </g>
+
+      <!-- 菜单项 -->
+      <g transform="translate(22, 110)">
+        <!-- 主页 - 激活 -->
+        <rect width="216" height="42" rx="12" fill="rgba(255,255,255,0.08)"/>
+        <rect x="1" y="1" width="214" height="40" rx="11" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none"/>
+        <rect x="15" y="13" width="18" height="16" rx="4" fill="rgba(10,132,255,0.2)"/>
+        <rect x="17" y="15" width="14" height="12" rx="3" fill="#0A84FF"/>
+        <text x="44" y="27" font-family="-apple-system, sans-serif" font-size="15" font-weight="500" fill="#ffffff">主页</text>
+
+        <!-- 设备管理 -->
+        <g transform="translate(0, 54)">
+          <rect x="15" y="13" width="18" height="16" rx="4" fill="rgba(255,255,255,0.08)"/>
+          <text x="44" y="27" font-family="-apple-system, sans-serif" font-size="15" fill="rgba(255,255,255,0.6)">设备管理</text>
+          <rect x="165" y="11" width="30" height="18" rx="9" fill="rgba(10,132,255,0.12)"/>
+          <text x="180" y="25" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#0A84FF" text-anchor="middle">5</text>
+        </g>
+
+        <!-- 设置 -->
+        <g transform="translate(0, 108)">
+          <circle cx="24" cy="21" r="9" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
+          <text x="44" y="27" font-family="-apple-system, sans-serif" font-size="15" fill="rgba(255,255,255,0.6)">设置</text>
+        </g>
+
+        <!-- 关于 -->
+        <g transform="translate(0, 162)">
+          <circle cx="24" cy="21" r="9" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
+          <text x="24" y="26" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="rgba(255,255,255,0.6)" text-anchor="middle">i</text>
+          <text x="44" y="27" font-family="-apple-system, sans-serif" font-size="15" fill="rgba(255,255,255,0.6)">关于</text>
+        </g>
+      </g>
+
+      <!-- 底部语言/模式切换 -->
+      <g transform="translate(22, 480)">
+        <rect width="216" height="1" fill="rgba(255,255,255,0.05)"/>
+        <g transform="translate(0, 16)">
+          <circle cx="24" cy="20" r="9" fill="rgba(255,255,255,0.08)"/>
+          <text x="44" y="26" font-family="-apple-system, sans-serif" font-size="14" fill="rgba(255,255,255,0.6)">语言: 中文</text>
+        </g>
+        <g transform="translate(0, 52)">
+          <circle cx="24" cy="20" r="9" fill="rgba(255,255,255,0.08)"/>
+          <text x="44" y="26" font-family="-apple-system, sans-serif" font-size="14" fill="rgba(255,255,255,0.6)">深色模式</text>
+        </g>
+      </g>
+
+      <!-- 主内容区 -->
+      <g transform="translate(260, 0)">
+        <rect x="0" y="0" width="740" height="552" fill="rgba(0,0,0,0.2)"/>
+
+        <!-- 头部 -->
+        <g transform="translate(44, 44)">
+          <text x="0" y="0" font-family="-apple-system, sans-serif" font-size="44" font-weight="600" fill="#ffffff">欢迎回来</text>
+          <text x="0" y="36" font-family="-apple-system, sans-serif" font-size="17" fill="rgba(255,255,255,0.5)">此电脑已准备好被远程接管（被控端）</text>
+        </g>
+
+        <!-- 统计卡片组 -->
+        <g transform="translate(44, 140)">
+          <!-- 网络延迟 -->
+          <g>
+            <rect width="200" height="140" rx="22" fill="rgba(255,255,255,0.04)"/>
+            <rect x="1" y="1" width="198" height="138" rx="21" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+            <rect x="22" y="22" width="52" height="52" rx="15" fill="rgba(59,130,246,0.12)"/>
+            <circle cx="48" cy="48" r="14" stroke="#3B82F6" stroke-width="3" fill="none"/>
+            <line x1="48" y1="48" x2="48" y2="38" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+
+            <text x="22" y="100" font-family="-apple-system, sans-serif" font-size="14" fill="rgba(255,255,255,0.5)">网络延迟</text>
+            <text x="22" y="130" font-family="-apple-system, sans-serif" font-size="38" font-weight="700" fill="#3B82F6">5<tspan font-size="22" fill="rgba(255,255,255,0.5)">ms</tspan></text>
+          </g>
+
+          <!-- 在线设备 -->
+          <g transform="translate(220, 0)">
+            <rect width="200" height="140" rx="22" fill="rgba(255,255,255,0.04)"/>
+            <rect x="1" y="1" width="198" height="138" rx="21" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+            <rect x="22" y="22" width="52" height="52" rx="15" fill="rgba(249,115,22,0.12)"/>
+            <rect x="34" y="34" width="28" height="20" rx="3" fill="#F97316" fill-opacity="0.8"/>
+            <rect x="38" y="38" width="20" height="12" rx="2" fill="rgba(255,255,255,0.3)"/>
+
+            <text x="22" y="100" font-family="-apple-system, sans-serif" font-size="14" fill="rgba(255,255,255,0.5)">在线设备</text>
+            <text x="22" y="130" font-family="-apple-system, sans-serif" font-size="38" font-weight="700" fill="#F97316">3</text>
+          </g>
+
+          <!-- 运行时间 -->
+          <g transform="translate(440, 0)">
+            <rect width="200" height="140" rx="22" fill="rgba(255,255,255,0.04)"/>
+            <rect x="1" y="1" width="198" height="138" rx="21" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+            <rect x="22" y="22" width="52" height="52" rx="15" fill="rgba(34,197,94,0.12)"/>
+            <circle cx="48" cy="48" r="18" stroke="#22C55E" stroke-width="3" fill="none"/>
+
+            <text x="22" y="100" font-family="-apple-system, sans-serif" font-size="14" fill="rgba(255,255,255,0.5)">运行时间</text>
+            <text x="22" y="130" font-family="-apple-system, sans-serif" font-size="32" font-weight="700" fill="#22C55E">2<tspan font-size="22" fill="rgba(255,255,255,0.5)">天</tspan></text>
+          </g>
+        </g>
+
+        <!-- 本机信息卡片 -->
+        <g transform="translate(44, 300)">
+          <rect width="652" height="200" rx="22" fill="rgba(255,255,255,0.04)"/>
+          <rect x="1" y="1" width="650" height="198" rx="21" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+          <text x="30" y="44" font-family="-apple-system, sans-serif" font-size="26" font-weight="600" fill="#ffffff">本机信息</text>
+
+          <!-- 信息网格 -->
+          <g transform="translate(30, 76)">
+            <text x="0" y="0" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.4)">设备名称</text>
+            <text x="0" y="30" font-family="-apple-system, sans-serif" font-size="19" font-weight="500" fill="#ffffff">我的工作电脑</text>
+
+            <text x="340" y="0" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.4)">设备ID</text>
+            <text x="340" y="30" font-family="Monaco, monospace" font-size="17" fill="rgba(255,255,255,0.8)">RD-2024-10241502</text>
+
+            <text x="0" y="80" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.4)">本机IP</text>
+            <text x="0" y="110" font-family="Monaco, monospace" font-size="19" fill="rgba(255,255,255,0.8)">192.168.1.100</text>
+
+            <text x="340" y="80" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.4)">网络状态</text>
+            <g transform="translate(340, 92)">
+              <circle cx="6" cy="11" r="6" fill="#34C759">
+                <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <text x="19" y="20" font-family="-apple-system, sans-serif" font-size="19" font-weight="500" fill="#34C759">局域网在线</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- 底部发光装饰 -->
+  <ellipse cx="700" cy="920" rx="600" ry="70" fill="url(#blue-accent)" opacity="0.15" filter="url(#glow)"/>
+  <ellipse cx="400" cy="900" rx="400" ry="50" fill="url(#blue-accent)" opacity="0.1" filter="url(#glow)"/>
+</svg>

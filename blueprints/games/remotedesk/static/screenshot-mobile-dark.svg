@@ -1,0 +1,216 @@
+<svg width="540" height="720" viewBox="0 0 540 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 深色背景渐变 -->
+  <defs>
+    <radialGradient id="dark-bg" cx="20%" cy="20%">
+      <stop offset="0%" stop-color="rgba(80,80,90,0.4)"/>
+      <stop offset="60%" stop-color="rgba(10,10,12,0.9)"/>
+    </radialGradient>
+
+    <linearGradient id="accent-blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A84FF"/>
+      <stop offset="100%" stop-color="#0051C7"/>
+    </linearGradient>
+
+    <filter id="glass-blur">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20"/>
+    </filter>
+
+    <filter id="shadow-deep">
+      <feDropShadow dx="0" dy="30" stdDeviation="40" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="540" height="720" fill="url(#dark-bg)"/>
+
+  <!-- iPhone 外壳 - 3D 倾斜效果 -->
+  <g transform="translate(70, 40) skewY(-2)">
+    <!-- 外壳阴影 -->
+    <rect x="5" y="10" width="393" height="852" rx="48" fill="black" opacity="0.3" filter="url(#shadow-deep)" transform="scale(0.7)"/>
+
+    <!-- 手机边框 - 深色金属质感 -->
+    <rect x="0" y="0" width="393" height="852" rx="48" fill="#2D3748" transform="scale(0.7)"/>
+    <rect x="4" y="4" width="385" height="844" rx="44" fill="#1a202c" transform="scale(0.7)"/>
+
+    <!-- 刘海 -->
+    <rect x="130" y="4" width="133" height="30" rx="15" fill="#000000" transform="scale(0.7)"/>
+
+    <!-- 屏幕内容 - 深色玻璃态 -->
+    <g transform="scale(0.7) translate(12, 12)">
+      <!-- 屏幕背景 -->
+      <rect x="0" y="0" width="369" height="828" rx="36" fill="url(#dark-bg)"/>
+
+      <!-- 顶部栏 - 玻璃态 -->
+      <g>
+        <rect x="0" y="0" width="369" height="64" rx="36" fill="rgba(255,255,255,0.04)" opacity="0.6"/>
+        <rect x="0" y="63" width="369" height="1" fill="rgba(255,255,255,0.1)"/>
+        <text x="24" y="40" font-family="-apple-system, sans-serif" font-size="21" font-weight="600" fill="#ffffff">我的设备</text>
+
+        <!-- 右上角语言/主题按钮 -->
+        <circle cx="320" cy="32" r="18" fill="rgba(255,255,255,0.08)"/>
+        <circle cx="350" cy="32" r="18" fill="rgba(255,255,255,0.08)"/>
+      </g>
+
+      <!-- 配对提示卡片 -->
+      <g transform="translate(16, 80)">
+        <rect width="337" height="72" rx="20" fill="rgba(255,255,255,0.05)"/>
+        <rect x="1" y="1" width="335" height="70" rx="19" stroke="rgba(255,255,255,0.1)" stroke-width="1" fill="none"/>
+        <circle cx="28" cy="36" r="16" fill="rgba(10,132,255,0.12)"/>
+        <text x="28" y="40" font-family="-apple-system, sans-serif" font-size="14" fill="#0A84FF" text-anchor="middle">i</text>
+        <text x="56" y="28" font-family="-apple-system, sans-serif" font-size="12" fill="rgba(255,255,255,0.5)">提示：请让远程主机（电脑端）也登录</text>
+        <text x="56" y="46" font-family="-apple-system, sans-serif" font-size="12" fill="rgba(255,255,255,0.5)">同一账号，设备会自动出现在这里。</text>
+      </g>
+
+      <!-- 快速连接标题 -->
+      <text x="24" y="180" font-family="-apple-system, sans-serif" font-size="12" font-weight="500" fill="rgba(255,255,255,0.5)">快速连接</text>
+
+      <!-- 快速连接卡片 1 -->
+      <g transform="translate(24, 190)">
+        <rect width="104" height="112" rx="20" fill="rgba(255,255,255,0.05)"/>
+        <rect x="1" y="1" width="102" height="110" rx="19" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <!-- 图标 -->
+        <circle cx="52" cy="38" r="26" fill="url(#accent-blue)"/>
+        <circle cx="52" cy="38" r="26" fill="rgba(255,255,255,0.1)"/>
+        <rect x="40" y="30" width="24" height="16" rx="2" fill="#ffffff" fill-opacity="0.95"/>
+        <rect x="43" y="33" width="18" height="10" rx="1" fill="rgba(10,132,255,0.3)"/>
+
+        <text x="52" y="80" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="#ffffff" text-anchor="middle">工作电脑</text>
+
+        <!-- 状态 -->
+        <g transform="translate(32, 85)">
+          <circle cx="3" cy="0" r="3" fill="#34C759"/>
+          <text x="10" y="4" font-family="-apple-system, sans-serif" font-size="11" fill="#34C759">LAN · 5ms</text>
+        </g>
+      </g>
+
+      <!-- 快速连接卡片 2 -->
+      <g transform="translate(136, 190)">
+        <rect width="104" height="112" rx="20" fill="rgba(255,255,255,0.05)"/>
+        <rect x="1" y="1" width="102" height="110" rx="19" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <circle cx="52" cy="38" r="26" fill="url(#accent-blue)"/>
+        <circle cx="52" cy="38" r="26" fill="rgba(255,255,255,0.1)"/>
+        <rect x="40" y="30" width="24" height="16" rx="2" fill="#ffffff" fill-opacity="0.95"/>
+
+        <text x="52" y="80" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="#ffffff" text-anchor="middle">MacBook</text>
+
+        <g transform="translate(30, 85)">
+          <circle cx="3" cy="0" r="3" fill="#06B6D4"/>
+          <text x="10" y="4" font-family="-apple-system, sans-serif" font-size="11" fill="#06B6D4">P2P · 12ms</text>
+        </g>
+      </g>
+
+      <!-- 快速连接卡片 3 -->
+      <g transform="translate(248, 190)">
+        <rect width="104" height="112" rx="20" fill="rgba(255,255,255,0.05)"/>
+        <rect x="1" y="1" width="102" height="110" rx="19" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <circle cx="52" cy="38" r="26" fill="rgba(148,163,184,0.3)"/>
+        <rect x="40" y="30" width="24" height="16" rx="2" fill="rgba(255,255,255,0.3)"/>
+
+        <text x="52" y="80" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="rgba(255,255,255,0.4)" text-anchor="middle">办公室</text>
+
+        <g transform="translate(36, 85)">
+          <circle cx="3" cy="0" r="3" fill="rgba(255,255,255,0.3)"/>
+          <text x="10" y="4" font-family="-apple-system, sans-serif" font-size="11" fill="rgba(255,255,255,0.3)">离线</text>
+        </g>
+      </g>
+
+      <!-- 所有设备标题 -->
+      <text x="24" y="330" font-family="-apple-system, sans-serif" font-size="12" font-weight="500" fill="rgba(255,255,255,0.5)">所有设备</text>
+
+      <!-- 设备卡片 1 - 在线 -->
+      <g transform="translate(16, 340)">
+        <rect width="337" height="104" rx="20" fill="rgba(255,255,255,0.05)"/>
+        <rect x="1" y="1" width="335" height="102" rx="19" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+
+        <!-- 设备图标 -->
+        <rect x="20" y="20" width="64" height="64" rx="18" fill="url(#accent-blue)"/>
+        <rect x="20" y="20" width="64" height="64" rx="18" fill="rgba(255,255,255,0.1)"/>
+        <rect x="36" y="36" width="32" height="22" rx="3" fill="#ffffff" fill-opacity="0.95"/>
+        <rect x="40" y="40" width="24" height="14" rx="2" fill="rgba(10,132,255,0.3)"/>
+
+        <!-- 设备信息 -->
+        <text x="100" y="38" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#ffffff">我的工作电脑</text>
+        <text x="100" y="58" font-family="Monaco, monospace" font-size="13" fill="rgba(255,255,255,0.5)">192.168.1.100</text>
+
+        <!-- 在线状态徽章 */
+        <rect x="260" y="26" width="60" height="22" rx="11" fill="rgba(16,185,129,0.12)"/>
+        <rect x="261" y="27" width="58" height="20" rx="10" stroke="rgba(16,185,129,0.3)" stroke-width="1" fill="none"/>
+        <circle cx="270" cy="37" r="4" fill="#10B981">
+          <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="278" y="40" font-family="-apple-system, sans-serif" font-size="12" font-weight="500" fill="#34C759">在线</text>
+
+        <!-- 详细信息 -->
+        <g transform="translate(100, 70)">
+          <text x="0" y="0" font-family="-apple-system, sans-serif" font-size="12" fill="rgba(255,255,255,0.4)">2分钟前</text>
+          <circle cx="50" cy="-3" r="2" fill="rgba(255,255,255,0.3)"/>
+          <text x="58" y="0" font-family="-apple-system, sans-serif" font-size="12" fill="#34C759" font-weight="500">LAN</text>
+          <circle cx="88" cy="-3" r="2" fill="rgba(255,255,255,0.3)"/>
+          <text x="96" y="0" font-family="-apple-system, sans-serif" font-size="12" fill="#34C759" font-weight="500">5ms</text>
+        </g>
+
+        <!-- 三点菜单 -->
+        <g transform="translate(310, 20)">
+          <rect width="32" height="32" rx="10" fill="rgba(255,255,255,0.05)"/>
+          <circle cx="16" cy="10" r="2" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="16" cy="16" r="2" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="16" cy="22" r="2" fill="rgba(255,255,255,0.6)"/>
+        </g>
+      </g>
+
+      <!-- 设备卡片 2 - 离线 -->
+      <g transform="translate(16, 456)">
+        <rect width="337" height="104" rx="20" fill="rgba(255,255,255,0.03)"/>
+        <rect x="1" y="1" width="335" height="102" rx="19" stroke="rgba(255,255,255,0.05)" stroke-width="1" fill="none"/>
+
+        <rect x="20" y="20" width="64" height="64" rx="18" fill="rgba(148,163,184,0.2)"/>
+        <rect x="36" y="36" width="32" height="22" rx="3" fill="rgba(255,255,255,0.2)"/>
+
+        <text x="100" y="38" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="rgba(255,255,255,0.7)">Windows台式机</text>
+        <text x="100" y="58" font-family="Monaco, monospace" font-size="13" fill="rgba(255,255,255,0.3)">120.76.xxx.xxx</text>
+
+        <rect x="260" y="26" width="60" height="22" rx="11" fill="rgba(255,255,255,0.02)"/>
+        <circle cx="270" cy="37" r="4" fill="rgba(255,255,255,0.3)"/>
+        <text x="278" y="40" font-family="-apple-system, sans-serif" font-size="12" font-weight="500" fill="rgba(255,255,255,0.4)">离线</text>
+
+        <text x="100" y="82" font-family="-apple-system, sans-serif" font-size="12" fill="rgba(255,255,255,0.3)">2小时前</text>
+      </g>
+
+      <!-- 使用提示卡片 -->
+      <g transform="translate(16, 580)">
+        <rect width="337" height="140" rx="20" fill="rgba(255,255,255,0.03)"/>
+        <rect x="1" y="1" width="335" height="138" rx="19" stroke="rgba(255,255,255,0.05)" stroke-width="1" fill="none"/>
+
+        <text x="20" y="32" font-family="-apple-system, sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.8)">使用提示</text>
+
+        <text x="20" y="58" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.5)">• 点击在线设备即可快速连接</text>
+        <text x="20" y="82" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.5)">• 支持局域网、P2P和中转模式</text>
+        <text x="20" y="106" font-family="-apple-system, sans-serif" font-size="13" fill="rgba(255,255,255,0.5)">• 长按设备可查看更多选项</text>
+      </g>
+
+      <!-- 底部导航栏 - 玻璃态 -->
+      <g transform="translate(0, 764)">
+        <rect x="0" y="0" width="369" height="64" rx="36" fill="rgba(255,255,255,0.04)" opacity="0.6"/>
+        <rect x="0" y="0" width="369" height="1" fill="rgba(255,255,255,0.1)"/>
+
+        <!-- 设备 Tab - 激活 -->
+        <g transform="translate(92, 12)">
+          <rect width="80" height="40" rx="12" fill="rgba(10,132,255,0.15)"/>
+          <rect x="24" y="8" width="32" height="24" rx="6" fill="rgba(10,132,255,0.3)"/>
+          <rect x="28" y="12" width="24" height="16" rx="4" fill="#0A84FF"/>
+          <text x="40" y="42" font-family="-apple-system, sans-serif" font-size="12" font-weight="500" fill="#0A84FF" text-anchor="middle">设备</text>
+        </g>
+
+        <!-- 我的 Tab -->
+        <g transform="translate(197, 12)">
+          <circle cx="40" cy="20" r="20" fill="rgba(255,255,255,0.05)"/>
+          <circle cx="40" cy="20" r="10" fill="rgba(255,255,255,0.2)"/>
+          <text x="40" y="42" font-family="-apple-system, sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">我的</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
