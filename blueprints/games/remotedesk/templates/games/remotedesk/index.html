@@ -3,8 +3,39 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>RemoteDesk - Control Your PC from Mobile. Free Forever.</title>
-  <meta name="description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
+  <title>Glint | Real-time customer visibility & collaborative incident response</title>
+  <meta name="description" content="Glint gives teams a real-time control center for customer signals, incidents, and service health across web, mobile, and desktop."/>
+  <link rel="canonical" href="https://glint.dev/"/>
+  <meta name="theme-color" content="#0f172a"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://glint.dev/"/>
+  <meta property="og:title" content="Glint | Real-time customer visibility & collaborative incident response"/>
+  <meta property="og:description" content="Glint gives teams a real-time control center for customer signals, incidents, and service health across web, mobile, and desktop."/>
+  <meta property="og:image" content="/static/images/glint-dashboard.svg"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Glint | Real-time customer visibility & collaborative incident response"/>
+  <meta name="twitter:description" content="Glint gives teams a real-time control center for customer signals, incidents, and service health across web, mobile, and desktop."/>
+  <meta name="twitter:image" content="/static/images/glint-dashboard.svg"/>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Glint",
+      "url": "https://glint.dev/",
+      "logo": "https://glint.dev/static/images/glint-logo.svg",
+      "description": "Glint gives teams a real-time control center for customer signals, incidents, and service health across web, mobile, and desktop.",
+      "sameAs": [
+        "https://twitter.com/glint",
+        "https://github.com/glint-hq/glint",
+        "https://discord.gg/glint"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "support@glint.dev",
+        "contactType": "customer support"
+      }
+    }
+  </script>
   <style>
     * {
       margin: 0;
@@ -14,12 +45,15 @@
 
     :root {
       --black: #000000;
-      --near-black: #1d1d1f;
+      --near-black: #0f172a;
       --gray: #6e6e73;
       --light-gray: #f5f5f7;
       --white: #ffffff;
-      --blue: #0071e3;
-      --blue-hover: #0077ed;
+      --blue: #7c3aed;
+      --blue-hover: #6d28d9;
+      --accent: #22d3ee;
+      --accent-2: #a855f7;
+      --accent-3: #0ea5e9;
       --spacing-xs: 8px;
       --spacing-sm: 16px;
       --spacing-md: 24px;
@@ -1806,7 +1840,7 @@
     .delay-3 { animation-delay: 0.3s; }
   </style>
 </head>
-<body>
+<body id="top">
   <!-- Dynamic Background Layer -->
   <div class="bg-layer">
     <div class="bg-orb bg-orb-1"></div>
@@ -1817,32 +1851,35 @@
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-container">
-      <a href="#" class="logo">RemoteDesk</a>
+      <a href="#top" class="logo">
+        <img src="/static/images/glint-logo.svg" alt="Glint logo" style="height:20px; vertical-align:middle; margin-right:8px;"/>
+        Glint
+      </a>
       <ul class="nav-links">
         <li>
-          <a href="#features">Features</a>
+          <a href="#product">Product</a>
           <ul class="dropdown">
-            <li><a href="#features">All Features</a></li>
-            <li><a href="#features">Mobile Control</a></li>
-            <li><a href="#features">Low Latency</a></li>
-            <li><a href="#features">Security</a></li>
+            <li><a href="#product">Overview</a></li>
+            <li><a href="#product">Signals</a></li>
+            <li><a href="#product">Automation</a></li>
+            <li><a href="#product">Collaboration</a></li>
           </ul>
         </li>
         <li>
           <a href="#download">Download</a>
           <ul class="dropdown">
-            <li><a href="#download">iOS App</a></li>
-            <li><a href="#download">Android App</a></li>
-            <li><a href="#download">Windows Client</a></li>
-            <li><a href="#download">macOS Client</a></li>
+            <li><a href="#download">iOS</a></li>
+            <li><a href="#download">Android</a></li>
+            <li><a href="#download">macOS</a></li>
+            <li><a href="#download">Windows</a></li>
           </ul>
         </li>
         <li>
-          <a href="#support">Support</a>
+          <a href="#support">Resources</a>
           <ul class="dropdown">
-            <li><a href="#support">Documentation</a></li>
+            <li><a href="#support">Docs</a></li>
             <li><a href="#support">FAQ</a></li>
-            <li><a href="#support">Community</a></li>
+            <li><a href="#support">Status</a></li>
             <li><a href="#support">Contact</a></li>
           </ul>
         </li>
@@ -1852,189 +1889,158 @@
   </nav>
 
   <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-eyebrow fade-in">Coming Soon - Phase 1</div>
-    <h1 class="hero-title fade-in delay-1">Control your PC<br/>from your phone.</h1>
-    <p class="hero-subtitle fade-in delay-2">Work from anywhere. Game on the go. Access your desktop with just a tap.</p>
+  <section class="hero" id="product">
+    <div class="hero-eyebrow fade-in">Glint customer command center</div>
+    <h1 class="hero-title fade-in delay-1">Stay ahead of incidents.<br/>Ship support that feels realtime.</h1>
+    <p class="hero-subtitle fade-in delay-2">Glint unifies live customer signals, AI summaries, and on-call collaboration so teams can see issues the moment they happen and resolve them together.</p>
     <div class="cta-buttons fade-in delay-3">
-      <a href="#download" class="btn btn-primary">Download Beta</a>
-      <a href="#features" class="btn btn-secondary">Learn More</a>
+      <a href="#download" class="btn btn-primary">Get Glint for every device</a>
+      <a href="#support" class="btn btn-secondary">Talk to us</a>
     </div>
   </section>
 
   <!-- Product Screenshots Section -->
-  <section class="section screenshots-section">
+    <section class="section screenshots-section">
     <div class="section-header">
       <div class="hero-eyebrow">See it in action</div>
-      <h2 class="section-title">Beautiful on every device.</h2>
-      <p class="section-subtitle">Native apps designed with Apple's precision.<br/>Premium experience from mobile to desktop.</p>
+      <h2 class="section-title">A live control room for every platform.</h2>
+      <p class="section-subtitle">Glint keeps the same polished UI and signal quality whether you’re on desktop, tablet, or phone.</p>
     </div>
 
     <div class="screenshots-container">
-      <!-- Mobile Preview -->
       <div class="device-preview mobile-preview">
         <div class="phone-frame">
           <div class="phone-notch"></div>
-          <div class="phone-screen">
-            <!-- Simulated Mobile UI -->
-            <div class="mock-ui mobile-ui">
-              <div class="mock-header">
-                <div class="mock-title">My Devices</div>
-                <div class="mock-controls">
-                  <div class="mock-icon"></div>
-                  <div class="mock-icon"></div>
-                </div>
-              </div>
-
-              <div class="device-card online">
-                <div class="card-icon"></div>
-                <div class="card-content">
-                  <div class="card-title">Work PC</div>
-                  <div class="card-subtitle">192.168.1.100</div>
-                  <div class="card-meta">
-                    <span class="status-badge">Online</span>
-                    <span class="latency">5ms</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="device-card">
-                <div class="card-icon offline"></div>
-                <div class="card-content">
-                  <div class="card-title">MacBook Pro</div>
-                  <div class="card-subtitle">192.168.1.105</div>
-                  <div class="card-meta">
-                    <span class="status-badge offline">Offline</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mock-tabbar">
-                <div class="tab-item active">
-                  <div class="tab-icon"></div>
-                  <div class="tab-label">Devices</div>
-                </div>
-                <div class="tab-item">
-                  <div class="tab-icon"></div>
-                  <div class="tab-label">Profile</div>
-                </div>
-              </div>
-            </div>
+          <div class="phone-screen" style="padding:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg, #0f172a 0%, #111827 100%);">
+            <img src="/static/images/glint-mobile.svg" alt="Glint mobile app interface" style="width:100%; height:100%; object-fit:cover; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.35);"/>
           </div>
         </div>
-        <p class="preview-caption">iOS & Android Apps</p>
       </div>
 
-      <!-- Desktop Preview -->
       <div class="device-preview desktop-preview">
-        <div class="desktop-frame">
-          <div class="window-controls">
-            <span class="control-btn red"></span>
-            <span class="control-btn yellow"></span>
-            <span class="control-btn green"></span>
-          </div>
-          <div class="desktop-screen">
-            <!-- Simulated Desktop UI -->
-            <div class="mock-ui desktop-ui">
-              <div class="sidebar">
-                <div class="sidebar-brand">
-                  <div class="brand-icon"></div>
-                  <div class="brand-text">RemoteDesk</div>
-                </div>
-                <div class="sidebar-menu">
-                  <div class="menu-item active">Home</div>
-                  <div class="menu-item">Devices</div>
-                  <div class="menu-item">Settings</div>
-                </div>
-              </div>
-              <div class="main-content">
-                <div class="content-header">
-                  <div class="header-title">Welcome back</div>
-                  <div class="header-subtitle">This machine is ready for remote control</div>
-                </div>
-                <div class="stats-grid">
-                  <div class="stat-card">
-                    <div class="stat-label">Online Devices</div>
-                    <div class="stat-value">3</div>
-                  </div>
-                  <div class="stat-card">
-                    <div class="stat-label">Network</div>
-                    <div class="stat-value">5ms</div>
-                  </div>
-                </div>
-              </div>
+      <div class="desktop-frame" style="overflow:hidden;">
+          <div class="desktop-toolbar">
+            <div class="toolbar-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="toolbar-title">Glint Command Center</div>
+            <div class="toolbar-actions">
+              <span class="toolbar-icon"></span>
+              <span class="toolbar-icon"></span>
+              <span class="toolbar-icon"></span>
             </div>
           </div>
+          <div class="desktop-screen" style="padding:0; background:linear-gradient(135deg, rgba(124,58,237,0.35), rgba(34,211,238,0.2));">
+            <img src="/static/images/glint-dashboard.svg" alt="Glint desktop dashboard" style="width:100%; height:100%; object-fit:cover; filter: drop-shadow(0 30px 80px rgba(15,23,42,0.55));"/>
+          </div>
         </div>
-        <p class="preview-caption">Windows & macOS Clients</p>
       </div>
     </div>
   </section>
-
-  <!-- Use Cases Section -->
+  <!-- Features Grid -->
   <section class="section" id="features">
     <div class="section-header">
-      <h2 class="section-title">Built for work.<br/>Perfect for gaming.</h2>
-      <p class="section-subtitle">Whether you're accessing files from home or playing PC games on your phone, RemoteDesk delivers seamless performance.</p>
-    </div>
-
-    <div class="use-cases">
-      <div class="use-case">
-        <div class="use-case-icon">💼</div>
-        <h3 class="use-case-title">For Work</h3>
-        <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
-      </div>
-
-      <div class="use-case">
-        <div class="use-case-icon">🎮</div>
-        <h3 class="use-case-title">For Gaming</h3>
-        <p class="use-case-description">Stream your favorite PC games to your phone. Low latency, high performance, wherever you are.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Grid -->
-  <section class="section">
-    <div class="section-header">
-      <h2 class="section-title">Simple. Secure. Free.</h2>
+      <h2 class="section-title">Purpose-built for incident-speed teams.</h2>
     </div>
 
     <div class="features-grid">
       <div class="feature">
-        <div class="feature-icon">📱</div>
-        <h3 class="feature-title">Mobile First</h3>
-        <p class="feature-description">Designed for iOS and Android. Control your PC with intuitive touch gestures.</p>
+        <div class="feature-icon">📡</div>
+        <h3 class="feature-title">Unified signals</h3>
+        <p class="feature-description">Bring app telemetry, support tickets, and release signals into one live feed with noise-free alerting.</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">⚡</div>
-        <h3 class="feature-title">Ultra Low Latency</h3>
-        <p class="feature-description">Advanced streaming technology ensures responsive, real-time control.</p>
+        <div class="feature-icon">🤖</div>
+        <h3 class="feature-title">AI triage</h3>
+        <p class="feature-description">Instant AI summaries highlight blast radius, affected customers, and suggested playbooks so on-call can act fast.</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <h3 class="feature-title">End-to-End Encrypted</h3>
-        <p class="feature-description">Bank-level security protects your connection and data at all times.</p>
+        <div class="feature-icon">🛰️</div>
+        <h3 class="feature-title">Cross-device presence</h3>
+        <p class="feature-description">Glint keeps parity across desktop, tablet, and mobile so you never lose context when you step away.</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">🌐</div>
-        <h3 class="feature-title">Anywhere Access</h3>
-        <p class="feature-description">Connect from anywhere in the world. No VPN required.</p>
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-title">Enterprise-grade privacy</h3>
+        <p class="feature-description">End-to-end encryption, SSO, audit trails, and data residency controls protect every customer interaction.</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">🎯</div>
-        <h3 class="feature-title">One-Tap Setup</h3>
-        <p class="feature-description">No complex configuration. Just install and connect.</p>
+        <div class="feature-icon">🚀</div>
+        <h3 class="feature-title">Automation you can trust</h3>
+        <p class="feature-description">Route alerts, open tickets, and notify the right channels automatically while humans stay in control.</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">💰</div>
-        <h3 class="feature-title">Always Free</h3>
-        <p class="feature-description">No subscriptions. No hidden fees. Free forever.</p>
+        <div class="feature-icon">🤝</div>
+        <h3 class="feature-title">Designed for collaboration</h3>
+        <p class="feature-description">Shared rooms, screen handoff, and voice bridges keep product, support, and engineering in sync during response.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section class="section" id="download">
+    <div class="section-header">
+      <div class="hero-eyebrow">Ship everywhere</div>
+      <h2 class="section-title">Get Glint on every screen.</h2>
+      <p class="section-subtitle">Native apps with the same real-time signal quality and secure collaboration on mobile and desktop.</p>
+    </div>
+
+    <div class="download-grid">
+      <div class="download-category">
+        <div class="download-category-title">Mobile</div>
+        <div class="download-buttons">
+          <a class="download-btn" href="https://testflight.apple.com/join/glint" target="_blank" rel="noopener">
+            <span class="download-icon">🍎</span>
+            <span class="download-text">
+              <span class="download-platform">iOS</span>
+              <span class="download-version">TestFlight beta</span>
+            </span>
+            <span class="download-requirements">iOS 16 or later</span>
+          </a>
+          <a class="download-btn" href="https://play.google.com/store/apps/details?id=com.glint" target="_blank" rel="noopener">
+            <span class="download-icon">🤖</span>
+            <span class="download-text">
+              <span class="download-platform">Android</span>
+              <span class="download-version">Play Store</span>
+            </span>
+            <span class="download-requirements">Android 11+</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="download-category">
+        <div class="download-category-title">Desktop</div>
+        <div class="download-buttons desktop">
+          <a class="download-btn" href="https://glint.dev/downloads/Glint.dmg" target="_blank" rel="noopener">
+            <span class="download-icon">🍏</span>
+            <span class="download-text">
+              <span class="download-platform">macOS</span>
+              <span class="download-version">Apple silicon + Intel</span>
+            </span>
+            <span class="download-requirements">macOS 12 Monterey+</span>
+          </a>
+          <a class="download-btn" href="https://glint.dev/downloads/GlintSetup.exe" target="_blank" rel="noopener">
+            <span class="download-icon">🪟</span>
+            <span class="download-text">
+              <span class="download-platform">Windows</span>
+              <span class="download-version">Signed installer</span>
+            </span>
+            <span class="download-requirements">Windows 10/11</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="beta-notice">
+      <div class="beta-icon">✨</div>
+      <div>Want early access to enterprise features? <a href="mailto:founders@glint.dev" style="color: var(--blue); font-weight:600; text-decoration:none;">Email the founders</a> for a private onboarding.</div>
     </div>
   </section>
 
@@ -2042,16 +2048,16 @@
   <section class="section how-it-works-section">
     <div class="section-header">
       <div class="hero-eyebrow">Three simple steps</div>
-      <h2 class="section-title">Get started in minutes.</h2>
-      <p class="section-subtitle">No complex setup. No technical knowledge required.<br/>Just download, pair, and control.</p>
+      <h2 class="section-title">Ship clarity to every incident.</h2>
+      <p class="section-subtitle">Onboard in minutes. Stream live context to the right people. Resolve together from anywhere.</p>
     </div>
 
     <div class="steps-container">
       <div class="step-card">
         <div class="step-number">1</div>
-        <div class="step-icon">📱</div>
-        <h3 class="step-title">Download Apps</h3>
-        <p class="step-description">Install RemoteDesk on your phone and computer. Available for iOS, Android, Windows, and macOS.</p>
+        <div class="step-icon">🔌</div>
+        <h3 class="step-title">Connect your stack</h3>
+        <p class="step-description">Stream events from your product, support inbox, and monitoring tools with prebuilt connectors.</p>
       </div>
 
       <div class="step-arrow">→</div>
@@ -2059,8 +2065,8 @@
       <div class="step-card">
         <div class="step-number">2</div>
         <div class="step-icon">🔗</div>
-        <h3 class="step-title">Sign In & Pair</h3>
-        <p class="step-description">Log in with the same account on both devices. They'll automatically discover each other—no manual pairing needed.</p>
+        <h3 class="step-title">Assign & automate</h3>
+        <p class="step-description">Set routing rules, SLAs, and playbooks so alerts reach the right channel with the right context.</p>
       </div>
 
       <div class="step-arrow">→</div>
@@ -2068,250 +2074,129 @@
       <div class="step-card">
         <div class="step-number">3</div>
         <div class="step-icon">✨</div>
-        <h3 class="step-title">Start Controlling</h3>
-        <p class="step-description">Tap any online device to connect instantly. Control your PC from anywhere with ultra-low latency.</p>
+        <h3 class="step-title">Respond anywhere</h3>
+        <p class="step-description">Jump into voice, screenshare, or co-browsing from desktop or mobile. Ship updates while customers are still looking.</p>
       </div>
     </div>
 
     <div class="tech-specs">
       <div class="spec-item">
         <div class="spec-icon">⚡</div>
-        <div class="spec-label">Typical Latency</div>
-        <div class="spec-value">5-15ms (LAN)</div>
+        <div class="spec-label">Signal freshness</div>
+        <div class="spec-value"><span class="spec-number" data-target="3">3</span>s average</div>
       </div>
       <div class="spec-item">
         <div class="spec-icon">🎯</div>
-        <div class="spec-label">Connection Modes</div>
-        <div class="spec-value">LAN / P2P / Relay</div>
+        <div class="spec-label">Playbooks</div>
+        <div class="spec-value">Reusable & versioned</div>
       </div>
       <div class="spec-item">
         <div class="spec-icon">🔒</div>
-        <div class="spec-label">Encryption</div>
-        <div class="spec-value">AES-256</div>
+        <div class="spec-label">Security</div>
+        <div class="spec-value">SSO • Audit trails</div>
       </div>
       <div class="spec-item">
         <div class="spec-icon">📊</div>
-        <div class="spec-label">Max Resolution</div>
-        <div class="spec-value">4K @ 60fps</div>
+        <div class="spec-label">Device coverage</div>
+        <div class="spec-value">iOS • Android • macOS • Windows</div>
       </div>
     </div>
   </section>
 
   <!-- FAQ Section -->
-  <section class="section faq-section">
+<section class="section faq-section" id="faq">
     <div class="section-header">
       <h2 class="section-title">Frequently Asked Questions</h2>
-      <p class="section-subtitle">Everything you need to know about RemoteDesk.</p>
+      <p class="section-subtitle">Everything you need to know about Glint.</p>
     </div>
 
     <div class="faq-container">
       <details class="faq-item">
         <summary class="faq-question">
-          <span>How do I connect my phone to my PC?</span>
+          <span>How do I connect data sources to Glint?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          Simply sign in with the same account on both your phone and PC. Your devices will automatically appear in each other's device list. Tap any online device to connect instantly—no IP addresses or manual configuration needed.
+          Use our prebuilt integrations to ingest product telemetry, support tickets, and monitoring alerts. You can also post custom events to our REST/GraphQL API, then map them to teams and severity levels in minutes.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Do I need to be on the same WiFi network?</span>
+          <span>Can Glint run securely for distributed teams?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          No! While same-network (LAN) connections offer the lowest latency (5-15ms), RemoteDesk also supports P2P and relay modes for remote access from anywhere in the world. The app automatically chooses the best connection method.
+          Yes. Glint supports SSO, audit logging, role-based access, and regional data storage. You control which sources, teams, and environments each workspace can access.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Is it really free forever?</span>
+          <span>Do you offer a free plan?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          Yes. RemoteDesk Phase 1 (mobile-to-PC control) is completely free with no subscriptions, time limits, or hidden fees. We're building this for the community, and core features will always remain free.
+          We offer a generous free tier for early teams, plus paid plans with higher event volumes, SSO, and audit features. Contact us for enterprise deployment and support.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Is my connection secure?</span>
+          <span>Does Glint support mobile and desktop equally?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          Absolutely. All connections use end-to-end AES-256 encryption. Your streaming data never passes through our servers unencrypted, and we don't store any session recordings. Your privacy is our priority.
+          Absolutely. The same live feed, AI triage, and collaboration tools work on iOS, Android, macOS, and Windows so teams stay aligned wherever they are.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>What are the system requirements?</span>
+          <span>How is Glint different from generic alerting tools?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          <strong>Mobile:</strong> iOS 14+ or Android 8+<br/>
-          <strong>Desktop:</strong> Windows 10/11, macOS 11+ (Big Sur or later)<br/>
-          <strong>Network:</strong> Minimum 5 Mbps upload on host PC for smooth streaming
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">
-          <span>Can I use it for gaming?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 8l4 4 4-4"/>
-          </svg>
-        </summary>
-        <div class="faq-answer">
-          Yes! RemoteDesk is optimized for low-latency gaming. On LAN connections, you can expect 5-15ms latency—perfect for strategy games, RPGs, and even some action games. We support virtual gamepad controls and keyboard mapping.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">
-          <span>How is this different from TeamViewer or AnyDesk?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 8l4 4 4-4"/>
-          </svg>
-        </summary>
-        <div class="faq-answer">
-          RemoteDesk is designed specifically for mobile-to-PC control with gaming and productivity in mind. We offer lower latency through intelligent P2P connections, a mobile-first touch interface, and it's 100% free with no commercial-use restrictions.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">
-          <span>What if I need help?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 8l4 4 4-4"/>
-          </svg>
-        </summary>
-        <div class="faq-answer">
-          We have comprehensive documentation, an active Discord community, and email support at <a href="mailto:support@remotedesk.app">support@remotedesk.app</a>. Check our GitHub issues page for known bugs and feature requests.
+          Glint pairs live customer signals with AI context and human collaboration. Instead of pages of noisy alerts, you get curated threads, co-browsing, and response rooms that keep customers informed while teams fix issues faster.
         </div>
       </details>
     </div>
   </section>
-
-  <div class="divider"></div>
-
-  <!-- CTA Section -->
-  <section class="cta-section" id="download">
-    <h2 class="section-title">Ready to get started?</h2>
-    <p class="section-subtitle">Join the beta and be among the first to experience<br/>mobile-to-PC remote control done right.</p>
-
-    <div class="download-grid">
-      <!-- Mobile Apps -->
-      <div class="download-category">
-        <h3 class="download-category-title">Mobile Apps</h3>
-        <div class="download-buttons">
-          <a href="#" class="store-badge apple">
-            <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-            </svg>
-            <div class="store-text">
-              <div class="store-subtitle">Download on the</div>
-              <div class="store-title">App Store</div>
-            </div>
-          </a>
-
-          <a href="#" class="store-badge google">
-            <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-            </svg>
-            <div class="store-text">
-              <div class="store-subtitle">Get it on</div>
-              <div class="store-title">Google Play</div>
-            </div>
-          </a>
-        </div>
-        <p class="download-requirements">Requires iOS 14+ or Android 8+</p>
-      </div>
-
-      <!-- Desktop Apps -->
-      <div class="download-category">
-        <h3 class="download-category-title">Desktop Clients</h3>
-        <div class="download-buttons desktop">
-          <a href="#" class="download-btn">
-            <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-              <rect x="9" y="9" width="6" height="6"/>
-              <line x1="9" y1="1" x2="9" y2="4"/>
-              <line x1="15" y1="1" x2="15" y2="4"/>
-              <line x1="9" y1="20" x2="9" y2="23"/>
-              <line x1="15" y1="20" x2="15" y2="23"/>
-              <line x1="20" y1="9" x2="23" y2="9"/>
-              <line x1="20" y1="14" x2="23" y2="14"/>
-              <line x1="1" y1="9" x2="4" y2="9"/>
-              <line x1="1" y1="14" x2="4" y2="14"/>
-            </svg>
-            <div class="download-text">
-              <div class="download-platform">Windows</div>
-              <div class="download-version">v2.0.1 • 45 MB</div>
-            </div>
-          </a>
-
-          <a href="#" class="download-btn">
-            <svg class="download-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-            </svg>
-            <div class="download-text">
-              <div class="download-platform">macOS</div>
-              <div class="download-version">v2.0.1 • 52 MB</div>
-            </div>
-          </a>
-        </div>
-        <p class="download-requirements">Windows 10+ or macOS 11+</p>
-      </div>
-    </div>
-
-    <div class="beta-notice">
-      <svg class="beta-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="10" cy="10" r="8"/>
-        <line x1="10" y1="6" x2="10" y2="10"/>
-        <circle cx="10" cy="14" r="0.5" fill="currentColor"/>
-      </svg>
-      <span>Currently in Beta • Phase 1 focuses on mobile-to-PC control</span>
-    </div>
-  </section>
-
   <!-- Footer -->
   <footer class="footer" id="support">
     <div class="footer-brand-section">
       <div class="footer-brand">
-        <div class="footer-logo">RemoteDesk</div>
-        <p class="footer-tagline">Control your PC from your phone.<br/>Anywhere. Anytime.</p>
+        <div class="footer-logo">Glint</div>
+        <p class="footer-tagline">Real-time customer visibility and collaborative incident response, on web, mobile, and desktop.</p>
 
         <!-- Social Links -->
         <div class="social-links">
-          <a href="#" class="social-link" title="GitHub">
+          <a href="https://github.com/glint-hq/glint" class="social-link" title="GitHub" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
             </svg>
           </a>
-          <a href="#" class="social-link" title="Discord">
+          <a href="https://discord.gg/glint" class="social-link" title="Discord" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
             </svg>
           </a>
-          <a href="#" class="social-link" title="Twitter/X">
+          <a href="https://twitter.com/glint" class="social-link" title="Twitter/X" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
           </a>
-          <a href="#" class="social-link" title="Reddit">
+          <a href="https://www.reddit.com/r/glint" class="social-link" title="Reddit" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
             </svg>
@@ -2326,54 +2211,54 @@
         <ul>
           <li><a href="#features">Features</a></li>
           <li><a href="#download">Download</a></li>
-          <li><a href="#">System Requirements</a></li>
-          <li><a href="#">Roadmap</a></li>
-          <li><a href="#">Release Notes</a></li>
+          <li><a href="https://docs.glint.dev/requirements" target="_blank" rel="noopener">System Requirements</a></li>
+          <li><a href="https://glint.dev/roadmap" target="_blank" rel="noopener">Roadmap</a></li>
+          <li><a href="https://glint.dev/changelog" target="_blank" rel="noopener">Release Notes</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
         <h3>Resources</h3>
         <ul>
-          <li><a href="#">Documentation</a></li>
+          <li><a href="https://docs.glint.dev" target="_blank" rel="noopener">Documentation</a></li>
           <li><a href="#faq">FAQ</a></li>
-          <li><a href="#">Community Forum</a></li>
-          <li><a href="#">GitHub</a></li>
-          <li><a href="#">API Reference</a></li>
+          <li><a href="https://discord.gg/glint" target="_blank" rel="noopener">Community Forum</a></li>
+          <li><a href="https://github.com/glint-hq/glint" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://docs.glint.dev/api" target="_blank" rel="noopener">API Reference</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
         <h3>Support</h3>
         <ul>
-          <li><a href="mailto:support@remotedesk.app">Email Support</a></li>
-          <li><a href="#">Discord Community</a></li>
-          <li><a href="#">Report a Bug</a></li>
-          <li><a href="#">Feature Request</a></li>
-          <li><a href="#">Status Page</a></li>
+          <li><a href="mailto:support@glint.dev">Email Support</a></li>
+          <li><a href="https://discord.gg/glint" target="_blank" rel="noopener">Discord Community</a></li>
+          <li><a href="https://github.com/glint-hq/glint/issues/new/choose" target="_blank" rel="noopener">Report a Bug</a></li>
+          <li><a href="https://github.com/glint-hq/glint/discussions" target="_blank" rel="noopener">Feature Request</a></li>
+          <li><a href="https://status.glint.dev" target="_blank" rel="noopener">Status Page</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
         <h3>Legal</h3>
         <ul>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Cookie Policy</a></li>
-          <li><a href="#">GDPR Compliance</a></li>
-          <li><a href="#">Security</a></li>
+          <li><a href="https://glint.dev/privacy" target="_blank" rel="noopener">Privacy Policy</a></li>
+          <li><a href="https://glint.dev/terms" target="_blank" rel="noopener">Terms of Service</a></li>
+          <li><a href="https://glint.dev/cookies" target="_blank" rel="noopener">Cookie Policy</a></li>
+          <li><a href="https://glint.dev/gdpr" target="_blank" rel="noopener">GDPR Compliance</a></li>
+          <li><a href="https://glint.dev/security" target="_blank" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
       <div class="footer-legal">
-        <span>&copy; 2024 RemoteDesk. All rights reserved.</span>
+        <span>&copy; 2024 Glint. All rights reserved.</span>
         <div class="footer-legal-links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="#">Cookies</a>
-          <a href="#">GDPR</a>
+          <a href="https://glint.dev/privacy" target="_blank" rel="noopener">Privacy</a>
+          <a href="https://glint.dev/terms" target="_blank" rel="noopener">Terms</a>
+          <a href="https://glint.dev/cookies" target="_blank" rel="noopener">Cookies</a>
+          <a href="https://glint.dev/gdpr" target="_blank" rel="noopener">GDPR</a>
         </div>
       </div>
       <div class="footer-info">
