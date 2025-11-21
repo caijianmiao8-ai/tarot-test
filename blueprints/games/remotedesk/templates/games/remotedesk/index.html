@@ -131,170 +131,99 @@
       overflow-x: hidden;
     }
 
-            /* Enhanced Linear-style dot grid + gradient background */
+                /* Dynamic background layers with parallax */
     .bg-layer {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 0;
       overflow: hidden;
-      background: #fafbfc;
     }
 
-    /* Dot grid pattern - more visible */
-    .bg-grid {
+    .bg-orb {
       position: absolute;
-      inset: 0;
-      background-image: 
-        radial-gradient(circle, rgba(0, 113, 227, 0.15) 1px, transparent 1px);
-      background-size: 32px 32px;
-      opacity: 1;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
     }
 
-    /* Gradient overlays - stronger colors */
-    .bg-gradient-1 {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 15% 20%, 
-        rgba(99, 102, 241, 0.15) 0%, 
-        transparent 45%
-      );
+    /* Multiple animation variations for each orb */
+    .bg-orb-1 {
+      width: 600px;
+      height: 600px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      top: -200px;
+      right: -100px;
+      animation: float-1 15s ease-in-out infinite, pulse-1 8s ease-in-out infinite, rotate-1 30s linear infinite;
     }
 
-    .bg-gradient-2 {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 85% 70%, 
-        rgba(139, 92, 246, 0.12) 0%, 
-        transparent 45%
-      );
+    .bg-orb-2 {
+      width: 500px;
+      height: 500px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      bottom: -200px;
+      left: -100px;
+      animation: float-2 18s ease-in-out infinite, pulse-2 10s ease-in-out infinite;
+      animation-delay: -6s, -3s;
     }
 
-    .bg-gradient-3 {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 50% 50%, 
-        rgba(59, 130, 246, 0.08) 0%, 
-        transparent 60%
-      );
-    }
-
-    /* Bottom gradient */
-    .bg-gradient-bottom {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        180deg, 
-        transparent 0%, 
-        rgba(241, 245, 249, 0.5) 100%
-      );
-    }
-
-    /* Animated glow - more visible */
-    .bg-glow {
-      position: absolute;
-      top: -30%;
-      left: -30%;
-      right: -30%;
-      bottom: -30%;
-      background: radial-gradient(
-        circle at 50% 50%, 
-        rgba(96, 165, 250, 0.08) 0%, 
-        transparent 50%
-      );
-      animation: glow-drift 15s ease-in-out infinite;
-    }
-
-    @keyframes glow-drift {
-      0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
-      33% { transform: translate(8%, -8%) scale(1.1); opacity: 0.8; }
-      66% { transform: translate(-8%, 8%) scale(0.9); opacity: 1; }
-    }
-
-    /* Spotlight effect */
-    .bg-spotlight {
-      position: absolute;
-      top: -10%;
+    .bg-orb-3 {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      width: 120%;
-      height: 80%;
-      background: radial-gradient(
-        ellipse at 50% 0%, 
-        rgba(255, 255, 255, 0.7) 0%, 
-        transparent 60%
-      );
+      transform: translate(-50%, -50%);
+      animation: float-3 12s ease-in-out infinite, breathe 6s ease-in-out infinite, drift 20s ease-in-out infinite;
+      animation-delay: -4s, -2s, 0s;
     }
 
-/* Gradient overlays - multiple layers */
-    .bg-gradient-1 {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 20% 30%, 
-        rgba(99, 102, 241, 0.08) 0%, 
-        transparent 50%
-      );
+    /* Float animations - position movement */
+    @keyframes float-1 {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-150px, 80px); }
+      50% { transform: translate(-80px, 180px); }
+      75% { transform: translate(100px, 100px); }
     }
 
-    .bg-gradient-2 {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 80% 60%, 
-        rgba(139, 92, 246, 0.06) 0%, 
-        transparent 50%
-      );
+    @keyframes float-2 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(120px, -120px); }
+      66% { transform: translate(-80px, -80px); }
     }
 
-    .bg-gradient-3 {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        180deg, 
-        rgba(255, 255, 255, 0) 0%, 
-        rgba(248, 250, 252, 0.8) 100%
-      );
+    @keyframes float-3 {
+      0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+      33% { transform: translate(-50%, -50%) translate(100px, -80px); }
+      66% { transform: translate(-50%, -50%) translate(-100px, 80px); }
     }
 
-    /* Subtle animated glow */
-    .bg-glow {
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      right: -50%;
-      bottom: -50%;
-      background: radial-gradient(
-        circle at 50% 50%, 
-        rgba(96, 165, 250, 0.03) 0%, 
-        transparent 40%
-      );
-      animation: glow-drift 20s ease-in-out infinite;
+    /* Pulse animations - opacity variation */
+    @keyframes pulse-1 {
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.18; }
     }
 
-    @keyframes glow-drift {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(5%, -5%) scale(1.05); }
-      66% { transform: translate(-5%, 5%) scale(0.95); }
+    @keyframes pulse-2 {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.22; }
     }
 
-    /* Spotlight effect for depth */
-    .bg-spotlight {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 150%;
-      height: 100%;
-      background: radial-gradient(
-        ellipse at 50% 0%, 
-        rgba(255, 255, 255, 0.5) 0%, 
-        transparent 50%
-      );
-      opacity: 0.6;
+    @keyframes breathe {
+      0%, 100% { opacity: 0.1; filter: blur(120px) hue-rotate(0deg); }
+      50% { opacity: 0.2; filter: blur(100px) hue-rotate(15deg); }
+    }
+
+    /* Rotation animation */
+    @keyframes rotate-1 {
+      from { filter: blur(120px) hue-rotate(0deg); }
+      to { filter: blur(120px) hue-rotate(360deg); }
+    }
+
+    /* Drift animation - subtle horizontal sway */
+    @keyframes drift {
+      0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+      50% { transform: translate(-50%, -50%) translateX(50px); }
     }
 
 /* Navigation - Premium Design */
@@ -2700,13 +2629,9 @@
 <body>
   <!-- Simplified Background Layer -->
   <div class="bg-layer">
-    <div class="bg-grid"></div>
-    <div class="bg-gradient-1"></div>
-    <div class="bg-gradient-2"></div>
-    <div class="bg-gradient-3"></div>
-    <div class="bg-gradient-bottom"></div>
-    <div class="bg-glow"></div>
-    <div class="bg-spotlight"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
   </div>
 
   <!-- Navigation -->
