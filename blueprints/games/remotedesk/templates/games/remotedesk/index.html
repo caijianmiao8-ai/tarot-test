@@ -591,104 +591,401 @@
       margin: 0 auto;
     }
 
-    /* Use Cases - Redesigned with Better Spacing */
-    .use-cases {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
-      gap: clamp(48px, 6vw, 80px);
-      margin-bottom: clamp(64px, 10vh, 120px);
+    /* Use Cases - Immersive Scenes */
+    .use-cases-immersive {
+      margin: clamp(80px, 12vh, 140px) 0;
     }
 
-    .use-case {
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-radius: 24px;
-      padding: clamp(48px, 6vw, 72px) clamp(32px, 5vw, 56px);
-      text-align: center;
-      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
-      border: 1px solid rgba(0, 0, 0, 0.04);
-      box-shadow: none;
+    .scene-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(60px, 8vw, 100px);
+      align-items: center;
+      padding: clamp(80px, 12vh, 140px) clamp(40px, 5vw, 80px);
       position: relative;
       overflow: hidden;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
     }
 
-    /* Subtle gradient overlays */
-    .use-case:nth-child(1) {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(252, 252, 255, 0.68));
+    .scene-work {
+      background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #F8FAFC 100%);
     }
 
-    .use-case:nth-child(2) {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 252, 253, 0.68));
+    .scene-gaming {
+      background: linear-gradient(135deg, #FDF4FF 0%, #FAE8FF 50%, #F8FAFC 100%);
     }
 
-    .use-case::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-    }
-
-    .use-case::after {
-      content: '';
-      position: absolute;
-      bottom: -50%;
-      right: -50%;
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-      transition: all 0.6s cubic-bezier(0.28, 0.11, 0.32, 1);
-    }
-
-    .use-case:hover::after {
-      bottom: -30%;
-      right: -30%;
-    }
-
-    .use-case:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 32px rgba(0, 113, 227, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      border-color: rgba(0, 113, 227, 0.15);
-    }
-
-    .use-case-icon {
-      font-size: clamp(56px, 8vw, 80px);
-      margin-bottom: clamp(20px, 3vh, 32px);
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
-      display: inline-block;
-      transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
-    }
-
-    .use-case:hover .use-case-icon {
-      transform: translateY(-8px) scale(1.08);
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.12));
-      animation: icon-bounce 0.6s ease-in-out;
-    }
-
-    @keyframes icon-bounce {
-      0%, 100% { transform: translateY(-8px) scale(1.08); }
-      50% { transform: translateY(-12px) scale(1.12); }
-    }
-
-    .use-case-title {
-      font-size: clamp(28px, 4vw, 40px);
-      line-height: 1.15;
+    .scene-label {
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: -0.005em;
-      color: var(--near-black);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--blue);
       margin-bottom: 16px;
     }
 
-    .use-case-description {
-      font-size: clamp(17px, 2vw, 21px);
-      line-height: 1.47619;
-      font-weight: 400;
-      letter-spacing: 0.011em;
+    .scene-title {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--near-black);
+      margin-bottom: 24px;
+    }
+
+    .scene-description {
+      font-size: clamp(17px, 2vw, 20px);
+      line-height: 1.7;
       color: var(--gray);
+      margin-bottom: 32px;
+      max-width: 520px;
+    }
+
+    .scene-features {
+      list-style: none;
+      padding: 0;
+    }
+
+    .scene-features li {
+      font-size: 16px;
+      color: var(--gray);
+      padding: 10px 0 10px 28px;
+      position: relative;
+    }
+
+    .scene-features li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    /* Work Illustration */
+    .work-illustration {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .floating-window {
+      position: absolute;
+      background: white;
+      border-radius: 12px;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      animation: windowFloat 6s ease-in-out infinite;
+    }
+
+    .window-1 {
+      width: 320px;
+      height: 240px;
+      top: 10%;
+      left: 5%;
+      animation-delay: 0s;
+    }
+
+    .window-2 {
+      width: 280px;
+      height: 180px;
+      bottom: 15%;
+      right: 5%;
+      animation-delay: 3s;
+    }
+
+    @keyframes windowFloat {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-20px) rotate(2deg); }
+    }
+
+    .window-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #F5F5F7;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .window-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #E5E5E7;
+    }
+
+    .window-dots span:nth-child(1) { background: #FF5F57; }
+    .window-dots span:nth-child(2) { background: #FFBD2E; }
+    .window-dots span:nth-child(3) { background: #28CA42; }
+
+    .window-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--near-black);
+    }
+
+    .window-content {
+      padding: 16px;
+      min-height: 140px;
+    }
+
+    .excel-sheet {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .excel-row {
+      height: 24px;
+      background: linear-gradient(90deg, #F5F5F7 20%, #E5E5E7 35%, transparent 35%);
+      border-radius: 4px;
+      opacity: 0.6;
+    }
+
+    .excel-row.highlighted {
+      background: linear-gradient(90deg, #DBEAFE 20%, #93C5FD 35%, transparent 35%);
+      opacity: 1;
+    }
+
+    .terminal {
+      background: #1E1E1E;
+      color: #00FF00;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .terminal-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .prompt {
+      color: #4FC3F7;
+    }
+
+    .cursor::after {
+      content: '▊';
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .phone-overlay {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .phone-frame-mini {
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .connection-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #34C759;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    /* Gaming Illustration */
+    .gaming-illustration {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-window {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 16/10;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .game-hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      z-index: 2;
+    }
+
+    .hud-item {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hud-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.05em;
+    }
+
+    .hud-bar {
+      width: 100px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .hud-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #EF4444, #F87171);
+      transition: width 0.3s;
+    }
+
+    .hud-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .hud-item.fps .hud-value { color: #34C759; }
+    .hud-item.latency .hud-value { color: #06B6D4; }
+
+    .game-scene {
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+        linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-crosshair {
+      font-size: 48px;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 100;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+      animation: crosshairPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes crosshairPulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .controller-overlay {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .controller-icon {
+      font-size: 24px;
+    }
+
+    .controller-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--near-black);
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+      .scene-block {
+        grid-template-columns: 1fr;
+        gap: 60px;
+        padding: 60px 20px;
+      }
+
+      .scene-gaming .scene-visual {
+        order: 1;
+      }
+
+      .scene-gaming .scene-content {
+        order: 2;
+      }
+
+      .work-illustration,
+      .gaming-illustration {
+        height: 400px;
+      }
+
+      .window-1, .window-2 {
+        transform: scale(0.9);
+      }
     }
 
     /* Features Showcase - Large Visual Blocks */
@@ -2524,24 +2821,109 @@
     </div>
   </section>
 
-  <!-- Use Cases Section -->
-  <section class="section" id="features">
-    <div class="section-header">
-      <h2 class="section-title">Built for work.<br/>Perfect for gaming.</h2>
-      <p class="section-subtitle">Whether you're accessing files from home or playing PC games on your phone, Glint delivers seamless performance.</p>
+  <!-- Use Cases - Immersive Scenes -->
+  <section class="use-cases-immersive">
+    <!-- Work Scene -->
+    <div class="scene-block scene-work">
+      <div class="scene-content">
+        <div class="scene-label">For Professionals</div>
+        <h2 class="scene-title">Your office,<br/>in your pocket.</h2>
+        <p class="scene-description">
+          Edit documents in real-time. Manage servers remotely. Join video calls.
+          Access your entire desktop environment from anywhere—airport, cafe, or home.
+          Full power, zero compromise.
+        </p>
+        <ul class="scene-features">
+          <li>Edit Excel, PowerPoint, Photoshop in real-time</li>
+          <li>Access your development environment</li>
+          <li>Run Windows-only software on your iPad</li>
+        </ul>
+      </div>
+      <div class="scene-visual">
+        <div class="work-illustration">
+          <div class="floating-window window-1">
+            <div class="window-header">
+              <div class="window-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="window-title">Quarterly_Report.xlsx</div>
+            </div>
+            <div class="window-content excel-sheet">
+              <div class="excel-row"></div>
+              <div class="excel-row"></div>
+              <div class="excel-row highlighted"></div>
+              <div class="excel-row"></div>
+            </div>
+          </div>
+          <div class="floating-window window-2">
+            <div class="window-header">
+              <div class="window-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="window-title">Terminal</div>
+            </div>
+            <div class="window-content terminal">
+              <div class="terminal-line"><span class="prompt">$</span> git push origin main</div>
+              <div class="terminal-line cursor"></div>
+            </div>
+          </div>
+          <div class="phone-overlay">
+            <div class="phone-frame-mini">
+              <div class="phone-screen-mini">📱</div>
+            </div>
+            <div class="connection-indicator">
+              <div class="pulse-dot"></div>
+              <span>Connected</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="use-cases">
-      <div class="use-case">
-        <div class="use-case-icon">💼</div>
-        <h3 class="use-case-title">For Work</h3>
-        <p class="use-case-description">Access your office PC from anywhere. Edit documents, manage files, and stay productive on the go.</p>
+    <!-- Gaming Scene -->
+    <div class="scene-block scene-gaming">
+      <div class="scene-visual">
+        <div class="gaming-illustration">
+          <div class="game-window">
+            <div class="game-hud">
+              <div class="hud-item health">
+                <span class="hud-label">HP</span>
+                <div class="hud-bar">
+                  <div class="hud-fill" style="width: 85%;"></div>
+                </div>
+              </div>
+              <div class="hud-item fps">
+                <span class="hud-value">60</span>
+                <span class="hud-label">FPS</span>
+              </div>
+              <div class="hud-item latency">
+                <span class="hud-value">8ms</span>
+                <span class="hud-label">Ping</span>
+              </div>
+            </div>
+            <div class="game-scene">
+              <div class="game-crosshair">+</div>
+            </div>
+          </div>
+          <div class="controller-overlay">
+            <div class="controller-icon">🎮</div>
+            <div class="controller-label">Controller Supported</div>
+          </div>
+        </div>
       </div>
-
-      <div class="use-case">
-        <div class="use-case-icon">🎮</div>
-        <h3 class="use-case-title">For Gaming</h3>
-        <p class="use-case-description">Stream your favorite PC games to your phone. Low latency, high performance, wherever you are.</p>
+      <div class="scene-content">
+        <div class="scene-label">For Gamers</div>
+        <h2 class="scene-title">AAA games.<br/>Anywhere you go.</h2>
+        <p class="scene-description">
+          Stream your entire PC game library to your phone. Play Cyberpunk 2077 on the bus.
+          Finish that Elden Ring boss fight from your couch. With sub-10ms latency and controller support,
+          mobile gaming just got serious.
+        </p>
+        <ul class="scene-features">
+          <li>Stream at 1080p@60fps or 4K@30fps</li>
+          <li>Xbox/PlayStation controller support</li>
+          <li>5-15ms latency on 5GHz WiFi</li>
+        </ul>
       </div>
     </div>
   </section>
