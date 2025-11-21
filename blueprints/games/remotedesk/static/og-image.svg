@@ -1,0 +1,58 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <rect width="1200" height="630" fill="url(#og-bg-gradient)"/>
+
+  <!-- 装饰性网格 -->
+  <g opacity="0.03">
+    <line x1="0" y1="0" x2="1200" y2="0" stroke="#ffffff" stroke-width="1"/>
+    <line x1="0" y1="157.5" x2="1200" y2="157.5" stroke="#ffffff" stroke-width="1"/>
+    <line x1="0" y1="315" x2="1200" y2="315" stroke="#ffffff" stroke-width="1"/>
+    <line x1="0" y1="472.5" x2="1200" y2="472.5" stroke="#ffffff" stroke-width="1"/>
+    <line x1="0" y1="630" x2="1200" y2="630" stroke="#ffffff" stroke-width="1"/>
+  </g>
+
+  <!-- Logo -->
+  <g transform="translate(480, 100)">
+    <rect width="240" height="240" rx="48" fill="url(#logo-gradient)"/>
+
+    <!-- 手机图标 -->
+    <g transform="translate(40, 60)">
+      <rect x="0" y="0" width="48" height="76" rx="6" fill="rgba(255,255,255,0.95)"/>
+      <rect x="4" y="4" width="40" height="68" rx="4" fill="rgba(10,132,255,0.1)"/>
+      <circle cx="24" cy="69" r="3" fill="rgba(10,132,255,0.5)"/>
+    </g>
+
+    <!-- 连接线 -->
+    <g transform="translate(88, 98)">
+      <circle cx="0" cy="0" r="4" fill="#ffffff"/>
+      <circle cx="12" cy="0" r="3" fill="#ffffff" fill-opacity="0.7"/>
+      <circle cx="22" cy="0" r="2" fill="#ffffff" fill-opacity="0.5"/>
+      <circle cx="30" cy="0" r="1.5" fill="#ffffff" fill-opacity="0.3"/>
+    </g>
+
+    <!-- 电脑图标 -->
+    <g transform="translate(120, 72)">
+      <rect x="0" y="0" width="68" height="48" rx="4" fill="rgba(255,255,255,0.95)"/>
+      <rect x="3" y="3" width="62" height="42" rx="2" fill="rgba(10,132,255,0.1)"/>
+      <rect x="24" y="48" width="20" height="4" rx="2" fill="rgba(255,255,255,0.95)"/>
+      <rect x="16" y="52" width="36" height="2" rx="1" fill="rgba(255,255,255,0.95)"/>
+    </g>
+  </g>
+
+  <!-- 文字 -->
+  <text x="600" y="400" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="72" font-weight="700" fill="#ffffff" text-anchor="middle">Glint</text>
+  <text x="600" y="460" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="32" font-weight="400" fill="rgba(255,255,255,0.8)" text-anchor="middle">Control Your PC from Mobile</text>
+  <text x="600" y="510" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="24" fill="rgba(255,255,255,0.6)" text-anchor="middle">Free Forever · No Subscriptions</text>
+
+  <defs>
+    <linearGradient id="og-bg-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A84FF"/>
+      <stop offset="100%" stop-color="#0051C7"/>
+    </linearGradient>
+
+    <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.2)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.1)"/>
+    </linearGradient>
+  </defs>
+</svg>
