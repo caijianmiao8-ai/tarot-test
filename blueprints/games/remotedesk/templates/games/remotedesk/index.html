@@ -662,10 +662,11 @@
     }
 
     .use-case-icon {
-      font-size: clamp(56px, 8vw, 80px);
-      margin-bottom: clamp(20px, 3vh, 32px);
+      width: clamp(56px, 8vw, 80px);
+      height: clamp(56px, 8vw, 80px);
+      margin: 0 auto clamp(20px, 3vh, 32px);
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
-      display: inline-block;
+      display: block;
       transition: all 0.4s cubic-bezier(0.28, 0.11, 0.32, 1);
     }
 
@@ -1280,10 +1281,10 @@
     }
 
     .step-icon {
-      font-size: 56px;
-      margin-bottom: 20px;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
       display: block;
-      line-height: 1;
     }
 
     .step-title {
@@ -1337,8 +1338,9 @@
     }
 
     .spec-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 12px;
       display: block;
     }
 
@@ -2437,17 +2439,11 @@
         <h3 class="download-category-title">Desktop Clients</h3>
         <div class="download-buttons desktop">
           <a href="#" class="download-btn">
-            <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-              <rect x="9" y="9" width="6" height="6"/>
-              <line x1="9" y1="1" x2="9" y2="4"/>
-              <line x1="15" y1="1" x2="15" y2="4"/>
-              <line x1="9" y1="20" x2="9" y2="23"/>
-              <line x1="15" y1="20" x2="15" y2="23"/>
-              <line x1="20" y1="9" x2="23" y2="9"/>
-              <line x1="20" y1="14" x2="23" y2="14"/>
-              <line x1="1" y1="9" x2="4" y2="9"/>
-              <line x1="1" y1="14" x2="4" y2="14"/>
+            <svg class="download-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 5.5L11 4.5V11.5H3V5.5Z"/>
+              <path d="M11 12.5V19.5L3 18.5V12.5H11Z"/>
+              <path d="M12 4.5L21 3V11.5H12V4.5Z"/>
+              <path d="M21 12.5V21L12 19.5V12.5H21Z"/>
             </svg>
             <div class="download-text">
               <div class="download-platform">Windows</div>
