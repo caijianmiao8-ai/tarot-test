@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Glint</title>
-  <meta name="description" content="Faster. Simpler. Beautiful."/>
-  <meta name="theme-color" content="#000000"/>
-  
+  <title>Glint — Faster. Simpler. Beautiful.</title>
+  <meta name="description" content="Experience seamless connectivity across all your devices. Coming soon."/>
+  <meta name="theme-color" content="#5B7CFF"/>
+
   <style>
     * {
       margin: 0;
@@ -15,171 +15,284 @@
     }
 
     :root {
-      --bg: #000000;
-      --text: #FFFFFF;
-      --text-secondary: #8B8B8B;
-      --border: #1A1A1A;
-      --hover: #FFFFFF;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --text-secondary: #666666;
+      --text-tertiary: #999999;
+      --border: #E5E5E5;
+      --primary: #5B7CFF;
+      --primary-dark: #4A6AED;
+      --gradient: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+      --glow: rgba(102, 126, 234, 0.3);
     }
 
-    html { 
+    html {
       font-size: 16px;
       scroll-behavior: smooth;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.5;
+      line-height: 1.6;
       overflow-x: hidden;
     }
 
     /* Container */
     .container {
-      max-width: 960px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 32px;
+      padding: 0 48px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      position: relative;
+    }
+
+    /* Background gradient orb */
+    .gradient-orb {
+      position: fixed;
+      top: -20%;
+      right: -10%;
+      width: 800px;
+      height: 800px;
+      background: var(--gradient);
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Content wrapper */
+    .content {
+      position: relative;
+      z-index: 1;
     }
 
     /* Logo */
     .logo {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 80px;
+      width: 56px;
+      height: 56px;
+      margin-bottom: 96px;
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.1s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
     }
 
     /* Hero */
     .hero {
-      margin-bottom: 120px;
+      margin-bottom: 96px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
     }
 
     .hero-title {
-      font-size: clamp(56px, 10vw, 96px);
-      font-weight: 600;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: 24px;
+      font-size: clamp(64px, 12vw, 120px);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 32px;
+      background: linear-gradient(135deg, #1A1A1A 0%, #4A4A4A 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.2s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
     }
 
     .hero-subtitle {
-      font-size: clamp(18px, 2.5vw, 24px);
+      font-size: clamp(20px, 3vw, 32px);
       color: var(--text-secondary);
       font-weight: 400;
-      max-width: 600px;
-      line-height: 1.6;
-      letter-spacing: -0.01em;
+      max-width: 700px;
+      line-height: 1.5;
+      letter-spacing: -0.02em;
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.3s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+    }
+
+    .hero-highlight {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 500;
     }
 
     /* Features */
     .features {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      margin-bottom: 120px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 96px;
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.4s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
     }
 
     .feature {
-      background: var(--bg);
-      padding: 48px 32px;
-      transition: background 0.2s ease;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 0;
     }
 
     .feature:hover {
-      background: #0A0A0A;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      border-color: transparent;
+    }
+
+    .feature:hover::before {
+      opacity: 0.03;
+    }
+
+    .feature-content {
+      position: relative;
+      z-index: 1;
     }
 
     .feature-icon {
-      width: 32px;
-      height: 32px;
-      margin-bottom: 24px;
-      opacity: 0.6;
+      width: 40px;
+      height: 40px;
+      margin-bottom: 20px;
+      color: var(--primary);
     }
 
     .feature-title {
-      font-size: 16px;
-      font-weight: 500;
+      font-size: 18px;
+      font-weight: 600;
       margin-bottom: 8px;
       letter-spacing: -0.01em;
+      color: var(--text);
     }
 
     .feature-desc {
-      font-size: 14px;
+      font-size: 15px;
       color: var(--text-secondary);
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     /* CTA */
     .cta {
-      margin-bottom: 80px;
+      margin-bottom: 96px;
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.5s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
     }
 
     .cta-form {
       display: flex;
       gap: 12px;
-      max-width: 480px;
+      max-width: 520px;
     }
 
     .cta-input {
       flex: 1;
-      padding: 14px 16px;
-      background: transparent;
+      padding: 16px 20px;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 12px;
       color: var(--text);
-      font-size: 15px;
+      font-size: 16px;
       font-family: inherit;
       transition: all 0.2s ease;
     }
 
     .cta-input:focus {
       outline: none;
-      border-color: var(--text-secondary);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(91, 124, 255, 0.1);
     }
 
     .cta-input::placeholder {
-      color: var(--text-secondary);
+      color: var(--text-tertiary);
     }
 
     .cta-button {
-      padding: 14px 24px;
-      background: var(--text);
-      color: var(--bg);
+      padding: 16px 32px;
+      background: var(--gradient);
+      color: white;
       border: none;
-      border-radius: 6px;
-      font-size: 15px;
-      font-weight: 500;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
     }
 
     .cta-button:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
     }
 
     .cta-button:active {
       transform: translateY(0);
+    }
+
+    .success {
+      display: none;
+      margin-top: 16px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    .success.show {
+      display: block;
+      animation: fadeInUp 0.4s ease;
     }
 
     /* Footer */
@@ -187,34 +300,35 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 32px 0;
+      padding: 40px 0;
       border-top: 1px solid var(--border);
       font-size: 14px;
-      color: var(--text-secondary);
+      color: var(--text-tertiary);
       opacity: 0;
-      animation: fadeIn 0.6s ease-out 0.6s forwards;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
     }
 
     .footer-links {
       display: flex;
-      gap: 24px;
+      gap: 32px;
     }
 
     .footer-link {
       color: var(--text-secondary);
       text-decoration: none;
       transition: color 0.2s ease;
+      font-weight: 500;
     }
 
     .footer-link:hover {
-      color: var(--text);
+      color: var(--primary);
     }
 
     /* Animations */
-    @keyframes fadeIn {
+    @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
       }
       to {
         opacity: 1;
@@ -228,17 +342,32 @@
         padding: 0 24px;
       }
 
+      .gradient-orb {
+        width: 600px;
+        height: 600px;
+        top: -10%;
+        right: -30%;
+      }
+
       .logo {
-        margin-bottom: 60px;
+        margin-bottom: 64px;
       }
 
       .hero {
-        margin-bottom: 80px;
+        margin-bottom: 64px;
+      }
+
+      .hero-badge {
+        margin-bottom: 24px;
+      }
+
+      .hero-title {
+        margin-bottom: 24px;
       }
 
       .features {
         grid-template-columns: 1fr;
-        margin-bottom: 80px;
+        margin-bottom: 64px;
       }
 
       .cta-form {
@@ -251,101 +380,114 @@
 
       .footer {
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
         text-align: center;
+      }
+
+      .footer-links {
+        gap: 24px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
       }
-    }
-
-    /* Success message */
-    .success {
-      display: none;
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .success.show {
-      display: block;
     }
   </style>
 </head>
 <body>
+  <div class="gradient-orb"></div>
+
   <div class="container">
-    <!-- Logo -->
-    <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4" stroke="white" stroke-width="2" stroke-linecap="round"/>
-      <path d="M24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44" stroke="white" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" opacity="0.3"/>
-      <circle cx="24" cy="24" r="4" fill="white"/>
-    </svg>
+    <div class="content">
+      <!-- Logo -->
+      <svg class="logo" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667EEA"/>
+            <stop offset="100%" style="stop-color:#764BA2"/>
+          </linearGradient>
+        </defs>
+        <rect width="56" height="56" rx="12" fill="url(#logoGrad)"/>
+        <circle cx="28" cy="28" r="8" fill="white" opacity="0.9"/>
+        <circle cx="28" cy="28" r="4" fill="white"/>
+      </svg>
 
-    <!-- Hero -->
-    <div class="hero">
-      <h1 class="hero-title">Glint</h1>
-      <p class="hero-subtitle">Faster. Simpler. Beautiful. Experience seamless connectivity across all your devices.</p>
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Coming Soon
+        </div>
+        <h1 class="hero-title">Glint</h1>
+        <p class="hero-subtitle">
+          <span class="hero-highlight">Faster. Simpler. Beautiful.</span><br/>
+          Experience seamless connectivity across all your devices.
+        </p>
+      </div>
+
+      <!-- Features -->
+      <div class="features">
+        <div class="feature">
+          <div class="feature-content">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <h3 class="feature-title">Instant</h3>
+            <p class="feature-desc">Connect in milliseconds with zero latency</p>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-content">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="11" width="14" height="10" rx="2"/>
+              <circle cx="12" cy="16" r="1"/>
+              <path d="M9 11V7a3 3 0 0 1 6 0v4"/>
+            </svg>
+            <h3 class="feature-title">Secure</h3>
+            <p class="feature-desc">End-to-end encrypted connections</p>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-content">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+            <h3 class="feature-title">Effortless</h3>
+            <p class="feature-desc">No setup, no configuration required</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta">
+        <form class="cta-form" id="ctaForm">
+          <input
+            type="email"
+            class="cta-input"
+            placeholder="Enter your email"
+            required
+            id="emailInput"
+          />
+          <button type="submit" class="cta-button">Join Waitlist</button>
+        </form>
+        <div class="success" id="success">✓ Thanks! We'll be in touch soon.</div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div>&copy; 2024 Glint. All rights reserved.</div>
+        <div class="footer-links">
+          <a href="#" class="footer-link">Twitter</a>
+          <a href="#" class="footer-link">GitHub</a>
+          <a href="{{ url_for('index') }}" class="footer-link">Home</a>
+        </div>
+      </footer>
     </div>
-
-    <!-- Features -->
-    <div class="features">
-      <div class="feature">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-        <h3 class="feature-title">Instant</h3>
-        <p class="feature-desc">Connect in milliseconds</p>
-      </div>
-      <div class="feature">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="5" y="11" width="14" height="10" rx="2"/>
-          <circle cx="12" cy="16" r="1"/>
-          <path d="M9 11V7a3 3 0 0 1 6 0v4"/>
-        </svg>
-        <h3 class="feature-title">Secure</h3>
-        <p class="feature-desc">End-to-end encrypted</p>
-      </div>
-      <div class="feature">
-        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 6v6l4 2"/>
-        </svg>
-        <h3 class="feature-title">Effortless</h3>
-        <p class="feature-desc">No setup required</p>
-      </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="cta">
-      <form class="cta-form" id="ctaForm">
-        <input 
-          type="email" 
-          class="cta-input" 
-          placeholder="Enter your email" 
-          required
-          id="emailInput"
-        />
-        <button type="submit" class="cta-button">Join Waitlist</button>
-      </form>
-      <div class="success" id="success">Thanks. We'll be in touch.</div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <div>&copy; 2024 Glint</div>
-      <div class="footer-links">
-        <a href="#" class="footer-link">Twitter</a>
-        <a href="#" class="footer-link">GitHub</a>
-        <a href="{{ url_for('index') }}" class="footer-link">Back</a>
-      </div>
-    </footer>
   </div>
 
   <script>
