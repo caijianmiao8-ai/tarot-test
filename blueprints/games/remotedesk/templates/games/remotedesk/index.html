@@ -22,7 +22,7 @@
   <meta property="og:url" content="https://glintdesk.com/"/>
   <meta property="og:title" content="Glint - Control Your PC from Mobile. Free Forever."/>
   <meta property="og:description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
-  <meta property="og:image" content="/static/games/remotedesk/og-image.svg"/>
+  <meta property="og:image" content="{{ url_for('remotedesk.static', filename='og-image.svg') }}"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta property="og:site_name" content="Glint"/>
@@ -33,17 +33,17 @@
   <meta name="twitter:url" content="https://glintdesk.com/"/>
   <meta name="twitter:title" content="Glint - Control Your PC from Mobile. Free Forever."/>
   <meta name="twitter:description" content="Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees."/>
-  <meta name="twitter:image" content="/static/games/remotedesk/og-image.svg"/>
+  <meta name="twitter:image" content="{{ url_for('remotedesk.static', filename='og-image.svg') }}"/>
   <meta name="twitter:creator" content="@glintdesk"/>
   <meta name="twitter:site" content="@glintdesk"/>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="/static/games/remotedesk/favicon.svg"/>
-  <link rel="icon" type="image/x-icon" href="/static/games/remotedesk/favicon.ico"/>
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/games/remotedesk/favicon-32x32.png"/>
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/games/remotedesk/favicon-16x16.png"/>
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/games/remotedesk/apple-touch-icon.png"/>
-  <link rel="manifest" href="/static/games/remotedesk/manifest.json"/>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('remotedesk.static', filename='favicon.svg') }}"/>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('remotedesk.static', filename='favicon.ico') }}"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('remotedesk.static', filename='favicon-32x32.png') }}"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('remotedesk.static', filename='favicon-16x16.png') }}"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('remotedesk.static', filename='apple-touch-icon.png') }}"/>
+  <link rel="manifest" href="{{ url_for('remotedesk.static', filename='manifest.json') }}"/>
 
   <!-- Canonical URL -->
   <link rel="canonical" href="https://glintdesk.com/"/>
@@ -73,7 +73,7 @@
       "ratingCount": "1250"
     },
     "description": "Access your PC from anywhere using your mobile device. Perfect for work and gaming. 100% free, no subscriptions, no hidden fees.",
-    "screenshot": "/static/games/remotedesk/screenshot-desktop-dark.svg",
+    "screenshot": "{{ url_for('remotedesk.static', filename='screenshot-desktop-dark.svg') }}",
     "softwareVersion": "2.0.1-beta",
     "datePublished": "2024-01-01",
     "author": {
@@ -86,7 +86,7 @@
       "name": "Glint",
       "logo": {
         "@type": "ImageObject",
-        "url": "/static/games/remotedesk/logo.svg"
+        "url": "{{ url_for('remotedesk.static', filename='logo.svg') }}"
       }
     }
   }
@@ -2606,7 +2606,7 @@
 
     <!-- Hero Visual -->
     <div class="hero-visual fade-in delay-4" style="margin-top: 80px; max-width: 1400px; margin-left: auto; margin-right: auto;">
-      <img src="/static/games/remotedesk/screenshot-isometric.svg" alt="Glint app showcased across multiple platforms with 3D perspective" loading="eager" style="width: 100%; height: auto; opacity: 0.95;"/>
+      <img src="{{ url_for('remotedesk.static', filename='screenshot-isometric.svg') }}" alt="Glint app showcased across multiple platforms with 3D perspective" loading="eager" style="width: 100%; height: auto; opacity: 0.95;"/>
     </div>
   </section>
 
@@ -2621,13 +2621,13 @@
     <div class="screenshots-container">
       <!-- Mobile Preview -->
       <div class="device-preview mobile-preview">
-        <img src="/static/games/remotedesk/screenshot-mobile-dark.svg" alt="Glint mobile app interface showing device list with glassmorphism design" loading="lazy" style="width: 100%; height: auto; border-radius: 50px; box-shadow: 0 40px 80px rgba(0,0,0,0.4);"/>
+        <img src="{{ url_for('remotedesk.static', filename='screenshot-mobile-dark.svg') }}" alt="Glint mobile app interface showing device list with glassmorphism design" loading="lazy" style="width: 100%; height: auto; border-radius: 50px; box-shadow: 0 40px 80px rgba(0,0,0,0.4);"/>
         <p class="preview-caption">iOS & Android Apps</p>
       </div>
 
       <!-- Desktop Preview -->
       <div class="device-preview desktop-preview">
-        <img src="/static/games/remotedesk/screenshot-desktop-dark.svg" alt="Glint desktop client with dashboard showing network status and device information" loading="lazy" style="width: 100%; height: auto; border-radius: 18px; box-shadow: 0 50px 100px rgba(0,0,0,0.5);"/>
+        <img src="{{ url_for('remotedesk.static', filename='screenshot-desktop-dark.svg') }}" alt="Glint desktop client with dashboard showing network status and device information" loading="lazy" style="width: 100%; height: auto; border-radius: 18px; box-shadow: 0 50px 100px rgba(0,0,0,0.5);"/>
         <p class="preview-caption">Windows & macOS Clients</p>
       </div>
     </div>
