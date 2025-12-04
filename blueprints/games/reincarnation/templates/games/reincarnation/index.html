@@ -3,156 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>重生模拟器 - 下一世你将出生在哪里？</title>
-    <meta name="description" content="基于真实全球人口出生率数据的趣味重生模拟器">
+    <title>重生模拟器 V2 - 探索你的下一世</title>
+    <meta name="description" content="基于真实全球人口出生率数据的趣味重生模拟器 - 现代化版本">
     <link rel="stylesheet" href="{{ url_for('reincarnation.static', filename='main.css') }}">
 </head>
 <body>
-    <div class="container">
-        <!-- 头部区域 -->
-        <header class="header">
-            <h1 class="title">
-                <span class="icon">🌍</span>
-                重生模拟器
-                <span class="icon">✨</span>
-            </h1>
-            <p class="subtitle">下一世，你将出生在世界的哪个角落？</p>
-            <p class="description">基于真实全球人口出生率数据 · 科学又有趣</p>
-        </header>
+    <div class="app-container">
+        <!-- 背景粒子效果 -->
+        <div class="particles" id="particles"></div>
 
-        <!-- 主要内容区域 -->
-        <main class="main-content">
-            <!-- 开始界面 -->
-            <div id="start-screen" class="screen active">
-                <div class="start-content">
-                    <div class="reincarnation-icon">🪬</div>
-                    <h2>准备好开始新的人生了吗？</h2>
-                    <p class="intro-text">
-                        点击下方按钮，让命运之轮转动<br>
-                        你的下一世将由真实的全球人口出生率决定
+        <!-- 主容器 -->
+        <div class="main-container">
+            <!-- 头部 -->
+            <header class="header">
+                <div class="logo">
+                    <span class="logo-icon">🌍</span>
+                    <h1 class="logo-text">重生模拟器</h1>
+                    <span class="version-badge">V2.0</span>
+                </div>
+                <p class="tagline">命运之轮转动，探索你的下一世</p>
+            </header>
+
+            <!-- 开始屏幕 -->
+            <section id="start-section" class="section active">
+                <div class="start-card glass-card">
+                    <div class="card-glow"></div>
+                    <div class="mystical-icon">🔮</div>
+                    <h2 class="section-title">准备开始新的人生旅程？</h2>
+                    <p class="section-desc">
+                        基于<strong>联合国</strong>和<strong>世界银行</strong>的真实数据<br>
+                        用科学的概率分布，决定你的下一世出生地
                     </p>
-                    <button id="btn-start" class="btn btn-primary btn-large">
-                        <span class="btn-icon">🎲</span>
-                        开始重生
-                    </button>
-                    <div class="stats-preview">
-                        <div class="stat-item">
-                            <div class="stat-number">140,000,000</div>
+
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-icon">👶</div>
+                            <div class="stat-value">140M+</div>
                             <div class="stat-label">全球年出生人数</div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-number">25</div>
-                            <div class="stat-label">国家和地区</div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🗺️</div>
+                            <div class="stat-value">20</div>
+                            <div class="stat-label">覆盖国家和地区</div>
                         </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🎲</div>
+                            <div class="stat-value">100%</div>
+                            <div class="stat-label">科学加权算法</div>
+                        </div>
+                    </div>
+
+                    <button id="btn-start-journey" class="cta-button">
+                        <span class="button-shine"></span>
+                        <span class="button-text">🎯 开始重生之旅</span>
+                    </button>
+
+                    <div class="info-hint">
+                        💡 每次重生结果由真实出生率决定，体验不同文化的魅力
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- 加载动画 -->
-            <div id="loading-screen" class="screen">
-                <div class="loading-content">
-                    <div class="spinner-container">
-                        <div class="spinner"></div>
-                        <div class="loading-icon">🌟</div>
-                    </div>
-                    <h2 class="loading-text">命运之轮正在转动...</h2>
-                    <p class="loading-subtext">正在为你挑选下一世的出生地</p>
-                </div>
-            </div>
-
-            <!-- 结果展示 -->
-            <div id="result-screen" class="screen">
-                <div class="result-content">
-                    <div class="result-header">
-                        <h2 class="result-title">🎉 恭喜！你的下一世将出生在</h2>
-                    </div>
-
-                    <div class="country-card">
-                        <div class="country-flag" id="country-flag">🌍</div>
-                        <h3 class="country-name" id="country-name">加载中...</h3>
-                        <div class="country-name-en" id="country-name-en">Loading...</div>
-
-                        <div class="country-description" id="country-description">
-                            正在加载描述...
-                        </div>
-
-                        <div class="traits-container" id="traits-container">
-                            <!-- 特征标签将在这里动态生成 -->
-                        </div>
-
-                        <div class="fun-fact">
-                            <div class="fun-fact-label">💡 趣味知识</div>
-                            <div class="fun-fact-content" id="fun-fact">正在加载...</div>
-                        </div>
-
-                        <div class="probability-info">
-                            <div class="probability-bar">
-                                <div class="probability-fill" id="probability-fill"></div>
-                            </div>
-                            <div class="probability-text" id="probability-text">
-                                出生概率: 计算中...
-                            </div>
-                            <div class="probability-note" id="probability-note">
-                                正在加载统计信息...
+            <!-- 加载/转盘屏幕 -->
+            <section id="loading-section" class="section">
+                <div class="loading-card">
+                    <div class="wheel-container">
+                        <div class="cosmic-wheel">
+                            <div class="wheel-ring ring-1"></div>
+                            <div class="wheel-ring ring-2"></div>
+                            <div class="wheel-ring ring-3"></div>
+                            <div class="wheel-center">
+                                <span class="wheel-icon">✨</span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="action-buttons">
-                        <button id="btn-again" class="btn btn-primary">
-                            <span class="btn-icon">🔄</span>
-                            再转一世
-                        </button>
-                        <button id="btn-history" class="btn btn-secondary">
-                            <span class="btn-icon">📜</span>
-                            查看转世记录
-                        </button>
+                    <h2 class="loading-title">命运之轮正在转动...</h2>
+                    <p class="loading-text">正在为你挑选下一世的出生地</p>
+                    <div class="loading-progress">
+                        <div class="progress-bar" id="progress-bar"></div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- 历史记录 -->
-            <div id="history-screen" class="screen">
-                <div class="history-content">
-                    <div class="history-header">
-                        <h2>📜 你的转世记录</h2>
-                        <p class="history-subtitle">你已经体验过这些人生</p>
+            <!-- 结果屏幕 -->
+            <section id="result-section" class="section">
+                <div class="result-container">
+                    <!-- 世界地图可视化 -->
+                    <div class="map-container glass-card">
+                        <div class="map-header">
+                            <h3>🗺️ 你的出生地</h3>
+                            <div class="continent-badge" id="continent-badge">亚洲</div>
+                        </div>
+                        <div class="world-map-wrapper">
+                            <div id="world-map" class="world-map">
+                                <!-- 地图将通过JS动态生成 -->
+                            </div>
+                            <div class="location-marker" id="location-marker">
+                                <div class="marker-pulse"></div>
+                                <div class="marker-pin">📍</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="history-list" class="history-list">
-                        <div class="empty-history">
+                    <!-- 国家信息卡片 -->
+                    <div class="country-info-card glass-card">
+                        <div class="country-header">
+                            <div class="country-flag-large" id="result-flag">🌍</div>
+                            <div class="country-title-group">
+                                <h2 class="country-name" id="result-country">加载中...</h2>
+                                <p class="country-name-en" id="result-country-en">Loading...</p>
+                            </div>
+                        </div>
+
+                        <!-- 主要描述 -->
+                        <div class="description-box">
+                            <div class="desc-icon">🎭</div>
+                            <p class="desc-text" id="result-description">正在加载...</p>
+                        </div>
+
+                        <!-- 生活方式 -->
+                        <div class="lifestyle-box">
+                            <div class="lifestyle-icon">🏠</div>
+                            <div class="lifestyle-content">
+                                <h4 class="lifestyle-title">你的日常生活</h4>
+                                <p class="lifestyle-text" id="result-lifestyle">正在加载...</p>
+                            </div>
+                        </div>
+
+                        <!-- 特征标签 -->
+                        <div class="traits-section">
+                            <h4 class="section-subtitle">🏷️ 国家特色</h4>
+                            <div class="traits-grid" id="result-traits">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 统计信息 -->
+                        <div class="stats-section">
+                            <div class="stat-card">
+                                <div class="stat-icon-mini">🎲</div>
+                                <div class="stat-content">
+                                    <div class="stat-label-mini">出生概率</div>
+                                    <div class="stat-value-mini" id="result-probability">0%</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon-mini">⏰</div>
+                                <div class="stat-content">
+                                    <div class="stat-label-mini">预期寿命</div>
+                                    <div class="stat-value-mini" id="result-life-expectancy">0岁</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 趣味知识 -->
+                        <div class="fun-fact-box">
+                            <div class="fun-fact-header">
+                                <span class="fun-fact-emoji">💡</span>
+                                <span class="fun-fact-title">趣味知识</span>
+                            </div>
+                            <p class="fun-fact-text" id="result-fun-fact">正在加载...</p>
+                        </div>
+
+                        <!-- 著名特色 -->
+                        <div class="famous-section">
+                            <h4 class="section-subtitle">🌟 这里以什么闻名？</h4>
+                            <div class="famous-grid" id="result-famous">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="action-bar">
+                            <button id="btn-reincarnate" class="action-button primary">
+                                <span>🔄 再转一世</span>
+                            </button>
+                            <button id="btn-view-history" class="action-button secondary">
+                                <span>📜 转世记录</span>
+                            </button>
+                            <button id="btn-share" class="action-button secondary">
+                                <span>📤 分享结果</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 历史记录屏幕 -->
+            <section id="history-section" class="section">
+                <div class="history-container">
+                    <div class="history-header glass-card">
+                        <h2>📜 你的转世历程</h2>
+                        <p class="history-subtitle">探索过的人生轨迹</p>
+                    </div>
+
+                    <!-- 历史统计 -->
+                    <div class="history-stats glass-card" id="history-stats">
+                        <!-- 动态生成 -->
+                    </div>
+
+                    <!-- 历史列表 -->
+                    <div class="history-list" id="history-list">
+                        <div class="empty-state">
                             <div class="empty-icon">🌱</div>
-                            <p>还没有转世记录</p>
-                            <p class="empty-hint">开始第一次重生吧！</p>
+                            <h3>还没有转世记录</h3>
+                            <p>开始你的第一次重生之旅吧！</p>
                         </div>
                     </div>
 
-                    <div class="history-stats" id="history-stats">
-                        <!-- 统计信息将在这里生成 -->
-                    </div>
-
-                    <div class="action-buttons">
-                        <button id="btn-back" class="btn btn-secondary">
-                            <span class="btn-icon">←</span>
-                            返回
+                    <!-- 历史操作 -->
+                    <div class="history-actions">
+                        <button id="btn-back-to-result" class="action-button secondary">
+                            <span>← 返回结果</span>
                         </button>
-                        <button id="btn-clear-history" class="btn btn-danger">
-                            <span class="btn-icon">🗑️</span>
-                            清空记录
+                        <button id="btn-clear-history" class="action-button danger">
+                            <span>🗑️ 清空记录</span>
                         </button>
                     </div>
                 </div>
-            </div>
-        </main>
+            </section>
+        </div>
 
         <!-- 页脚 -->
         <footer class="footer">
-            <p>
-                数据来源: 联合国人口基金 & 世界银行 (2023-2024年度数据)
-            </p>
-            <p class="disclaimer">
-                ⚠️ 本游戏仅供娱乐，不代表任何实际预测或科学依据
-            </p>
+            <div class="footer-content">
+                <p class="data-source">
+                    📊 数据来源：联合国人口基金 (UNFPA) & 世界银行 (2023-2024)
+                </p>
+                <p class="disclaimer">
+                    ⚠️ 仅供娱乐 · 不构成任何预测或建议
+                </p>
+            </div>
         </footer>
     </div>
 

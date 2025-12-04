@@ -1,0 +1,33 @@
+<svg width="800" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- 简化世界地图 - 仅显示主要大陆轮廓 -->
+  <defs>
+    <style>
+      .continent { fill: #e0e7ff; stroke: #6366f1; stroke-width: 1; opacity: 0.6; }
+      .ocean { fill: #eff6ff; }
+    </style>
+  </defs>
+
+  <!-- 海洋背景 -->
+  <rect class="ocean" width="800" height="400"/>
+
+  <!-- 北美洲 -->
+  <path class="continent" d="M 100 80 Q 120 70, 140 85 L 160 90 L 180 100 L 190 120 L 185 140 L 175 160 L 165 175 Q 150 185, 140 180 L 130 170 Q 115 160, 105 145 L 100 130 Q 95 110, 100 80 Z"/>
+
+  <!-- 南美洲 -->
+  <path class="continent" d="M 160 200 L 170 210 L 175 230 L 180 250 L 175 270 L 165 285 L 155 295 L 145 290 L 140 275 L 135 260 L 138 240 L 145 220 L 155 205 Z"/>
+
+  <!-- 欧洲 -->
+  <path class="continent" d="M 380 80 L 395 75 L 410 80 L 420 90 L 425 105 L 418 120 L 405 125 L 390 120 L 380 110 L 378 95 Z"/>
+
+  <!-- 非洲 -->
+  <path class="continent" d="M 390 140 L 410 138 L 430 145 L 445 160 L 450 180 L 452 205 L 448 230 L 440 250 L 425 265 L 410 270 L 395 265 L 385 250 L 380 230 L 378 210 L 380 190 L 385 170 L 388 155 Z"/>
+
+  <!-- 亚洲 -->
+  <path class="continent" d="M 450 70 L 480 65 L 520 70 L 560 80 L 590 95 L 610 110 L 620 130 L 615 150 L 600 165 L 580 175 L 560 180 L 540 178 L 520 170 L 505 160 L 490 145 L 480 130 L 475 115 L 470 100 L 460 85 Z"/>
+
+  <!-- 大洋洲 -->
+  <path class="continent" d="M 620 220 L 640 215 L 660 220 L 675 235 L 680 250 L 675 265 L 660 270 L 645 268 L 630 260 L 620 245 L 618 232 Z"/>
+
+  <!-- 南极洲 (底部) -->
+  <path class="continent" d="M 50 350 L 750 350 L 750 380 L 50 380 Z" opacity="0.3"/>
+</svg>
