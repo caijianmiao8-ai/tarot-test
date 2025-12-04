@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重生模拟器 - 下一世你将出生在哪里？</title>
+    <meta name="description" content="基于真实全球人口出生率数据的趣味重生模拟器">
+    <link rel="stylesheet" href="{{ url_for('reincarnation.static', filename='main.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <header class="header">
+            <h1 class="title">
+                <span class="icon">🌍</span>
+                重生模拟器
+                <span class="icon">✨</span>
+            </h1>
+            <p class="subtitle">下一世，你将出生在世界的哪个角落？</p>
+            <p class="description">基于真实全球人口出生率数据 · 科学又有趣</p>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 开始界面 -->
+            <div id="start-screen" class="screen active">
+                <div class="start-content">
+                    <div class="reincarnation-icon">🪬</div>
+                    <h2>准备好开始新的人生了吗？</h2>
+                    <p class="intro-text">
+                        点击下方按钮，让命运之轮转动<br>
+                        你的下一世将由真实的全球人口出生率决定
+                    </p>
+                    <button id="btn-start" class="btn btn-primary btn-large">
+                        <span class="btn-icon">🎲</span>
+                        开始重生
+                    </button>
+                    <div class="stats-preview">
+                        <div class="stat-item">
+                            <div class="stat-number">140,000,000</div>
+                            <div class="stat-label">全球年出生人数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">25</div>
+                            <div class="stat-label">国家和地区</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载动画 -->
+            <div id="loading-screen" class="screen">
+                <div class="loading-content">
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                        <div class="loading-icon">🌟</div>
+                    </div>
+                    <h2 class="loading-text">命运之轮正在转动...</h2>
+                    <p class="loading-subtext">正在为你挑选下一世的出生地</p>
+                </div>
+            </div>
+
+            <!-- 结果展示 -->
+            <div id="result-screen" class="screen">
+                <div class="result-content">
+                    <div class="result-header">
+                        <h2 class="result-title">🎉 恭喜！你的下一世将出生在</h2>
+                    </div>
+
+                    <div class="country-card">
+                        <div class="country-flag" id="country-flag">🌍</div>
+                        <h3 class="country-name" id="country-name">加载中...</h3>
+                        <div class="country-name-en" id="country-name-en">Loading...</div>
+
+                        <div class="country-description" id="country-description">
+                            正在加载描述...
+                        </div>
+
+                        <div class="traits-container" id="traits-container">
+                            <!-- 特征标签将在这里动态生成 -->
+                        </div>
+
+                        <div class="fun-fact">
+                            <div class="fun-fact-label">💡 趣味知识</div>
+                            <div class="fun-fact-content" id="fun-fact">正在加载...</div>
+                        </div>
+
+                        <div class="probability-info">
+                            <div class="probability-bar">
+                                <div class="probability-fill" id="probability-fill"></div>
+                            </div>
+                            <div class="probability-text" id="probability-text">
+                                出生概率: 计算中...
+                            </div>
+                            <div class="probability-note" id="probability-note">
+                                正在加载统计信息...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="btn-again" class="btn btn-primary">
+                            <span class="btn-icon">🔄</span>
+                            再转一世
+                        </button>
+                        <button id="btn-history" class="btn btn-secondary">
+                            <span class="btn-icon">📜</span>
+                            查看转世记录
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div id="history-screen" class="screen">
+                <div class="history-content">
+                    <div class="history-header">
+                        <h2>📜 你的转世记录</h2>
+                        <p class="history-subtitle">你已经体验过这些人生</p>
+                    </div>
+
+                    <div id="history-list" class="history-list">
+                        <div class="empty-history">
+                            <div class="empty-icon">🌱</div>
+                            <p>还没有转世记录</p>
+                            <p class="empty-hint">开始第一次重生吧！</p>
+                        </div>
+                    </div>
+
+                    <div class="history-stats" id="history-stats">
+                        <!-- 统计信息将在这里生成 -->
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="btn-back" class="btn btn-secondary">
+                            <span class="btn-icon">←</span>
+                            返回
+                        </button>
+                        <button id="btn-clear-history" class="btn btn-danger">
+                            <span class="btn-icon">🗑️</span>
+                            清空记录
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>
+                数据来源: 联合国人口基金 & 世界银行 (2023-2024年度数据)
+            </p>
+            <p class="disclaimer">
+                ⚠️ 本游戏仅供娱乐，不代表任何实际预测或科学依据
+            </p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('reincarnation.static', filename='main.js') }}"></script>
+</body>
+</html>
