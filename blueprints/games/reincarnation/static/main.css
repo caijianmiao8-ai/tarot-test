@@ -11,28 +11,28 @@
 }
 
 :root {
-    /* 主色调 - 神秘紫色系 */
+    /* 主色调 - 优雅蓝紫色系 */
     --primary: #6366f1;
     --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
+    --primary-light: #a5b4fc;
     --secondary: #8b5cf6;
     --accent: #ec4899;
-    
-    /* 中性色 */
-    --text-primary: #f9fafb;
-    --text-secondary: #e5e7eb;
-    --text-muted: #9ca3af;
-    
-    /* 背景色 */
+
+    /* 中性色 - 高对比度 */
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #cbd5e1;
+
+    /* 背景色 - 深色系提升对比度 */
     --bg-base: #0f172a;
-    --bg-elevated: rgba(30, 41, 59, 0.8);
-    --bg-glass: rgba(255, 255, 255, 0.05);
-    
-    /* 玻璃态效果 */
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.15);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    
+    --bg-elevated: rgba(15, 23, 42, 0.95);
+    --bg-glass: rgba(15, 23, 42, 0.7);
+
+    /* 玻璃态效果 - 更高不透明度 */
+    --glass-bg: rgba(15, 23, 42, 0.85);
+    --glass-border: rgba(148, 163, 184, 0.2);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
     /* 动画 */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -46,7 +46,7 @@ html {
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
     background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.6;
@@ -273,15 +273,15 @@ body {
 }
 
 .stat-box {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 16px;
     padding: 1.5rem 1rem;
     transition: var(--transition-smooth);
 }
 
 .stat-box:hover {
-    background: rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.8);
     transform: translateY(-2px);
 }
 
@@ -638,8 +638,8 @@ body {
 /* 描述和生活方式 */
 .description-box,
 .lifestyle-box {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 16px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
@@ -727,8 +727,8 @@ body {
 }
 
 .stat-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 12px;
     padding: 1rem;
     display: flex;
@@ -795,8 +795,8 @@ body {
 }
 
 .famous-item {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 8px;
     padding: 0.625rem 0.875rem;
     font-size: 0.875rem;
@@ -805,7 +805,7 @@ body {
 }
 
 .famous-item:hover {
-    background: rgba(255,255,255,0.06);
+    background: rgba(15, 23, 42, 0.8);
     transform: translateX(4px);
 }
 
@@ -902,8 +902,8 @@ body {
 .history-stat-card {
     text-align: center;
     padding: 1.5rem 1rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 16px;
 }
 
@@ -939,14 +939,14 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 0.875rem 1.25rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 12px;
     transition: var(--transition-smooth);
 }
 
 .top-country-card:hover {
-    background: rgba(255,255,255,0.06);
+    background: rgba(15, 23, 42, 0.8);
     transform: translateX(4px);
 }
 
@@ -1016,8 +1016,9 @@ body {
 
 .history-continent {
     font-size: 0.8125rem;
-    color: var(--text-muted);
-    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
     padding: 0.25rem 0.625rem;
     border-radius: 9999px;
 }
