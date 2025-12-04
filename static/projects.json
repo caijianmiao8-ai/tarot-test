@@ -60,5 +60,14 @@
     "tags": ["AI", "RPG", "冒险"],
     "type": "link",
     "path": "/g/world_adventure/"
+  },
+  {
+    "slug": "reincarnation",
+    "title": "重生模拟器",
+    "subtitle": "下一世，你将出生在哪里？",
+    "cover": "/static/images/covers/reincarnation.svg",
+    "tags": ["趣味", "随机", "人口数据"],
+    "type": "link",
+    "path": "/g/reincarnation/"
   }
 ]

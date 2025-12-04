@@ -1,0 +1,113 @@
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <rect width="640" height="360" rx="32" fill="url(#bg_gradient)"/>
+
+  <!-- 地球主体 -->
+  <circle cx="320" cy="180" r="100" fill="url(#earth_gradient)" opacity="0.95"/>
+
+  <!-- 地球纹理线条 -->
+  <path d="M 220 180 Q 270 150, 320 180 T 420 180" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none"/>
+  <path d="M 220 200 Q 270 220, 320 200 T 420 200" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none"/>
+  <path d="M 240 140 Q 280 160, 320 140 T 400 140" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" fill="none"/>
+  <path d="M 240 220 Q 280 200, 320 220 T 400 220" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" fill="none"/>
+
+  <!-- 经纬线 -->
+  <ellipse cx="320" cy="180" rx="100" ry="40" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none"/>
+  <ellipse cx="320" cy="180" rx="100" ry="70" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none"/>
+  <line x1="320" y1="80" x2="320" y2="280" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+
+  <!-- 发光光环 -->
+  <circle cx="320" cy="180" r="110" stroke="url(#glow_gradient)" stroke-width="3" fill="none" opacity="0.6"/>
+  <circle cx="320" cy="180" r="120" stroke="url(#glow_gradient)" stroke-width="2" fill="none" opacity="0.3"/>
+
+  <!-- 装饰性星星 -->
+  <g opacity="0.85">
+    <circle cx="140" cy="80" r="3" fill="#FFD700"/>
+    <circle cx="480" cy="100" r="4" fill="#FFD700"/>
+    <circle cx="520" cy="240" r="3" fill="#FFD700"/>
+    <circle cx="120" cy="260" r="2.5" fill="#FFD700"/>
+    <circle cx="100" cy="150" r="2" fill="#FFD700"/>
+    <circle cx="540" cy="160" r="2.5" fill="#FFD700"/>
+  </g>
+
+  <!-- 命运之轮符号 -->
+  <g transform="translate(320, 180)" opacity="0.75">
+    <!-- 中心装饰 -->
+    <circle r="15" fill="rgba(255,255,255,0.2)"/>
+    <circle r="8" fill="rgba(255,255,255,0.4)"/>
+
+    <!-- 六芒星装饰 -->
+    <g opacity="0.6">
+      <line x1="0" y1="-25" x2="0" y2="-15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="0" y1="15" x2="0" y2="25" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="-21.65" y1="-12.5" x2="-13" y2="-7.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="13" y1="7.5" x2="21.65" y2="12.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="-21.65" y1="12.5" x2="-13" y2="7.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="13" y1="-7.5" x2="21.65" y2="-12.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- 飘动的灵魂光点 -->
+  <g opacity="0.7">
+    <circle cx="260" cy="120" r="4" fill="#C4B5FD">
+      <animate attributeName="cy" values="120;110;120" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="380" cy="240" r="4" fill="#A78BFA">
+      <animate attributeName="cy" values="240;250;240" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="200" cy="200" r="3" fill="#DDD6FE">
+      <animate attributeName="cy" values="200;195;200" dur="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="440" cy="160" r="3" fill="#C4B5FD">
+      <animate attributeName="cy" values="160;155;160" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 标题区域 -->
+  <g opacity="0.95">
+    <rect x="200" y="40" width="240" height="48" rx="24" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <text x="320" y="70" fill="#FFFFFF" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="24" font-weight="700" text-anchor="middle">🌍 重生模拟器 ✨</text>
+  </g>
+
+  <!-- 底部标签 -->
+  <g opacity="0.9">
+    <rect x="170" y="290" width="300" height="40" rx="20" fill="rgba(99,102,241,0.25)" stroke="rgba(139,92,246,0.4)" stroke-width="1.5"/>
+    <text x="320" y="316" fill="#E0E7FF" font-family="'Inter', sans-serif" font-size="16" font-weight="600" text-anchor="middle">基于真实全球人口出生率数据</text>
+  </g>
+
+  <!-- 装饰性标签 -->
+  <g opacity="0.85">
+    <!-- 左上角标签 -->
+    <rect x="36" y="48" width="100" height="28" rx="14" fill="rgba(139,92,246,0.3)"/>
+    <text x="86" y="68" fill="#DDD6FE" font-family="'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">趣味</text>
+
+    <!-- 右上角标签 -->
+    <rect x="504" y="48" width="100" height="28" rx="14" fill="rgba(99,102,241,0.3)"/>
+    <text x="554" y="68" fill="#C7D2FE" font-family="'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">随机</text>
+  </g>
+
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="bg_gradient" x1="0" y1="0" x2="640" y2="360">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="50%" stop-color="#764ba2"/>
+      <stop offset="100%" stop-color="#5b4a8f"/>
+    </linearGradient>
+
+    <radialGradient id="earth_gradient" cx="0.4" cy="0.4">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </radialGradient>
+
+    <linearGradient id="glow_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#ddd6fe"/>
+    </linearGradient>
+  </defs>
+</svg>
