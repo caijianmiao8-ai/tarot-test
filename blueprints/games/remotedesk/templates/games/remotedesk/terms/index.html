@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Terms of Service - Glintdesk</title>
+  <meta name="description" content="Glintdesk Terms of Service - Terms governing your use of our remote desktop services."/>
+  <meta name="robots" content="index, follow"/>
+  <meta name="theme-color" content="#097EF9"/>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg"/>
+  <link rel="apple-touch-icon" href="/images/logo-180.png"/>
+  <link rel="canonical" href="https://glintdesk.com/terms"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --black: #000000;
+      --near-black: #1d1d1f;
+      --gray: #6e6e73;
+      --light-gray: #f5f5f7;
+      --white: #ffffff;
+      --blue: #097EF9;
+      --blue-hover: #0990FF;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #fafbfc;
+      color: var(--near-black);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      z-index: 1000;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--near-black);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--near-black);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0.8;
+      padding: 10px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      opacity: 1;
+      background: rgba(9, 126, 249, 0.08);
+    }
+
+    /* Content */
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    .page-title {
+      font-size: clamp(32px, 5vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .page-meta {
+      font-size: 14px;
+      color: var(--gray);
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .legal-content h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 40px 0 16px;
+      color: var(--near-black);
+    }
+
+    .legal-content h3 {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 28px 0 12px;
+      color: var(--near-black);
+    }
+
+    .legal-content p {
+      margin-bottom: 16px;
+      color: var(--gray);
+      line-height: 1.7;
+    }
+
+    .legal-content ul, .legal-content ol {
+      margin: 0 0 16px 24px;
+      color: var(--gray);
+    }
+
+    .legal-content li {
+      margin-bottom: 8px;
+      line-height: 1.7;
+    }
+
+    .legal-content strong {
+      color: var(--near-black);
+      font-weight: 600;
+    }
+
+    .company-info {
+      background: var(--light-gray);
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+
+    .company-info p {
+      margin-bottom: 4px;
+    }
+
+    .disclaimer {
+      background: #fff8e6;
+      border-left: 4px solid #f5a623;
+      padding: 16px 20px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+    }
+
+    .disclaimer p {
+      margin-bottom: 0;
+      color: var(--near-black);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--near-black);
+      color: var(--white);
+      padding: 48px 24px 32px;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .footer-logo-text {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--white);
+    }
+
+    .footer-legal {
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .content {
+        padding: 100px 20px 60px;
+      }
+
+      .footer-container {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <svg class="logo-icon" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient x1="0" y1="0" x2="1" y2="1" id="logo-gradient">
+              <stop offset="0%" stop-color="#097EF9"/>
+              <stop offset="100%" stop-color="#09A5F9"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="200" fill="url(#logo-gradient)"/>
+          <path d="M671.59518,377.05145C632.11682,330.35262,573.8360299999999,303,512,303C396.57248000000004,303,303,396.57248000000004,303,512C303,627.42752,396.57248000000004,721,512,721C520.06476,721,528.11841,720.5332,536.12073,719.60345C545.15543,718.55377,554.13013,722.97784,558.05029,731.18518L598.92191,816.75464C604.21759,827.8418,598.35214,841.08093,586.36267,843.76825C561.97662,849.23419,537.0387000000001,852,512,852C324.22318,852,172,699.77686,172,512C172,324.22318,324.22318,172,512,172C616.05936,172,713.99854,219.621197,778.26001,300.56104C785.05408,309.11838,782.93872,321.45821,774.10095,327.88319L700.63806,381.29008C691.5462,387.89977,678.85208,385.6356,671.59518,377.05145Z" fill="#FFFFFF"/>
+          <path d="M669.4979075,813.000490234375C676.2214675,811.014650234375,681.5953175,805.923160234375,683.9665575,799.286800234375L716.0007975,654.500030234375L853.1441675,617.613100234375C861.6915875,614.177540234375,867.1944275000001,605.744170234375,866.9395775,596.467636234375C866.6846875,587.191070234375,860.7259875,579.0280152343751,852.0009474999999,575.9995572343751L537.1583325,497.616428374375C528.6624225,495.038715334375,519.4831915,497.876743334375,513.9221563,504.800571434375C508.36112118,511.724399234375,507.5200872,521.362140234375,511.793128,529.197544234375L644.1202575,802.4240402343751C648.2439575,810.1608902343751,656.4599575,814.786380234375,665.1483875,814.263950234375L669.4979075,813.000490234375Z" fill="#FFFFFF"/>
+          <path d="M513.921875,504.800573334375L716.000515,654.500030234375L853.1438949999999,617.613100234375C861.691315,614.177540234375,867.194155,605.744170234375,866.939305,596.467636234375C866.684415,587.191070234375,860.7257050000001,579.0280152343751,852.000675,575.9995572343751L537.158051,497.616430224375C528.662141,495.038717234375,519.4829102,497.876745234375,513.921875,504.800573334375Z" fill="#09A5F9" fill-opacity="0.17"/>
+        </svg>
+        <span class="logo-text">Glintdesk</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <main class="content">
+    <h1 class="page-title">Terms of Service</h1>
+    <p class="page-meta">Effective Date: December 30, 2025 · Last Updated: December 30, 2025</p>
+
+    <div class="legal-content">
+      <p>These Terms of Service ("Terms") govern your access to and use of Glintdesk's Services. By using the Services, you agree to these Terms.</p>
+
+      <h2>1. Provider</h2>
+      <p>The Services are provided by:</p>
+      <div class="company-info">
+        <p><strong>Hong Kong Towardway Intelligence Computing Technology Co., Ltd.</strong></p>
+        <p><strong>Towardway Intelligence Computing</strong></p>
+        <p>ROOM 1213, 12/F TOWER A, HUNGHOM COMMERCIAL CENTRE, 39 MA TAU WAI ROAD, HUNG HOM, HONG KONG</p>
+      </div>
+
+      <h2>2. Eligibility</h2>
+      <p>You must be at least 13 years old to use the Services. If you are under the age of majority where you live, you may use the Services only with permission of a parent or legal guardian.</p>
+
+      <h2>3. Accounts and Security</h2>
+      <p>Some features require an account. You agree to:</p>
+      <ul>
+        <li>provide accurate information,</li>
+        <li>keep your credentials confidential,</li>
+        <li>promptly report suspected unauthorized access through the in-app support channels (if available).</li>
+      </ul>
+      <p>You are responsible for all activity under your account.</p>
+
+      <h2>4. Remote Access / Streaming — Your Responsibility</h2>
+      <p>The Services may allow you to remotely access or control devices and stream screen/audio, and transmit inputs, clipboard data, or files.</p>
+      <p>You represent and warrant that:</p>
+      <ul>
+        <li>you own the device you connect to, or you have explicit authorization to access/control it,</li>
+        <li>you have the rights to any content you access or transfer using the Services,</li>
+        <li>you will comply with applicable laws and these Terms.</li>
+      </ul>
+
+      <h2>5. License to Use the Services</h2>
+      <p>Subject to these Terms, Glintdesk grants you a limited, non-exclusive, non-transferable, revocable license to use the Services for personal or internal business purposes (as applicable).</p>
+      <p>You may not:</p>
+      <ul>
+        <li>reverse engineer, decompile, or disassemble the Services except where prohibited by law,</li>
+        <li>bypass or circumvent security, access controls, or usage limits,</li>
+        <li>use the Services to develop or assist a competing product through unauthorized copying of functionality,</li>
+        <li>interfere with or disrupt the Services (including abusive automation or network attacks).</li>
+      </ul>
+
+      <h2>6. Acceptable Use</h2>
+      <p>You agree not to use the Services to:</p>
+      <ul>
+        <li>access devices or accounts without permission,</li>
+        <li>distribute malware or engage in hacking/exploitation,</li>
+        <li>infringe intellectual property rights,</li>
+        <li>harass, threaten, or harm others,</li>
+        <li>violate laws or regulations.</li>
+      </ul>
+      <p>We may suspend or terminate access if we reasonably believe you violated these Terms or pose a security risk.</p>
+
+      <h2>7. Paid Features (If Offered)</h2>
+      <p>If the Services include paid plans, trials, subscriptions, or usage-based billing:</p>
+      <ul>
+        <li>pricing and plan details will be presented at purchase,</li>
+        <li>taxes may apply,</li>
+        <li>subscriptions may renew automatically unless canceled before renewal (where applicable),</li>
+        <li>refund handling (if any) will be described at purchase or in the relevant product flow.</li>
+      </ul>
+
+      <h2>8. Third-Party Services</h2>
+      <p>The Services may depend on or integrate with third-party services (e.g., app stores, payment processors, cloud providers). Third parties may have their own terms and policies, and Glintdesk is not responsible for third-party services.</p>
+
+      <h2>9. Updates and Changes</h2>
+      <p>We may change the Services or these Terms from time to time. If changes are material, we may notify you through the Services. Continued use after changes become effective means you accept the updated Terms.</p>
+
+      <h2>10. Termination</h2>
+      <p>You may stop using the Services at any time. We may suspend or terminate your access if you violate these Terms, if required by law, or to protect the security and integrity of the Services.</p>
+      <p>Upon termination, your license ends and you must stop using the client software.</p>
+
+      <h2>11. Disclaimers</h2>
+      <div class="disclaimer">
+        <p>THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, GLINTDESK DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+      </div>
+      <p>Remote access and streaming performance depends on factors outside our control (device capability, network quality, routing, third-party infrastructure).</p>
+
+      <h2>12. Limitation of Liability</h2>
+      <div class="disclaimer">
+        <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, GLINTDESK WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR GOODWILL ARISING FROM OR RELATED TO THE SERVICES.</p>
+      </div>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, GLINTDESK'S TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATED TO THE SERVICES WILL NOT EXCEED THE AMOUNT YOU PAID (IF ANY) TO USE THE SERVICES IN THE 3 MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM.</p>
+      <p>Some jurisdictions do not allow certain limitations, so some of the above may not apply to you.</p>
+
+      <h2>13. Indemnification</h2>
+      <p>You agree to indemnify and hold harmless Glintdesk from claims, damages, liabilities, and expenses arising from:</p>
+      <ul>
+        <li>your use of the Services,</li>
+        <li>your violation of these Terms,</li>
+        <li>your unauthorized access to any device or data,</li>
+        <li>your infringement of third-party rights.</li>
+      </ul>
+
+      <h2>14. Governing Law</h2>
+      <p>These Terms are governed by the laws of the jurisdiction in which Glintdesk is established, without regard to conflict of law principles.</p>
+
+      <h2>15. How to Contact Us</h2>
+      <p>For support, legal notices, or privacy requests, use the support/request channels available within the Services (the in-app <strong>Support</strong> page, such as the Android <code>/support</code> entry).</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <svg class="footer-logo-icon" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient x1="0" y1="0" x2="1" y2="1" id="footer-logo-gradient">
+              <stop offset="0%" stop-color="#097EF9"/>
+              <stop offset="100%" stop-color="#09A5F9"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="200" fill="url(#footer-logo-gradient)"/>
+          <path d="M671.59518,377.05145C632.11682,330.35262,573.8360299999999,303,512,303C396.57248000000004,303,303,396.57248000000004,303,512C303,627.42752,396.57248000000004,721,512,721C520.06476,721,528.11841,720.5332,536.12073,719.60345C545.15543,718.55377,554.13013,722.97784,558.05029,731.18518L598.92191,816.75464C604.21759,827.8418,598.35214,841.08093,586.36267,843.76825C561.97662,849.23419,537.0387000000001,852,512,852C324.22318,852,172,699.77686,172,512C172,324.22318,324.22318,172,512,172C616.05936,172,713.99854,219.621197,778.26001,300.56104C785.05408,309.11838,782.93872,321.45821,774.10095,327.88319L700.63806,381.29008C691.5462,387.89977,678.85208,385.6356,671.59518,377.05145Z" fill="#FFFFFF"/>
+          <path d="M669.4979075,813.000490234375C676.2214675,811.014650234375,681.5953175,805.923160234375,683.9665575,799.286800234375L716.0007975,654.500030234375L853.1441675,617.613100234375C861.6915875,614.177540234375,867.1944275000001,605.744170234375,866.9395775,596.467636234375C866.6846875,587.191070234375,860.7259875,579.0280152343751,852.0009474999999,575.9995572343751L537.1583325,497.616428374375C528.6624225,495.038715334375,519.4831915,497.876743334375,513.9221563,504.800571434375C508.36112118,511.724399234375,507.5200872,521.362140234375,511.793128,529.197544234375L644.1202575,802.4240402343751C648.2439575,810.1608902343751,656.4599575,814.786380234375,665.1483875,814.263950234375L669.4979075,813.000490234375Z" fill="#FFFFFF"/>
+          <path d="M513.921875,504.800573334375L716.000515,654.500030234375L853.1438949999999,617.613100234375C861.691315,614.177540234375,867.194155,605.744170234375,866.939305,596.467636234375C866.684415,587.191070234375,860.7257050000001,579.0280152343751,852.000675,575.9995572343751L537.158051,497.616430224375C528.662141,495.038717234375,519.4829102,497.876745234375,513.921875,504.800573334375Z" fill="#09A5F9" fill-opacity="0.17"/>
+        </svg>
+        <span class="footer-logo-text">Glintdesk</span>
+      </div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </div>
+      <div class="footer-legal">
+        &copy; <span id="copyright-year">2025</span> Towardway Intelligence Computing. All rights reserved.
+      </div>
+    </div>
+  </footer>
+  <script>document.getElementById('copyright-year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
