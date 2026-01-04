@@ -1,57 +1,57 @@
 {
-  "name": "Glint - Control Your PC from Mobile",
-  "short_name": "Glint",
-  "description": "Access your PC from anywhere using your mobile device. Perfect for work and gaming.",
-  "start_url": "/g/remotedesk/",
+  "name": "Glintdesk - 手机远程控制电脑",
+  "short_name": "Glintdesk",
+  "description": "用手机随时随地控制您的电脑，支持办公和游戏场景。完全免费。",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#fafbfc",
-  "theme_color": "#0071e3",
+  "theme_color": "#0099FF",
   "orientation": "any",
   "icons": [
     {
-      "src": "/static/games/remotedesk/icon-72x72.png",
+      "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-96x96.png",
+      "src": "/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-128x128.png",
+      "src": "/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-144x144.png",
+      "src": "/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-152x152.png",
+      "src": "/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-384x384.png",
+      "src": "/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/games/remotedesk/icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -60,25 +60,25 @@
   "categories": ["productivity", "utilities"],
   "shortcuts": [
     {
-      "name": "Download",
-      "short_name": "Download",
-      "description": "Download Glint apps",
-      "url": "/g/remotedesk/#download",
+      "name": "下载",
+      "short_name": "下载",
+      "description": "下载 Glintdesk 应用",
+      "url": "/#download",
       "icons": [
         {
-          "src": "/static/games/remotedesk/icon-96x96.png",
+          "src": "/icon-96x96.png",
           "sizes": "96x96"
         }
       ]
     },
     {
-      "name": "Features",
-      "short_name": "Features",
-      "description": "View features",
-      "url": "/g/remotedesk/#features",
+      "name": "功能特性",
+      "short_name": "功能",
+      "description": "查看功能特性",
+      "url": "/#features",
       "icons": [
         {
-          "src": "/static/games/remotedesk/icon-96x96.png",
+          "src": "/icon-96x96.png",
           "sizes": "96x96"
         }
       ]
@@ -86,13 +86,13 @@
   ],
   "screenshots": [
     {
-      "src": "/static/games/remotedesk/screenshot-mobile.png",
+      "src": "/images/screenshot-mobile.png",
       "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/static/games/remotedesk/screenshot-desktop.png",
+      "src": "/images/screenshot-desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
