@@ -10,9 +10,9 @@ def get_meta():
     return {
         "slug": SLUG,
         "title": "RemoteDesk",
-        "subtitle": "远程桌面解决方案 · 高效协作",
+        "subtitle": "Remote desktop control built for speed",
         "path": f"/g/{SLUG}/",
-        "tags": ["RemoteDesk", "远程协作", "官网"]
+        "tags": ["RemoteDesk", "Remote Work", "Official Site"]
     }
 
 bp = Blueprint(
