@@ -803,6 +803,84 @@
       color: var(--near-black);
     }
 
+    /* Mobile Menu Overlay */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 999;
+      padding: 80px 24px 24px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .mobile-menu.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mobile-menu-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .mobile-menu-close svg {
+      width: 28px;
+      height: 28px;
+      color: var(--near-black);
+    }
+
+    .mobile-menu-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mobile-menu-links a {
+      display: block;
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--near-black);
+      text-decoration: none;
+      border-radius: 12px;
+      transition: background 0.2s ease;
+    }
+
+    .mobile-menu-links a:hover {
+      background: rgba(9, 126, 249, 0.08);
+    }
+
+    .mobile-menu-links .mobile-download-btn {
+      background: var(--blue);
+      color: var(--white);
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .mobile-menu-links .mobile-download-btn:hover {
+      background: var(--blue-hover);
+    }
+
+    @media (max-width: 768px) {
+      .mobile-menu {
+        display: block;
+      }
+    }
+
     /* Responsive Design */
     @media (max-width: 968px) {
       .use-cases {
@@ -932,6 +1010,21 @@
     </div>
   </nav>
 
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <ul class="mobile-menu-links">
+      <li><a href="#features" class="mobile-nav-link">Features</a></li>
+      <li><a href="#use-cases" class="mobile-nav-link">Use Cases</a></li>
+      <li><a href="#faq" class="mobile-nav-link">FAQ</a></li>
+      <li><a href="#download" class="mobile-nav-link mobile-download-btn">Download</a></li>
+    </ul>
+  </div>
+
   <!-- Hero Section -->
   <section class="hero" id="home">
     <div class="hero-badge fade-in">Public Beta</div>
@@ -940,7 +1033,7 @@
 
     <div class="hero-downloads fade-in delay-3" id="download">
       <div class="download-row">
-        <a href="#" class="download-btn download-btn-primary">
+        <a href="/downloads/glintdesk.apk" class="download-btn download-btn-primary">
           <svg class="download-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.39-.59-2.94-.92-4.47-.92s-3.08.33-4.47.92L5.65 5.67c-.19-.29-.54-.38-.84-.22-.3.16-.42.54-.26.85L6.4 9.48C3.3 11.25 1.28 14.44 1 18h22c-.28-3.56-2.3-6.75-5.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25S6.31 12.75 7 12.75s1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>
           </svg>
@@ -949,7 +1042,7 @@
             <div class="download-version">Download APK</div>
           </div>
         </a>
-        <a href="#" class="download-btn">
+        <a href="/downloads/glintdesk-setup.exe" class="download-btn">
           <svg class="download-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L10,11.9V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L10,20.09V13.1L20,13.25Z"/>
           </svg>
@@ -1282,8 +1375,8 @@
       <div class="footer-section">
         <h3>Legal</h3>
         <ul>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
+          <li><a href="https://www.glintdesk.com/privacy">Privacy Policy</a></li>
+          <li><a href="https://www.glintdesk.com/terms">Terms of Service</a></li>
         </ul>
       </div>
     </div>
@@ -1293,8 +1386,8 @@
         &copy; <span id="copyright-year">2025</span> Towardway Intelligence Computing. All rights reserved.
       </div>
       <div class="footer-links">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
+        <a href="https://www.glintdesk.com/privacy">Privacy</a>
+        <a href="https://www.glintdesk.com/terms">Terms</a>
       </div>
     </div>
   </footer>
@@ -1337,6 +1430,38 @@
           item.open = !item.open;
         }
       });
+    });
+
+    // Mobile menu
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileMenuClose = document.getElementById('mobileMenuClose');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+    function openMobileMenu() {
+      mobileMenu.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+      mobileMenu.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    mobileMenuBtn.addEventListener('click', openMobileMenu);
+    mobileMenuClose.addEventListener('click', closeMobileMenu);
+
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        closeMobileMenu();
+      });
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+        closeMobileMenu();
+      }
     });
   </script>
 </body>
