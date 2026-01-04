@@ -407,6 +407,105 @@
       color: var(--gray);
     }
 
+    /* Product Showcase Section */
+    .showcase {
+      padding: clamp(60px, 10vh, 100px) 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .showcase-header {
+      text-align: center;
+      margin-bottom: clamp(40px, 6vh, 60px);
+    }
+
+    .showcase-title {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .showcase-subtitle {
+      font-size: clamp(15px, 2vw, 17px);
+      color: var(--gray);
+    }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 0.6fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .showcase-item {
+      position: relative;
+    }
+
+    .showcase-item-pc {
+      background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 16px;
+      padding: 20px 20px 0;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    }
+
+    .showcase-item-pc img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px 8px 0 0;
+      display: block;
+    }
+
+    .showcase-item-mobile {
+      display: flex;
+      justify-content: center;
+    }
+
+    .showcase-item-mobile img {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    }
+
+    .showcase-label {
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--white);
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      white-space: nowrap;
+    }
+
+    .showcase-item-mobile .showcase-label {
+      bottom: -16px;
+    }
+
+    @media (max-width: 768px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+
+      .showcase-item-pc {
+        padding: 12px 12px 0;
+      }
+
+      .showcase-item-mobile img {
+        max-width: 220px;
+      }
+    }
+
     /* Section Styles */
     .section {
       padding: clamp(80px, 12vh, 140px) 24px;
@@ -1053,6 +1152,24 @@
         </a>
       </div>
       <p class="download-note">Requires Android 8+ and Windows 10+</p>
+    </div>
+  </section>
+
+  <!-- Product Showcase -->
+  <section class="showcase">
+    <div class="showcase-header">
+      <h2 class="showcase-title">See It in Action</h2>
+      <p class="showcase-subtitle">Clean, intuitive interface on both desktop and mobile</p>
+    </div>
+    <div class="showcase-grid">
+      <div class="showcase-item showcase-item-pc">
+        <img src="/images/screenshot-pc.png" alt="Glintdesk Windows app - Device management interface" loading="lazy"/>
+        <span class="showcase-label">Windows Host</span>
+      </div>
+      <div class="showcase-item showcase-item-mobile">
+        <img src="/images/screenshot-mobile.png" alt="Glintdesk Android app - Device list and connection" loading="lazy"/>
+        <span class="showcase-label">Android Controller</span>
+      </div>
     </div>
   </section>
 
