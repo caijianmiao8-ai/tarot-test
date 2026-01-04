@@ -468,8 +468,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
       margin-bottom: 20px;
+      color: var(--blue);
     }
 
     .feature-title {
@@ -579,11 +579,6 @@
       margin: 0 auto 20px;
     }
 
-    .step-icon {
-      font-size: 44px;
-      margin-bottom: 16px;
-    }
-
     .step-title {
       font-size: 19px;
       font-weight: 600;
@@ -617,11 +612,6 @@
 
     .spec-item {
       text-align: center;
-    }
-
-    .spec-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
     }
 
     .spec-label {
@@ -944,7 +934,7 @@
 
   <!-- Hero Section -->
   <section class="hero" id="home">
-    <div class="hero-badge fade-in">Beta · Free Forever</div>
+    <div class="hero-badge fade-in">Public Beta</div>
     <h1 class="hero-title fade-in delay-1">Control Your PC<br/>From Anywhere</h1>
     <p class="hero-subtitle fade-in delay-2">Work remotely, play games on the go, or help your family with tech issues. One app does it all.</p>
 
@@ -982,39 +972,73 @@
 
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
         <h3 class="feature-title">Ultra-Low Latency</h3>
         <p class="feature-description">Average 5ms latency on local networks. Our optimized protocol makes remote control feel like you're sitting right at your desk.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">🔒</div>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
         <h3 class="feature-title">End-to-End Encryption</h3>
         <p class="feature-description">AES-256 encryption protects all your data. We never store session content — your privacy comes first.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">📱</div>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+            <line x1="12" y1="18" x2="12.01" y2="18"/>
+          </svg>
+        </div>
         <h3 class="feature-title">Touch Optimized</h3>
         <p class="feature-description">Designed for mobile from the ground up. Intuitive gestures, virtual keyboard, mouse, and gamepad controls built in.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">🌐</div>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
         <h3 class="feature-title">Works Everywhere</h3>
         <p class="feature-description">LAN direct connect, P2P traversal, or relay — we automatically find the best connection method for your network.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">🎮</div>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="11" x2="10" y2="11"/>
+            <line x1="8" y1="9" x2="8" y2="13"/>
+            <circle cx="15" cy="12" r="1"/>
+            <circle cx="18" cy="10" r="1"/>
+            <rect x="2" y="6" width="20" height="12" rx="2"/>
+          </svg>
+        </div>
         <h3 class="feature-title">Game Streaming</h3>
         <p class="feature-description">Stream at 1080p 60fps with Xbox/PlayStation controller support. Take your PC gaming library anywhere.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">✨</div>
-        <h3 class="feature-title">Free Forever</h3>
-        <p class="feature-description">Core features are completely free. No time limits, no hidden fees. We believe great tools should be accessible to everyone.</p>
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Free to Start</h3>
+        <p class="feature-description">Get started at no cost. Core features are free with no time limits. Premium features available for power users.</p>
       </div>
     </div>
   </section>
@@ -1061,7 +1085,6 @@
     <div class="steps-container">
       <div class="step-card">
         <div class="step-number">1</div>
-        <div class="step-icon">📲</div>
         <h3 class="step-title">Download</h3>
         <p class="step-description">Install Glintdesk on both your phone and PC. Available for Android and Windows.</p>
       </div>
@@ -1070,7 +1093,6 @@
 
       <div class="step-card">
         <div class="step-number">2</div>
-        <div class="step-icon">🔗</div>
         <h3 class="step-title">Sign In & Pair</h3>
         <p class="step-description">Log in with the same account on both devices. They'll discover each other automatically.</p>
       </div>
@@ -1079,7 +1101,6 @@
 
       <div class="step-card">
         <div class="step-number">3</div>
-        <div class="step-icon">✨</div>
         <h3 class="step-title">Connect</h3>
         <p class="step-description">Tap any online device to start controlling. Enjoy smooth, low-latency remote access.</p>
       </div>
@@ -1087,22 +1108,18 @@
 
     <div class="specs-grid">
       <div class="spec-item">
-        <div class="spec-icon">⚡</div>
         <div class="spec-label">Latency</div>
         <div class="spec-value">5-15ms LAN</div>
       </div>
       <div class="spec-item">
-        <div class="spec-icon">🎯</div>
         <div class="spec-label">Connection</div>
         <div class="spec-value">LAN / P2P / Relay</div>
       </div>
       <div class="spec-item">
-        <div class="spec-icon">🔒</div>
         <div class="spec-label">Encryption</div>
         <div class="spec-value">AES-256</div>
       </div>
       <div class="spec-item">
-        <div class="spec-icon">📺</div>
         <div class="spec-label">Max Quality</div>
         <div class="spec-value">4K @ 60fps</div>
       </div>
@@ -1143,13 +1160,13 @@
 
       <details class="faq-item">
         <summary class="faq-question">
-          <span>Is it really free?</span>
+          <span>Is it free to use?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8l4 4 4-4"/>
           </svg>
         </summary>
         <div class="faq-answer">
-          Yes. Glintdesk core features are completely free with no usage time limits and no hidden charges. We want everyone to have access to great remote control tools.
+          Yes. Core features are free to use with no time limits. We also offer premium features for power users who need advanced capabilities.
         </div>
       </details>
 
@@ -1211,7 +1228,7 @@
           </svg>
         </summary>
         <div class="faq-answer">
-          Open the Glintdesk Android app, go to <strong>Me → Support</strong>, and submit a feedback form. You can also email us at <a href="mailto:support@glintdesk.com">support@glintdesk.com</a>.
+          Open the Glintdesk Android app, go to <strong>Me → Support</strong>, and submit a feedback form. We'll get back to you as soon as possible.
         </div>
       </details>
     </div>
@@ -1236,10 +1253,9 @@
           </svg>
           <span class="footer-logo-text">Glintdesk</span>
         </div>
-        <p class="footer-tagline">Control your PC from anywhere. Free forever.</p>
+        <p class="footer-tagline">Control your PC from anywhere.</p>
         <div class="footer-company">
-          <strong>Towardway Intelligence Computing</strong><br/>
-          香港拓維智算科技有限公司<br/><br/>
+          <strong>Towardway Intelligence Computing</strong><br/><br/>
           ROOM 1213, 12/F TOWER A,<br/>
           HUNGHOM COMMERCIAL CENTRE,<br/>
           39 MA TAU WAI ROAD, HUNG HOM,<br/>
@@ -1252,18 +1268,14 @@
         <ul>
           <li><a href="#features">Features</a></li>
           <li><a href="#download">Download</a></li>
-          <li><a href="#">System Requirements</a></li>
-          <li><a href="#">Release Notes</a></li>
+          <li><a href="#use-cases">Use Cases</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
         <h3>Support</h3>
         <ul>
-          <li><a href="#">Documentation</a></li>
           <li><a href="#faq">FAQ</a></li>
-          <li><a href="mailto:support@glintdesk.com">Contact Us</a></li>
-          <li><a href="#">Feedback</a></li>
         </ul>
       </div>
 
@@ -1272,7 +1284,6 @@
         <ul>
           <li><a href="#">Privacy Policy</a></li>
           <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Cookie Policy</a></li>
         </ul>
       </div>
     </div>
