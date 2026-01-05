@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Not Found - Glintdesk</title>
+  <meta name="robots" content="noindex"/>
+  <meta name="theme-color" content="#097EF9"/>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --near-black: #1d1d1f;
+      --gray: #6e6e73;
+      --white: #ffffff;
+      --blue: #097EF9;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #fafbfc;
+      color: var(--near-black);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 32px;
+      border-radius: 18px;
+    }
+
+    .error-code {
+      font-size: 120px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--near-black);
+      margin-bottom: 16px;
+    }
+
+    .error-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .error-message {
+      font-size: 16px;
+      color: var(--gray);
+      margin-bottom: 32px;
+      max-width: 400px;
+    }
+
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: var(--blue);
+      color: var(--white);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .home-btn:hover {
+      background: #0990FF;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(9, 126, 249, 0.25);
+    }
+
+    .home-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <svg class="logo" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient x1="0" y1="0" x2="1" y2="1" id="logo-gradient">
+        <stop offset="0%" stop-color="#097EF9"/>
+        <stop offset="100%" stop-color="#09A5F9"/>
+      </linearGradient>
+    </defs>
+    <rect width="1024" height="1024" rx="200" fill="url(#logo-gradient)"/>
+    <path d="M671.59518,377.05145C632.11682,330.35262,573.8360299999999,303,512,303C396.57248000000004,303,303,396.57248000000004,303,512C303,627.42752,396.57248000000004,721,512,721C520.06476,721,528.11841,720.5332,536.12073,719.60345C545.15543,718.55377,554.13013,722.97784,558.05029,731.18518L598.92191,816.75464C604.21759,827.8418,598.35214,841.08093,586.36267,843.76825C561.97662,849.23419,537.0387000000001,852,512,852C324.22318,852,172,699.77686,172,512C172,324.22318,324.22318,172,512,172C616.05936,172,713.99854,219.621197,778.26001,300.56104C785.05408,309.11838,782.93872,321.45821,774.10095,327.88319L700.63806,381.29008C691.5462,387.89977,678.85208,385.6356,671.59518,377.05145Z" fill="#FFFFFF"/>
+    <path d="M669.4979075,813.000490234375C676.2214675,811.014650234375,681.5953175,805.923160234375,683.9665575,799.286800234375L716.0007975,654.500030234375L853.1441675,617.613100234375C861.6915875,614.177540234375,867.1944275000001,605.744170234375,866.9395775,596.467636234375C866.6846875,587.191070234375,860.7259875,579.0280152343751,852.0009474999999,575.9995572343751L537.1583325,497.616428374375C528.6624225,495.038715334375,519.4831915,497.876743334375,513.9221563,504.800571434375C508.36112118,511.724399234375,507.5200872,521.362140234375,511.793128,529.197544234375L644.1202575,802.4240402343751C648.2439575,810.1608902343751,656.4599575,814.786380234375,665.1483875,814.263950234375L669.4979075,813.000490234375Z" fill="#FFFFFF"/>
+    <path d="M513.921875,504.800573334375L716.000515,654.500030234375L853.1438949999999,617.613100234375C861.691315,614.177540234375,867.194155,605.744170234375,866.939305,596.467636234375C866.684415,587.191070234375,860.7257050000001,579.0280152343751,852.000675,575.9995572343751L537.158051,497.616430224375C528.662141,495.038717234375,519.4829102,497.876745234375,513.921875,504.800573334375Z" fill="#09A5F9" fill-opacity="0.17"/>
+  </svg>
+
+  <div class="error-code">404</div>
+  <h1 class="error-title">Page Not Found</h1>
+  <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
+
+  <a href="/" class="home-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Back to Home
+  </a>
+</body>
+</html>
