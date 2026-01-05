@@ -489,6 +489,29 @@
       bottom: -16px;
     }
 
+    /* Showcase slide-in animations */
+    .showcase-item {
+      opacity: 0;
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .showcase-item-pc {
+      transform: translateX(-60px);
+    }
+
+    .showcase-item-mobile {
+      transform: translateX(60px);
+    }
+
+    .showcase-item.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .showcase-item-mobile.visible {
+      transition-delay: 0.15s;
+    }
+
     @media (max-width: 768px) {
       .showcase-grid {
         grid-template-columns: 1fr;
@@ -497,6 +520,11 @@
 
       .showcase-item-pc {
         padding: 12px 12px 0;
+        transform: translateY(40px);
+      }
+
+      .showcase-item-mobile {
+        transform: translateY(40px);
       }
 
       .showcase-item-mobile img {
@@ -1578,6 +1606,19 @@
         closeMobileMenu();
       }
     });
+
+    // Showcase slide-in animation
+    const showcaseItems = document.querySelectorAll('.showcase-item');
+    const showcaseObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          showcaseObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+
+    showcaseItems.forEach(item => showcaseObserver.observe(item));
   </script>
 </body>
 </html>
