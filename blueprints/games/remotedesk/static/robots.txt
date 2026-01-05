@@ -1,0 +1,6 @@
+# Glintdesk Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.glintdesk.com/sitemap.xml
