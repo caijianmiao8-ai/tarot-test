@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Support - Glintdesk</title>
+  <meta name="description" content="Submit a support ticket for Glintdesk. We're here to help with any issues or questions."/>
+  <meta name="robots" content="index, follow"/>
+  <meta name="theme-color" content="#097EF9"/>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg"/>
+  <link rel="apple-touch-icon" href="/images/logo-180.png"/>
+  <link rel="canonical" href="https://glintdesk.com/support"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --black: #000000;
+      --near-black: #1d1d1f;
+      --gray: #6e6e73;
+      --light-gray: #f5f5f7;
+      --white: #ffffff;
+      --blue: #097EF9;
+      --blue-hover: #0990FF;
+      --blue-light: #E8F4FF;
+      --green: #30D158;
+      --red: #FF453A;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #fafbfc;
+      color: var(--near-black);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      z-index: 1000;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--near-black);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--near-black);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0.8;
+      padding: 10px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      opacity: 1;
+      background: rgba(9, 126, 249, 0.08);
+    }
+
+    /* Content */
+    .content {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .page-title {
+      font-size: clamp(32px, 5vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .page-subtitle {
+      font-size: 16px;
+      color: var(--gray);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Form */
+    .support-form {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 40px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--near-black);
+      margin-bottom: 8px;
+    }
+
+    .form-label .required {
+      color: var(--red);
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-family: inherit;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      background: var(--white);
+      color: var(--near-black);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(9, 126, 249, 0.12);
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: var(--gray);
+      opacity: 0.7;
+    }
+
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236e6e73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 44px;
+    }
+
+    .form-textarea {
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .form-hint {
+      font-size: 13px;
+      color: var(--gray);
+      margin-top: 6px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: var(--blue-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(9, 126, 249, 0.25);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .submit-btn .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Messages */
+    .form-message {
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 15px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .form-message.show {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .form-message.success {
+      background: rgba(48, 209, 88, 0.1);
+      color: #248a3d;
+    }
+
+    .form-message.error {
+      background: rgba(255, 69, 58, 0.1);
+      color: #d70015;
+    }
+
+    .form-message svg {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Alternative contact */
+    .alt-contact {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .alt-contact p {
+      font-size: 14px;
+      color: var(--gray);
+    }
+
+    .alt-contact strong {
+      color: var(--near-black);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--near-black);
+      color: var(--white);
+      padding: 48px 24px 32px;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .footer-logo-text {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--white);
+    }
+
+    .footer-legal {
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .content {
+        padding: 100px 20px 60px;
+      }
+
+      .support-form {
+        padding: 28px 24px;
+      }
+
+      .footer-container {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <svg class="logo-icon" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient x1="0" y1="0" x2="1" y2="1" id="logo-gradient">
+              <stop offset="0%" stop-color="#097EF9"/>
+              <stop offset="100%" stop-color="#09A5F9"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="200" fill="url(#logo-gradient)"/>
+          <path d="M671.59518,377.05145C632.11682,330.35262,573.8360299999999,303,512,303C396.57248000000004,303,303,396.57248000000004,303,512C303,627.42752,396.57248000000004,721,512,721C520.06476,721,528.11841,720.5332,536.12073,719.60345C545.15543,718.55377,554.13013,722.97784,558.05029,731.18518L598.92191,816.75464C604.21759,827.8418,598.35214,841.08093,586.36267,843.76825C561.97662,849.23419,537.0387000000001,852,512,852C324.22318,852,172,699.77686,172,512C172,324.22318,324.22318,172,512,172C616.05936,172,713.99854,219.621197,778.26001,300.56104C785.05408,309.11838,782.93872,321.45821,774.10095,327.88319L700.63806,381.29008C691.5462,387.89977,678.85208,385.6356,671.59518,377.05145Z" fill="#FFFFFF"/>
+          <path d="M669.4979075,813.000490234375C676.2214675,811.014650234375,681.5953175,805.923160234375,683.9665575,799.286800234375L716.0007975,654.500030234375L853.1441675,617.613100234375C861.6915875,614.177540234375,867.1944275000001,605.744170234375,866.9395775,596.467636234375C866.6846875,587.191070234375,860.7259875,579.0280152343751,852.0009474999999,575.9995572343751L537.1583325,497.616428374375C528.6624225,495.038715334375,519.4831915,497.876743334375,513.9221563,504.800571434375C508.36112118,511.724399234375,507.5200872,521.362140234375,511.793128,529.197544234375L644.1202575,802.4240402343751C648.2439575,810.1608902343751,656.4599575,814.786380234375,665.1483875,814.263950234375L669.4979075,813.000490234375Z" fill="#FFFFFF"/>
+          <path d="M513.921875,504.800573334375L716.000515,654.500030234375L853.1438949999999,617.613100234375C861.691315,614.177540234375,867.194155,605.744170234375,866.939305,596.467636234375C866.684415,587.191070234375,860.7257050000001,579.0280152343751,852.000675,575.9995572343751L537.158051,497.616430224375C528.662141,495.038717234375,519.4829102,497.876745234375,513.921875,504.800573334375Z" fill="#09A5F9" fill-opacity="0.17"/>
+        </svg>
+        <span class="logo-text">Glintdesk</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/terms">Terms</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="page-header">
+      <h1 class="page-title">Contact Support</h1>
+      <p class="page-subtitle">Have a question or issue? Fill out the form below and we'll get back to you as soon as possible.</p>
+    </div>
+
+    <div class="support-form">
+      <div class="form-message success" id="successMessage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Your ticket has been submitted successfully. We'll respond to your email shortly.</span>
+      </div>
+
+      <div class="form-message error" id="errorMessage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span id="errorText">Something went wrong. Please try again later.</span>
+      </div>
+
+      <form id="supportForm">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="your@email.com" required/>
+          <p class="form-hint">We'll send our response to this email</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="category">Category <span class="required">*</span></label>
+          <select id="category" name="category" class="form-select" required>
+            <option value="" disabled selected>Select a category</option>
+            <option value="bug">Bug Report</option>
+            <option value="feature">Feature Request</option>
+            <option value="account">Account Issue</option>
+            <option value="technical">Technical Support</option>
+            <option value="billing">Billing Question</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="subject">Subject <span class="required">*</span></label>
+          <input type="text" id="subject" name="subject" class="form-input" placeholder="Brief summary of your issue" required/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="message">Description <span class="required">*</span></label>
+          <textarea id="message" name="message" class="form-textarea" placeholder="Please describe your issue in detail. Include any relevant information such as device model, OS version, steps to reproduce, etc." required></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span id="btnText">Submit Ticket</span>
+          <div class="spinner" id="btnSpinner" style="display: none;"></div>
+        </button>
+      </form>
+
+      <div class="alt-contact">
+        <p>You can also submit feedback directly in the <strong>Glintdesk Android app</strong> via <strong>Me → Support</strong></p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <svg class="footer-logo-icon" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient x1="0" y1="0" x2="1" y2="1" id="footer-logo-gradient">
+              <stop offset="0%" stop-color="#097EF9"/>
+              <stop offset="100%" stop-color="#09A5F9"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="200" fill="url(#footer-logo-gradient)"/>
+          <path d="M671.59518,377.05145C632.11682,330.35262,573.8360299999999,303,512,303C396.57248000000004,303,303,396.57248000000004,303,512C303,627.42752,396.57248000000004,721,512,721C520.06476,721,528.11841,720.5332,536.12073,719.60345C545.15543,718.55377,554.13013,722.97784,558.05029,731.18518L598.92191,816.75464C604.21759,827.8418,598.35214,841.08093,586.36267,843.76825C561.97662,849.23419,537.0387000000001,852,512,852C324.22318,852,172,699.77686,172,512C172,324.22318,324.22318,172,512,172C616.05936,172,713.99854,219.621197,778.26001,300.56104C785.05408,309.11838,782.93872,321.45821,774.10095,327.88319L700.63806,381.29008C691.5462,387.89977,678.85208,385.6356,671.59518,377.05145Z" fill="#FFFFFF"/>
+          <path d="M669.4979075,813.000490234375C676.2214675,811.014650234375,681.5953175,805.923160234375,683.9665575,799.286800234375L716.0007975,654.500030234375L853.1441675,617.613100234375C861.6915875,614.177540234375,867.1944275000001,605.744170234375,866.9395775,596.467636234375C866.6846875,587.191070234375,860.7259875,579.0280152343751,852.0009474999999,575.9995572343751L537.1583325,497.616428374375C528.6624225,495.038715334375,519.4831915,497.876743334375,513.9221563,504.800571434375C508.36112118,511.724399234375,507.5200872,521.362140234375,511.793128,529.197544234375L644.1202575,802.4240402343751C648.2439575,810.1608902343751,656.4599575,814.786380234375,665.1483875,814.263950234375L669.4979075,813.000490234375Z" fill="#FFFFFF"/>
+          <path d="M513.921875,504.800573334375L716.000515,654.500030234375L853.1438949999999,617.613100234375C861.691315,614.177540234375,867.194155,605.744170234375,866.939305,596.467636234375C866.684415,587.191070234375,860.7257050000001,579.0280152343751,852.000675,575.9995572343751L537.158051,497.616430224375C528.662141,495.038717234375,519.4829102,497.876745234375,513.921875,504.800573334375Z" fill="#09A5F9" fill-opacity="0.17"/>
+        </svg>
+        <span class="footer-logo-text">Glintdesk</span>
+      </div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </div>
+      <div class="footer-legal">
+        &copy; <span id="copyright-year">2025</span> Towardway Intelligence Computing. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dynamic copyright year
+    document.getElementById('copyright-year').textContent = new Date().getFullYear();
+
+    // Form handling
+    const form = document.getElementById('supportForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+
+    // API endpoint - configure this to your backend
+    const API_ENDPOINT = '/api/support';
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Hide previous messages
+      successMessage.classList.remove('show');
+      errorMessage.classList.remove('show');
+
+      // Disable button and show loading
+      submitBtn.disabled = true;
+      btnText.textContent = 'Submitting...';
+      btnSpinner.style.display = 'block';
+
+      // Collect form data
+      const formData = {
+        email: document.getElementById('email').value.trim(),
+        category: document.getElementById('category').value,
+        subject: document.getElementById('subject').value.trim(),
+        message: document.getElementById('message').value.trim(),
+        submitted_at: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+        language: navigator.language
+      };
+
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Success
+          successMessage.classList.add('show');
+          form.reset();
+        } else {
+          // API returned error
+          errorText.textContent = result.message || 'Something went wrong. Please try again later.';
+          errorMessage.classList.add('show');
+        }
+      } catch (error) {
+        // Network or other error
+        console.error('Submit error:', error);
+        errorText.textContent = 'Unable to connect to the server. Please check your internet connection and try again.';
+        errorMessage.classList.add('show');
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        btnText.textContent = 'Submit Ticket';
+        btnSpinner.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
