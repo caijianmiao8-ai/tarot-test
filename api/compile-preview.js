@@ -3,22 +3,12 @@
 // 服务器端实时编译器（给预览 iframe 用）。
 // 功能：
 //   1. 用 esbuild 把用户在编辑器里写的 React 组件打成一个 IIFE。
-//   2. 让 React / ReactDOM / lucide-react 这些库通过全局(window.*)注入，而不是真的打包 node_modules。
-//   3. 把 Tailwind 按需跑一遍，只生成当前代码用到的类。我们强制关闭 preflight，避免 Vercel 上读取 preflight.css 报 ENOENT。
-//   4. 自动生成一个“虚拟 lucide-react 模块”，解决图标渲染问题。
-//   5. 强沙箱：禁止 Node 内置、禁止任意 import 其他包、防止路径逃逸。
-//
-// 兼容性特别说明（⭐重点）：
-//   - 我们把 esbuild 的 target 下调到一组老浏览器 (safari13 / ios13 / chrome58 / firefox60 / edge79 / es2017)
-//     这样会自动把 ?.、??、class fields、private fields 等新语法降级成老语法，
-//     避免移动端 Safari / Android WebView 直接 SyntaxError。
-//   - 目标版本里都已经支持 Promise / async/await / const / let /箭头函数，
-//     也满足 React 18 的最低运行环境要求（React 18 官方不再支持真正古董浏览器）。
-//
-//   结果：iOS / Android / 桌面主流浏览器都能解析并执行，不会再出现“手机一片黑屏”。
-//   如果还有黑屏，多半是 React 资源没加载到或者 runtime 抛错，
-//   这会在前端的 buildPreviewHtml 插入的 error bridge 中显示出来（见下面第2部分）。
-//
+//   2. React / ReactDOM / lucide-react 通过全局(window.*)注入（不打包 node_modules）。
+//   3. Tailwind 按需生成，强制关闭 preflight，避免 Vercel 读取 preflight.css 报 ENOENT。
+//   4. 自动生成“虚拟 lucide-react 模块”以保证图标可用。
+//   5. 去除导入白名单：除 Node 内置高危模块外，任意 npm 包（如 framer-motion）通过 esm.sh CDN 拉取并打包。
+//   6. 强沙箱：禁 Node 内置、禁路径逃逸；修复 esm.sh 子依赖的“根相对路径/裸导入”解析。
+// 兼容性：target 下调，避免移动端 Safari/Android WebView 语法错误。
 
 const { build } = require("esbuild");
 const path = require("path");
@@ -28,6 +18,8 @@ const tailwindcss = require("tailwindcss");
 const loadConfig = require("tailwindcss/loadConfig");
 const fs = require("fs/promises");
 const os = require("os");
+const https = require("https");
+const http = require("http");
 
 // ----------------------------------------------------------------------------
 // Tailwind 配置发现
@@ -51,8 +43,7 @@ const EXTRA_CONFIG_LOCATIONS = [
   "src/tailwind.config.ts",
 ];
 
-// 我们告诉 Vercel 把 tailwindcss 本体打进来，以便 serverless 环境能 require。
-// includeFiles 还能把你的 tailwind.config.js 之类的东西带过来（即使在子目录）
+// 告诉 Vercel 打包 tailwindcss 本体与常见配置文件
 const TAILWIND_INCLUDE_FILES = Array.from(
   new Set([
     ...TAILWIND_CONFIG_FILENAMES.map((n) => n),
@@ -62,7 +53,7 @@ const TAILWIND_INCLUDE_FILES = Array.from(
 );
 
 // ----------------------------------------------------------------------------
-// 外部依赖白名单
+/** 外部依赖（通过 window.* 注入的“全局外部”） */
 // ----------------------------------------------------------------------------
 
 const EXTERNAL_MODULES = new Set([
@@ -74,7 +65,7 @@ const EXTERNAL_MODULES = new Set([
   "lucide-react",
 ]);
 
-// 禁 Node 内置模块 / 进程对象
+// 禁 Node 内置模块 / 进程对象（高危）
 const NODE_BUILTINS = new Set([
   ...builtinModules,
   ...builtinModules.map((n) => `node:${n}`),
@@ -82,8 +73,8 @@ const NODE_BUILTINS = new Set([
 ]);
 
 // 虚拟入口常量
-const USER_CODE_VIRTUAL_PATH = "user-code"; // 你的组件源码
-const VIRTUAL_ENTRY_PATH = "virtual-entry"; // 我们注入的root/mount脚本
+const USER_CODE_VIRTUAL_PATH = "user-code";     // 你的组件源码
+const VIRTUAL_ENTRY_PATH   = "virtual-entry";   // 注入的 root/mount 脚本
 
 // Tailwind 指令
 const BASE_CSS = "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
@@ -136,9 +127,7 @@ async function findTailwindConfig() {
     try {
       await fs.access(full);
       cachedTailwindConfigPath = full;
-      console.info(
-        `[compile-preview] Tailwind config FOUND at: ${full}`
-      );
+      console.info(`[compile-preview] Tailwind config FOUND at: ${full}`);
       return cachedTailwindConfigPath;
     } catch {
       // continue
@@ -161,14 +150,11 @@ async function loadTailwindConfigOrFallback() {
       return cachedTailwindConfig;
     } catch (err) {
       console.error(
-        `[compile-preview] Failed to load Tailwind config: ${
-          err?.stack || err
-        }`
+        `[compile-preview] Failed to load Tailwind config: ${err?.stack || err}`
       );
     }
   }
 
-  // 没找到你的 tailwind.config -> 提供兜底，保持和你 UI 的风格接近
   console.warn("[compile-preview] Using internal fallback Tailwind config");
 
   cachedTailwindConfig = {
@@ -198,7 +184,6 @@ async function loadTailwindConfigOrFallback() {
           "3xl": "1.75rem",
         },
         boxShadow: {
-          // 玻璃态的大片柔光阴影
           "glass-xl": "0 40px 120px rgba(15,23,42,0.45)",
         },
       },
@@ -295,12 +280,7 @@ function buildLucideModuleSource(lucideList) {
         pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
 
       return Array.from(
-        new Set([
-          kebab,
-          simpleLower,
-          pascalName,
-          pascalName.toLowerCase(),
-        ])
+        new Set([kebab, simpleLower, pascalName, pascalName.toLowerCase()])
       );
     }
 
@@ -458,14 +438,142 @@ function buildLucideModuleSource(lucideList) {
 }
 
 // ----------------------------------------------------------------------------
-// esbuild 插件：白名单依赖注入、禁止额外 import
+// 裸模块名 -> esm.sh CDN URL
+// ----------------------------------------------------------------------------
+function resolveBareToCDN(spec) {
+  // 固定常用包版本和构建参数，减少 302 跳转
+  const pinned = {
+    "framer-motion":
+      "https://esm.sh/framer-motion@11.18.2?external=react,react-dom&target=es2017",
+  };
+  if (pinned[spec]) return pinned[spec];
+
+  // 其他包：latest + 外部化 react/react-dom，降级到 es2017
+  return `https://esm.sh/${spec}@latest?external=react,react-dom&target=es2017`;
+}
+
+// ----------------------------------------------------------------------------
+// http(s)/data: 导入插件：在打包阶段拉取 CDN 模块内容
+// 兼容 esm.sh 返回的相对/根相对/裸导入（统一解析为绝对 URL 或 external-globals）
+// ----------------------------------------------------------------------------
+function httpImportPlugin() {
+  return {
+    name: "http-import",
+    setup(buildCtx) {
+      const urlFilter = /^https?:\/\//;
+
+      // 识别初次出现的 http(s) URL
+      buildCtx.onResolve({ filter: urlFilter }, (args) => ({
+        path: args.path,
+        namespace: "http-url",
+      }));
+
+      // 在 http-url 命名空间内，处理相对/根相对/裸导入 与 data:
+      buildCtx.onResolve({ filter: /.*/, namespace: "http-url" }, (args) => {
+        const spec = args.path;
+
+        // 1) 已是 http(s) 或 data:，透传
+        if (/^https?:\/\//i.test(spec) || spec.startsWith("data:")) {
+          return { path: spec, namespace: "http-url" };
+        }
+
+        const isRelative = spec.startsWith("./") || spec.startsWith("../");
+        const isRootAbs = spec.startsWith("/");
+
+        // 2) 相对或根相对：基于 importer 解析为绝对 URL
+        if (isRelative || isRootAbs) {
+          try {
+            const base = new URL(args.importer);
+            const resolved = new URL(spec, base);
+            return { path: resolved.toString(), namespace: "http-url" };
+          } catch {
+            return { path: spec, namespace: "http-url" };
+          }
+        }
+
+        // 3) 裸导入：要么走 external-globals，要么映射到 CDN
+        if (EXTERNAL_MODULES.has(spec)) {
+          // 交给 external-globals（使用 window.*）
+          return { path: spec, namespace: "external-globals" };
+        }
+
+        // 一些子模块形式如 'react/jsx-runtime' 也在 EXTERNAL_MODULES 里，已被上面捕获。
+        // 其它裸导入 → esm.sh
+        const cdn = resolveBareToCDN(spec);
+        return { path: cdn, namespace: "http-url" };
+      });
+
+      // 加载 http-url 命名空间的内容
+      buildCtx.onLoad({ filter: /.*/, namespace: "http-url" }, async (args) => {
+        // data:URL 支持
+        if (args.path.startsWith("data:")) {
+          const comma = args.path.indexOf(",");
+          const meta = args.path.slice(5, comma);
+          const data = args.path.slice(comma + 1);
+          const isBase64 = /;base64/i.test(meta);
+          const mime = meta.split(";")[0] || "";
+          const text = isBase64
+            ? Buffer.from(data, "base64").toString("utf8")
+            : decodeURIComponent(data);
+          return {
+            contents: text,
+            loader: mime.includes("css") ? "css" : "js",
+          };
+        }
+
+        const code = await fetchUrl(args.path);
+        return {
+          contents: code,
+          loader: args.path.endsWith(".css") ? "css" : "js",
+        };
+      });
+    },
+  };
+}
+
+function fetchUrl(url, maxRedirect = 5) {
+  return new Promise((resolve, reject) => {
+    if (maxRedirect <= 0) return reject(new Error("Too many redirects"));
+
+    const client = url.startsWith("https:") ? https : http;
+    const req = client.get(url, (res) => {
+      const { statusCode, headers } = res;
+      if (statusCode >= 300 && statusCode < 400 && headers.location) {
+        const next = headers.location.startsWith("http")
+          ? headers.location
+          : new URL(headers.location, url).toString();
+        res.resume(); // 丢弃当前响应体
+        return fetchUrl(next, maxRedirect - 1).then(resolve, reject);
+      }
+
+      if (statusCode !== 200) {
+        res.resume();
+        return reject(new Error(`GET ${url} -> ${statusCode}`));
+      }
+
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", (d) => (data += d));
+      res.on("end", () => resolve(data));
+    });
+
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+// ----------------------------------------------------------------------------
+// esbuild 插件：去白名单 + 注入外部全局 + CDN 改写
 // ----------------------------------------------------------------------------
 function createSecurityPlugin(resolveDir, lucideList) {
   return {
     name: "preview-security",
     setup(buildCtx) {
       buildCtx.onResolve({ filter: /.*/ }, (args) => {
-        // 外部白名单模块 -> 我们的自定义 namespace
+        // 让 httpImportPlugin 处理 http-url 命名空间
+        if (args.namespace === "http-url") return;
+
+        // 1) 通过 window.* 注入的外部模块（不走 CDN）
         if (EXTERNAL_MODULES.has(args.path)) {
           return {
             path: args.path,
@@ -473,7 +581,7 @@ function createSecurityPlugin(resolveDir, lucideList) {
           };
         }
 
-        // Node 内置不允许
+        // 2) 禁 Node 内置模块
         if (NODE_BUILTINS.has(args.path)) {
           return {
             errors: [
@@ -484,122 +592,146 @@ function createSecurityPlugin(resolveDir, lucideList) {
           };
         }
 
-        // 相对 / 绝对路径：必须在 resolveDir 里，不能逃逸到宿主磁盘
+        // 3) 相对/绝对路径：必须在 resolveDir 下
         if (args.path.startsWith(".") || path.isAbsolute(args.path)) {
           const base = args.resolveDir || resolveDir;
           const resolved = path.resolve(base, args.path);
           if (!resolved.startsWith(base)) {
             return {
-              errors: [
-                {
-                  text: `不允许访问受限目录之外的文件: ${args.path}`,
-                },
-              ],
+              errors: [{ text: `不允许访问受限目录之外的文件: ${args.path}` }],
             };
           }
           return { path: resolved };
         }
 
-        // 其他 import 全部禁止
-        return {
-          errors: [
-            {
-              text: `模块 "${args.path}" 不在允许白名单中。只能使用 React、ReactDOM、lucide-react 以及当前文件内的代码。`,
-            },
-          ],
-        };
+        // 4) 其他（裸模块名） => 改写到 CDN
+        const cdnUrl = resolveBareToCDN(args.path);
+        return { path: cdnUrl, namespace: "http-url" };
       });
 
-      buildCtx.onLoad(
-        { filter: /.*/, namespace: "external-globals" },
-        (args) => {
-          if (args.path === "react") {
-            return {
-              loader: "js",
-              contents: `
-                const React = window.React;
-                export default React;
-                export const useState = React.useState;
-                export const useEffect = React.useEffect;
-                export const useRef = React.useRef;
-                export const useMemo = React.useMemo;
-                export const useCallback = React.useCallback;
-                export const Fragment = React.Fragment;
-              `,
-            };
-          }
-
-          if (args.path === "react-dom") {
-            return {
-              loader: "js",
-              contents: `
-                const ReactDOM = window.ReactDOM;
-                export default ReactDOM;
-              `,
-            };
-          }
-
-          if (args.path === "react-dom/client") {
-            return {
-              loader: "js",
-              contents: `
-                const ReactDOM = window.ReactDOM;
-                if (!ReactDOM || !ReactDOM.createRoot) {
-                  throw new Error('ReactDOM.createRoot not found. Make sure ReactDOM 18+ is loaded in the iframe.');
-                }
-                export function createRoot(container) {
-                  return ReactDOM.createRoot(container);
-                }
-              `,
-            };
-          }
-
-          if (args.path === "react/jsx-runtime") {
-            return {
-              loader: "js",
-              contents: `
-                const React = window.React;
-                export const Fragment = React.Fragment;
-                export function jsx(type, props, key) {
-                  return React.createElement(type, { ...props, key });
-                }
-                export function jsxs(type, props, key) {
-                  return React.createElement(type, { ...props, key });
-                }
-              `,
-            };
-          }
-
-          if (args.path === "react/jsx-dev-runtime") {
-            return {
-              loader: "js",
-              contents: `
-                const React = window.React;
-                export const Fragment = React.Fragment;
-                export function jsxDEV(type, props, key) {
-                  return React.createElement(type, { ...props, key });
-                }
-              `,
-            };
-          }
-
-          if (args.path === "lucide-react") {
-            const lucideModuleSource = buildLucideModuleSource(lucideList);
-            return {
-              loader: "js",
-              contents: lucideModuleSource,
-            };
-          }
-
+      // 把外部注入模块映射到 window.*
+      buildCtx.onLoad({ filter: /.*/, namespace: "external-globals" }, (args) => {
+        if (args.path === "react") {
+          // ✅ 补全 framer-motion 所需的全部导出，并对部分新 API 做兜底
           return {
-            errors: [
-              {
-                text: `未知的 external 模块: ${args.path}`,
-              },
-            ],
+            loader: "js",
+            contents: `
+              const R = window.React;
+              if (!R) { throw new Error('window.React 未注入'); }
+              export default R;
+
+              // Elements & Context
+              export const createElement = R.createElement;
+              export const cloneElement = R.cloneElement;
+              export const isValidElement = R.isValidElement;
+              export const Fragment = R.Fragment;
+              export const createContext = R.createContext;
+              export const useContext = R.useContext;
+
+              // Component classes
+              export class Component extends R.Component {}
+              export class PureComponent extends R.PureComponent {}
+
+              // Hooks（含兜底）
+              export const useState = R.useState;
+              export const useReducer = R.useReducer;
+              export const useEffect = R.useEffect;
+              export const useLayoutEffect = R.useLayoutEffect;
+              export const useInsertionEffect = R.useInsertionEffect || R.useLayoutEffect;
+              export const useMemo = R.useMemo;
+              export const useCallback = R.useCallback;
+              export const useRef = R.useRef;
+              export const useImperativeHandle = R.useImperativeHandle;
+              export const useTransition = R.useTransition || (() => [false, (fn) => fn && fn()]);
+              export const useDeferredValue = R.useDeferredValue || ((v) => v);
+              export const startTransition = R.startTransition || ((fn) => fn && fn());
+              export const useId = R.useId || (() => Math.random().toString(36).slice(2));
+              export const useDebugValue = R.useDebugValue || (() => {});
+
+              // Others
+              export const forwardRef = R.forwardRef;
+              export const memo = R.memo;
+              export const StrictMode = R.StrictMode;
+              export const Suspense = R.Suspense;
+              export const Profiler = R.Profiler;
+              export const Children = R.Children;
+              export const version = R.version;
+            `,
           };
         }
-      );
+
+        if (args.path === "react-dom") {
+          // ✅ 补齐常见导出，兼容 React 18/17
+          return {
+            loader: "js",
+            contents: `
+              const D = window.ReactDOM;
+              if (!D) { throw new Error('window.ReactDOM 未注入'); }
+              export default D;
+
+              export const createPortal = D.createPortal;
+              export const flushSync = D.flushSync || ((fn)=>fn && fn());
+              export const render = D.render;
+              export const hydrate = D.hydrate;
+            `,
+          };
+        }
+
+        if (args.path === "react-dom/client") {
+          return {
+            loader: "js",
+            contents: `
+              const D = window.ReactDOM;
+              if (!D) { throw new Error('window.ReactDOM 未注入'); }
+              export function createRoot(container) {
+                if (D.createRoot) return D.createRoot(container);
+                // React <18 fallback
+                return {
+                  render: (el) => D.render(el, container),
+                  unmount: () => D.unmountComponentAtNode && D.unmountComponentAtNode(container),
+                };
+              }
+              export const hydrateRoot = D.hydrateRoot || null;
+            `,
+          };
+        }
+
+        if (args.path === "react/jsx-runtime") {
+          return {
+            loader: "js",
+            contents: `
+              const React = window.React;
+              export const Fragment = React.Fragment;
+              export function jsx(type, props, key) {
+                return React.createElement(type, { ...props, key });
+              }
+              export function jsxs(type, props, key) {
+                return React.createElement(type, { ...props, key });
+              }
+            `,
+          };
+        }
+
+        if (args.path === "react/jsx-dev-runtime") {
+          return {
+            loader: "js",
+            contents: `
+              const React = window.React;
+              export const Fragment = React.Fragment;
+              export function jsxDEV(type, props, key) {
+                return React.createElement(type, { ...props, key });
+              }
+            `,
+          };
+        }
+
+        if (args.path === "lucide-react") {
+          const lucideModuleSource = buildLucideModuleSource(lucideList);
+          return { loader: "js", contents: lucideModuleSource };
+        }
+
+        return { errors: [{ text: `未知的 external 模块: ${args.path}` }] };
+      });
     },
   };
 }
@@ -631,31 +763,16 @@ async function bundleSource(source) {
   // 找出 lucide-react import 的符号
   const lucideList = extractLucideImports(source);
 
-  // 安全插件（白名单注入 + 禁止额外依赖）
+  // 插件组合：虚拟入口 + http 导入 + 安全/CDN 改写
   const securityPlugin = createSecurityPlugin(resolveDir, lucideList);
 
   const result = await build({
     write: false,
     bundle: true,
-    format: "iife", // IIFE 方便我们直接 <script> 执行
+    format: "iife", // 直接 <script> 执行
     platform: "browser",
-    // ⭐ 关键：为移动端下调 target，避免 iOS/Android 直接 SyntaxError
-    //
-    // 解释：
-    // - 'es2017'：去掉 ?. ?? 等新语法；class fields 等降级
-    // - 'safari13' / 'ios13'：保证 iPhone Safari 能理解
-    // - 'chrome58' / 'edge79' / 'firefox60'：覆盖大多数安卓 WebView / Chrome / Edge / Firefox
-    //
-    // esbuild 会取“最老的那个”当作下限，对代码做降级转换。
-    //
-    target: [
-      "es2017",
-      "safari13",
-      "ios13",
-      "chrome58",
-      "firefox60",
-      "edge79",
-    ],
+    // 为移动端下调 target，避免 iOS/Android 直接 SyntaxError
+    target: ["es2017", "safari13", "ios13", "chrome58", "firefox60", "edge79"],
     treeShaking: true,
     logLevel: "silent",
     charset: "utf8",
@@ -671,10 +788,7 @@ async function bundleSource(source) {
           // virtual-entry: 负责挂载到 #root，并把运行时错误上报给父窗口
           buildCtx.onResolve(
             { filter: new RegExp(`^${VIRTUAL_ENTRY_PATH}$`) },
-            () => ({
-              path: VIRTUAL_ENTRY_PATH,
-              namespace: "virtual",
-            })
+            () => ({ path: VIRTUAL_ENTRY_PATH, namespace: "virtual" })
           );
 
           buildCtx.onLoad({ filter: /.*/, namespace: "virtual" }, () => ({
@@ -685,7 +799,6 @@ async function bundleSource(source) {
               import { createRoot } from "react-dom/client";
               import UserComponent from "${USER_CODE_VIRTUAL_PATH}";
 
-              // 把错误告诉父页面，父页面会显示红色 overlay
               const reportError = (payload) => {
                 try {
                   const detail =
@@ -694,10 +807,7 @@ async function bundleSource(source) {
                       : String(payload);
                   if (window.parent && window.parent !== window) {
                     window.parent.postMessage(
-                      {
-                        type: "CODE_PLAYGROUND_ERROR",
-                        message: detail
-                      },
+                      { type: "CODE_PLAYGROUND_ERROR", message: detail },
                       "*"
                     );
                   }
@@ -721,7 +831,6 @@ async function bundleSource(source) {
                 }
               };
 
-              // 捕获 runtime error / unhandledrejection
               window.addEventListener("error", (event) => {
                 if (!event) return;
                 if (event.error) {
@@ -745,13 +854,10 @@ async function bundleSource(source) {
             `,
           }));
 
-          // user-code: 用户写的组件本体（要求 default export 一个 React 组件）
+          // user-code: 用户写的组件（要求 default export 一个 React 组件）
           buildCtx.onResolve(
             { filter: new RegExp(`^${USER_CODE_VIRTUAL_PATH}$`) },
-            () => ({
-              path: USER_CODE_VIRTUAL_PATH,
-              namespace: "user",
-            })
+            () => ({ path: USER_CODE_VIRTUAL_PATH, namespace: "user" })
           );
 
           buildCtx.onLoad({ filter: /.*/, namespace: "user" }, () => ({
@@ -762,7 +868,10 @@ async function bundleSource(source) {
         },
       },
 
-      // 白名单/沙箱插件
+      // 让 esbuild 能拉取 CDN 的 http(s)/data: 模块，且能解析其相对/根相对/裸导入子依赖
+      httpImportPlugin(),
+
+      // 去白名单 + 注入外部全局 + CDN 改写
       securityPlugin,
     ],
 
@@ -857,8 +966,7 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ js, css });
   } catch (error) {
     const statusCode =
-      (error && typeof error.statusCode === "number" && error.statusCode) ||
-      400;
+      (error && typeof error.statusCode === "number" && error.statusCode) || 400;
 
     const message = formatEsbuildError(error);
     res.status(statusCode).json({ error: message });
